@@ -1,5 +1,5 @@
 [package]
-name = "lexer"
+name = "utils"
 version = "0.1.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
@@ -11,4 +11,4 @@ Lexical Analysis Crate for the Huff-Language
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 
 [dependencies]
-utils = { path = "../utils" }
+
