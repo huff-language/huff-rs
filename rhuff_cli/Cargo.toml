@@ -13,8 +13,8 @@ exclude = [ "huffs" ]
 
 [dependencies]
 clap = { version = "3.1.18", features = ["derive"] }
-lexer = { path = "../lexer" }
-utils = { path = "../utils" }
+lexer = { path = "../rhuff_lexer" }
+utils = { path = "../rhuff_utils" }
 
 [[bin]]
 name = "rhuff"

@@ -1,8 +1,8 @@
 [workspace]
 members = [
-  "lexer",
-  "utils",
-  "cli"
+  "rhuff_lexer",
+  "rhuff_utils",
+  "rhuff_cli"
 ]
 exclude = [ "assets" ]
 
