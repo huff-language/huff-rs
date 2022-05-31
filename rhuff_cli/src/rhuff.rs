@@ -7,7 +7,7 @@ use utils::io::*;
 /// Efficient Huff compiler.
 #[derive(Parser, Debug)]
 #[clap(version, about, long_about = None)]
-struct Rhuff {
+struct huffr {
     path: Option<String>,
 
     /// The source path to the contracts (default: "./src").
@@ -35,13 +35,13 @@ struct Rhuff {
     print: bool,
 }
 
-// Parse files from an Rhuff instance
+// Parse files from an huffr instance
 // TODO: We can probably turn this into a <BUILD> instance where we generate a list of all build
 // files TODO:    with dependencies including their raw sources and perform compilation on that
 // <BUILD> instance
-impl From<Rhuff> for Vec<String> {
-    fn from(rhuff: Rhuff) -> Self {
-        match rhuff.path {
+impl From<huffr> for Vec<String> {
+    fn from(huffr: huffr) -> Self {
+        match huffr.path {
             Some(path) => {
                 // If the file is huff, we can use it
                 let ext = Path::new(&path).extension().unwrap_or_default();
@@ -54,7 +54,7 @@ impl From<Rhuff> for Vec<String> {
             }
             None => {
                 // If there's no path, unpack source files
-                let source: String = rhuff.source;
+                let source: String = huffr.source;
                 unpack_files(&source).unwrap_or_default()
             }
         }
@@ -63,7 +63,7 @@ impl From<Rhuff> for Vec<String> {
 
 fn main() {
     // Parse the command line arguments
-    let cli = Rhuff::parse();
+    let cli = huffr::parse();
 
     // Gracefully derive file compilation
     let files: Vec<String> = cli.into();
