@@ -56,27 +56,23 @@ fn main() {
             // If there's no path, unpack source files
             let source: String = cli.source;
             unpack_files(&source).unwrap_or_default()
-        },
+        }
     };
 
     // Validate files strictly (the extensions must be .huff)
-    let compile_files: Vec<String> = input_files.iter()
-    .filter(|&f| Path::new(&f).extension().unwrap().eq("huff"))
-    .cloned()
-    .collect();
+    let compile_files: Vec<String> = input_files
+        .iter()
+        .filter(|&f| Path::new(&f).extension().unwrap().eq("huff"))
+        .cloned()
+        .collect();
 
     println!("Compiling files: {:?}", compile_files);
-
 
     // Perform Lexical Analysis
     // let lexer: Lexer = Lexer::new();
     // TODO: print compiled bytecode if flagged
     // TODO: print output to terminal if flagged
 
-
     // TODO: Unpack output (if only one file or contract specified)
     // TODO: Unpack output directory
-
-
-
 }

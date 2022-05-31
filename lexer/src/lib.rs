@@ -4,13 +4,12 @@
 
 #![deny(missing_docs)]
 
-use std::iter::Peekable;
-use std::str::Chars;
+use std::{iter::Peekable, str::Chars};
 
 use utils::{
+    error::{LexicalError, LexicalErrorKind},
+    span::Span,
     token::{Token, TokenKind},
-    span::{Span},
-    error::{LexicalError, LexicalErrorKind}
 };
 
 #[cfg(test)]
@@ -33,12 +32,7 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
     pub fn new(source: &'a str) -> Self {
-        Self {
-            chars: source.chars().peekable(),
-            source,
-            span: Span::default(),
-            eof: false,
-        }
+        Self { chars: source.chars().peekable(), source, span: Span::default(), eof: false }
     }
 
     fn peek(&mut self) -> Option<char> {
@@ -80,7 +74,6 @@ impl<'a> Lexer<'a> {
     }
 }
 
-
 impl<'a> Iterator for Lexer<'a> {
     type Item = Result<Token<'a>, LexicalError>;
 
@@ -108,7 +101,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('"') => {
                             self.chomp();
                             let str = self.slice();
-                            break TokenKind::Str(&str[1..str.len() - 1]);
+                            break TokenKind::Str(&str[1..str.len() - 1])
                         }
                         Some('\\') if matches!(self.peekn(1), Some('\\') | Some('"')) => {
                             self.chomp();
@@ -116,7 +109,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some(_) => {}
                         None => {
                             self.eof = true;
-                            return Some(Err(LexicalError::new(UnexpectedEof, self.span)));
+                            return Some(Err(LexicalError::new(UnexpectedEof, self.span)))
                         }
                     }
 
@@ -138,12 +131,9 @@ impl<'a> Iterator for Lexer<'a> {
                 self.eof = true;
             }
 
-            let token = Token {
-                kind,
-                span: self.span,
-            };
+            let token = Token { kind, span: self.span };
 
-            return Some(Ok(token));
+            return Some(Ok(token))
         }
 
         self.eof = true;

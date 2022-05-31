@@ -1,10 +1,6 @@
-
 use proptest::prelude::*;
 
-use crate::{
-    Lexer,
-    Span,
-};
+use crate::{Lexer, Span};
 
 // proptest! {
 //     #[test]

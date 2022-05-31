@@ -1,34 +1,33 @@
-
 use std::io::Write;
 
 use crate::{
-  span::{Span, Spanned},
-  report::{Report, Reporter}
+    report::{Report, Reporter},
+    span::{Span, Spanned},
 };
 
 /// A Lexing Error
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct LexicalError {
-  /// The kind of error
-  pub kind: LexicalErrorKind,
-  /// The span where the error occured
-  pub span: Span,
+    /// The kind of error
+    pub kind: LexicalErrorKind,
+    /// The span where the error occured
+    pub span: Span,
 }
 
 impl LexicalError {
-  /// Public associated function to instatiate a new LexicalError.
-  pub fn new(kind: LexicalErrorKind, span: Span) -> Self {
-    Self { kind, span }
-  }
+    /// Public associated function to instatiate a new LexicalError.
+    pub fn new(kind: LexicalErrorKind, span: Span) -> Self {
+        Self { kind, span }
+    }
 }
 
 /// A Lexical Error Kind
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum LexicalErrorKind {
-  /// Unexpected end of file
-  UnexpectedEof,
-  /// Invalid character
-  InvalidCharacter(char),
+    /// Unexpected end of file
+    UnexpectedEof,
+    /// Invalid character
+    InvalidCharacter(char),
 }
 
 impl Spanned for LexicalError {

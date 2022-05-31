@@ -21,9 +21,5 @@ pub mod io;
 
 /// Prelude wraps common utilities.
 pub mod prelude {
-    pub use crate::span::*;
-    pub use crate::token::*;
-    pub use crate::error::*;
-    pub use crate::report::*;
-    pub use crate::io::*;
+    pub use crate::{error::*, io::*, report::*, span::*, token::*};
 }
