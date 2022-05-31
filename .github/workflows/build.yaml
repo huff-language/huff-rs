@@ -1,0 +1,27 @@
+name: Build
+
+on: [push]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        steps:
+            - name: Checkout sources
+              uses: actions/checkout@v2
+
+            - name: Install toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                toolchain: stable
+                profile: minimal
+                override: true
+
+            - uses: Swatinem/rust-cache@v1
+              with:
+                cache-on-failure: true
+
+            - name: build
+              id: build
+              continue-on-error: true
+              run: cargo +nightly build --all

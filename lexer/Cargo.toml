@@ -1,0 +1,17 @@
+[package]
+name = "lexer"
+version = "0.1.0"
+edition = "2021"
+authors = ["Andreas Bigger"]
+readme = "README.md"
+repository = "https://github.com/huff-language/huffr/"
+description = """
+Lexical Analysis Crate for the Huff-Language
+"""
+keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
+
+[dependencies]
+
+
+[badges]
+maintenance = { status = "actively-developed" }
