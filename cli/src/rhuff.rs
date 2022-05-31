@@ -36,8 +36,9 @@ struct Rhuff {
 }
 
 // Parse files from an Rhuff instance
-// TODO: We can probably turn this into a <BUILD> instance where we generate a list of all build files
-// TODO:    with dependencies including their raw sources and perform compilation on that <BUILD> instance
+// TODO: We can probably turn this into a <BUILD> instance where we generate a list of all build
+// files TODO:    with dependencies including their raw sources and perform compilation on that
+// <BUILD> instance
 impl From<Rhuff> for Vec<String> {
     fn from(rhuff: Rhuff) -> Self {
         match rhuff.path {

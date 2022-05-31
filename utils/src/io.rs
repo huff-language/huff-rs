@@ -27,7 +27,8 @@ pub fn unpack_files(path: &str) -> Result<Vec<String>, UnpackError> {
             // We have a directory, try to extract huff files and parse
             match std::fs::read_dir(path) {
                 Ok(files) => {
-                    let input_files: Vec<String> = files.map(|x| x.unwrap().path().to_str().unwrap().to_string()).collect();
+                    let input_files: Vec<String> =
+                        files.map(|x| x.unwrap().path().to_str().unwrap().to_string()).collect();
                     let filtered: Vec<String> = input_files
                         .iter()
                         .filter(|&f| Path::new(&f).extension().unwrap().eq("huff"))
