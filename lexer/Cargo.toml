@@ -11,4 +11,5 @@ Lexical Analysis Crate for the Huff-Language
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 
 [dependencies]
+proptest = "1.0.0"
 utils = { path = "../utils" }
