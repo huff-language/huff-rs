@@ -32,7 +32,7 @@ pub fn unpack_files(path: &str) -> Result<Vec<String>, UnpackError> {
                 Ok(files) => {
                     Ok(files.map(|x| x.unwrap().path().to_str().unwrap().to_string()).collect())
                 }
-                Err(e) => Err(UnpackError::InvalidDirectory),
+                Err(_) => Err(UnpackError::InvalidDirectory),
             }
         }
     }
