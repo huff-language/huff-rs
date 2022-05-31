@@ -1,6 +1,6 @@
 //! Utils
 //!
-//! Refactored utilities commonly used across the rhuff project.
+//! Refactored utilities commonly used across the huffr project.
 
 #![deny(missing_docs)]
 
