@@ -18,7 +18,6 @@ pub fn unpack_files(path: &str) -> Result<Vec<String>, UnpackError> {
     // If the path is a file, return a vec of the file
     match parse_extension(path) {
         Some(extension) => {
-            println!("Parsed file extension: {}", extension);
             if extension == "huff" {
                 return Ok(vec![path.to_string()])
             }
@@ -26,11 +25,15 @@ pub fn unpack_files(path: &str) -> Result<Vec<String>, UnpackError> {
         }
         None => {
             // We have a directory, try to extract huff files and parse
-            println!("We have a dir: {}", path);
-            // Parse source files
             match std::fs::read_dir(path) {
                 Ok(files) => {
-                    Ok(files.map(|x| x.unwrap().path().to_str().unwrap().to_string()).collect())
+                    let input_files: Vec<String> = files.map(|x| x.unwrap().path().to_str().unwrap().to_string()).collect();
+                    let filtered: Vec<String> = input_files
+                        .iter()
+                        .filter(|&f| Path::new(&f).extension().unwrap().eq("huff"))
+                        .cloned()
+                        .collect();
+                    Ok(filtered)
                 }
                 Err(_) => Err(UnpackError::InvalidDirectory),
             }
