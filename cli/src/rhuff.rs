@@ -1,10 +1,10 @@
 use clap::Parser;
 // use lexer::Lexer;
 
-/// Efficiently compile Huff code.
+/// Efficient Huff compiler.
 #[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
-struct Cli {
+#[clap(version, about, long_about = None)]
+struct Rhuff {
     path: Option<String>,
 
     /// The source path to the contracts (default: "./src").
@@ -34,7 +34,7 @@ struct Cli {
 
 fn main() {
     // Parse the command line arguments
-    let cli = Cli::parse();
+    let cli = Rhuff::parse();
 
     // Unpack source
     let source: String = cli.source;

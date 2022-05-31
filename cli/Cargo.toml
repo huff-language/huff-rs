@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
 readme = "README.md"
-repository = "https://github.com/huff-language/huffr/"
+repository = "https://github.com/huff-language/rhuff/"
 description = """
-Lexical Analysis Crate for the Huff-Language
+Efficient Huff compiler.
 """
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 
@@ -14,3 +14,8 @@ keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 [dependencies]
 clap = { version = "3.1.18", features = ["derive"] }
 lexer = { path = "../lexer" }
+
+[[bin]]
+name = "rhuff"
+path = "src/rhuff.rs"
+doc = false

@@ -16,15 +16,35 @@ rhuff 0.1.0
 Efficiently compile Huff code.
 
 USAGE:
-    rhuff <filename> [OPTIONS]
+    rhuff [OPTIONS] [PATH]
+
+ARGS:
+    <PATH>
 
 OPTIONS:
-    -h, --help                Print help information
-    -V, --version             Print version information
-    -s, --source-path         The source path to the contracts (default: "./").
-    -o, --output              The output file path.
-    -d, --output-directory    The output directory (default: "./").
-    -z, --optimize            Optimize compilation.
-    -b, --bytecode            Generate and log bytecode (default: false).
-    -p, --print               Print the output to the terminal.
+    -b, --bytecode                        Generate and log bytecode (default: false).
+    -d, --output-directory <OUTPUTDIR>    The output directory (default: "./").
+    -h, --help                            Print help information
+    -o, --output <OUTPUT>                 The output file path.
+    -p, --print                           Print the output to the terminal.
+    -s, --source-path <SOURCE>            The source path to the contracts (default: "./").
+    -V, --version                         Print version information
+    -z, --optimize                        Optimize compilation.
 ```
+
+
+
+### Developing
+
+To run `rhuff` from the command line, you can use the following command:
+
+```bash
+cargo run --bin rhuff
+```
+
+To pass arguments into the `rhuff` binary, simply pass them in after a `--` flag. For example, to get the `rhuff` version (a `-V` flag), you can run:
+
+```bash
+cargo run --bin rhuff -- -V
+```
+
