@@ -1,8 +1,8 @@
 <img align="right" width="150" height="150" top="100" src="./assets/huff.png">
 
-# rhuff • [![tests](https://github.com/huff-language/rhuff/actions/workflows/tests.yaml/badge.svg)](https://github.com/huff-language/rhuff/actions/workflows/tests.yaml) [![lints](https://github.com/huff-language/rhuff/actions/workflows/lints.yaml/badge.svg)](https://github.com/huff-language/rhuff/actions/workflows/lints.yaml) ![GitHub](https://img.shields.io/github/license/huff-language/rhuff)  ![Crates.io](https://img.shields.io/crates/v/rhuff)
+# huffr • [![tests](https://github.com/huff-language/huffr/actions/workflows/tests.yaml/badge.svg)](https://github.com/huff-language/huffr/actions/workflows/tests.yaml) [![lints](https://github.com/huff-language/huffr/actions/workflows/lints.yaml/badge.svg)](https://github.com/huff-language/huffr/actions/workflows/lints.yaml) ![GitHub](https://img.shields.io/github/license/huff-language/huffr)  ![Crates.io](https://img.shields.io/crates/v/huffr)
 
-> `rhuff` is a [huff](https://github.com/huff-language) compiler written in pure rust.
+> `huffr` is a [huff](https://github.com/huff-language) compiler written in pure rust.
 
 
 ## What is a Huff?
@@ -48,7 +48,7 @@ All contributions are welcome! We want to make contributing to this project as e
   - Proposing new features
   - Becoming a maintainer
 
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/huff-language/rhuff/issues/new); it's that easy!
+We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/huff-language/huffr/issues/new); it's that easy!
 
 
 ## References
