@@ -1,6 +1,6 @@
 <img align="right" width="150" height="150" top="100" src="./assets/huff.png">
 
-# rhuff • [![tests](https://github.com/abigger87/rhuff/actions/workflows/tests.yaml/badge.svg)](https://github.com/abigger87/rhuff/actions/workflows/tests.yaml) [![lints](https://github.com/abigger87/rhuff/actions/workflows/lints.yaml/badge.svg)](https://github.com/abigger87/rhuff/actions/workflows/lints.yaml) ![GitHub](https://img.shields.io/github/license/abigger87/rhuff)  ![Crates.io](https://img.shields.io/crates/v/rhuff)
+# rhuff • [![tests](https://github.com/huff-language/rhuff/actions/workflows/tests.yaml/badge.svg)](https://github.com/huff-language/rhuff/actions/workflows/tests.yaml) [![lints](https://github.com/huff-language/rhuff/actions/workflows/lints.yaml/badge.svg)](https://github.com/huff-language/rhuff/actions/workflows/lints.yaml) ![GitHub](https://img.shields.io/github/license/huff-language/rhuff)  ![Crates.io](https://img.shields.io/crates/v/rhuff)
 
 > `rhuff` is a [huff](https://github.com/huff-language) compiler written in pure rust.
 
@@ -48,7 +48,7 @@ All contributions are welcome! We want to make contributing to this project as e
   - Proposing new features
   - Becoming a maintainer
 
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/abigger87/rhuff/issues/new); it's that easy!
+We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/huff-language/rhuff/issues/new); it's that easy!
 
 
 ## References
