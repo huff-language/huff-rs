@@ -1,5 +1,4 @@
-use std::str::Chars;
-use std::iter::Peekable;
+use std::{iter::Peekable, str::Chars};
 
 enum OpcodeType {
     // Opcode list goes here.
@@ -29,11 +28,7 @@ struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     fn new(source: &'a str) -> Self {
-        Self {
-            chars: source.chars().peekable(),
-            pos: 0,
-            eof: false,
-        }
+        Self { chars: source.chars().peekable(), pos: 0, eof: false }
     }
 
     fn consume() -> Option<char> {
@@ -52,13 +47,6 @@ impl<'a> Iterator for Lexer<'a> {
 
     // The bulk of the lexing logic can reside here.
     fn next(&mut self) -> Option<Self::Item> {
-        Some(Ok(Token {
-            ttype: TokenType::Whitespace,
-            span: Span {
-                start: 0,
-                end: 0,
-            }
-        }))
+        Some(Ok(Token { ttype: TokenType::Whitespace, span: Span { start: 0, end: 0 } }))
     }
-
 }

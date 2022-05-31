@@ -1,13 +1,13 @@
 use std::path::Path;
 
 use clap::Parser;
-use utils::io::*;
-// use lexer::Lexer;
+use huffr_utils::io::*;
+// use huffr_lexer::Lexer;
 
 /// Efficient Huff compiler.
 #[derive(Parser, Debug)]
 #[clap(version, about, long_about = None)]
-struct huffr {
+struct Huffr {
     path: Option<String>,
 
     /// The source path to the contracts (default: "./src").
@@ -39,8 +39,8 @@ struct huffr {
 // TODO: We can probably turn this into a <BUILD> instance where we generate a list of all build
 // files TODO:    with dependencies including their raw sources and perform compilation on that
 // <BUILD> instance
-impl From<huffr> for Vec<String> {
-    fn from(huffr: huffr) -> Self {
+impl From<Huffr> for Vec<String> {
+    fn from(huffr: Huffr) -> Self {
         match huffr.path {
             Some(path) => {
                 // If the file is huff, we can use it
@@ -63,7 +63,7 @@ impl From<huffr> for Vec<String> {
 
 fn main() {
     // Parse the command line arguments
-    let cli = huffr::parse();
+    let cli = Huffr::parse();
 
     // Gracefully derive file compilation
     let files: Vec<String> = cli.into();
