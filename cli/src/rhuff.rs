@@ -1,4 +1,7 @@
+use std::path::Path;
+
 use clap::Parser;
+use utils::io::*;
 // use lexer::Lexer;
 
 /// Efficient Huff compiler.
@@ -36,20 +39,33 @@ fn main() {
     // Parse the command line arguments
     let cli = Rhuff::parse();
 
-    // Unpack source
-    let source: String = cli.source;
+    // Gracefully derive file compilation
+    let input_files: Vec<String> = match cli.path {
+        Some(path) => {
+            // If the file is huff, we can use it
+            let ext = Path::new(&path).extension().unwrap_or_default();
+            println!("Extension: {}", ext.to_str().unwrap());
+            if ext.eq("huff") {
+                vec![path]
+            } else {
+                // Otherwise, override the source files and use all files in the provided dir
+                unpack_files(&path).unwrap_or_default()
+            }
+        }
+        None => {
+            // If there's no path, unpack source files
+            let source: String = cli.source;
+            unpack_files(&source).unwrap_or_default()
+        },
+    };
 
-    println!("Source directory: {:?}", source);
+    // Validate files strictly (the extensions must be .huff)
+    let compile_files: Vec<String> = input_files.iter()
+    .filter(|&f| Path::new(&f).extension().unwrap().eq("huff"))
+    .cloned()
+    .collect();
 
-    // TODO: this can be a file ?
-
-    // Parse source files
-    let source_files: Vec<String> = std::fs::read_dir(source)
-        .unwrap()
-        .map(|x| x.unwrap().path().to_str().unwrap().to_string())
-        .collect();
-
-    println!("Source files: {:?}", source_files);
+    println!("Compiling files: {:?}", compile_files);
 
 
     // Perform Lexical Analysis
@@ -60,6 +76,7 @@ fn main() {
 
     // TODO: Unpack output (if only one file or contract specified)
     // TODO: Unpack output directory
+
 
 
 }
