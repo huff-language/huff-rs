@@ -1,9 +1,11 @@
+#![allow(dead_code)]
+
+use huffr_utils::{error::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
-use huffr_utils::{evm::*, span::*, token::*, error::*};
+
 
 #[cfg(test)]
 mod tests;
-
 
 /// ## Lexer
 ///
@@ -22,12 +24,7 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
     pub fn new(source: &'a str) -> Self {
-        Self {
-            chars: source.chars().peekable(),
-            source,
-            span: Span::default(),
-            eof: false
-        }
+        Self { chars: source.chars().peekable(), source, span: Span::default(), eof: false }
     }
 
     /// Public associated function that returns the current lexing span.
@@ -44,9 +41,16 @@ impl<'a> Lexer<'a> {
         self.chars.peek().copied()
     }
 
-    /// Try to peek at the next n characters from the source
-    fn peekn(&self, n: usize) -> Option<char> {
+    /// Try to peek at the nth character from the source
+    fn nthpeek(&mut self, n: usize) -> Option<char> {
         self.chars.clone().nth(n)
+    }
+
+    /// Try to peek at next n characters from the source
+    fn peeknchars(&mut self, n: usize) -> String {
+        let mut newspan: Span = self.span;
+        newspan.end += n;
+        self.source[newspan.range().unwrap()].to_string()
     }
 
     /// Gets the current slice of the source code covered by span
@@ -60,6 +64,16 @@ impl<'a> Lexer<'a> {
             self.span.end += 1;
             x
         })
+    }
+
+    /// Consume characters until a sequence matches
+    pub fn seq_consume(&mut self, seq: &mut Peekable<Chars<'a>>) {
+        while self.peek() != None {
+            if self.peek().unwrap() == *seq.peek().unwrap() {
+                seq.next();
+            }
+            self.consume();
+        }
     }
 
     /// Dynamically consumes characters based on filters
@@ -88,67 +102,70 @@ impl<'a> Iterator for Lexer<'a> {
                     if let Some(ch2) = self.consume() {
                         match ch2 {
                             '/' => {
-                                self.dyn_consume(|ch| ch != '\n');
+                                self.seq_consume(&mut "\n".chars().peekable());
                                 TokenKind::Comment(self.slice().to_string())
                             }
                             '*' => {
-                                self.dyn_consume(|ch| ch != '*' || self.peekn(1) != Some('/'));
+                                self.seq_consume(&mut "*/".chars().peekable());
                                 TokenKind::Comment(self.slice().to_string())
                             }
-                            _ => TokenKind::Div
+                            _ => TokenKind::Div,
                         }
                     } else {
                         TokenKind::Div
                     }
-                },
+                }
                 // Definitions
                 '#' => {
                     if let Some(ch2) = self.consume() {
                         match ch2 {
                             '#' => {
-                                self.dyn_consume(|ch| ch != '\n');
+                                self.seq_consume(&mut "\n".chars().peekable());
                                 TokenKind::Definition(Definition::Macro(self.slice().to_string()))
                             }
                             '@' => {
-                                self.dyn_consume(|ch| ch != '\n');
+                                self.seq_consume(&mut "\n".chars().peekable());
                                 TokenKind::Definition(Definition::Import(self.slice().to_string()))
                             }
-                            _ => TokenKind::Div
+                            _ => TokenKind::Div,
                         }
                     } else {
                         TokenKind::Div
                     }
-                },
+                }
 
-                '+' => Add,
-                '-' => Sub,
-                '*' => Mul,
+                '+' => TokenKind::Add,
+                '-' => TokenKind::Sub,
+                '*' => TokenKind::Mul,
                 '0'..='9' => {
-                    self.chomp_while(char::is_ascii_digit);
-                    Num(self.slice().parse().unwrap())
+                    self.dyn_consume(char::is_ascii_digit);
+                    TokenKind::Num(self.slice().parse().unwrap())
                 }
                 ch if ch.is_ascii_whitespace() => {
-                    self.chomp_while(char::is_ascii_whitespace);
-                    Whitespace
+                    self.dyn_consume(char::is_ascii_whitespace);
+                    TokenKind::Whitespace
                 }
                 '"' => loop {
                     match self.peek() {
                         Some('"') => {
-                            self.chomp();
+                            self.consume();
                             let str = self.slice();
                             break TokenKind::Str(&str[1..str.len() - 1])
                         }
-                        Some('\\') if matches!(self.peekn(1), Some('\\') | Some('"')) => {
-                            self.chomp();
+                        Some('\\') if matches!(self.nthpeek(1), Some('\\') | Some('"')) => {
+                            self.consume();
                         }
                         Some(_) => {}
                         None => {
                             self.eof = true;
-                            return Some(Err(LexicalError::new(UnexpectedEof, self.span)))
+                            return Some(Err(LexicalError::new(
+                                LexicalErrorKind::UnexpectedEof,
+                                self.span,
+                            )))
                         }
                     }
 
-                    self.chomp();
+                    self.consume();
                 },
                 ';' => TokenKind::Semi,
                 '=' => TokenKind::Assign,
@@ -156,10 +173,15 @@ impl<'a> Iterator for Lexer<'a> {
                 ')' => TokenKind::CloseParen,
                 ',' => TokenKind::Comma,
                 ch if ch.is_alphabetic() => {
-                    self.chomp_while(|c| c.is_alphanumeric());
+                    self.dyn_consume(|c| c.is_alphanumeric());
                     TokenKind::Ident(self.slice())
                 }
-                ch => return Some(Err(LexicalError::new(LexicalErrorKind::InvalidCharacter(ch), self.span))),
+                ch => {
+                    return Some(Err(LexicalError::new(
+                        LexicalErrorKind::InvalidCharacter(ch),
+                        self.span,
+                    )))
+                }
             };
 
             if self.peek().is_none() {

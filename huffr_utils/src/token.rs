@@ -1,4 +1,6 @@
-use std::{fmt};
+use std::fmt::{self};
+
+use strum_macros::Display;
 
 use crate::span::Span;
 
@@ -42,7 +44,6 @@ pub enum TokenKind<'a> {
     Comma,
 
     // --- Huff Specific Compatibility ---
-
     /// A comment with its comments encapsulated for traceability
     Comment(String),
     /// A Definition
@@ -55,7 +56,7 @@ pub enum TokenKind<'a> {
 pub type MacroIdentifier = String;
 
 /// A Definition
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Display)]
 pub enum Definition {
     /// A Macro
     Macro(MacroIdentifier),
@@ -65,7 +66,9 @@ pub enum Definition {
 
 impl<'a> fmt::Display for TokenKind<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let x = match *self {
+        let x = match self {
+            TokenKind::Comment(str) => return write!(f, "Comment({})", str),
+            TokenKind::Definition(str) => return write!(f, "{:?} Definition", str),
             TokenKind::Add => "+",
             TokenKind::Sub => "+",
             TokenKind::Mul => "*",
