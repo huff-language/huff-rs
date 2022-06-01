@@ -216,6 +216,12 @@ impl<'a> Iterator for Lexer<'a> {
                     }
                 }
 
+                '=' => TokenKind::Assign,
+                '(' => TokenKind::OpenParen,
+                ')' => TokenKind::CloseParen,
+                ',' => TokenKind::Comma,
+                // ';' => TokenKind::Semi,
+
                 // TODO: remove/fix below
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
@@ -250,11 +256,6 @@ impl<'a> Iterator for Lexer<'a> {
 
                     self.consume();
                 },
-                ';' => TokenKind::Semi,
-                '=' => TokenKind::Assign,
-                '(' => TokenKind::OpenParen,
-                ')' => TokenKind::CloseParen,
-                ',' => TokenKind::Comma,
 
                 ch => {
                     return Some(Err(LexicalError::new(
