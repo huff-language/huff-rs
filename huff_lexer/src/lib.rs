@@ -113,43 +113,44 @@ impl<'a> Iterator for Lexer<'a> {
         self.reset();
         if let Some(ch) = self.consume() {
             let kind = match ch {
-                // Comments
-                '/' => {
-                    if let Some(ch2) = self.consume() {
-                        match ch2 {
-                            '/' => {
-                                self.seq_consume(&mut "\n".chars().peekable());
-                                TokenKind::Comment(self.slice().to_string())
-                            }
-                            '*' => {
-                                self.seq_consume(&mut "*/".chars().peekable());
-                                TokenKind::Comment(self.slice().to_string())
-                            }
-                            _ => TokenKind::Div,
-                        }
-                    } else {
-                        TokenKind::Div
-                    }
-                }
-                // Definitions
-                '#' => {
-                    if let Some(ch2) = self.consume() {
-                        match ch2 {
-                            '#' => {
-                                self.seq_consume(&mut "\n".chars().peekable());
-                                TokenKind::Definition(Definition::Macro(self.slice().to_string()))
-                            }
-                            '@' => {
-                                self.seq_consume(&mut "\n".chars().peekable());
-                                TokenKind::Definition(Definition::Import(self.slice().to_string()))
-                            }
-                            _ => TokenKind::Div,
-                        }
-                    } else {
-                        TokenKind::Div
-                    }
-                }
-
+                // // Comments
+                // '/' => {
+                //     if let Some(ch2) = self.consume() {
+                //         match ch2 {
+                //             '/' => {
+                //                 self.seq_consume(&mut "\n".chars().peekable());
+                //                 TokenKind::Comment(self.slice().to_string())
+                //             }
+                //             '*' => {
+                //                 self.seq_consume(&mut "*/".chars().peekable());
+                //                 TokenKind::Comment(self.slice().to_string())
+                //             }
+                //             _ => TokenKind::Div,
+                //         }
+                //     } else {
+                //         TokenKind::Div
+                //     }
+                // }
+                // // Definitions
+                // '#' => {
+                //     if let Some(ch2) = self.consume() {
+                //         match ch2 {
+                //             '#' => {
+                //                 self.seq_consume(&mut "\n".chars().peekable());
+                //
+                // TokenKind::Definition(Definition::Macro(self.slice().to_string()))
+                //             }
+                //             '@' => {
+                //                 self.seq_consume(&mut "\n".chars().peekable());
+                //
+                // TokenKind::Definition(Definition::Import(self.slice().to_string()))
+                //             }
+                //             _ => TokenKind::Div,
+                //         }
+                //     } else {
+                //         TokenKind::Div
+                //     }
+                // }
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,

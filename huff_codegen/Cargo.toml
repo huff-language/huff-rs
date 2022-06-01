@@ -1,18 +1,16 @@
 [package]
-name = "huff_utils"
-version = "0.2.0"
+name = "huff_codegen"
+version = "0.1.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
 description = """
-Lexical Analysis Crate for the Huff-Language
+Code Generation Crate for the Huff-Language
 """
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 
 [dependencies]
-serde = { version = "1.0.137", features = [ "derive" ] }
 serde_json = "1.0.81"
-strum = "0.24"
-strum_macros = "0.24"
-codemap-diagnostic = "0.1.1"
+proptest = "1.0.0"
+huff_utils = { path = "../huff_utils" }
