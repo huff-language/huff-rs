@@ -1,11 +1,10 @@
-use std::fmt::{self};
-
-use strum_macros::Display;
-
 use crate::span::Span;
+use std::fmt;
+
+type Literal = [u8; 32];
 
 /// A single Token
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Token<'a> {
     /// The kind of token
     pub kind: TokenKind<'a>,
@@ -14,7 +13,7 @@ pub struct Token<'a> {
 }
 
 /// The kind of token
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind<'a> {
     /// Addition
     Add,
@@ -40,35 +39,47 @@ pub enum TokenKind<'a> {
     OpenParen,
     /// A close parenthesis
     CloseParen,
+    /// An open brace
+    OpenBrace,
+    /// A close brace
+    CloseBrace,
+    /// An open bracket
+    OpenBracket,
+    /// A close bracket
+    CloseBracket,
     /// A comma
     Comma,
-
-    // --- Huff Specific Compatibility ---
-    /// A comment with its comments encapsulated for traceability
-    Comment(String),
-    /// A Definition
-    Definition(Definition),
-}
-
-// TODO: Can we make this a hash of the name?
-// TODO: Are there macro conflicts?
-/// A Macro Identifier
-pub type MacroIdentifier = String;
-
-/// A Definition
-#[derive(Debug, PartialEq, Eq, Clone, Display)]
-pub enum Definition {
-    /// A Macro
-    Macro(MacroIdentifier),
-    /// An imported file
-    Import(String),
+    /// A newline
+    Newline,
+    /// "#define" keyword
+    Define,
+    /// "takes" keyword
+    Takes(usize),
+    /// "returns" keyword
+    Returns(usize),
+    /// "="
+    Equal,
+    /// "macro" keyword
+    Macro,
+    /// "constant" keyword
+    Constant,
+    /// "FREE_STORAGE_POINTER()" keyword
+    FreeStoragePointer,
+    /// Hex
+    Literal(Literal),
+    /// Opcode
+    Opcode,
+    /// End Of File
+    Eof,
+    /// Huff label (aka PC)
+    Label(&'a str),
+    /// Import path
+    Path(&'a str),
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let x = match self {
-            TokenKind::Comment(str) => return write!(f, "Comment({})", str),
-            TokenKind::Definition(str) => return write!(f, "{:?} Definition", str),
+        let x = match *self {
             TokenKind::Add => "+",
             TokenKind::Sub => "+",
             TokenKind::Mul => "*",
@@ -82,6 +93,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Str(str) => str,
             TokenKind::Num(num) => return write!(f, "{}", num),
             TokenKind::Ident(_) => todo!(),
+            _ => "oof",
         };
 
         write!(f, "{}", x)
