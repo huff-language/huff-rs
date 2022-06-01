@@ -1,7 +1,7 @@
-use proptest::prelude::*;
-
 use huff_lexer::*;
 use huff_utils::prelude::*;
+
+// use proptest::prelude::*;
 
 // proptest! {
 //     #[test]
