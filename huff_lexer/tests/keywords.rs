@@ -175,3 +175,61 @@ fn parses_takes_and_returns_keywords_tight_syntax() {
     assert!(lexer.eof);
     assert!(lexer.next().is_none());
 }
+
+#[test]
+fn parses_function_definition_with_keyword_name() {
+    let key_words = vec!["macro", "function", "constant", "takes", "returns"];
+
+    for s in key_words {
+        let source = format!("#define function {}(uint256) takes(0) returns(0)", s);
+        let mut lexer = Lexer::new(source.as_str());
+        assert_eq!(lexer.source, source);
+
+        let end_span_s = 17 + s.len();
+
+        let _ = lexer.next(); // #define
+        let _ = lexer.next(); // whitespace
+        let _ = lexer.next(); // function
+        let _ = lexer.next(); // whitespace
+
+        // Keyword as a function name (s)
+        let tok = lexer.next();
+        let unwrapped = tok.unwrap().unwrap();
+        let ident_span = Span::new(17..end_span_s);
+        assert_eq!(unwrapped, Token::new(TokenKind::Ident(&s), ident_span));
+        assert_eq!(lexer.span, ident_span);
+
+        let _ = lexer.next(); // open parenthesis
+        let _ = lexer.next(); // uint256
+        let _ = lexer.next(); // close parenthesis
+        let _ = lexer.next(); // whitespace
+
+        // Ensure that this "takes" is lexed as a `TokenKind::Takes`
+        let tok = lexer.next();
+        let unwrapped = tok.unwrap().unwrap();
+        let takes_span = Span::new((end_span_s + 10)..(end_span_s + 15));
+        assert_eq!(unwrapped, Token::new(TokenKind::Takes, takes_span));
+        assert_eq!(lexer.span, takes_span);
+
+        let _ = lexer.next(); // open parenthesis
+        let _ = lexer.next(); // 0 (TokenKind::Num)
+        let _ = lexer.next(); // close parenthesis
+        let _ = lexer.next(); // whitespace
+
+        // Ensure that this "returns" is lexed as a `TokenKind::Returns`
+        let tok = lexer.next();
+        let unwrapped = tok.unwrap().unwrap();
+        let returns_span = Span::new((end_span_s + 19)..(end_span_s + 26));
+        assert_eq!(unwrapped, Token::new(TokenKind::Returns, returns_span));
+        assert_eq!(lexer.span, returns_span);
+
+        let _ = lexer.next(); // open parenthesis
+        let _ = lexer.next(); // 0 (TokenKind::Num)
+        let _ = lexer.next(); // close parenthesis
+
+        // We covered the whole source
+        assert_eq!(lexer.span.end, source.len());
+        assert!(lexer.eof);
+        assert!(lexer.next().is_none());
+    }
+}

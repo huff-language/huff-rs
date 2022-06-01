@@ -36,7 +36,12 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
     pub fn new(source: &'a str) -> Self {
-        Self { chars: source.chars().peekable(), source, span: Span::default(), eof: false }
+        Self {
+            chars: source.chars().peekable(),
+            source,
+            span: Span::default(),
+            eof: false,
+        }
     }
 
     /// Public associated function that returns the current lexing span.
@@ -64,7 +69,7 @@ impl<'a> Lexer<'a> {
         newspan.end += n;
         // Break with an empty string if the bounds are exceeded
         if newspan.end > self.source.len() {
-            return String::default()
+            return String::default();
         }
         self.source[newspan.range().unwrap()].to_string()
     }
@@ -72,6 +77,15 @@ impl<'a> Lexer<'a> {
     /// Peek n chars from a given start point in the source
     pub fn peekncharsfrom(&mut self, n: usize, from: usize) -> String {
         self.source[Span::new(from..(from + n)).range().unwrap()].to_string()
+    }
+
+    /// Try to look back `dist` chars from `span.start`, but return an empty string if
+    /// `self.span.start - dist` will underflow.
+    pub fn try_look_back(&mut self, dist: usize) -> String {
+        match self.span.start.checked_sub(dist) {
+            Some(n) => self.peekncharsfrom(dist - 1, n),
+            None => String::default()
+        }
     }
 
     /// Gets the current slice of the source code covered by span
@@ -100,7 +114,7 @@ impl<'a> Lexer<'a> {
         while self.peek() != None {
             let peeked = self.peekncharsfrom(word.len(), current_pos);
             if word == peeked {
-                break
+                break;
             }
             self.consume();
             current_pos += 1;
@@ -179,26 +193,34 @@ impl<'a> Iterator for Lexer<'a> {
                         return Some(Err(LexicalError::new(
                             LexicalErrorKind::InvalidCharacter('#'),
                             self.current_span(),
-                        )))
+                        )));
                     }
                 }
                 // Alphabetical characters
                 ch if ch.is_alphabetic() => {
                     let mut found_kind: Option<TokenKind> = None;
 
+                    // Function keyword is used for the look back, keep it in higher scope.
+                    let function_keyword = "function";
+                    // Add 1 to the length of the str slice "function" to account for the expected
+                    // whitespace before the current span.
+                    // TODO: Should this be in this scope, or only defined in each control statement that needs it?
+                    let is_not_func_name =
+                        self.try_look_back(function_keyword.len() + 1) != function_keyword;
+
                     // Check for macro keyword
                     let macro_keyword = "macro";
                     let peeked = self.peeknchars(macro_keyword.len() - 1);
-                    if macro_keyword == peeked {
+                    if macro_keyword == peeked && is_not_func_name {
                         self.dyn_consume(|c| c.is_alphabetic());
                         found_kind = Some(TokenKind::Macro);
                     }
 
                     // Check for the function keyword
                     if found_kind == None {
-                        let function_keyword = "function";
                         let peeked = self.peeknchars(function_keyword.len() - 1);
-                        if function_keyword == peeked {
+
+                        if function_keyword == peeked && is_not_func_name {
                             self.dyn_consume(|c| c.is_alphabetic());
                             found_kind = Some(TokenKind::Function);
                         }
@@ -208,7 +230,8 @@ impl<'a> Iterator for Lexer<'a> {
                     if found_kind == None {
                         let constant_keyword = "constant";
                         let peeked = self.peeknchars(constant_keyword.len() - 1);
-                        if constant_keyword == peeked {
+
+                        if constant_keyword == peeked && is_not_func_name {
                             self.dyn_consume(|c| c.is_alphabetic());
                             found_kind = Some(TokenKind::Constant);
                         }
@@ -218,7 +241,8 @@ impl<'a> Iterator for Lexer<'a> {
                     if found_kind == None {
                         let takes_key = "takes";
                         let peeked = self.peeknchars(takes_key.len() - 1);
-                        if takes_key == peeked {
+
+                        if takes_key == peeked && is_not_func_name {
                             self.dyn_consume(|c| c.is_alphabetic());
                             found_kind = Some(TokenKind::Takes);
                         }
@@ -228,7 +252,8 @@ impl<'a> Iterator for Lexer<'a> {
                     if found_kind == None {
                         let returns_key = "returns";
                         let peeked = self.peeknchars(returns_key.len() - 1);
-                        if returns_key == peeked {
+
+                        if returns_key == peeked && is_not_func_name {
                             self.dyn_consume(|c| c.is_alphabetic());
                             found_kind = Some(TokenKind::Returns);
                         }
@@ -268,7 +293,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('"') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str(&str[1..str.len() - 1])
+                            break TokenKind::Str(&str[1..str.len() - 1]);
                         }
                         Some('\\') if matches!(self.nthpeek(1), Some('\\') | Some('"')) => {
                             self.consume();
@@ -279,7 +304,7 @@ impl<'a> Iterator for Lexer<'a> {
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
                                 self.span,
-                            )))
+                            )));
                         }
                     }
 
@@ -290,7 +315,7 @@ impl<'a> Iterator for Lexer<'a> {
                     return Some(Err(LexicalError::new(
                         LexicalErrorKind::InvalidCharacter(ch),
                         self.span,
-                    )))
+                    )));
                 }
             };
 
@@ -300,7 +325,7 @@ impl<'a> Iterator for Lexer<'a> {
 
             let token = Token { kind, span: self.span };
 
-            return Some(Ok(token))
+            return Some(Ok(token));
         }
 
         self.eof = true;
