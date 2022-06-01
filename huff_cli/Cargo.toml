@@ -1,5 +1,5 @@
 [package]
-name = "cli"
+name = "huff_cli"
 version = "0.1.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
@@ -13,9 +13,9 @@ exclude = [ "huffs" ]
 
 [dependencies]
 clap = { version = "3.1.18", features = ["derive"] }
-lexer = { path = "../lexer" }
-utils = { path = "../utils" }
-codegen = { path = "../codegen" }
+huff_codegen = { path = "../huff_codegen" }
+huff_lexer = { path = "../huff_lexer" }
+huff_utils = { path = "../huff_utils" }
 
 [[bin]]
 name = "huffr"

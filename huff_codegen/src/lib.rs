@@ -5,7 +5,7 @@
 //! #### Usage
 //!
 //! ```rust
-//! use codegen::*;
+//! use huff_codegen::*;
 //!
 //! let mut cg = Codegen::new(false);
 //! assert!(!cg.abiout);
@@ -13,8 +13,8 @@
 
 #![deny(missing_docs)]
 
+use huff_utils::{error::CodegenError, prelude::Abi};
 use std::io::{self, Write};
-use utils::{error::CodegenError, prelude::Abi};
 
 /// A MOCK AST Struct
 /// WARN: Should be deleted and use parser::Ast instead!

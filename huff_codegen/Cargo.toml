@@ -1,5 +1,5 @@
 [package]
-name = "codegen"
+name = "huff_codegen"
 version = "0.1.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
@@ -13,4 +13,4 @@ keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 [dependencies]
 serde_json = "1.0.81"
 proptest = "1.0.0"
-utils = { path = "../utils" }
+huff_utils = { path = "../huff_utils" }

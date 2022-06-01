@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use clap::Parser;
-use codegen::*;
-use utils::io::*;
-// use lexer::Lexer;
+use huff_codegen::*;
+use huff_utils::io::*;
+// use huffr_lexer::Lexer;
 
 /// Efficient Huff compiler.
 #[derive(Parser, Debug, Clone)]
