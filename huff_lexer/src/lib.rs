@@ -211,6 +211,10 @@ impl<'a> Iterator for Lexer<'a> {
                 '(' => TokenKind::OpenParen,
                 ')' => TokenKind::CloseParen,
                 ',' => TokenKind::Comma,
+                "[" => TokenKind::OpenBracket,
+                "]" => TokenKind::CloseBracket,
+                "{" => TokenKind::OpenBrace,
+                "}" => TokenKind::CloseBrace,
 
                 ch => {
                     return Some(Err(LexicalError::new(
