@@ -38,6 +38,14 @@ pub enum TokenKind<'a> {
     OpenParen,
     /// A close parenthesis
     CloseParen,
+    /// An open brace
+    OpenBrace,
+    /// A close brace
+    CloseBrace,
+    /// An open bracket
+    OpenBracket,
+    /// A close bracket
+    CloseBracket,
     /// A comma
     Comma,
     /// A newline
