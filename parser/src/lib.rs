@@ -1,33 +1,68 @@
 
 // to be replaced with actual Token type from the lexer
+#[derive(Debug, PartialEq, Eq, Clone)]
 enum TokenType {
+    DEFINE,
+    LEFT_PAREN,
+    RIGHT_PAREN,
+    LEFT_BRACKET,
+    RIGHT_BRACKET,
+    COMMA,
+    TAKES,
+    RETURNS,
+    EQUAL,VIEW,
+    PAYABLE,
+    NONPAYABLE,
+    FUNCTION,
+    CONSTANT,
+    MACRO,
+    HEX,
+    OPCODE,
+    EOF,
     IDENT,
-    DEFINE
+    TYPE,
+    LABEL,
+    ARGS,
+    TYPED_ARGS,
+    BODY,
+    MACRO,
+    CONSTANT,
+    FUNCTION,
+    PATH,
+    INCLUDE,
+    STATEMENT,
+    PROGRAM
 }
-struct Token;
+#[derive(Debug, PartialEq, Eq, Clone)]
+struct Token {
+    ttype : TokenType,
+}
 
 enum ParserError {
     SyntaxError,
 }
 
-struct Parser<'a> {
+struct Parser {
     // Vector of the tokens
     tokens: Vec<Token>,
     // Current position
     pos: usize,
-    current_token: Option<&'a Token>
+    current_token: Token
 }
 
-impl<'a> Parser<'a> {
+impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
         Self {
             tokens: tokens,
             pos: 0,
-            current_token: None
+            current_token: tokens.get(0).unwrap().clone()
         }
     }
 
-    fn parse() -> Result<(), ParserError> {
+    fn parse(&self) -> Result<(), ParserError> {
+        while !self.check(TokenType::EOF) {
+            self.statement();
+        }
         Ok(())
     }
 
@@ -37,18 +72,56 @@ impl<'a> Parser<'a> {
     fn match_ttype(&self, ttype: TokenType) -> Result<(), ParserError> {
         // if match, consume token
         // if not, return error and stop parsing
-        Ok(())
+        if let self.current_token.ttype = ttype {
+            self.consume();
+            Ok(())
+        } else {
+            Err(ParserError::SyntaxError)
+        }
     }
 
+
+    /*
+        Check the current token's type against the given type.
+    */
+    fn check(&self, ttype: TokenType) -> bool {
+        // check if current token is of type ttype
+        self.current_token.ttype == ttype
+    }
+
+    /*
+        Consumes the next token.
+    */
     fn consume(&mut self) {
-        //self.current_token = self.peek();
-        //self.pos += 1;
+        self.current_token = self.peek();
+        self.pos += 1;
     }
 
     /*
         Take a look at next token without consuming.
     */
     fn peek(&self) -> Token {
-        Token {}
+        Token {
+            ttype: TokenType::EOF
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // PARSING LOGIC
+    // -----------------------------------------------------------------------
+    
+    /*
+        Parse a statement.
+    */
+    fn statement(&self) -> Result<(), ParserError> {
+        // first token should be keyword "#define"
+        self.match_ttype(TokenType::DEFINE)?;
+        // match to fucntion, constant or macro
+        match self.current_token.ttype {
+            TokenType::FUNCTION => self.function(),
+            TokenType::CONSTANT => self.constant(),
+            TokenType::MACRO => self.macro(),
+            _ => Err(ParserError::SyntaxError)
+        }
     }
 }
