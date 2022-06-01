@@ -36,12 +36,7 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
     pub fn new(source: &'a str) -> Self {
-        Self {
-            chars: source.chars().peekable(),
-            source,
-            span: Span::default(),
-            eof: false,
-        }
+        Self { chars: source.chars().peekable(), source, span: Span::default(), eof: false }
     }
 
     /// Public associated function that returns the current lexing span.
@@ -84,7 +79,7 @@ impl<'a> Lexer<'a> {
     pub fn try_look_back(&mut self, dist: usize) -> String {
         match self.span.start.checked_sub(dist) {
             Some(n) => self.peekncharsfrom(dist - 1, n),
-            None => String::default()
+            None => String::default(),
         }
     }
 
@@ -200,63 +195,37 @@ impl<'a> Iterator for Lexer<'a> {
                 ch if ch.is_alphabetic() => {
                     let mut found_kind: Option<TokenKind> = None;
 
-                    // Function keyword is used for the look back, keep it in higher scope.
-                    let function_keyword = "function";
-                    // Add 1 to the length of the str slice "function" to account for the expected
-                    // whitespace before the current span.
-                    // TODO: Should this be in this scope, or only defined in each control statement that needs it?
-                    let is_not_func_name =
-                        self.try_look_back(function_keyword.len() + 1) != function_keyword;
+                    let keys = vec![
+                        ("macro", TokenKind::Macro),
+                        ("function", TokenKind::Function),
+                        ("constant", TokenKind::Constant),
+                        ("takes", TokenKind::Takes),
+                        ("returns", TokenKind::Returns),
+                    ];
+                    let mut active_key = ""; // Initialize blank string to prevent "possibly-uninitialized" compiler error.
+                    for (key, kind) in &keys {
+                        active_key = *key;
+                        let peeked = self.peeknchars(active_key.len() - 1);
 
-                    // Check for macro keyword
-                    let macro_keyword = "macro";
-                    let peeked = self.peeknchars(macro_keyword.len() - 1);
-                    if macro_keyword == peeked && is_not_func_name {
-                        self.dyn_consume(|c| c.is_alphabetic());
-                        found_kind = Some(TokenKind::Macro);
-                    }
-
-                    // Check for the function keyword
-                    if found_kind == None {
-                        let peeked = self.peeknchars(function_keyword.len() - 1);
-
-                        if function_keyword == peeked && is_not_func_name {
+                        if active_key == peeked {
                             self.dyn_consume(|c| c.is_alphabetic());
-                            found_kind = Some(TokenKind::Function);
+                            found_kind = Some(*kind);
+                            break;
                         }
                     }
 
-                    // Check for the constant keyword
-                    if found_kind == None {
-                        let constant_keyword = "constant";
-                        let peeked = self.peeknchars(constant_keyword.len() - 1);
-
-                        if constant_keyword == peeked && is_not_func_name {
-                            self.dyn_consume(|c| c.is_alphabetic());
-                            found_kind = Some(TokenKind::Constant);
-                        }
-                    }
-
-                    // Check for the takes keyword
-                    if found_kind == None {
-                        let takes_key = "takes";
-                        let peeked = self.peeknchars(takes_key.len() - 1);
-
-                        if takes_key == peeked && is_not_func_name {
-                            self.dyn_consume(|c| c.is_alphabetic());
-                            found_kind = Some(TokenKind::Takes);
-                        }
-                    }
-
-                    // Check for the returns keyword
-                    if found_kind == None {
-                        let returns_key = "returns";
-                        let peeked = self.peeknchars(returns_key.len() - 1);
-
-                        if returns_key == peeked && is_not_func_name {
-                            self.dyn_consume(|c| c.is_alphabetic());
-                            found_kind = Some(TokenKind::Returns);
-                        }
+                    // Check to see if the found kind is, in fact, a keyword and not the name of
+                    // a function. If it is, set `found_kind` to `None` so that it is set to a
+                    // `TokenKind::Ident` in the following control flow.
+                    //
+                    // TODO: Add some extra checks for other cases.
+                    // e.g. "dup1 0x7c09063f eq takes jumpi" still registers "takes" as a
+                    // `TokenKind::Takes`
+                    let function_keyword = keys[1].0;
+                    if self.try_look_back(function_keyword.len() + 1) == function_keyword
+                        || self.peekncharsfrom(1, active_key.len()) == ":"
+                    {
+                        found_kind = None;
                     }
 
                     if let Some(kind) = found_kind {

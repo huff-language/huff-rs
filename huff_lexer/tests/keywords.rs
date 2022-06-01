@@ -233,3 +233,45 @@ fn parses_function_definition_with_keyword_name() {
         assert!(lexer.next().is_none());
     }
 }
+
+#[test]
+fn parses_function_with_keyword_name_in_main_macro() {
+    let key_words = vec!["macro", "function", "constant", "takes", "returns"];
+
+    for s in key_words {
+        // ex:
+        // takes:
+        //     TAKES()
+        let source = format!(
+            r#"{}:
+            {}()"#,
+            s,
+            s.to_uppercase()
+        );
+        let mut lexer = Lexer::new(source.as_str());
+        assert_eq!(lexer.source, source);
+
+        let tok = lexer.next();
+        let unwrapped = tok.unwrap().unwrap();
+        let fn_name_span = Span::new(0..s.len());
+        assert_eq!(unwrapped, Token::new(TokenKind::Ident(&s), fn_name_span));
+        assert_eq!(lexer.span, fn_name_span);
+
+        let _ = lexer.next(); // :
+        let _ = lexer.next(); // whitespace
+
+        let tok = lexer.next();
+        let unwrapped = tok.unwrap().unwrap();
+        let fn_name_span = Span::new((s.len() + 14)..(s.len() * 2 + 14));
+        assert_eq!(unwrapped, Token::new(TokenKind::Ident(&s.to_uppercase()), fn_name_span));
+        assert_eq!(lexer.span, fn_name_span);
+
+        let _ = lexer.next(); // open parenthesis
+        let _ = lexer.next(); // close parenthesis
+
+        // We covered the whole source
+        assert_eq!(lexer.span.end, source.len());
+        assert!(lexer.eof);
+        assert!(lexer.next().is_none());
+    }
+}
