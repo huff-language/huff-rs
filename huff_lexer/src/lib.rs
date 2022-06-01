@@ -1,3 +1,20 @@
+//! ## Huff Lexer
+//!
+//! Lexical analyzer for the huff language.
+//!
+//! #### Usage
+//!
+//! ```rust
+//! use huff_lexer::{Lexer, Span};
+//!
+//! // Instantiate a new lexer
+//! let source = "#define macro HELLO_WORLD()";
+//! let lexer = Lexer::new(source);
+//! assert_eq!(lexer.source, source);
+//!
+//! ```
+
+#![deny(missing_docs)]
 #![allow(dead_code)]
 
 use huff_utils::{error::*, span::*, token::*};

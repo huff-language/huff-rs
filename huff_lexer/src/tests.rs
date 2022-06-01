@@ -12,7 +12,7 @@ use crate::{Lexer, Span};
 #[test]
 fn instantiates() {
     let source = "#define macro HELLO_WORLD()";
-    let mut lexer = Lexer::new(source);
+    let lexer = Lexer::new(source);
     assert_eq!(lexer.source, source);
     // let tok = lexer.next();
     // println!("{:?}", tok);
