@@ -245,7 +245,7 @@ impl<'a> Iterator for Lexer<'a> {
                 ch if ch.is_alphabetic() => {
                     let mut found_kind: Option<TokenKind> = None;
 
-                    let keys = vec![
+                    let keys = [
                         ("macro", TokenKind::Macro),
                         ("function", TokenKind::Function),
                         ("constant", TokenKind::Constant),

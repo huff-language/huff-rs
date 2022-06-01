@@ -178,7 +178,7 @@ fn parses_takes_and_returns_keywords_tight_syntax() {
 
 #[test]
 fn parses_function_definition_with_keyword_name() {
-    let key_words = vec!["macro", "function", "constant", "takes", "returns"];
+    let key_words = ["macro", "function", "constant", "takes", "returns"];
 
     for s in key_words {
         let source = format!("#define function {}(uint256) takes(0) returns(0)", s);
@@ -236,7 +236,7 @@ fn parses_function_definition_with_keyword_name() {
 
 #[test]
 fn parses_function_with_keyword_name_in_main_macro() {
-    let key_words = vec!["macro", "function", "constant", "takes", "returns"];
+    let key_words = ["macro", "function", "constant", "takes", "returns"];
 
     for s in key_words {
         // ex:
