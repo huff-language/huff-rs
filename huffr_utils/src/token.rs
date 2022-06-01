@@ -1,9 +1,9 @@
-use std::fmt;
+use std::{fmt};
 
 use crate::span::Span;
 
 /// A single Token
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Token<'a> {
     /// The kind of token
     pub kind: TokenKind<'a>,
@@ -12,7 +12,7 @@ pub struct Token<'a> {
 }
 
 /// The kind of token
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TokenKind<'a> {
     /// Addition
     Add,
@@ -40,6 +40,27 @@ pub enum TokenKind<'a> {
     CloseParen,
     /// A comma
     Comma,
+
+    // --- Huff Specific Compatibility ---
+
+    /// A comment with its comments encapsulated for traceability
+    Comment(String),
+    /// A Definition
+    Definition(Definition),
+}
+
+// TODO: Can we make this a hash of the name?
+// TODO: Are there macro conflicts?
+/// A Macro Identifier
+pub type MacroIdentifier = String;
+
+/// A Definition
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Definition {
+    /// A Macro
+    Macro(MacroIdentifier),
+    /// An imported file
+    Import(String),
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {

@@ -9,6 +9,7 @@ description = """
 Lexical Analysis Crate for the Huff-Language
 """
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
+exclude = [ "huffs" ]
 
 [dependencies]
 proptest = "1.0.0"
