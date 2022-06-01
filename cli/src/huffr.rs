@@ -1,11 +1,12 @@
 use std::path::Path;
 
 use clap::Parser;
+use codegen::*;
 use utils::io::*;
 // use lexer::Lexer;
 
 /// Efficient Huff compiler.
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[clap(version, about, long_about = None)]
 struct Huffr {
     path: Option<String>,
@@ -19,8 +20,8 @@ struct Huffr {
     output: Option<String>,
 
     /// The output directory (default: "./artifacts").
-    #[clap(short = 'd', long = "output-directory")]
-    outputdir: Option<String>,
+    #[clap(short = 'd', long = "output-directory", default_value = "./artifacts")]
+    outputdir: String,
 
     /// Optimize compilation.
     #[clap(short = 'z', long = "optimize")]
@@ -61,12 +62,25 @@ impl From<Huffr> for Vec<String> {
     }
 }
 
+/// An aliased output location to derive from the cli arguments.
+#[derive(Debug, Clone)]
+pub struct OutputLocation(pub(crate) String);
+
+impl From<Huffr> for OutputLocation {
+    fn from(huffr: Huffr) -> Self {
+        match huffr.output {
+            Some(o) => OutputLocation(o),
+            None => OutputLocation(huffr.outputdir),
+        }
+    }
+}
+
 fn main() {
     // Parse the command line arguments
     let cli = Huffr::parse();
 
     // Gracefully derive file compilation
-    let files: Vec<String> = cli.into();
+    let files: Vec<String> = cli.clone().into();
     println!("Compiling files: {:?}", files);
 
     // Perform Lexical Analysis
@@ -76,4 +90,22 @@ fn main() {
 
     // TODO: Unpack output (if only one file or contract specified)
     // TODO: Unpack output directory
+
+    // Mock AST generated here
+    let ast: Ast = Ast::new();
+    println!("Created mock AST: {:?}", ast);
+
+    // Run code generation
+    let cg = Codegen::new(true);
+    println!("Created a new codegen instance");
+
+    let write_res = cg.write(&ast);
+    println!("Codegen writing result: {:?}", write_res);
+
+    // Gracefully derive the output from the cli
+    let output: OutputLocation = cli.into();
+    println!("Cli got output location: {:?}", output);
+
+    let export_res = cg.export(&ast, &output.0, "INPUT");
+    println!("Codegen export result: {:?}", export_res);
 }

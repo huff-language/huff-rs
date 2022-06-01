@@ -15,6 +15,7 @@ exclude = [ "huffs" ]
 clap = { version = "3.1.18", features = ["derive"] }
 lexer = { path = "../lexer" }
 utils = { path = "../utils" }
+codegen = { path = "../codegen" }
 
 [[bin]]
 name = "huffr"

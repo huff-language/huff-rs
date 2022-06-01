@@ -44,3 +44,42 @@ impl<W: Write> Report<W> for LexicalError {
         }
     }
 }
+
+/// A Code Generation Error
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct CodegenError {
+    /// The kind of code generation error
+    pub kind: CodegenErrorKind,
+    /// The span where the error occured
+    pub span: Span,
+}
+
+impl CodegenError {
+    /// Public associated function to instatiate a new CodegenError.
+    pub fn new(kind: CodegenErrorKind, span: Span) -> Self {
+        Self { kind, span }
+    }
+}
+
+/// The Code Generation Error Kind
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum CodegenErrorKind {
+    /// Invalid Operator
+    InvalidOperator,
+}
+
+impl Spanned for CodegenError {
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
+impl<W: Write> Report<W> for CodegenError {
+    fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
+        match self.kind {
+            // CodegenErrorKind::ExpectedIntExpr => write!(f.out, "Expected integer expression"),
+            // CodegenErrorKind::ExpectedIdent => write!(f.out, "Expected identifier"),
+            CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator"),
+        }
+    }
+}
