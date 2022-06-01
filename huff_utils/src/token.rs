@@ -60,6 +60,8 @@ pub enum TokenKind<'a> {
     Newline,
     /// "#define" keyword
     Define,
+    /// "#include" keyword
+    Include,
     /// "takes" keyword
     Takes(usize),
     /// "returns" keyword

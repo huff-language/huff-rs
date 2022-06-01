@@ -144,15 +144,30 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Div
                     }
                 }
-                // #define keyword
+                // # keywords
                 '#' => {
+                    let mut found_kind: Option<TokenKind> = None;
+
                     // Match exactly on define keyword
                     let define_keyword = "#define";
                     let peeked = self.peeknchars(define_keyword.len() - 1);
                     if define_keyword == peeked {
                         self.dyn_consume(|c| c.is_alphabetic());
-                        TokenKind::Define
+                        found_kind = Some(TokenKind::Define);
+                    }
+
+                    // Match on the include keyword
+                    let include_keyword = "#include";
+                    let peeked = self.peeknchars(include_keyword.len() - 1);
+                    if include_keyword == peeked {
+                        self.dyn_consume(|c| c.is_alphabetic());
+                        found_kind = Some(TokenKind::Include);
+                    }
+
+                    if let Some(kind) = found_kind {
+                        kind
                     } else {
+                        // Otherwise we don't support # prefixed indentifiers
                         return Some(Err(LexicalError::new(
                             LexicalErrorKind::InvalidCharacter('#'),
                             self.current_span(),
