@@ -48,7 +48,21 @@ All contributions are welcome! We want to make contributing to this project as e
   - Proposing new features
   - Becoming a maintainer
 
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/huff-language/huffr/issues/new); it's that easy!
+We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/huff-language/huff-rs/issues/new); it's that easy!
+
+To pass github actions, please run:
+```bash
+cargo check --all
+cargo test --all --all-features
+cargo +nightly fmt -- --check
+cargo +nightly clippy --all --all-features -- -D warnings
+```
+
+In order to fix any formatting issues, run:
+```bash
+cargo +nightly fmt -- 
+```
+```
 
 
 ## References
