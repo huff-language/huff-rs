@@ -1,5 +1,5 @@
 [package]
-name = "huffr_utils"
+name = "huff_utils"
 version = "0.2.0"
 edition = "2021"
 authors = ["Andreas Bigger"]

@@ -1,8 +1,8 @@
-use std::io::Write;
 use crate::{
     report::{Report, Reporter},
     span::{Span, Spanned},
 };
+use std::io::Write;
 
 /// A Lexing Error
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

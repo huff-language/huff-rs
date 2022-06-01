@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use huffr_utils::{error::*, span::*, token::*};
+use huff_utils::{error::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
 
 #[cfg(test)]

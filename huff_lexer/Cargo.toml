@@ -1,5 +1,5 @@
 [package]
-name = "huffr_lexer"
+name = "huff_lexer"
 version = "0.1.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
@@ -13,4 +13,4 @@ exclude = [ "huffs" ]
 
 [dependencies]
 proptest = "1.0.0"
-huffr_utils = { path = "../huff_utils" }
+huff_utils = { path = "../huff_utils" }

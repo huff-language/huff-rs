@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use clap::Parser;
-use huffr_utils::io::*;
+use huff_utils::io::*;
 // use huffr_lexer::Lexer;
 
 /// Efficient Huff compiler.
