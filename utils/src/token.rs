@@ -40,6 +40,46 @@ pub enum TokenKind<'a> {
     CloseParen,
     /// A comma
     Comma,
+    /// A newline
+    Newline,
+    /// "#define" keyword
+    Define,
+    /// "takes" keyword
+    Takes,
+    /// "returns" keyword
+    Returns,
+    /// "="
+    Equal,
+    /// Type of function
+    FuncType,
+    /// "function" keyword
+    Function,
+    /// "constant" keyword
+    Constant,
+    /// "FREE_STORAGE_POINTER()" keyword
+    FreeStoragePointer,
+    /// "macro" keyword
+    Macro,
+    /// Hex
+    Hex,
+    /// Opcode
+    Opcode,
+    /// End Of File
+    EOF,
+    /// Type of a parameter
+    Type,
+    /// Huff label (aka PC)
+    Label,
+    /// Unnamed args [just the types] : list
+    Args,
+    /// Named args
+    NamedArgs,
+    /// Body of a macro
+    Body,
+    /// Import path
+    Path,
+    /// Statement
+    Statement,
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
@@ -58,6 +98,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Str(str) => str,
             TokenKind::Num(num) => return write!(f, "{}", num),
             TokenKind::Ident(_) => todo!(),
+            _ => "oof"
         };
 
         write!(f, "{}", x)

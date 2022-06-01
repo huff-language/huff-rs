@@ -1,57 +1,60 @@
+use utils::{
+    token::{Token, TokenKind},
+};
+// // to be replaced with actual Token type from the lexer
+// #[derive(Debug, PartialEq, Eq, Clone)]
+// enum TokenKind {
+//     NEWLINE,
+//     DEFINE,
+//     LEFT_PAREN,
+//     RIGHT_PAREN,
+//     LEFT_BRACKET,
+//     RIGHT_BRACKET,
+//     COMMA,
+//     TAKES,
+//     RETURNS,
+//     EQUAL,
+//     FUNC_TYPE,
+//     FUNCTION,
+//     CONSTANT,
+//     FREE_STORAGE_POINTER,
+//     MACRO,
+//     HEX,
+//     OPCODE,
+//     EOF,
+//     IDENT,
+//     TYPE,
+//     LABEL,
+//     ARGS,
+//     TYPED_ARGS,
+//     BODY,
+//     PATH,
+//     INCLUDE,
+//     STATEMENT,
+//     PROGRAM
+// }
 
-// to be replaced with actual Token type from the lexer
-#[derive(Debug, PartialEq, Eq, Clone)]
-enum TokenType {
-    NEWLINE,
-    DEFINE,
-    LEFT_PAREN,
-    RIGHT_PAREN,
-    LEFT_BRACKET,
-    RIGHT_BRACKET,
-    COMMA,
-    TAKES,
-    RETURNS,
-    EQUAL,
-    FUNC_TYPE,
-    FUNCTION,
-    CONSTANT,
-    MACRO,
-    HEX,
-    OPCODE,
-    EOF,
-    IDENT,
-    TYPE,
-    LABEL,
-    ARGS,
-    TYPED_ARGS,
-    BODY,
-    MACRO,
-    CONSTANT,
-    FUNCTION,
-    PATH,
-    INCLUDE,
-    STATEMENT,
-    PROGRAM
-}
-#[derive(Debug, PartialEq, Eq, Clone)]
-struct Token {
-    ttype : TokenType,
-}
+// #[derive(Debug, PartialEq, Eq, Clone)]
+// struct Token {
+//     ttype : TokenKind,
+// }
+
+//---------------------------------
 
 enum ParserError {
     SyntaxError,
 }
 
-struct Parser {
+struct Parser<'a> {
     // Vector of the tokens
-    tokens: Vec<Token>,
+    tokens: Vec<Token<'a>>,
     // Current position
     pos: usize,
-    current_token: Token
+    current_token: Token<'a>
 }
 
-impl Parser {
-    fn new(tokens: Vec<Token>) -> Self {
+impl<'a> Parser<'a> {
+    fn new(tokens: Vec<Token<'a>>) -> Self {
         Self {
             tokens: tokens,
             pos: 0,
@@ -60,8 +63,8 @@ impl Parser {
     }
 
     fn parse(&self) -> Result<(), ParserError> {
-        while !self.check(TokenType::EOF) {
-            self.statement();
+        while !self.check(TokenKind::EOF) {
+            self.parse_statement();
         }
         Ok(())
     }
@@ -69,10 +72,10 @@ impl Parser {
     /*
         Match current token to a type.
     */
-    fn match_ttype(&self, ttype: TokenType) -> Result<(), ParserError> {
+    fn match_ttype(&self, ttype: TokenKind) -> Result<(), ParserError> {
         // if match, consume token
         // if not, return error and stop parsing
-        if let self.current_token.ttype = ttype {
+        if let self.current_token.kind = ttype {
             self.consume();
             Ok(())
         } else {
@@ -84,9 +87,9 @@ impl Parser {
     /*
         Check the current token's type against the given type.
     */
-    fn check(&self, ttype: TokenType) -> bool {
+    fn check(&self, kind: TokenKind) -> bool {
         // check if current token is of type ttype
-        self.current_token.ttype == ttype
+        self.current_token.kind == kind
     }
 
     /*
@@ -100,10 +103,8 @@ impl Parser {
     /*
         Take a look at next token without consuming.
     */
-    fn peek(&self) -> Token {
-        Token {
-            ttype: TokenType::EOF
-        }
+    fn peek(&self) -> Token<'a> {
+        self.tokens.get(self.pos+1).unwrap().clone()
     }
 
     // -----------------------------------------------------------------------
@@ -115,41 +116,84 @@ impl Parser {
     */
     fn statement(&self) -> Result<(), ParserError> {
         // first token should be keyword "#define"
-        self.match_ttype(TokenType::DEFINE)?;
+        self.match_ttype(TokenKind::Define)?;
         // match to fucntion, constant or macro
-        match self.current_token.ttype {
-            TokenType::FUNCTION => self.function(),
-            TokenType::CONSTANT => self.constant(),
-            TokenType::MACRO => self.macro(),
+        match self.current_token.kind {
+            TokenKind::Function => self.parse_function(),
+            TokenKind::Constant => self.parse_constant(),
+            TokenKind::Macro => self.parse_macro(),
             _ => Err(ParserError::SyntaxError)
-        }
-        self.newline();
+        };
+        self.parse_newline();
+        Ok(())
     }
 
     /*
         Parse a function.
     */
-    fn function(&self) -> Result<(), ParserError> {
-        self.match_ttype(TokenType::FUNCTION)?;
+    fn parse_function(&self) -> Result<(), ParserError> {
+        self.match_ttype(TokenKind::Function)?;
         // function name should be next
-        self.match_ttype(TokenType::IDENT)?;
-        self.match_ttype(TokenType::LEFT_PAREN)?;
-        self.match_ttype(TokenType::TYPED_ARGS)?;
-        self.match_ttype(TokenType::RIGHT_PAREN)?;
-        self.match_ttype(TokenType::FUNC_TYPE)?; // view, payable or nonpayable
-        self.match_ttype(TokenType::RETURNS)?;
-        self.match_ttype(TokenType::TYPED_ARGS)?;
+        self.match_ttype(TokenKind::Ident)?;
+        self.match_ttype(TokenKind::OpenParen)?;
+        self.match_ttype(TokenKind::NamedArgs)?;
+        self.match_ttype(TokenKind::CloseParen)?;
+        self.match_ttype(TokenKind::FuncType)?; // view, payable or nonpayable
+        self.match_ttype(TokenKind::Returns)?;
+        self.match_ttype(TokenKind::NamedArgs)?;
+        Ok(())
+    }
+
+    /*
+        Parse a constant.
+    */
+    fn parse_constant(&self) -> Result<(), ParserError> {
+        self.match_ttype(TokenKind::Constant)?;
+        self.match_ttype(TokenKind::Ident(ref value))?;
+        self.match_ttype(TokenKind::Equal)?;
+        match self.current_token.kind {
+            TokenKind::FreeStoragePointer | TokenKind::Hex => {
+                self.consume();
+                Ok(())
+            },
+            _ => Err(ParserError::SyntaxError)
+        }
+    }
+
+    fn parse_macro(&self) -> Result<(), ParserError> {
         Ok(())
     }
 
     /*
         Parse new lines.
     */
-    fn newline(&self) -> Result<(), ParserError> {
-        self.match_ttype(TokenType::NEWLINE)?;
-        while self.check(TokenType::NEWLINE) {
+    fn parse_newline(&self) -> Result<(), ParserError> {
+        self.match_ttype(TokenKind::Newline)?;
+        while self.check(TokenKind::Newline) {
             self.consume();
         }
+        Ok(())
+    }
+
+    /*
+        Parse function (interface) arguments, can be typed or not. Between parenthesis.
+        Works for both inputs and outputs.
+    */
+    fn parse_function_args(&self) -> Result<(), ParserError> {
+        self.match_ttype(TokenKind::OpenParen)?;
+        while !self.check(TokenKind::CloseParen) {
+            // type comes first
+            self.match_ttype(TokenKind::Type)?;
+            // naming is optional
+            if self.check(TokenKind::Ident(ref value)) {
+                self.match_ttype(TokenKind::Ident(ref value))?;
+            }
+            // multiple args possible
+            if self.check(TokenKind::Comma) {
+                self.consume();
+            }
+        }
+        self.match_ttype(TokenKind::NamedArgs)?;
         Ok(())
     }
 }
