@@ -70,6 +70,8 @@ pub enum TokenKind<'a> {
     Equal,
     /// "macro" keyword
     Macro,
+    /// "function" keyword
+    Function,
     /// "constant" keyword
     Constant,
     /// "FREE_STORAGE_POINTER()" keyword

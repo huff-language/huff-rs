@@ -156,12 +156,14 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = Some(TokenKind::Define);
                     }
 
-                    // Match on the include keyword
-                    let include_keyword = "#include";
-                    let peeked = self.peeknchars(include_keyword.len() - 1);
-                    if include_keyword == peeked {
-                        self.dyn_consume(|c| c.is_alphabetic());
-                        found_kind = Some(TokenKind::Include);
+                    if found_kind == None {
+                        // Match on the include keyword
+                        let include_keyword = "#include";
+                        let peeked = self.peeknchars(include_keyword.len() - 1);
+                        if include_keyword == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Include);
+                        }
                     }
 
                     if let Some(kind) = found_kind {
@@ -176,18 +178,45 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 // Alphabetical characters
                 ch if ch.is_alphabetic() => {
+                    let mut found_kind: Option<TokenKind> = None;
+
                     // Check for macro keyword
                     let macro_keyword = "macro";
                     let peeked = self.peeknchars(macro_keyword.len() - 1);
                     if macro_keyword == peeked {
                         self.dyn_consume(|c| c.is_alphabetic());
-                        TokenKind::Macro
+                        found_kind = Some(TokenKind::Macro);
+                    }
+
+                    // Check for the function keyword
+                    if found_kind == None {
+                        let function_keyword = "function";
+                        let peeked = self.peeknchars(function_keyword.len() - 1);
+                        if function_keyword == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Function);
+                        }
+                    }
+
+                    // Check for the constant keyword
+                    if found_kind == None {
+                        let constant_keyword = "constant";
+                        let peeked = self.peeknchars(constant_keyword.len() - 1);
+                        if constant_keyword == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Constant);
+                        }
+                    }
+
+                    if let Some(kind) = found_kind {
+                        kind
                     } else {
                         self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
                         TokenKind::Ident(self.slice())
                     }
                 }
 
+                // TODO: remove/fix below
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,
