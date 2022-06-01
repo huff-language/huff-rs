@@ -152,6 +152,7 @@ impl<'a> Parser<'a> {
                 TokenKind::Opcode => self.consume(),
                 TokenKind::Label => self.consume(),
                 TokenKind::Ident("MACRO_NAME") => self.parse_macro_call(),
+                TokenKind::OpenBracket => self.parse_constant_push()
                 _ => return Err(ParserError::SyntaxError)
             }
         }
