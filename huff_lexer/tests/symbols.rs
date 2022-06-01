@@ -231,3 +231,53 @@ fn lexes_math_ops() {
     assert!(lexer.eof);
     assert!(lexer.next().is_none());
 }
+
+#[test]
+fn lexes_commas() {
+    let source = "test,test";
+    let mut lexer = Lexer::new(source);
+    assert_eq!(lexer.source, source);
+
+    // Eat alphanumerics
+    let _ = lexer.next();
+
+    // This token should be the comma
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let comma_span = Span::new(4..5);
+    assert_eq!(unwrapped, Token::new(TokenKind::Comma, comma_span));
+    assert_eq!(lexer.span, comma_span);
+
+    // Eat alphanumerics
+    let _ = lexer.next();
+
+    // We covered the whole source
+    assert_eq!(lexer.span.end, source.len());
+    assert!(lexer.eof);
+    assert!(lexer.next().is_none());
+}
+
+#[test]
+fn lexes_comma_sparse() {
+    let source = "test , test";
+    let mut lexer = Lexer::new(source);
+    assert_eq!(lexer.source, source);
+
+    let _ = lexer.next(); // alphanumerics
+    let _ = lexer.next(); // whitespace
+
+    // This token should be the comma
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let comma_span = Span::new(5..6);
+    assert_eq!(unwrapped, Token::new(TokenKind::Comma, comma_span));
+    assert_eq!(lexer.span, comma_span);
+
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // alphanumerics
+
+    // We covered the whole source
+    assert_eq!(lexer.span.end, source.len());
+    assert!(lexer.eof);
+    assert!(lexer.next().is_none());
+}

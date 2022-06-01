@@ -251,6 +251,7 @@ impl<'a> Iterator for Lexer<'a> {
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,
+                // NOTE: TokenKind::Div is lexed further up since it overlaps with comment identifiers
 
                 // TODO: Need to add tests for below
                 ',' => TokenKind::Comma,
