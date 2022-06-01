@@ -2,6 +2,7 @@
 // to be replaced with actual Token type from the lexer
 #[derive(Debug, PartialEq, Eq, Clone)]
 enum TokenType {
+    NEWLINE,
     DEFINE,
     LEFT_PAREN,
     RIGHT_PAREN,
@@ -10,9 +11,8 @@ enum TokenType {
     COMMA,
     TAKES,
     RETURNS,
-    EQUAL,VIEW,
-    PAYABLE,
-    NONPAYABLE,
+    EQUAL,
+    FUNC_TYPE,
     FUNCTION,
     CONSTANT,
     MACRO,
@@ -123,5 +123,33 @@ impl Parser {
             TokenType::MACRO => self.macro(),
             _ => Err(ParserError::SyntaxError)
         }
+        self.newline();
+    }
+
+    /*
+        Parse a function.
+    */
+    fn function(&self) -> Result<(), ParserError> {
+        self.match_ttype(TokenType::FUNCTION)?;
+        // function name should be next
+        self.match_ttype(TokenType::IDENT)?;
+        self.match_ttype(TokenType::LEFT_PAREN)?;
+        self.match_ttype(TokenType::TYPED_ARGS)?;
+        self.match_ttype(TokenType::RIGHT_PAREN)?;
+        self.match_ttype(TokenType::FUNC_TYPE)?; // view, payable or nonpayable
+        self.match_ttype(TokenType::RETURNS)?;
+        self.match_ttype(TokenType::TYPED_ARGS)?;
+        Ok(())
+    }
+
+    /*
+        Parse new lines.
+    */
+    fn newline(&self) -> Result<(), ParserError> {
+        self.match_ttype(TokenType::NEWLINE)?;
+        while self.check(TokenType::NEWLINE) {
+            self.consume();
+        }
+        Ok(())
     }
 }
