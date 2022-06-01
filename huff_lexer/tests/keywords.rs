@@ -175,4 +175,3 @@ fn parses_takes_and_returns_keywords_tight_syntax() {
     assert!(lexer.eof);
     assert!(lexer.next().is_none());
 }
-

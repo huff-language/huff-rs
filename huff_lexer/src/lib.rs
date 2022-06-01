@@ -62,6 +62,10 @@ impl<'a> Lexer<'a> {
     pub fn peeknchars(&mut self, n: usize) -> String {
         let mut newspan: Span = self.span;
         newspan.end += n;
+        // Break with an empty string if the bounds are exceeded
+        if newspan.end > self.source.len() {
+            return String::default()
+        }
         self.source[newspan.range().unwrap()].to_string()
     }
 
@@ -126,14 +130,16 @@ impl<'a> Iterator for Lexer<'a> {
             let kind = match ch {
                 // Comments
                 '/' => {
-                    if let Some(ch2) = self.consume() {
+                    if let Some(ch2) = self.peek() {
                         match ch2 {
                             '/' => {
+                                self.consume();
                                 // Consume until newline
                                 self.dyn_consume(|c| *c != '\n');
                                 TokenKind::Comment(self.slice())
                             }
                             '*' => {
+                                self.consume();
                                 // Consume until next '*/' occurance
                                 self.seq_consume("*/");
                                 TokenKind::Comment(self.slice())
@@ -238,16 +244,21 @@ impl<'a> Iterator for Lexer<'a> {
                 '=' => TokenKind::Assign,
                 '(' => TokenKind::OpenParen,
                 ')' => TokenKind::CloseParen,
-                ',' => TokenKind::Comma,
-
-                // TODO: remove/fix below
+                '[' => TokenKind::OpenBracket,
+                ']' => TokenKind::CloseBracket,
+                '{' => TokenKind::OpenBrace,
+                '}' => TokenKind::CloseBrace,
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,
+
+                // TODO: Need to add tests for below
+                ',' => TokenKind::Comma,
                 '0'..='9' => {
                     self.dyn_consume(char::is_ascii_digit);
                     TokenKind::Num(self.slice().parse().unwrap())
                 }
+
                 ch if ch.is_ascii_whitespace() => {
                     self.dyn_consume(char::is_ascii_whitespace);
                     TokenKind::Whitespace
