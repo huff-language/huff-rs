@@ -1,6 +1,6 @@
 [package]
-name = "utils"
-version = "0.2.0"
+name = "huff_lexer"
+version = "0.1.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
 readme = "README.md"
@@ -9,8 +9,8 @@ description = """
 Lexical Analysis Crate for the Huff-Language
 """
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
+exclude = [ "huffs" ]
 
 [dependencies]
-strum = "0.24"
-strum_macros = "0.24"
-
+proptest = "1.0.0"
+huff_utils = { path = "../huff_utils" }

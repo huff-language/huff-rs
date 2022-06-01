@@ -1,6 +1,6 @@
 [package]
-name = "lexer"
-version = "0.1.0"
+name = "huff_utils"
+version = "0.2.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
 readme = "README.md"
@@ -11,5 +11,6 @@ Lexical Analysis Crate for the Huff-Language
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 
 [dependencies]
-proptest = "1.0.0"
-utils = { path = "../utils" }
+strum = "0.24"
+strum_macros = "0.24"
+codemap-diagnostic = "0.1.1"
