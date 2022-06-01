@@ -12,6 +12,13 @@ pub struct Token<'a> {
     pub span: Span,
 }
 
+impl<'a> Token<'a> {
+    /// Public associated function that instantiates a Token.
+    pub fn new(kind: TokenKind<'a>, span: Span) -> Self {
+        Self { kind, span }
+    }
+}
+
 /// The kind of token
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind<'a> {
@@ -53,14 +60,18 @@ pub enum TokenKind<'a> {
     Newline,
     /// "#define" keyword
     Define,
+    /// "#include" keyword
+    Include,
     /// "takes" keyword
-    Takes(usize),
+    Takes,
     /// "returns" keyword
-    Returns(usize),
+    Returns,
     /// "="
     Equal,
     /// "macro" keyword
     Macro,
+    /// "function" keyword
+    Function,
     /// "constant" keyword
     Constant,
     /// "FREE_STORAGE_POINTER()" keyword
@@ -75,6 +86,8 @@ pub enum TokenKind<'a> {
     Label(&'a str),
     /// Import path
     Path(&'a str),
+    /// A Comment
+    Comment(&'a str),
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
