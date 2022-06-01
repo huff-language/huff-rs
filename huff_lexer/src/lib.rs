@@ -5,13 +5,12 @@
 //! #### Usage
 //!
 //! ```rust
-//! use huff_lexer::{Lexer, Span};
+//! use huff_lexer::{Lexer};
 //!
 //! // Instantiate a new lexer
 //! let source = "#define macro HELLO_WORLD()";
 //! let lexer = Lexer::new(source);
 //! assert_eq!(lexer.source, source);
-//!
 //! ```
 
 #![deny(missing_docs)]
@@ -19,9 +18,6 @@
 
 use huff_utils::{error::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
-
-#[cfg(test)]
-mod tests;
 
 /// ## Lexer
 ///
@@ -113,44 +109,55 @@ impl<'a> Iterator for Lexer<'a> {
         self.reset();
         if let Some(ch) = self.consume() {
             let kind = match ch {
-                // // Comments
-                // '/' => {
-                //     if let Some(ch2) = self.consume() {
-                //         match ch2 {
-                //             '/' => {
-                //                 self.seq_consume(&mut "\n".chars().peekable());
-                //                 TokenKind::Comment(self.slice().to_string())
-                //             }
-                //             '*' => {
-                //                 self.seq_consume(&mut "*/".chars().peekable());
-                //                 TokenKind::Comment(self.slice().to_string())
-                //             }
-                //             _ => TokenKind::Div,
-                //         }
-                //     } else {
-                //         TokenKind::Div
-                //     }
-                // }
-                // // Definitions
-                // '#' => {
-                //     if let Some(ch2) = self.consume() {
-                //         match ch2 {
-                //             '#' => {
-                //                 self.seq_consume(&mut "\n".chars().peekable());
-                //
-                // TokenKind::Definition(Definition::Macro(self.slice().to_string()))
-                //             }
-                //             '@' => {
-                //                 self.seq_consume(&mut "\n".chars().peekable());
-                //
-                // TokenKind::Definition(Definition::Import(self.slice().to_string()))
-                //             }
-                //             _ => TokenKind::Div,
-                //         }
-                //     } else {
-                //         TokenKind::Div
-                //     }
-                // }
+                // Comments
+                '/' => {
+                    if let Some(ch2) = self.consume() {
+                        match ch2 {
+                            '/' => {
+                                // Consume until newline
+                                self.dyn_consume(|c| *c != '\n');
+                                TokenKind::Comment(self.slice())
+                            }
+                            '*' => {
+                                // Consume until next '*/' occurance
+                                self.seq_consume(&mut "*/".chars().peekable());
+                                TokenKind::Comment(self.slice())
+                            }
+                            _ => TokenKind::Div,
+                        }
+                    } else {
+                        TokenKind::Div
+                    }
+                }
+                // #define keyword
+                '#' => {
+                    // Match exactly on define keyword
+                    let define_keyword = "#define";
+                    let peeked = self.peeknchars(define_keyword.len() - 1);
+                    if define_keyword == peeked {
+                        self.dyn_consume(|c| c.is_alphabetic());
+                        TokenKind::Define
+                    } else {
+                        return Some(Err(LexicalError::new(
+                            LexicalErrorKind::InvalidCharacter('#'),
+                            self.current_span(),
+                        )))
+                    }
+                }
+                // Alphabetical characters
+                ch if ch.is_alphabetic() => {
+                    // Check for macro keyword
+                    let macro_keyword = "macro";
+                    let peeked = self.peeknchars(macro_keyword.len() - 1);
+                    if macro_keyword == peeked {
+                        self.dyn_consume(|c| c.is_alphabetic());
+                        TokenKind::Macro
+                    } else {
+                        self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
+                        TokenKind::Ident(self.slice())
+                    }
+                }
+
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,
@@ -189,10 +196,7 @@ impl<'a> Iterator for Lexer<'a> {
                 '(' => TokenKind::OpenParen,
                 ')' => TokenKind::CloseParen,
                 ',' => TokenKind::Comma,
-                ch if ch.is_alphabetic() => {
-                    self.dyn_consume(|c| c.is_alphanumeric());
-                    TokenKind::Ident(self.slice())
-                }
+
                 ch => {
                     return Some(Err(LexicalError::new(
                         LexicalErrorKind::InvalidCharacter(ch),
