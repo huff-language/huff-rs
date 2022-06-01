@@ -1,16 +1,22 @@
 [package]
-name = "huffr_lexer"
+name = "huffr_cli"
 version = "0.1.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huffr/"
 description = """
-Lexical Analysis Crate for the Huff-Language
+Efficient Huff compiler.
 """
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 exclude = [ "huffs" ]
 
 [dependencies]
-proptest = "1.0.0"
-huffr_utils = { path = "../huffr_utils" }
+clap = { version = "3.1.18", features = ["derive"] }
+huffr_lexer = { path = "../huff_lexer" }
+huffr_utils = { path = "../huff_utils" }
+
+[[bin]]
+name = "huffr"
+path = "src/huffr.rs"
+doc = false

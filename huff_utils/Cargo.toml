@@ -13,4 +13,4 @@ keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 [dependencies]
 strum = "0.24"
 strum_macros = "0.24"
-
+codemap-diagnostic = "0.1.1"

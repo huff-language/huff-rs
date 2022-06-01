@@ -1,5 +1,4 @@
 use std::io::Write;
-
 use crate::{
     report::{Report, Reporter},
     span::{Span, Spanned},

@@ -3,7 +3,6 @@
 use huffr_utils::{error::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
 
-
 #[cfg(test)]
 mod tests;
 
