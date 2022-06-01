@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "huff_codegen",
   "huff_lexer",
   "huff_utils",
   "huff_cli",
