@@ -63,9 +63,9 @@ pub enum TokenKind<'a> {
     /// "#include" keyword
     Include,
     /// "takes" keyword
-    Takes(usize),
+    Takes,
     /// "returns" keyword
-    Returns(usize),
+    Returns,
     /// "="
     Equal,
     /// "macro" keyword

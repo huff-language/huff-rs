@@ -208,6 +208,26 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
+                    // Check for the takes keyword
+                    if found_kind == None {
+                        let takes_key = "takes";
+                        let peeked = self.peeknchars(takes_key.len() - 1);
+                        if takes_key == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Takes);
+                        }
+                    }
+
+                    // Check for the returns keyword
+                    if found_kind == None {
+                        let returns_key = "returns";
+                        let peeked = self.peeknchars(returns_key.len() - 1);
+                        if returns_key == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Returns);
+                        }
+                    }
+
                     if let Some(kind) = found_kind {
                         kind
                     } else {
@@ -215,12 +235,10 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Ident(self.slice())
                     }
                 }
-
                 '=' => TokenKind::Assign,
                 '(' => TokenKind::OpenParen,
                 ')' => TokenKind::CloseParen,
                 ',' => TokenKind::Comma,
-                // ';' => TokenKind::Semi,
 
                 // TODO: remove/fix below
                 '+' => TokenKind::Add,

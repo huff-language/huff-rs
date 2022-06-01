@@ -99,3 +99,80 @@ fn parses_constant_keyword() {
     assert!(lexer.eof);
     assert!(lexer.next().is_none());
 }
+
+#[test]
+fn parses_takes_and_returns_keywords() {
+    let source = "takes (0) returns (0)";
+    let mut lexer = Lexer::new(source);
+    assert_eq!(lexer.source, source);
+
+    // Lex Takes First
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let takes_span = Span::new(0..5);
+    assert_eq!(unwrapped, Token::new(TokenKind::Takes, takes_span));
+    assert_eq!(lexer.span, takes_span);
+
+    // Lex the middle 5 chars
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // open parenthesis
+    let _ = lexer.next(); // 0
+    let _ = lexer.next(); // close parenthesis
+    let _ = lexer.next(); // whitespace
+
+    // Lex Returns
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let returns_span = Span::new(10..17);
+    assert_eq!(unwrapped, Token::new(TokenKind::Returns, returns_span));
+    assert_eq!(lexer.span, returns_span);
+
+    // Lex the last 4 chars
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // open parenthesis
+    let _ = lexer.next(); // 0
+    let _ = lexer.next(); // close parenthesis
+
+    // We covered the whole source
+    assert_eq!(lexer.span.end, source.len());
+    assert!(lexer.eof);
+    assert!(lexer.next().is_none());
+}
+
+#[test]
+fn parses_takes_and_returns_keywords_tight_syntax() {
+    let source = "takes(0) returns(0)";
+    let mut lexer = Lexer::new(source);
+    assert_eq!(lexer.source, source);
+
+    // Lex Takes First
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let takes_span = Span::new(0..5);
+    assert_eq!(unwrapped, Token::new(TokenKind::Takes, takes_span));
+    assert_eq!(lexer.span, takes_span);
+
+    // Lex the next 4 chars
+    let _ = lexer.next(); // open parenthesis
+    let _ = lexer.next(); // 0
+    let _ = lexer.next(); // close parenthesis
+    let _ = lexer.next(); // whitespace
+
+    // Lex Returns
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let returns_span = Span::new(9..16);
+    assert_eq!(unwrapped, Token::new(TokenKind::Returns, returns_span));
+    assert_eq!(lexer.span, returns_span);
+
+    // Lex the last 3 chars
+    let _ = lexer.next(); // open parenthesis
+    let _ = lexer.next(); // 0
+    let _ = lexer.next(); // close parenthesis
+
+    // We covered the whole source
+    assert_eq!(lexer.span.end, source.len());
+    assert!(lexer.eof);
+    assert!(lexer.next().is_none());
+}
+
