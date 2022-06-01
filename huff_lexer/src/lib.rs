@@ -54,15 +54,20 @@ impl<'a> Lexer<'a> {
     }
 
     /// Try to peek at the nth character from the source
-    fn nthpeek(&mut self, n: usize) -> Option<char> {
+    pub fn nthpeek(&mut self, n: usize) -> Option<char> {
         self.chars.clone().nth(n)
     }
 
     /// Try to peek at next n characters from the source
-    fn peeknchars(&mut self, n: usize) -> String {
+    pub fn peeknchars(&mut self, n: usize) -> String {
         let mut newspan: Span = self.span;
         newspan.end += n;
         self.source[newspan.range().unwrap()].to_string()
+    }
+
+    /// Peek n chars from a given start point in the source
+    pub fn peekncharsfrom(&mut self, n: usize, from: usize) -> String {
+        self.source[Span::new(from..(from + n)).range().unwrap()].to_string()
     }
 
     /// Gets the current slice of the source code covered by span
@@ -78,13 +83,23 @@ impl<'a> Lexer<'a> {
         })
     }
 
+    /// Consumes n characters
+    pub fn nconsume(&mut self, count: usize) {
+        for _ in 0..count {
+            let _ = self.consume();
+        }
+    }
+
     /// Consume characters until a sequence matches
-    pub fn seq_consume(&mut self, seq: &mut Peekable<Chars<'a>>) {
+    pub fn seq_consume(&mut self, word: &str) {
+        let mut current_pos = self.span.start;
         while self.peek() != None {
-            if self.peek().unwrap() == *seq.peek().unwrap() {
-                seq.next();
+            let peeked = self.peekncharsfrom(word.len(), current_pos);
+            if word == peeked {
+                break
             }
             self.consume();
+            current_pos += 1;
         }
     }
 
@@ -120,7 +135,7 @@ impl<'a> Iterator for Lexer<'a> {
                             }
                             '*' => {
                                 // Consume until next '*/' occurance
-                                self.seq_consume(&mut "*/".chars().peekable());
+                                self.seq_consume("*/");
                                 TokenKind::Comment(self.slice())
                             }
                             _ => TokenKind::Div,
