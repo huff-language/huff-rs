@@ -58,6 +58,27 @@ impl<'a> Parser<'a> {
     // }
 
     fn parse_macro_args(&self) -> Result<Vec<String>, ParserError> {
+        let args: Vec<String>;
+
+        self.match_kind(TokenKind::OpenParen)?;
+
+        while !self.check(TokenKind::CloseParen) {
+            if self.check(TokenKind::Ident("x")) {
+                self.match_kind(TokenKind::Ident("x"))?;
+                let tok = self.peek_behind().kind;
+
+                match tok {
+                    TokenKind::Ident(name) => args.push(name.to_string()),
+                    _ => return Err(ParserError::SyntaxError),
+                }
+            }
+
+            if self.check(TokenKind::Comma) {
+                self.consume();
+            }
+        }
+
+        Ok(args)
     }
 
     fn parse_macro(&mut self) -> Result<MacroDefinition<'a>, ParserError> {
