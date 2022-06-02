@@ -75,7 +75,7 @@ pub enum TokenKind<'a> {
     Whitespace,
     /// A string literal
     Str(&'a str),
-
+    
     // TODO below aren't lexed
     /// Hex
     Literal(Literal),

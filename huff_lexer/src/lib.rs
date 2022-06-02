@@ -65,7 +65,7 @@
 #![deny(missing_docs)]
 #![allow(dead_code)]
 
-use huff_utils::{error::*, span::*, token::*};
+use huff_utils::{error::*, span::*, token::*, evm::*};
 use std::{iter::Peekable, str::Chars};
 
 /// ## Lexer
@@ -119,6 +119,23 @@ impl<'a> Lexer<'a> {
     pub fn peeknchars(&mut self, n: usize) -> String {
         let mut newspan: Span = self.span;
         newspan.end += n;
+        // Break with an empty string if the bounds are exceeded
+        if newspan.end > self.source.len() {
+            return String::default()
+        }
+        self.source[newspan.range().unwrap()].to_string()
+    }
+
+    /// Try to peek at next y characters from the source
+    /// It will peek at the n characters then try to keep peeking
+    /// until reaching a non alphanumeric character
+    pub fn greedy_peeknchars(&mut self, n: usize) -> String {
+        let mut newspan: Span = self.span;
+        newspan.end += n;
+        println!("{}", newspan.end);
+        while newspan.end+1 <= self.source.len() && self.nthpeek(newspan.end+1).unwrap().is_alphanumeric() {
+            newspan.end += 1;
+        }
         // Break with an empty string if the bounds are exceeded
         if newspan.end > self.source.len() {
             return String::default()
@@ -304,6 +321,17 @@ impl<'a> Iterator for Lexer<'a> {
                             self.consume();
                         }
                         found_kind = Some(TokenKind::FreeStoragePointer);
+                    }
+
+                    // goes over all opcodes
+                    for opcode in OPCODES_MAP.keys() {
+                        let opcode = *opcode;
+                        let peeked = self.greedy_peeknchars(opcode.len()-1);
+                        if opcode == peeked {
+                            self.dyn_consume(|c| c.is_alphanumeric());
+                            found_kind = Some(TokenKind::Opcode(OPCODES_MAP.get(opcode).unwrap().to_owned()));
+                            break;
+                        }
                     }
 
                     if let Some(kind) = found_kind {
