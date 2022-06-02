@@ -140,7 +140,8 @@ pub struct MacroDefinition<'a> {
 }
 
 impl MacroDefinition<'_> {
-    fn new<'a>(name: String, arguments: Vec<String>, statements: Vec<Statement<'static>>, takes: usize, returns: usize) -> Self {
+    ///
+    pub fn new<'a>(name: String, arguments: Vec<String>, statements: Vec<Statement<'static>>, takes: usize, returns: usize) -> Self {
         MacroDefinition {
             name,
             arguments,
