@@ -128,15 +128,27 @@ pub struct Contract<'a> {
 ///
 pub struct MacroDefinition<'a> {
     ///
-    name: String,
+    pub name: String,
     ///
-    arguments: Vec<String>,
+    pub arguments: Vec<String>,
     ///
-    statements: Vec<Statement<'a>>,
+    pub statements: Vec<Statement<'a>>,
     ///
-    takes: usize,
+    pub takes: usize,
     ///
-    returns: usize,
+    pub returns: usize,
+}
+
+impl MacroDefinition<'_> {
+    fn new<'a>(name: String, arguments: Vec<String>, statements: Vec<Statement<'static>>, takes: usize, returns: usize) -> Self {
+        MacroDefinition {
+            name,
+            arguments,
+            statements,
+            takes,
+            returns,
+        }
+    }
 }
 
 ///

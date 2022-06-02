@@ -1,5 +1,5 @@
 use huff_utils::token::{ Token, TokenKind };
-use huff_utils::token::{ Contract, MacroDefinition };
+use huff_utils::token::{ Contract, MacroDefinition, Statement };
 
 use std::mem::discriminant;
 
@@ -41,8 +41,12 @@ impl<'a> Parser<'a> {
         self.cursor += 1;
     }
 
-    fn peek(&mut self) -> Token<'a> {
+    fn peek(&self) -> Token<'a> {
         self.tokens.get(self.cursor + 1).unwrap().clone()
+    }
+
+    fn peek_behind(&self) -> Token<'a> {
+        self.tokens.get(self.cursor - 1).unwrap().clone()
     }
 
     // pub struct MacroDefinition<'a> {
@@ -53,13 +57,32 @@ impl<'a> Parser<'a> {
     //     returns: usize,
     // }
 
-    fn parse_macro(&self) -> Result<MacroDefinition<'a>, ParserError> {
-        let macro_def: MacroDefinition;
+    fn parse_macro_args(&self) -> Result<Vec<String>, ParserError> {
+    }
+
+    fn parse_macro(&mut self) -> Result<MacroDefinition<'a>, ParserError> {
+        let macro_name: String;
+        let macro_arguments: Vec<String>;
+        let macro_statements: Vec<Statement<'a>>;
+        let macro_takes: usize;
+        let macro_returns: usize;
 
         self.match_kind(TokenKind::Define)?;
         self.match_kind(TokenKind::Macro)?;
         self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
 
-        Ok(macro_def)
+        let tok = self.peek_behind().kind;
+        let macro_ident;
+
+        match tok {
+            TokenKind::Ident(name) => macro_ident = name,
+            _ => return Err(ParserError::SyntaxError),
+        }
+
+        macro_name = macro_ident.to_string();
+
+        self.parse_macro_args()?;
+
+        // Ok(macro_def)
     }
 }
