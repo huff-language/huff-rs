@@ -1,5 +1,4 @@
 /// Tests lexing the Free Storage Pointer Keyword
-
 use huff_lexer::*;
 use huff_utils::prelude::*;
 

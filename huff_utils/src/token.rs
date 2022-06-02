@@ -1,4 +1,4 @@
-use crate::{span::Span, evm::Opcode};
+use crate::{evm::Opcode, span::Span};
 use std::fmt;
 
 type Literal = [u8; 32];
@@ -83,7 +83,6 @@ pub enum TokenKind<'a> {
     Opcode(Opcode),
     /// Huff label (aka PC)
     Label(&'a str),
-
     // TODO: recursive dependency resolution at the lexing level?
     // Import path
     // Path(&'a str),
@@ -125,7 +124,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
                 for b in l.iter() {
                     s.push_str(&format!("{:02x}", b));
                 }
-                return write!(f, "{}", s);
+                return write!(f, "{}", s)
             }
             TokenKind::Opcode(o) => return write!(f, "{}", o),
             TokenKind::Label(s) => return write!(f, "{}", s),

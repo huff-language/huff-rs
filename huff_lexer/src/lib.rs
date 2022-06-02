@@ -87,7 +87,13 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
     pub fn new(source: &'a str) -> Self {
-        Self { chars: source.chars().peekable(), source, span: Span::default(), eof: false, eof_returned: false }
+        Self {
+            chars: source.chars().peekable(),
+            source,
+            span: Span::default(),
+            eof: false,
+            eof_returned: false,
+        }
     }
 
     /// Public associated function that returns the current lexing span.
@@ -291,8 +297,12 @@ impl<'a> Iterator for Lexer<'a> {
                     if fsp == peeked {
                         self.dyn_consume(|c| c.is_alphabetic() || c.eq(&'_'));
                         // Consume the parenthesis following the FREE_STORAGE_POINTER
-                        if let Some('(') = self.peek() { self.consume(); }
-                        if let Some(')') = self.peek() { self.consume(); }
+                        if let Some('(') = self.peek() {
+                            self.consume();
+                        }
+                        if let Some(')') = self.peek() {
+                            self.consume();
+                        }
                         found_kind = Some(TokenKind::FreeStoragePointer);
                     }
 
@@ -393,7 +403,7 @@ impl<'a> Iterator for Lexer<'a> {
         // If we haven't returned an eof token, return one
         if !self.eof_returned {
             self.eof_returned = true;
-            return Some(Ok(Token { kind: TokenKind::Eof, span: self.span }));
+            return Some(Ok(Token { kind: TokenKind::Eof, span: self.span }))
         }
 
         None
