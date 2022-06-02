@@ -112,3 +112,55 @@ impl<'a> fmt::Display for TokenKind<'a> {
         write!(f, "{}", x)
     }
 }
+
+type FilePath<'a> = &'a str;
+
+///
+pub struct Contract<'a> {
+    ///
+    macros: Vec<MacroDefinition<'a>>,
+    ///
+    invocations: Vec<MacroInvocation<'a>>,
+    ///
+    imports: Vec<FilePath<'a>>,
+}
+
+///
+pub struct MacroDefinition<'a> {
+    ///
+    name: String,
+    ///
+    arguments: Vec<String>,
+    ///
+    statements: Vec<Statement<'a>>,
+    ///
+    takes: usize,
+    ///
+    returns: usize,
+}
+
+///
+pub struct MacroInvocation<'a> {
+    ///
+    macro_name: String,
+    ///
+    args: Vec<&'a Literal>,
+}
+
+///
+pub struct ConstantDefinition<'a> {
+    ///
+    value: Literal,
+    ///
+    name: &'a str,
+}
+
+///
+pub enum Statement<'a> {
+    ///
+    Literal(Literal),
+    ///
+    Opcode,
+    ///
+    MacroInvocation(MacroInvocation<'a>),
+}
