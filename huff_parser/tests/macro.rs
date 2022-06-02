@@ -1,18 +1,13 @@
 use proptest::prelude::*;
 
-use crate::{Lexer, Span};
-
-// proptest! {
-//     #[test]
-//     fn doesnt_crash(s in "\\PC*") {
-//         parse_date(&s);
-//     }
-// }
+use huff_lexer::*;
+use huff_utils::prelude::*;
 
 #[test]
-fn instantiates() {
-    let source = "";
+fn empty_macro() {
+    let source = "#define macro HELLO_WORLD()";
     let lexer = Lexer::new(source);
+    let tokens = lexer.iter().collect::<Vec<Token<'a>>>();
     assert_eq!(lexer.source, source);
     assert_eq!(lexer.span, Span::default());
     assert!(!lexer.eof);

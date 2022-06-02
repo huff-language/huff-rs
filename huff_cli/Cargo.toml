@@ -1,20 +1,21 @@
 [package]
-name = "cli"
+name = "huff_cli"
 version = "0.1.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
 readme = "README.md"
-repository = "https://github.com/huff-language/huffr/"
+repository = "https://github.com/huff-language/huff-rs/"
 description = """
-Efficient Huff compiler.
+Efficient Huff compiler written in rust.
 """
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 exclude = [ "huffs" ]
 
 [dependencies]
 clap = { version = "3.1.18", features = ["derive"] }
-lexer = { path = "../lexer" }
-utils = { path = "../utils" }
+huff_codegen = { path = "../huff_codegen" }
+huff_lexer = { path = "../huff_lexer" }
+huff_utils = { path = "../huff_utils" }
 
 [[bin]]
 name = "huffr"

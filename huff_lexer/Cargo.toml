@@ -1,15 +1,16 @@
 [package]
-name = "lexer"
-version = "0.1.0"
+name = "huff_lexer"
+version = "0.2.0"
 edition = "2021"
 authors = ["Andreas Bigger"]
 readme = "README.md"
-repository = "https://github.com/huff-language/huffr/"
+repository = "https://github.com/huff-language/huff-rs/"
 description = """
 Lexical Analysis Crate for the Huff-Language
 """
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
+exclude = [ "huffs" ]
 
 [dependencies]
 proptest = "1.0.0"
-utils = { path = "../utils" }
+huff_utils = { path = "../huff_utils" }

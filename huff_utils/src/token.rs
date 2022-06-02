@@ -1,6 +1,7 @@
+use crate::span::Span;
 use std::fmt;
 
-use crate::span::Span;
+type Literal = [u8; 32];
 
 /// A single Token
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -9,6 +10,13 @@ pub struct Token<'a> {
     pub kind: TokenKind<'a>,
     /// An associated Span
     pub span: Span,
+}
+
+impl<'a> Token<'a> {
+    /// Public associated function that instantiates a Token.
+    pub fn new(kind: TokenKind<'a>, span: Span) -> Self {
+        Self { kind, span }
+    }
 }
 
 /// The kind of token
@@ -53,41 +61,29 @@ pub enum TokenKind<'a> {
     /// "#define" keyword
     Define,
     /// "takes" keyword
-    Takes,
+    Takes(usize),
     /// "returns" keyword
-    Returns,
+    Returns(usize),
     /// "="
     Equal,
-    /// Type of function
-    FuncType,
-    /// "function" keyword
-    Function,
+    /// "macro" keyword
+    Macro,
     /// "constant" keyword
     Constant,
     /// "FREE_STORAGE_POINTER()" keyword
     FreeStoragePointer,
-    /// "macro" keyword
-    Macro,
     /// Hex
-    Hex,
+    Literal(Literal),
     /// Opcode
     Opcode,
     /// End Of File
-    EOF,
-    /// Type of a parameter
-    Type,
+    Eof,
     /// Huff label (aka PC)
-    Label,
-    /// Unnamed args [just the types] : list
-    Args,
-    /// Named args
-    NamedArgs,
-    /// Body of a macro
-    Body,
+    Label(&'a str),
     /// Import path
-    Path,
-    /// Statement
-    Statement,
+    Path(&'a str),
+    /// A Comment
+    Comment(&'a str),
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
@@ -106,7 +102,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Str(str) => str,
             TokenKind::Num(num) => return write!(f, "{}", num),
             TokenKind::Ident(_) => todo!(),
-            _ => "oof"
+            _ => "oof",
         };
 
         write!(f, "{}", x)

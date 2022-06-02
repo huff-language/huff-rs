@@ -1,6 +1,6 @@
 //! Utils
 //!
-//! Refactored utilities commonly used across the huffr project.
+//! Refactored utilities commonly used across the huff-rs project.
 
 #![deny(missing_docs)]
 
@@ -19,7 +19,13 @@ pub mod report;
 /// IO Module
 pub mod io;
 
+/// EVM Module
+pub mod evm;
+
+/// Abi Module
+pub mod abi;
+
 /// Prelude wraps common utilities.
 pub mod prelude {
-    pub use crate::{error::*, io::*, report::*, span::*, token::*};
+    pub use crate::{abi::*, error::*, io::*, report::*, span::*, token::*};
 }

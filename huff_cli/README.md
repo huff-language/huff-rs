@@ -1,4 +1,4 @@
-# huffr CLIs
+# Huffr CLIs
 
 huffr CLIs are written using [clap's](https://docs.rs/clap) [derive feature](https://github.com/clap-rs/clap/blob/master/examples/derive_ref/README.md).
 
