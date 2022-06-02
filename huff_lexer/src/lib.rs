@@ -111,12 +111,12 @@ impl<'a> Lexer<'a> {
     }
 
     /// Try to peek at the nth character from the source
-    pub fn nthpeek(&mut self, n: usize) -> Option<char> {
+    pub fn nth_peek(&mut self, n: usize) -> Option<char> {
         self.chars.clone().nth(n)
     }
 
     /// Try to peek at next n characters from the source
-    pub fn peeknchars(&mut self, n: usize) -> String {
+    pub fn peek_n_chars(&mut self, n: usize) -> String {
         let mut newspan: Span = self.span;
         newspan.end += n;
         // Break with an empty string if the bounds are exceeded
@@ -127,7 +127,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Peek n chars from a given start point in the source
-    pub fn peekncharsfrom(&mut self, n: usize, from: usize) -> String {
+    pub fn peek_n_chars_from(&mut self, n: usize, from: usize) -> String {
         self.source[Span::new(from..(from + n)).range().unwrap()].to_string()
     }
 
@@ -135,12 +135,10 @@ impl<'a> Lexer<'a> {
     /// `self.span.start - dist` will underflow.
     pub fn try_look_back(&mut self, dist: usize) -> String {
         match self.span.start.checked_sub(dist) {
-            Some(n) => self.peekncharsfrom(dist - 1, n),
+            Some(n) => self.peek_n_chars_from(dist - 1, n),
             None => String::default(),
         }
     }
-
-    // pub fn check_keyword_rule(&mut self, )
 
     /// Gets the current slice of the source code covered by span
     pub fn slice(&self) -> &'a str {
@@ -166,7 +164,7 @@ impl<'a> Lexer<'a> {
     pub fn seq_consume(&mut self, word: &str) {
         let mut current_pos = self.span.start;
         while self.peek() != None {
-            let peeked = self.peekncharsfrom(word.len(), current_pos);
+            let peeked = self.peek_n_chars_from(word.len(), current_pos);
             if word == peeked {
                 break
             }
@@ -185,6 +183,36 @@ impl<'a> Lexer<'a> {
     /// Resets the Lexer's span
     pub fn reset(&mut self) {
         self.span.start = self.span.end;
+    }
+
+    /// Check if a given keyword follows the keyword rules in the `source`. If not, it is a
+    /// `TokenKind::Ident`.
+    ///
+    /// Rules:
+    /// - The `macro`, `function` and `constant` keywords must be preceded by a `#define` keyword.
+    /// - The `takes` keyword must be preceded by an assignment operator: `=`.
+    /// - The `returns` keyword must be proceeded by an open parenthesis and must *not* be proceeded
+    ///   by a colon or preceded by the keyword `function`
+    pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
+        match found_kind {
+            Some(TokenKind::Macro) | Some(TokenKind::Function) | Some(TokenKind::Constant) => {
+                let define_key = "#define";
+                self.try_look_back(define_key.len() + 1) == define_key
+            }
+            Some(TokenKind::Takes) => {
+                let assign = "=";
+                self.try_look_back(assign.len() + 1) == assign
+            }
+            Some(TokenKind::Returns) => {
+                let function_key = "function";
+                let single_char_peek = self.peek_n_chars_from(1, self.span.end);
+                // Allow for loose and tight syntax (e.g. `returns (0)` & `returns(0)`)
+                (single_char_peek == "(" || self.peek_n_chars_from(2, self.span.end) == " (") &&
+                    self.try_look_back(function_key.len() + 1) != function_key &&
+                    single_char_peek != ":"
+            }
+            _ => true,
+        }
     }
 }
 
@@ -222,21 +250,14 @@ impl<'a> Iterator for Lexer<'a> {
                 '#' => {
                     let mut found_kind: Option<TokenKind> = None;
 
-                    // Match exactly on define keyword
-                    let define_keyword = "#define";
-                    let peeked = self.peeknchars(define_keyword.len() - 1);
-                    if define_keyword == peeked {
-                        self.dyn_consume(|c| c.is_alphabetic());
-                        found_kind = Some(TokenKind::Define);
-                    }
+                    let keys = [("#define", TokenKind::Define), ("#include", TokenKind::Include)];
+                    for (key, kind) in &keys {
+                        let peeked = self.peek_n_chars(key.len() - 1);
 
-                    if found_kind == None {
-                        // Match on the include keyword
-                        let include_keyword = "#include";
-                        let peeked = self.peeknchars(include_keyword.len() - 1);
-                        if include_keyword == peeked {
+                        if *key == peeked {
                             self.dyn_consume(|c| c.is_alphabetic());
-                            found_kind = Some(TokenKind::Include);
+                            found_kind = Some(*kind);
+                            break
                         }
                     }
 
@@ -261,12 +282,10 @@ impl<'a> Iterator for Lexer<'a> {
                         ("takes", TokenKind::Takes),
                         ("returns", TokenKind::Returns),
                     ];
-                    let mut active_key = ""; // Initialize blank string to prevent "possibly-uninitialized" compiler error.
                     for (key, kind) in &keys {
-                        active_key = *key;
-                        let peeked = self.peeknchars(active_key.len() - 1);
+                        let peeked = self.peek_n_chars(key.len() - 1);
 
-                        if active_key == peeked {
+                        if *key == peeked {
                             self.dyn_consume(|c| c.is_alphabetic());
                             found_kind = Some(*kind);
                             break
@@ -276,20 +295,13 @@ impl<'a> Iterator for Lexer<'a> {
                     // Check to see if the found kind is, in fact, a keyword and not the name of
                     // a function. If it is, set `found_kind` to `None` so that it is set to a
                     // `TokenKind::Ident` in the following control flow.
-                    //
-                    // TODO: Add some extra checks for other cases.
-                    // e.g. "dup1 0x7c09063f eq takes jumpi" still registers "takes" as a
-                    // `TokenKind::Takes`
-                    let function_keyword = keys[1].0;
-                    if self.try_look_back(function_keyword.len() + 1) == function_keyword ||
-                        self.peekncharsfrom(1, active_key.len()) == ":"
-                    {
+                    if !self.check_keyword_rules(&found_kind) {
                         found_kind = None;
                     }
 
                     // Check for macro keyword
                     let fsp = "FREE_STORAGE_POINTER";
-                    let peeked = self.peeknchars(fsp.len() - 1);
+                    let peeked = self.peek_n_chars(fsp.len() - 1);
                     if fsp == peeked {
                         self.dyn_consume(|c| c.is_alphabetic() || c.eq(&'_'));
                         // Consume the parenthesis following the FREE_STORAGE_POINTER
@@ -339,7 +351,7 @@ impl<'a> Iterator for Lexer<'a> {
                             let str = self.slice();
                             break TokenKind::Str(&str[1..str.len() - 1])
                         }
-                        Some('\\') if matches!(self.nthpeek(1), Some('\\') | Some('"')) => {
+                        Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('"')) => {
                             self.consume();
                         }
                         Some(_) => {}
@@ -361,7 +373,7 @@ impl<'a> Iterator for Lexer<'a> {
                             let str = self.slice();
                             break TokenKind::Str(&str[1..str.len() - 1])
                         }
-                        Some('\\') if matches!(self.nthpeek(1), Some('\\') | Some('\'')) => {
+                        Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('\'')) => {
                             self.consume();
                         }
                         Some(_) => {}
