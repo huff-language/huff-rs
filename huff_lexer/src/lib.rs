@@ -191,7 +191,7 @@ impl<'a> Lexer<'a> {
     /// Rules:
     /// - The `macro`, `function` and `constant` keywords must be preceded by a `#define` keyword.
     /// - The `takes` keyword must be preceded by an assignment operator: `=`.
-    /// - The `returns` keyword must be proceeded by an open parenthesis and must *not* be proceeded
+    /// - The `returns` keyword must be succeeded by an open parenthesis and must *not* be succeeded
     ///   by a colon or preceded by the keyword `function`
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
         match found_kind {
@@ -205,11 +205,10 @@ impl<'a> Lexer<'a> {
             }
             Some(TokenKind::Returns) => {
                 let function_key = "function";
-                let single_char_peek = self.peek_n_chars_from(1, self.span.end);
                 // Allow for loose and tight syntax (e.g. `returns (0)` & `returns(0)`)
-                (single_char_peek == "(" || self.peek_n_chars_from(2, self.span.end) == " (") &&
+                self.peek_n_chars_from(2, self.span.end).trim().starts_with('(') &&
                     self.try_look_back(function_key.len() + 1) != function_key &&
-                    single_char_peek != ":"
+                    self.peek_n_chars_from(1, self.span.end) != ":"
             }
             _ => true,
         }
