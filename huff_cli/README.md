@@ -1,6 +1,6 @@
-# Huffr CLIs
+# Huff CLIs
 
-huffr CLIs are written using [clap's](https://docs.rs/clap) [derive feature](https://github.com/clap-rs/clap/blob/master/examples/derive_ref/README.md).
+huff CLIs are written using [clap's](https://docs.rs/clap) [derive feature](https://github.com/clap-rs/clap/blob/master/examples/derive_ref/README.md).
 
 Debug logs are printed with
 [`tracing`](https://docs.rs/tracing/0.1.29/tracing/). You can configure the
@@ -9,14 +9,14 @@ verbosity level via the
 environment variable, on a per package level,
 e.g.:`RUST_LOG=forge=trace,evm_adapters=trace forge test`
 
-## huffr
+## huff
 
 ```
-huffr 0.1.0
+huff 0.1.0
 Efficiently compile Huff code.
 
 USAGE:
-    huffr [OPTIONS] [PATH]
+    huff [OPTIONS] [PATH]
 
 ARGS:
     <PATH>
@@ -36,15 +36,15 @@ OPTIONS:
 
 ### Developing
 
-To run `huffr` from the command line, you can use the following command:
+To run `huff` from the command line, you can use the following command:
 
 ```bash
-cargo run --bin huffr
+cargo run --bin huff
 ```
 
-To pass arguments into the `huffr` binary, simply pass them in after a `--` flag. For example, to get the `huffr` version (a `-V` flag), you can run:
+To pass arguments into the `huff` binary, simply pass them in after a `--` flag. For example, to get the `huff` version (a `-V` flag), you can run:
 
 ```bash
-cargo run --bin huffr -- -V
+cargo run --bin huff -- -V
 ```
 

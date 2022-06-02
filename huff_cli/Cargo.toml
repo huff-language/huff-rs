@@ -18,6 +18,6 @@ huff_lexer = { path = "../huff_lexer" }
 huff_utils = { path = "../huff_utils" }
 
 [[bin]]
-name = "huffr"
-path = "src/huffr.rs"
+name = "huff"
+path = "src/huff.rs"
 doc = false
