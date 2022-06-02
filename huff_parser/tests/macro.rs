@@ -8,7 +8,8 @@ use huff_utils::prelude::*;
 fn empty_macro() {
     let source = "#define macro HELLO_WORLD()";
     let lexer = Lexer::new(source);
-    let tokens = lexer.iter().collect::<Vec<Token>>();
-    let parser = Parser::new(tokens);
-    let result = parser.parse().unwrap();
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens);
+    parser.parse();
+    assert_eq!(parser.current_token.kind, TokenKind::Whitespace);
 }

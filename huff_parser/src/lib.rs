@@ -78,6 +78,7 @@ impl<'a> Parser<'a> {
         Parse a statement.
     */
     fn parse_statement(&mut self) -> Result<(), ParserError> {
+        println!("Parsing statement...");
         // first token should be keyword "#define"
         self.match_kind(TokenKind::Define)?;
         // match to fucntion, constant or macro
@@ -127,6 +128,7 @@ impl<'a> Parser<'a> {
         It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
     */
     fn parse_macro(&mut self) -> Result<(), ParserError> {
+        println!("Parsing macro...");
         self.match_kind(TokenKind::Macro)?;
         self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
         self.parse_args(true)?;
