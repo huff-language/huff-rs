@@ -22,72 +22,69 @@ impl<'a> Token<'a> {
 /// The kind of token
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind<'a> {
-    /// Addition
-    Add,
-    /// Subtraction
-    Sub,
-    /// Multiplication
-    Mul,
+    /// A Comment
+    Comment(&'a str),
     /// Division
+    /// Lexing done at the comment level due to clash
     Div,
-    /// Semicolon
-    Semi,
-    /// Equal Sign
-    Assign,
-    /// Number
-    Num(usize),
-    /// A string literal
-    Str(&'a str),
-    /// An Identifier
-    Ident(&'a str),
-    /// A Space
-    Whitespace,
-    /// An open parenthesis
-    OpenParen,
-    /// A close parenthesis
-    CloseParen,
-    /// An open brace
-    OpenBrace,
-    /// A close brace
-    CloseBrace,
-    /// An open bracket
-    OpenBracket,
-    /// A close bracket
-    CloseBracket,
-    /// A comma
-    Comma,
-    /// A newline
-    Newline,
     /// "#define" keyword
     Define,
     /// "#include" keyword
     Include,
-    /// "takes" keyword
-    Takes,
-    /// "returns" keyword
-    Returns,
-    /// "="
-    Equal,
     /// "macro" keyword
     Macro,
     /// "function" keyword
     Function,
     /// "constant" keyword
     Constant,
+    /// "takes" keyword
+    Takes,
+    /// "returns" keyword
+    Returns,
+    /// Equal Sign
+    Assign,
+    /// An open parenthesis
+    OpenParen,
+    /// A close parenthesis
+    CloseParen,
+    /// An open bracket
+    OpenBracket,
+    /// A close bracket
+    CloseBracket,
+    /// An open brace
+    OpenBrace,
+    /// A close brace
+    CloseBrace,
+    /// Addition
+    Add,
+    /// Subtraction
+    Sub,
+    /// Multiplication
+    Mul,
+    /// A comma
+    Comma,
+    /// Number
+    Num(usize),
+    /// A Space
+    Whitespace,
+    /// A string literal
+    Str(&'a str),
+
+    // TODO below aren't lexed
+    /// An Identifier
+    Ident(&'a str),
     /// "FREE_STORAGE_POINTER()" keyword
     FreeStoragePointer,
     /// Hex
     Literal(Literal),
     /// Opcode
     Opcode,
-    /// End Of File
-    Eof,
     /// Huff label (aka PC)
     Label(&'a str),
-    /// Import path
-    Path(&'a str),
-    /// A Comment
-    Comment(&'a str),
+
+    // TODO: recursive dependency resolution at the lexing level?
+    // Import path
+    // Path(&'a str),
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
