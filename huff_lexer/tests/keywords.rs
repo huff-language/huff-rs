@@ -225,7 +225,6 @@ fn parses_function_definition_with_keyword_name() {
         // We covered the whole source
         assert_eq!(lexer.span.end, source.len());
         assert!(lexer.eof);
-        assert!(lexer.next().is_none());
     }
 }
 
@@ -267,6 +266,5 @@ fn parses_function_with_keyword_name_in_main_macro() {
         // We covered the whole source
         assert_eq!(lexer.span.end, source.len());
         assert!(lexer.eof);
-        assert!(lexer.next().is_none());
     }
 }

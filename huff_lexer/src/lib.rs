@@ -140,6 +140,8 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    // pub fn check_keyword_rule(&mut self, )
+
     /// Gets the current slice of the source code covered by span
     pub fn slice(&self) -> &'a str {
         &self.source[self.span.range().unwrap()]
