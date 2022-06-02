@@ -2,7 +2,7 @@
 name = "huff_utils"
 version = "0.2.0"
 edition = "2021"
-authors = ["Andreas Bigger, Xuuz, Exp.table"]
+authors = ["Andreas Bigger"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
 description = """
