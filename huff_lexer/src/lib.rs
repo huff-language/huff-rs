@@ -2,15 +2,65 @@
 //!
 //! Lexical analyzer for the huff language.
 //!
+//! The Huff Lexer is instantiable with a string representing the source code.
+//!
+//! Once instantiated, the lexer can be used to iterate over the tokens in the source code.
+//! It also exposes a number of practical methods for accessing information about the source code
+//! throughout lexing.
+//!
 //! #### Usage
 //!
+//! The following example steps through the lexing of a simple, single-line source code macro
+//! definition.
+//!
 //! ```rust
+//! use huff_utils::{token::*, span::*};
 //! use huff_lexer::{Lexer};
 //!
 //! // Instantiate a new lexer
 //! let source = "#define macro HELLO_WORLD()";
-//! let lexer = Lexer::new(source);
+//! let mut lexer = Lexer::new(source);
 //! assert_eq!(lexer.source, source);
+//!
+//! // This token should be a Define identifier
+//! let tok = lexer.next().unwrap().unwrap();
+//! assert_eq!(tok, Token::new(TokenKind::Define, Span::new(0..7)));
+//! assert_eq!(lexer.span, Span::new(0..7));
+//!
+//! // The next token should be the whitespace
+//! let tok = lexer.next().unwrap().unwrap();
+//! assert_eq!(tok, Token::new(TokenKind::Whitespace, Span::new(7..8)));
+//! assert_eq!(lexer.span, Span::new(7..8));
+//!
+//! // Then we should parse the macro keyword
+//! let tok = lexer.next().unwrap().unwrap();
+//! assert_eq!(tok, Token::new(TokenKind::Macro, Span::new(8..13)));
+//! assert_eq!(lexer.span, Span::new(8..13));
+//!
+//! // The next token should be another whitespace
+//! let tok = lexer.next().unwrap().unwrap();
+//! assert_eq!(tok, Token::new(TokenKind::Whitespace, Span::new(13..14)));
+//! assert_eq!(lexer.span, Span::new(13..14));
+//!
+//! // Then we should get the function name
+//! let tok = lexer.next().unwrap().unwrap();
+//! assert_eq!(tok, Token::new(TokenKind::Ident("HELLO_WORLD"), Span::new(14..25)));
+//! assert_eq!(lexer.span, Span::new(14..25));
+//!
+//! // Then we should have an open paren
+//! let tok = lexer.next().unwrap().unwrap();
+//! assert_eq!(tok, Token::new(TokenKind::OpenParen, Span::new(25..26)));
+//! assert_eq!(lexer.span, Span::new(25..26));
+//!
+//! // Lastly, we should have a closing parenthesis
+//! let tok = lexer.next().unwrap().unwrap();
+//! assert_eq!(tok, Token::new(TokenKind::CloseParen, Span::new(26..27)));
+//! assert_eq!(lexer.span, Span::new(26..27));
+//!
+//! // We covered the whole source
+//! assert_eq!(lexer.span.end, source.len());
+//! assert!(lexer.eof);
+//! assert!(lexer.next().is_none());
 //! ```
 
 #![deny(missing_docs)]
@@ -62,6 +112,10 @@ impl<'a> Lexer<'a> {
     pub fn peeknchars(&mut self, n: usize) -> String {
         let mut newspan: Span = self.span;
         newspan.end += n;
+        // Break with an empty string if the bounds are exceeded
+        if newspan.end > self.source.len() {
+            return String::default()
+        }
         self.source[newspan.range().unwrap()].to_string()
     }
 
@@ -126,14 +180,16 @@ impl<'a> Iterator for Lexer<'a> {
             let kind = match ch {
                 // Comments
                 '/' => {
-                    if let Some(ch2) = self.consume() {
+                    if let Some(ch2) = self.peek() {
                         match ch2 {
                             '/' => {
+                                self.consume();
                                 // Consume until newline
                                 self.dyn_consume(|c| *c != '\n');
                                 TokenKind::Comment(self.slice())
                             }
                             '*' => {
+                                self.consume();
                                 // Consume until next '*/' occurance
                                 self.seq_consume("*/");
                                 TokenKind::Comment(self.slice())
@@ -144,15 +200,32 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Div
                     }
                 }
-                // #define keyword
+                // # keywords
                 '#' => {
+                    let mut found_kind: Option<TokenKind> = None;
+
                     // Match exactly on define keyword
                     let define_keyword = "#define";
                     let peeked = self.peeknchars(define_keyword.len() - 1);
                     if define_keyword == peeked {
                         self.dyn_consume(|c| c.is_alphabetic());
-                        TokenKind::Define
+                        found_kind = Some(TokenKind::Define);
+                    }
+
+                    if found_kind == None {
+                        // Match on the include keyword
+                        let include_keyword = "#include";
+                        let peeked = self.peeknchars(include_keyword.len() - 1);
+                        if include_keyword == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Include);
+                        }
+                    }
+
+                    if let Some(kind) = found_kind {
+                        kind
                     } else {
+                        // Otherwise we don't support # prefixed indentifiers
                         return Some(Err(LexicalError::new(
                             LexicalErrorKind::InvalidCharacter('#'),
                             self.current_span(),
@@ -161,29 +234,86 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 // Alphabetical characters
                 ch if ch.is_alphabetic() => {
+                    let mut found_kind: Option<TokenKind> = None;
+
                     // Check for macro keyword
                     let macro_keyword = "macro";
                     let peeked = self.peeknchars(macro_keyword.len() - 1);
                     if macro_keyword == peeked {
                         self.dyn_consume(|c| c.is_alphabetic());
-                        TokenKind::Macro
+                        found_kind = Some(TokenKind::Macro);
+                    }
+
+                    // Check for the function keyword
+                    if found_kind == None {
+                        let function_keyword = "function";
+                        let peeked = self.peeknchars(function_keyword.len() - 1);
+                        if function_keyword == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Function);
+                        }
+                    }
+
+                    // Check for the constant keyword
+                    if found_kind == None {
+                        let constant_keyword = "constant";
+                        let peeked = self.peeknchars(constant_keyword.len() - 1);
+                        if constant_keyword == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Constant);
+                        }
+                    }
+
+                    // Check for the takes keyword
+                    if found_kind == None {
+                        let takes_key = "takes";
+                        let peeked = self.peeknchars(takes_key.len() - 1);
+                        if takes_key == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Takes);
+                        }
+                    }
+
+                    // Check for the returns keyword
+                    if found_kind == None {
+                        let returns_key = "returns";
+                        let peeked = self.peeknchars(returns_key.len() - 1);
+                        if returns_key == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Returns);
+                        }
+                    }
+
+                    if let Some(kind) = found_kind {
+                        kind
                     } else {
                         self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
                         TokenKind::Ident(self.slice())
                     }
                 }
-
+                '=' => TokenKind::Assign,
+                '(' => TokenKind::OpenParen,
+                ')' => TokenKind::CloseParen,
+                '[' => TokenKind::OpenBracket,
+                ']' => TokenKind::CloseBracket,
+                '{' => TokenKind::OpenBrace,
+                '}' => TokenKind::CloseBrace,
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,
+                // NOTE: TokenKind::Div is lexed further up since it overlaps with comment
+                // identifiers
+                ',' => TokenKind::Comma,
                 '0'..='9' => {
                     self.dyn_consume(char::is_ascii_digit);
                     TokenKind::Num(self.slice().parse().unwrap())
                 }
+                // Lexes Spaces and Newlines as Whitespace
                 ch if ch.is_ascii_whitespace() => {
                     self.dyn_consume(char::is_ascii_whitespace);
                     TokenKind::Whitespace
                 }
+                // String literals
                 '"' => loop {
                     match self.peek() {
                         Some('"') => {
@@ -206,12 +336,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     self.consume();
                 },
-                ';' => TokenKind::Semi,
-                '=' => TokenKind::Assign,
-                '(' => TokenKind::OpenParen,
-                ')' => TokenKind::CloseParen,
-                ',' => TokenKind::Comma,
-
+                // At this point, the source code has an invalid or unsupported token
                 ch => {
                     return Some(Err(LexicalError::new(
                         LexicalErrorKind::InvalidCharacter(ch),
@@ -222,6 +347,10 @@ impl<'a> Iterator for Lexer<'a> {
 
             if self.peek().is_none() {
                 self.eof = true;
+                return Some(Ok(Token {
+                    kind: TokenKind::Eof,
+                    span: self.span,
+                }))
             }
 
             let token = Token { kind, span: self.span };

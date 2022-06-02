@@ -3,6 +3,7 @@ use huff_utils::{
 };
 use std::mem::discriminant;
 
+#[derive(Debug)]
 pub enum ParserError {
     SyntaxError,
 }
@@ -26,8 +27,16 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(&mut self) -> Result<(), ParserError> {
+        // remove all whitespaces and newlines first
+        self.tokens.retain(|&token| {
+            match token.kind {
+                TokenKind::Whitespace => false,
+                TokenKind::Newline => false,
+                _ => true
+            }
+        });
         while !self.check(TokenKind::Eof) {
-            self.parse_statement();
+            self.parse_statement()?;
         }
         Ok(())
     }
@@ -42,6 +51,7 @@ impl<'a> Parser<'a> {
             self.consume();
             Ok(())
         } else {
+            println!("Expected current token of kind {} to match {}", self.current_token.kind, kind);
             Err(ParserError::SyntaxError)
         }
     }
@@ -78,7 +88,6 @@ impl<'a> Parser<'a> {
         Parse a statement.
     */
     fn parse_statement(&mut self) -> Result<(), ParserError> {
-        println!("Parsing statement...");
         // first token should be keyword "#define"
         self.match_kind(TokenKind::Define)?;
         // match to fucntion, constant or macro
@@ -88,7 +97,6 @@ impl<'a> Parser<'a> {
             TokenKind::Macro => self.parse_macro(),
             _ => Err(ParserError::SyntaxError)
         };
-        self.parse_newline()?;
         Ok(())
     }
 
@@ -97,12 +105,17 @@ impl<'a> Parser<'a> {
     */
     fn parse_function(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::Function)?;
+        
         // function name should be next
         self.match_kind(TokenKind::Ident("x"))?;
+        
         self.parse_args(false)?;
+        
         self.match_kind(TokenKind::FuncType)?; // view, payable or nonpayable
-        self.match_kind(TokenKind::Returns(0))?;
+        
+        self.match_kind(TokenKind::Returns)?;
         self.parse_args(false)?;
+        
         Ok(())
     }
 
@@ -112,7 +125,7 @@ impl<'a> Parser<'a> {
     fn parse_constant(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::Constant)?;
         self.match_kind(TokenKind::Ident("x"))?;
-        self.match_kind(TokenKind::Equal)?;
+        self.match_kind(TokenKind::Assign)?;
         match self.current_token.kind {
             TokenKind::FreeStoragePointer | TokenKind::Literal(_) => {
                 self.consume();
@@ -128,14 +141,13 @@ impl<'a> Parser<'a> {
         It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
     */
     fn parse_macro(&mut self) -> Result<(), ParserError> {
-        println!("Parsing macro...");
         self.match_kind(TokenKind::Macro)?;
         self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
         self.parse_args(true)?;
-        self.match_kind(TokenKind::Equal)?;
-        self.match_kind(TokenKind::Takes(0))?;
+        self.match_kind(TokenKind::Assign)?;
+        self.match_kind(TokenKind::Takes)?;
         self.parse_single_arg()?;
-        self.match_kind(TokenKind::Returns(0))?;
+        self.match_kind(TokenKind::Returns)?;
         self.parse_single_arg()?;
         self.parse_body()?;
         Ok(())
@@ -156,10 +168,10 @@ impl<'a> Parser<'a> {
                 TokenKind::Ident("MACRO_NAME") => self.parse_macro_call()?,
                 TokenKind::OpenBracket => self.parse_constant_push()?,
                 _ => return Err(ParserError::SyntaxError)
-            }
-        }
+            };
+        };
         // consume close brace
-        self.consume();
+        self.match_kind(TokenKind::CloseBrace)?;
         Ok(())
     }
 
@@ -195,7 +207,7 @@ impl<'a> Parser<'a> {
             }
         }
         // consume close parenthesis
-        self.consume();
+        self.match_kind(TokenKind::CloseParen)?;
         Ok(())
     }
 
@@ -244,4 +256,14 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::CloseBracket)?;
         Ok(())
     }
+
+    /*
+        Parses whitespaces and newlines until none are left.
+    */
+    fn parse_nl_or_whitespace(&mut self) -> Result<(), ParserError> {
+        while self.check(TokenKind::Newline) || self.check(TokenKind::Whitespace) {
+            self.consume();
+        }
+        Ok(())
+    } 
 }

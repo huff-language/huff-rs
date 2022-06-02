@@ -61,11 +61,9 @@ pub enum TokenKind<'a> {
     /// "#define" keyword
     Define,
     /// "takes" keyword
-    Takes(usize),
+    Takes,
     /// "returns" keyword
-    Returns(usize),
-    /// "="
-    Equal,
+    Returns,
     /// "macro" keyword
     Macro,
     /// "constant" keyword
@@ -89,7 +87,9 @@ pub enum TokenKind<'a> {
     /// EVM Type
     Type,
     /// Type of function ; view | payable | nonpayable
-    FuncType
+    FuncType,
+    /// "include" keyword
+    Include
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
@@ -104,10 +104,16 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Assign => "=",
             TokenKind::OpenParen => "(",
             TokenKind::CloseParen => ")",
+            TokenKind::OpenBrace => "{",
+            TokenKind::CloseBrace => "}",
             TokenKind::Comma => ",",
             TokenKind::Str(str) => str,
             TokenKind::Num(num) => return write!(f, "{}", num),
-            TokenKind::Ident(_) => todo!(),
+            TokenKind::Ident(str) => str,
+            TokenKind::Eof => "EOF",
+            TokenKind::Whitespace => "WHITESPACE",
+            TokenKind::Takes => "takes",
+            TokenKind::Returns => "returns",
             _ => "oof",
         };
 
