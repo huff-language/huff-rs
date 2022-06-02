@@ -41,6 +41,8 @@ pub enum TokenKind<'a> {
     Takes,
     /// "returns" keyword
     Returns,
+    /// "FREE_STORAGE_POINTER()" keyword
+    FreeStoragePointer,
     /// Equal Sign
     Assign,
     /// An open parenthesis
@@ -73,8 +75,6 @@ pub enum TokenKind<'a> {
     // TODO below aren't lexed
     /// An Identifier
     Ident(&'a str),
-    /// "FREE_STORAGE_POINTER()" keyword
-    FreeStoragePointer,
     /// Hex
     Literal(Literal),
     /// Opcode
@@ -95,7 +95,6 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Mul => "*",
             TokenKind::Div => "/",
             TokenKind::Whitespace => " ",
-            TokenKind::Semi => ";",
             TokenKind::Assign => "=",
             TokenKind::OpenParen => "(",
             TokenKind::CloseParen => ")",

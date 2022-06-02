@@ -284,6 +284,17 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
+                    // Check for macro keyword
+                    let fsp = "FREE_STORAGE_POINTER";
+                    let peeked = self.peeknchars(fsp.len() - 1);
+                    if fsp == peeked {
+                        self.dyn_consume(|c| c.is_alphabetic() || c.eq(&'_'));
+                        // Consume the parenthesis following the FREE_STORAGE_POINTER
+                        if let Some('(') = self.peek() { self.consume(); }
+                        if let Some(')') = self.peek() { self.consume(); }
+                        found_kind = Some(TokenKind::FreeStoragePointer);
+                    }
+
                     if let Some(kind) = found_kind {
                         kind
                     } else {
