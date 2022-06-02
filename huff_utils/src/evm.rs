@@ -3,7 +3,7 @@ use strum_macros::EnumString;
 
 /// EVM Opcodes
 /// References https://evm.codes
-#[derive(Debug, PartialEq, Eq, EnumString)]
+#[derive(Debug, PartialEq, Eq, EnumString, Clone, Copy)]
 pub enum Opcode {
     /// Halts execution.
     #[strum(serialize = "stop")]

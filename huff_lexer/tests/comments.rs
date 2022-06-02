@@ -89,7 +89,6 @@ fn single_line_comments() {
 
     // We covered the whole source
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
     assert_eq!(source.len(), 48);
 }
 
@@ -159,6 +158,5 @@ fn multi_line_comments() {
 
     // We covered the whole source
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
     assert_eq!(source.len(), 48);
 }
