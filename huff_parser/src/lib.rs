@@ -3,20 +3,20 @@ use huff_utils::{
 };
 use std::mem::discriminant;
 
-enum ParserError {
+pub enum ParserError {
     SyntaxError,
 }
 
-struct Parser<'a> {
+pub struct Parser<'a> {
     // Vector of the tokens
-    tokens: Vec<Token<'a>>,
+    pub tokens: Vec<Token<'a>>,
     // Current position
-    pos: usize,
-    current_token: Token<'a>
+    pub pos: usize,
+    pub current_token: Token<'a>
 }
 
 impl<'a> Parser<'a> {
-    fn new(tokens: Vec<Token<'a>>) -> Self {
+    pub fn new(tokens: Vec<Token<'a>>) -> Self {
         let initial_token = tokens.get(0).unwrap().clone();
         Self {
             tokens: tokens,
@@ -25,8 +25,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse(&mut self) -> Result<(), ParserError> {
-        while !self.check(TokenKind::EOF) {
+    pub fn parse(&mut self) -> Result<(), ParserError> {
+        while !self.check(TokenKind::Eof) {
             self.parse_statement();
         }
         Ok(())
@@ -35,7 +35,7 @@ impl<'a> Parser<'a> {
     /*
         Match current token to a type.
     */
-    fn match_kind(&mut self, kind: TokenKind) -> Result<(), ParserError> {
+    pub fn match_kind(&mut self, kind: TokenKind) -> Result<(), ParserError> {
         // if match, consume token
         // if not, return error and stop parsing
         if std::mem::discriminant(&mut self.current_token.kind) == std::mem::discriminant(&kind) {
@@ -50,7 +50,7 @@ impl<'a> Parser<'a> {
     /*
         Check the current token's type against the given type.
     */
-    fn check(&mut self, kind: TokenKind) -> bool {
+    pub fn check(&mut self, kind: TokenKind) -> bool {
         // check if current token is of type kind
         std::mem::discriminant(&mut self.current_token.kind) == std::mem::discriminant(&kind)
     }
@@ -58,7 +58,7 @@ impl<'a> Parser<'a> {
     /*
         Consumes the next token.
     */
-    fn consume(&mut self) {
+    pub fn consume(&mut self) {
         self.current_token = self.peek();
         self.pos += 1;
     }
@@ -66,7 +66,7 @@ impl<'a> Parser<'a> {
     /*
         Take a look at next token without consuming.
     */
-    fn peek(&mut self) -> Token<'a> {
+    pub fn peek(&mut self) -> Token<'a> {
         self.tokens.get(self.pos+1).unwrap().clone()
     }
 
@@ -100,7 +100,7 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Ident("x"))?;
         self.parse_args(false)?;
         self.match_kind(TokenKind::FuncType)?; // view, payable or nonpayable
-        self.match_kind(TokenKind::Returns)?;
+        self.match_kind(TokenKind::Returns(0))?;
         self.parse_args(false)?;
         Ok(())
     }
@@ -113,7 +113,7 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Ident("x"))?;
         self.match_kind(TokenKind::Equal)?;
         match self.current_token.kind {
-            TokenKind::FreeStoragePointer | TokenKind::Hex => {
+            TokenKind::FreeStoragePointer | TokenKind::Literal(_) => {
                 self.consume();
                 Ok(())
             },
@@ -131,9 +131,9 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
         self.parse_args(true)?;
         self.match_kind(TokenKind::Equal)?;
-        self.match_kind(TokenKind::Takes)?;
+        self.match_kind(TokenKind::Takes(0))?;
         self.parse_single_arg()?;
-        self.match_kind(TokenKind::Returns)?;
+        self.match_kind(TokenKind::Returns(0))?;
         self.parse_single_arg()?;
         self.parse_body()?;
         Ok(())
@@ -148,9 +148,9 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::OpenBrace)?;
         while !self.check(TokenKind::CloseBrace) {
             match self.current_token.kind {
-                TokenKind::Hex => self.consume(),
+                TokenKind::Literal(_) => self.consume(),
                 TokenKind::Opcode => self.consume(),
-                TokenKind::Label => self.consume(),
+                TokenKind::Label(_) => self.consume(),
                 TokenKind::Ident("MACRO_NAME") => self.parse_macro_call()?,
                 TokenKind::OpenBracket => self.parse_constant_push()?,
                 _ => return Err(ParserError::SyntaxError)
@@ -224,7 +224,7 @@ impl<'a> Parser<'a> {
         while !self.check(TokenKind::CloseParen) {
             // We can pass either directly hex values or labels (without the ":")
             match self.current_token.kind {
-                TokenKind::Hex | TokenKind::Ident(_) => self.consume(),
+                TokenKind::Literal(_) | TokenKind::Ident(_) => self.consume(),
                 _ => return Err(ParserError::SyntaxError)
             }
             if self.check(TokenKind::Comma) {

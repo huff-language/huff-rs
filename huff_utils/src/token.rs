@@ -70,6 +70,8 @@ pub enum TokenKind<'a> {
     Macro,
     /// "constant" keyword
     Constant,
+    /// "function" keyword
+    Function,
     /// "FREE_STORAGE_POINTER()" keyword
     FreeStoragePointer,
     /// Hex
@@ -84,6 +86,10 @@ pub enum TokenKind<'a> {
     Path(&'a str),
     /// A Comment
     Comment(&'a str),
+    /// EVM Type
+    Type,
+    /// Type of function ; view | payable | nonpayable
+    FuncType
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
