@@ -333,7 +333,28 @@ impl<'a> Iterator for Lexer<'a> {
                             )))
                         }
                     }
-
+                    self.consume();
+                },
+                // Allow string literals to be wrapped by single quotes
+                '\'' => loop {
+                    match self.peek() {
+                        Some('\'') => {
+                            self.consume();
+                            let str = self.slice();
+                            break TokenKind::Str(&str[1..str.len() - 1])
+                        }
+                        Some('\\') if matches!(self.nthpeek(1), Some('\\') | Some('\'')) => {
+                            self.consume();
+                        }
+                        Some(_) => {}
+                        None => {
+                            self.eof = true;
+                            return Some(Err(LexicalError::new(
+                                LexicalErrorKind::UnexpectedEof,
+                                self.span,
+                            )))
+                        }
+                    }
                     self.consume();
                 },
                 // At this point, the source code has an invalid or unsupported token
