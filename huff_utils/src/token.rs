@@ -1,5 +1,5 @@
 use crate::{evm::Opcode, span::Span};
-use std::fmt;
+use std::{fmt, fmt::Write};
 
 type Literal = [u8; 32];
 
@@ -122,7 +122,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Literal(l) => {
                 let mut s = String::new();
                 for b in l.iter() {
-                    s.push_str(&format!("{:02x}", b));
+                    let _ = write!(&mut s, "{:02x}", b);
                 }
                 return write!(f, "{}", s)
             }
