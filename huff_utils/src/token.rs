@@ -1,4 +1,4 @@
-use crate::span::Span;
+use crate::{span::Span, evm::Opcode};
 use std::fmt;
 
 type Literal = [u8; 32];
@@ -80,7 +80,7 @@ pub enum TokenKind<'a> {
     /// Hex
     Literal(Literal),
     /// Opcode
-    Opcode,
+    Opcode(Opcode),
     /// Huff label (aka PC)
     Label(&'a str),
 
@@ -92,19 +92,45 @@ pub enum TokenKind<'a> {
 impl<'a> fmt::Display for TokenKind<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let x = match *self {
-            TokenKind::Add => "+",
-            TokenKind::Sub => "+",
-            TokenKind::Mul => "*",
+            TokenKind::Eof => "EOF",
+            TokenKind::Comment(s) => return write!(f, "Comment({})", s),
             TokenKind::Div => "/",
-            TokenKind::Whitespace => " ",
+            TokenKind::Define => "#define",
+            TokenKind::Include => "#include",
+            TokenKind::Macro => "macro",
+            TokenKind::Function => "function",
+            TokenKind::Constant => "constant",
+            TokenKind::Takes => "takes",
+            TokenKind::Returns => "returns",
+            TokenKind::FreeStoragePointer => "FREE_STORAGE_POINTER()",
+            TokenKind::Ident(s) => return write!(f, "{}", s),
             TokenKind::Assign => "=",
             TokenKind::OpenParen => "(",
             TokenKind::CloseParen => ")",
+            TokenKind::OpenBracket => "[",
+            TokenKind::CloseBracket => "]",
+            TokenKind::OpenBrace => "{",
+            TokenKind::CloseBrace => "}",
+            TokenKind::Add => "+",
+            TokenKind::Sub => "+",
+            TokenKind::Mul => "*",
             TokenKind::Comma => ",",
-            TokenKind::Str(str) => str,
             TokenKind::Num(num) => return write!(f, "{}", num),
-            TokenKind::Ident(_) => todo!(),
-            _ => "oof",
+            TokenKind::Whitespace => " ",
+            TokenKind::Str(str) => str,
+
+            // TODO these aren't lexed yet
+            TokenKind::Literal(l) => {
+                let mut s = String::new();
+                for b in l.iter() {
+                    s.push_str(&format!("{:02x}", b));
+                }
+                return write!(f, "{}", s);
+            }
+            TokenKind::Opcode(o) => return write!(f, "{}", o),
+            TokenKind::Label(s) => return write!(f, "{}", s),
+
+            _ => "[UNKOWN_TOKEN_KIND]",
         };
 
         write!(f, "{}", x)
