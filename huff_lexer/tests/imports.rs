@@ -13,7 +13,6 @@ fn include_no_quotes() {
     assert_eq!(unwrapped, Token::new(TokenKind::Include, Span::new(0..8)));
     assert_eq!(lexer.span, Span::new(0..8));
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -45,7 +44,6 @@ fn include_with_string() {
     // We should have reached EOF now
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -77,5 +75,4 @@ fn include_with_string_single_quote() {
     // We should have reached EOF now
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }

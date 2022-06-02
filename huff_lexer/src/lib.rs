@@ -60,7 +60,6 @@
 //! // We covered the whole source
 //! assert_eq!(lexer.span.end, source.len());
 //! assert!(lexer.eof);
-//! assert!(lexer.next().is_none());
 //! ```
 
 #![deny(missing_docs)]
@@ -81,12 +80,14 @@ pub struct Lexer<'a> {
     pub span: Span,
     /// If the lexer has reached the end of file.
     pub eof: bool,
+    /// EOF Token has been returned.
+    pub eof_returned: bool,
 }
 
 impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
     pub fn new(source: &'a str) -> Self {
-        Self { chars: source.chars().peekable(), source, span: Span::default(), eof: false }
+        Self { chars: source.chars().peekable(), source, span: Span::default(), eof: false, eof_returned: false }
     }
 
     /// Public associated function that returns the current lexing span.
@@ -386,7 +387,15 @@ impl<'a> Iterator for Lexer<'a> {
             return Some(Ok(token))
         }
 
+        // Mark EOF
         self.eof = true;
+
+        // If we haven't returned an eof token, return one
+        if !self.eof_returned {
+            self.eof_returned = true;
+            return Some(Ok(Token { kind: TokenKind::Eof, span: self.span }));
+        }
+
         None
     }
 }

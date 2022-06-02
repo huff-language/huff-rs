@@ -20,5 +20,4 @@ fn free_storage_pointer() {
     // We should have reached EOF now
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }

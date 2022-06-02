@@ -60,7 +60,6 @@ fn lexes_assign_op() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -97,7 +96,6 @@ fn lexes_brackets() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -165,7 +163,6 @@ fn lexes_braces() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -229,7 +226,6 @@ fn lexes_math_ops() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -254,7 +250,6 @@ fn lexes_commas() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -279,5 +274,4 @@ fn lexes_comma_sparse() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }

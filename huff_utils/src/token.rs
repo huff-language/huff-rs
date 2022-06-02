@@ -22,6 +22,8 @@ impl<'a> Token<'a> {
 /// The kind of token
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind<'a> {
+    /// EOF Token
+    Eof,
     /// A Comment
     Comment(&'a str),
     /// Division
@@ -43,6 +45,8 @@ pub enum TokenKind<'a> {
     Returns,
     /// "FREE_STORAGE_POINTER()" keyword
     FreeStoragePointer,
+    /// An Identifier
+    Ident(&'a str),
     /// Equal Sign
     Assign,
     /// An open parenthesis
@@ -73,8 +77,6 @@ pub enum TokenKind<'a> {
     Str(&'a str),
 
     // TODO below aren't lexed
-    /// An Identifier
-    Ident(&'a str),
     /// Hex
     Literal(Literal),
     /// Opcode
