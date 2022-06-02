@@ -81,12 +81,40 @@ impl<'a> Parser<'a> {
         Ok(args)
     }
 
+    fn parse_macro_body(&self) -> Result<Vec<Statement<'a>>, ParserError> {
+        let statements: Vec<Statement<'a>>;
+
+        self.match_kind(TokenKind::OpenBrace)?;
+        while !self.check(TokenKind::CloseBrace) {
+            match self.current_token.kind {
+                TokenKind::Hex => { 
+                    self.consume() 
+                },
+                TokenKind::Opcode => { 
+                    self.consume()
+                },
+                TokenKind::Label => {
+                    self.consume()
+                },
+                TokenKind::Ident("MACRO_NAME") => { 
+                    self.parse_macro_call()
+                },
+                TokenKind::OpenBracket => { 
+                    self.parse_constant_push()
+                }
+                _ => return Err(ParserError::SyntaxError)
+            }
+        }
+        self.consume();
+        Ok(())
+    }
+
     fn parse_macro(&mut self) -> Result<MacroDefinition<'a>, ParserError> {
         let macro_name: String;
         let macro_arguments: Vec<String>;
-        let macro_statements: Vec<Statement<'a>>;
         let macro_takes: usize;
         let macro_returns: usize;
+        let macro_statements: Vec<Statement<'a>>;
 
         self.match_kind(TokenKind::Define)?;
         self.match_kind(TokenKind::Macro)?;
@@ -102,8 +130,38 @@ impl<'a> Parser<'a> {
 
         macro_name = macro_ident.to_string();
 
-        self.parse_macro_args()?;
+        macro_arguments = self.parse_macro_args()?;
+        self.match_kind(TokenKind::Equal)?;
+        self.match_kind(TokenKind::Takes)?;
+        self.match_kind(TokenKind::OpenParen)?;
+        self.match_kind(TokenKind::Num(1))?;
 
-        // Ok(macro_def)
+        let tok = self.peek_behind().kind;
+        let takes: usize;
+
+        match tok {
+            TokenKind::Num(value) => takes = value,
+            _ => return Err(ParserError::SyntaxError),
+        }
+
+        macro_takes = takes;
+
+        self.match_kind(TokenKind::CloseParen)?;
+        self.match_kind(TokenKind::Returns)?;
+        self.match_kind(TokenKind::OpenParen)?;
+        self.match_kind(TokenKind::Num(1))?;
+
+        let tok = self.peek_behind().kind;
+        let returns: usize;
+
+        match tok {
+            TokenKind::Num(value) => returns = value,
+            _ => return Err(ParserError::SyntaxError),
+        }
+
+        macro_returns = returns;
+        macro_statements = self.parse_body()?;
+
+        Ok(MacroDefinition::new(macro_name, macro_arguments, macro_statements, macro_takes, macro_returns))
     }
 }
