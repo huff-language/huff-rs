@@ -128,8 +128,6 @@ impl<'a> fmt::Display for TokenKind<'a> {
             }
             TokenKind::Opcode(o) => return write!(f, "{}", o),
             TokenKind::Label(s) => return write!(f, "{}", s),
-
-            _ => "[UNKOWN_TOKEN_KIND]",
         };
 
         write!(f, "{}", x)
