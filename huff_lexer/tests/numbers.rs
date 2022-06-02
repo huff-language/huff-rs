@@ -15,7 +15,6 @@ fn lexes_zero_prefixed_numbers() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -32,5 +31,4 @@ fn lexes_large_numbers() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }

@@ -3,12 +3,11 @@ use std::path::Path;
 use clap::Parser;
 use huff_codegen::*;
 use huff_utils::io::*;
-// use huffr_lexer::Lexer;
 
 /// Efficient Huff compiler.
 #[derive(Parser, Debug, Clone)]
 #[clap(version, about, long_about = None)]
-struct Huffr {
+struct Huff {
     path: Option<String>,
 
     /// The source path to the contracts (default: "./src").
@@ -36,13 +35,13 @@ struct Huffr {
     print: bool,
 }
 
-// Parse files from an huffr instance
+// Parse files from an huff instance
 // TODO: We can probably turn this into a <BUILD> instance where we generate a list of all build
 // files TODO:    with dependencies including their raw sources and perform compilation on that
 // <BUILD> instance
-impl From<Huffr> for Vec<String> {
-    fn from(huffr: Huffr) -> Self {
-        match huffr.path {
+impl From<Huff> for Vec<String> {
+    fn from(huff: Huff) -> Self {
+        match huff.path {
             Some(path) => {
                 // If the file is huff, we can use it
                 let ext = Path::new(&path).extension().unwrap_or_default();
@@ -55,7 +54,7 @@ impl From<Huffr> for Vec<String> {
             }
             None => {
                 // If there's no path, unpack source files
-                let source: String = huffr.source;
+                let source: String = huff.source;
                 unpack_files(&source).unwrap_or_default()
             }
         }
@@ -66,18 +65,18 @@ impl From<Huffr> for Vec<String> {
 #[derive(Debug, Clone)]
 pub struct OutputLocation(pub(crate) String);
 
-impl From<Huffr> for OutputLocation {
-    fn from(huffr: Huffr) -> Self {
-        match huffr.output {
+impl From<Huff> for OutputLocation {
+    fn from(huff: Huff) -> Self {
+        match huff.output {
             Some(o) => OutputLocation(o),
-            None => OutputLocation(huffr.outputdir),
+            None => OutputLocation(huff.outputdir),
         }
     }
 }
 
 fn main() {
     // Parse the command line arguments
-    let cli = Huffr::parse();
+    let cli = Huff::parse();
 
     // Gracefully derive file compilation
     let files: Vec<String> = cli.clone().into();

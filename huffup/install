@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -e
+
+# -----------------------------------------------------------
+# Forked from Foundry.
+# https://github.com/foundry-rs/foundry/tree/master/foundryup
+# -----------------------------------------------------------
+
+echo Installing huffup...
+
+HUFF_DIR=${HUFF_DIR-"$HOME/.huff"}
+HUFF_BIN_DIR="$HUFF_DIR/bin"
+HUFF_MAN_DIR="$HUFF_DIR/share/man/man1"
+
+BIN_URL="https://raw.githubusercontent.com/huff-language/huff-rs/master/huffup/huffup"
+BIN_PATH="$HUFF_BIN_DIR/huffup"
+
+# Create the .huff bin directory and huffup binary if it doesn't exist.
+mkdir -p $HUFF_BIN_DIR
+curl -# -L $BIN_URL -o $BIN_PATH
+chmod +x $BIN_PATH
+
+# Create the man directory for future man files if it doesn't exist.
+mkdir -p $HUFF_MAN_DIR
+
+# Store the correct profile file (i.e. .profile for bash or .zshrc for ZSH).
+case $SHELL in
+*/zsh)
+    PROFILE=$HOME/.zshrc
+    PREF_SHELL=zsh
+    ;;
+*/bash)
+    PROFILE=$HOME/.bashrc
+    PREF_SHELL=bash
+    ;;
+*/fish)
+    PROFILE=$HOME/.config/fish/config.fish
+    PREF_SHELL=fish
+    ;;
+*)
+    echo "huffup: could not detect shell, manually add ${HUFF_BIN_DIR} to your PATH."
+    exit 1
+esac
+
+# Only add huffup if it isn't already in PATH.
+if [[ ":$PATH:" != *":${HUFF_BIN_DIR}:"* ]]; then
+    # Add the huffup directory to the path and ensure the old PATH variables remain.
+    echo >> $PROFILE && echo "export PATH=\"\$PATH:$HUFF_BIN_DIR\"" >> $PROFILE
+fi
+
+# Warn MacOS users that they may need to manually install libusb via Homebrew:
+if [[ "$OSTYPE" =~ ^darwin && ! -f /usr/local/opt/libusb/lib/libusb-1.0.0.dylib ]]; then
+    echo && echo "warning: libusb not found. You may need to install it manually on MacOS via Homebrew (brew install libusb)."
+fi
+
+echo && echo "Detected your preferred shell is ${PREF_SHELL} and added huffup to PATH. Run 'source ${PROFILE}' or start a new terminal session to use huffup."
+echo "Then, simply run 'huffup' to install the Huff compiler."

@@ -6,7 +6,7 @@ members = [
   "huff_cli",
   "huff_parse"
 ]
-exclude = [ "assets" ]
+exclude = [ "assets", "huffup" ]
 
 [profile.release]
 opt-level = "z"
