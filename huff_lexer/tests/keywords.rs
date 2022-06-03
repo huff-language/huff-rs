@@ -31,7 +31,6 @@ fn parses_macro_keyword() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -64,7 +63,6 @@ fn parses_function_keyword() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -97,7 +95,6 @@ fn parses_constant_keyword() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -136,7 +133,6 @@ fn parses_takes_and_returns_keywords() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }
 
 #[test]
@@ -173,5 +169,4 @@ fn parses_takes_and_returns_keywords_tight_syntax() {
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
 }

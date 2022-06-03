@@ -1,5 +1,5 @@
-use crate::span::Span;
-use std::fmt;
+use crate::{evm::Opcode, span::Span};
+use std::{fmt, fmt::Write};
 
 type Literal = [u8; 32];
 
@@ -22,161 +22,113 @@ impl<'a> Token<'a> {
 /// The kind of token
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind<'a> {
-    /// Addition
-    Add,
-    /// Subtraction
-    Sub,
-    /// Multiplication
-    Mul,
+    /// EOF Token
+    Eof,
+    /// A Comment
+    Comment(&'a str),
     /// Division
+    /// Lexing done at the comment level due to clash
     Div,
-    /// Semicolon
-    Semi,
-    /// Equal Sign
-    Assign,
-    /// Number
-    Num(usize),
-    /// A string literal
-    Str(&'a str),
-    /// An Identifier
-    Ident(&'a str),
-    /// A Space
-    Whitespace,
-    /// An open parenthesis
-    OpenParen,
-    /// A close parenthesis
-    CloseParen,
-    /// An open brace
-    OpenBrace,
-    /// A close brace
-    CloseBrace,
-    /// An open bracket
-    OpenBracket,
-    /// A close bracket
-    CloseBracket,
-    /// A comma
-    Comma,
-    /// A newline
-    Newline,
     /// "#define" keyword
     Define,
     /// "#include" keyword
     Include,
-    /// "takes" keyword
-    Takes,
-    /// "returns" keyword
-    Returns,
-    /// "="
-    Equal,
     /// "macro" keyword
     Macro,
     /// "function" keyword
     Function,
     /// "constant" keyword
     Constant,
+    /// "takes" keyword
+    Takes,
+    /// "returns" keyword
+    Returns,
     /// "FREE_STORAGE_POINTER()" keyword
     FreeStoragePointer,
+    /// An Identifier
+    Ident(&'a str),
+    /// Equal Sign
+    Assign,
+    /// An open parenthesis
+    OpenParen,
+    /// A close parenthesis
+    CloseParen,
+    /// An open bracket
+    OpenBracket,
+    /// A close bracket
+    CloseBracket,
+    /// An open brace
+    OpenBrace,
+    /// A close brace
+    CloseBrace,
+    /// Addition
+    Add,
+    /// Subtraction
+    Sub,
+    /// Multiplication
+    Mul,
+    /// A comma
+    Comma,
+    /// Number
+    Num(usize),
+    /// A Space
+    Whitespace,
+    /// A string literal
+    Str(&'a str),
+    // TODO below aren't lexed
     /// Hex
     Literal(Literal),
     /// Opcode
-    Opcode,
-    /// End Of File
-    Eof,
+    Opcode(Opcode),
     /// Huff label (aka PC)
     Label(&'a str),
-    /// Import path
-    Path(&'a str),
-    /// A Comment
-    Comment(&'a str),
+    // TODO: recursive dependency resolution at the lexing level?
+    // Import path
+    // Path(&'a str),
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let x = match *self {
-            TokenKind::Add => "+",
-            TokenKind::Sub => "+",
-            TokenKind::Mul => "*",
+            TokenKind::Eof => "EOF",
+            TokenKind::Comment(s) => return write!(f, "Comment({})", s),
             TokenKind::Div => "/",
-            TokenKind::Whitespace => " ",
-            TokenKind::Semi => ";",
+            TokenKind::Define => "#define",
+            TokenKind::Include => "#include",
+            TokenKind::Macro => "macro",
+            TokenKind::Function => "function",
+            TokenKind::Constant => "constant",
+            TokenKind::Takes => "takes",
+            TokenKind::Returns => "returns",
+            TokenKind::FreeStoragePointer => "FREE_STORAGE_POINTER()",
+            TokenKind::Ident(s) => return write!(f, "{}", s),
             TokenKind::Assign => "=",
             TokenKind::OpenParen => "(",
             TokenKind::CloseParen => ")",
+            TokenKind::OpenBracket => "[",
+            TokenKind::CloseBracket => "]",
+            TokenKind::OpenBrace => "{",
+            TokenKind::CloseBrace => "}",
+            TokenKind::Add => "+",
+            TokenKind::Sub => "+",
+            TokenKind::Mul => "*",
             TokenKind::Comma => ",",
-            TokenKind::Str(str) => str,
             TokenKind::Num(num) => return write!(f, "{}", num),
-            TokenKind::Ident(_) => todo!(),
-            _ => "oof",
+            TokenKind::Whitespace => " ",
+            TokenKind::Str(str) => str,
+
+            // TODO these aren't lexed yet
+            TokenKind::Literal(l) => {
+                let mut s = String::new();
+                for b in l.iter() {
+                    let _ = write!(&mut s, "{:02x}", b);
+                }
+                return write!(f, "{}", s)
+            }
+            TokenKind::Opcode(o) => return write!(f, "{}", o),
+            TokenKind::Label(s) => return write!(f, "{}", s),
         };
 
         write!(f, "{}", x)
     }
-}
-
-type FilePath<'a> = &'a str;
-
-///
-pub struct Contract<'a> {
-    ///
-    macros: Vec<MacroDefinition<'a>>,
-    ///
-    invocations: Vec<MacroInvocation<'a>>,
-    ///
-    imports: Vec<FilePath<'a>>,
-}
-
-///
-#[derive(Debug)]
-pub struct MacroDefinition<'a> {
-    ///
-    pub name: String,
-    ///
-    pub arguments: Vec<String>,
-    ///
-    pub statements: Vec<Statement<'a>>,
-    ///
-    pub takes: usize,
-    ///
-    pub returns: usize,
-}
-
-impl MacroDefinition<'_> {
-    ///
-    pub fn new<'a>(name: String, arguments: Vec<String>, statements: Vec<Statement<'static>>, takes: usize, returns: usize) -> Self {
-        MacroDefinition {
-            name,
-            arguments,
-            statements,
-            takes,
-            returns,
-        }
-    }
-}
-
-///
-#[derive(Debug)]
-pub struct MacroInvocation<'a> {
-    ///
-    macro_name: String,
-    ///
-    args: Vec<&'a Literal>,
-}
-
-///
-pub struct ConstantDefinition<'a> {
-    ///
-    value: Literal,
-    ///
-    name: &'a str,
-}
-
-///
-#[derive(Debug)]
-pub enum Statement<'a> {
-    ///
-    Literal(Literal),
-    ///
-    Opcode,
-    ///
-    MacroInvocation(MacroInvocation<'a>),
 }

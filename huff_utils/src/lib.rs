@@ -4,6 +4,12 @@
 
 #![deny(missing_docs)]
 
+/// Abi Module
+pub mod abi;
+
+/// AST Module
+pub mod ast;
+
 /// Span Module
 pub mod span;
 
@@ -22,10 +28,7 @@ pub mod io;
 /// EVM Module
 pub mod evm;
 
-/// Abi Module
-pub mod abi;
-
 /// Prelude wraps common utilities.
 pub mod prelude {
-    pub use crate::{abi::*, error::*, io::*, report::*, span::*, token::*};
+    pub use crate::{abi::*, ast::*, error::*, io::*, report::*, span::*, token::*};
 }
