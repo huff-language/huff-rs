@@ -67,7 +67,7 @@
 #![deny(missing_docs)]
 #![allow(dead_code)]
 
-use huff_utils::{error::*, span::*, token::*, evm::*};
+use huff_utils::{error::*, evm::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
 
 /// ## Lexer
@@ -316,7 +316,7 @@ impl<'a> Iterator for Lexer<'a> {
                             found_kind = Some(TokenKind::Opcode(
                                 OPCODES_MAP.get(opcode).unwrap().to_owned(),
                             ));
-                            break;
+                            break
                         }
                     }
 
