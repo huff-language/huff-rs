@@ -64,7 +64,7 @@
 
 #![deny(missing_docs)]
 #![allow(dead_code)]
-
+use bytes::BytesMut;
 use huff_utils::{error::*, evm::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
 
@@ -324,6 +324,15 @@ impl<'a> Iterator for Lexer<'a> {
                         self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
                         TokenKind::Ident(self.slice())
                     }
+                }
+                // If it's the start of a hex literal
+                ch if ch == '0' && self.peek().unwrap() == 'x' => {
+                    self.dyn_consume(|c| c.is_numeric() || c.eq(&'x'));
+                    let mut arr: [u8; 32] = Default::default();
+                    let mut buf = BytesMut::from(self.slice());
+                    buf.resize(32, 0);
+                    arr.copy_from_slice(buf.as_ref());
+                    TokenKind::Literal(arr)
                 }
                 '=' => TokenKind::Assign,
                 '(' => TokenKind::OpenParen,
