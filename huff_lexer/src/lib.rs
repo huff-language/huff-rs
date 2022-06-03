@@ -315,7 +315,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // goes over all opcodes
                     for opcode in OPCODES {
-                        let peeked = self.peeknchars(opcode.len() - 1);
+                        let peeked = self.peek_n_chars(opcode.len() - 1);
                         if opcode == peeked {
                             self.dyn_consume(|c| c.is_alphanumeric());
                             found_kind = Some(TokenKind::Opcode(
