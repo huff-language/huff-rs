@@ -201,7 +201,7 @@ impl<'a> Lexer<'a> {
             }
             Some(TokenKind::Takes) => {
                 let assign = "=";
-                self.try_look_back(assign.len() + 1).ends_with(assign)
+                self.try_look_back(assign.len() + 1).trim() == assign
             }
             Some(TokenKind::Returns) => {
                 let function_key = "function";
