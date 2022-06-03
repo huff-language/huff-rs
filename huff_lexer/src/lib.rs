@@ -78,6 +78,8 @@ pub struct Lexer<'a> {
     pub source: &'a str,
     /// The current lexing span.
     pub span: Span,
+    /// The previous lexing span. (used for lookbacks)
+    pub prev_span: Span,
     /// If the lexer has reached the end of file.
     pub eof: bool,
     /// EOF Token has been returned.
@@ -91,6 +93,7 @@ impl<'a> Lexer<'a> {
             chars: source.chars().peekable(),
             source,
             span: Span::default(),
+            prev_span: Span::default(),
             eof: false,
             eof_returned: false,
         }
@@ -103,6 +106,11 @@ impl<'a> Lexer<'a> {
         } else {
             self.span
         }
+    }
+
+    /// Get the length of the previous lexing span.
+    pub fn prev_span_len(&self) -> usize {
+        self.prev_span.end - self.prev_span.start
     }
 
     /// Try to peek at the next character from the source
@@ -182,6 +190,7 @@ impl<'a> Lexer<'a> {
 
     /// Resets the Lexer's span
     pub fn reset(&mut self) {
+        self.prev_span = self.span;
         self.span.start = self.span.end;
     }
 
@@ -197,17 +206,18 @@ impl<'a> Lexer<'a> {
         match found_kind {
             Some(TokenKind::Macro) | Some(TokenKind::Function) | Some(TokenKind::Constant) => {
                 let define_key = "#define";
-                self.try_look_back(define_key.len() + 1) == define_key
+                self.try_look_back(self.prev_span_len() + define_key.len()).trim() == define_key
             }
             Some(TokenKind::Takes) => {
                 let assign = "=";
-                self.try_look_back(assign.len() + 1).trim() == assign
+                self.try_look_back(self.prev_span_len() + assign.len()).trim() == assign
             }
             Some(TokenKind::Returns) => {
                 let function_key = "function";
                 // Allow for loose and tight syntax (e.g. `returns (0)` & `returns(0)`)
                 self.peek_n_chars_from(2, self.span.end).trim().starts_with('(') &&
-                    self.try_look_back(function_key.len() + 1) != function_key &&
+                    self.try_look_back(self.prev_span_len() + function_key.len()).trim() !=
+                        function_key &&
                     self.peek_n_chars_from(1, self.span.end) != ":"
             }
             _ => true,

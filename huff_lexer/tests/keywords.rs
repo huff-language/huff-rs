@@ -403,3 +403,93 @@ fn parses_function_with_keyword_name_in_macro() {
         assert!(lexer.eof);
     }
 }
+
+#[test]
+fn parses_keyword_arbitrary_whitespace() {
+    // Macro, constant, and function keywords first- they are all preceded by "#define"
+    let key_words = [
+        ("macro", TokenKind::Macro),
+        ("constant", TokenKind::Constant),
+        ("function", TokenKind::Function),
+    ];
+
+    for (key, kind) in key_words {
+        let source = format!("#define     {}", key);
+        let mut lexer = Lexer::new(source.as_str());
+        assert_eq!(lexer.source, source);
+
+        // Define Identifier first
+        let tok = lexer.next();
+        let unwrapped = tok.unwrap().unwrap();
+        let define_span = Span::new(0..7);
+        assert_eq!(unwrapped, Token::new(TokenKind::Define, define_span));
+        assert_eq!(lexer.span, define_span);
+
+        // The next token should be the whitespace
+        let tok = lexer.next();
+        let unwrapped = tok.unwrap().unwrap();
+        let whitespace_span = Span::new(7..12);
+        assert_eq!(unwrapped, Token::new(TokenKind::Whitespace, whitespace_span));
+        assert_eq!(lexer.span, whitespace_span);
+
+        // Lastly we should parse the constant keyword
+        let tok = lexer.next();
+        let unwrapped = tok.unwrap().unwrap();
+        let constant_span = Span::new(12..12 + key.len());
+        assert_eq!(unwrapped, Token::new(kind, constant_span));
+        assert_eq!(lexer.span, constant_span);
+
+        // We covered the whole source
+        assert_eq!(lexer.span.end, source.len());
+        assert!(lexer.eof);
+    }
+}
+
+#[test]
+fn parses_takes_keyword_arbitrary_whitespace() {
+    let source = "#define macro TEST() =      takes (0) returns (0)";
+    let mut lexer = Lexer::new(source);
+    assert_eq!(lexer.source, source);
+
+    let _ = lexer.next(); // #define
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // macro
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // TEST
+    let _ = lexer.next(); // open parenthesis
+    let _ = lexer.next(); // close parenthesis
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // =
+    let _ = lexer.next(); // whitespace
+
+    // Lex Takes First
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let takes_span = Span::new(28..33);
+    assert_eq!(unwrapped, Token::new(TokenKind::Takes, takes_span));
+    assert_eq!(lexer.span, takes_span);
+
+    // Lex the middle 5 chars
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // open parenthesis
+    let _ = lexer.next(); // 0
+    let _ = lexer.next(); // close parenthesis
+    let _ = lexer.next(); // whitespace
+
+    // Lex Returns
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let returns_span = Span::new(38..45);
+    assert_eq!(unwrapped, Token::new(TokenKind::Returns, returns_span));
+    assert_eq!(lexer.span, returns_span);
+
+    // Lex the last 4 chars
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // open parenthesis
+    let _ = lexer.next(); // 0
+    let _ = lexer.next(); // close parenthesis
+
+    // We covered the whole source
+    assert_eq!(lexer.span.end, source.len());
+    assert!(lexer.eof);
+}
