@@ -349,10 +349,7 @@ impl<'a> Iterator for Lexer<'a> {
                             // Match a-f, A-F, and 'x'
                             // Note: This still allows for invalid hex, as it doesn't care if
                             // there are multiple 'x' values in the literal.
-                            match c {
-                                '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}' | 'x' => true,
-                                _ => false,
-                            }
+                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}' | 'x')
                     });
                     let mut arr: [u8; 32] = Default::default();
                     let mut buf = BytesMut::from(self.slice());
