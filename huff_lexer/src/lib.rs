@@ -65,7 +65,7 @@
 #![deny(missing_docs)]
 #![allow(dead_code)]
 
-use huff_utils::{error::*, span::*, token::*};
+use huff_utils::{error::*, evm::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
 
 /// ## Lexer
@@ -304,6 +304,18 @@ impl<'a> Iterator for Lexer<'a> {
                             self.consume();
                         }
                         found_kind = Some(TokenKind::FreeStoragePointer);
+                    }
+
+                    // goes over all opcodes
+                    for opcode in OPCODES {
+                        let peeked = self.peeknchars(opcode.len() - 1);
+                        if opcode == peeked {
+                            self.dyn_consume(|c| c.is_alphanumeric());
+                            found_kind = Some(TokenKind::Opcode(
+                                OPCODES_MAP.get(opcode).unwrap().to_owned(),
+                            ));
+                            break
+                        }
                     }
 
                     if let Some(kind) = found_kind {
