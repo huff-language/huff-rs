@@ -64,7 +64,7 @@
 
 #![deny(missing_docs)]
 #![allow(dead_code)]
-use bytes::{BytesMut};
+use bytes::BytesMut;
 use huff_utils::{error::*, evm::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
 

@@ -1,4 +1,4 @@
-use bytes::{BytesMut};
+use bytes::BytesMut;
 use huff_lexer::*;
 use huff_utils::prelude::*;
 
