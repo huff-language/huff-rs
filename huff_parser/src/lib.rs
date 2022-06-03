@@ -1,6 +1,4 @@
-use huff_utils::{
-    token::{Token, TokenKind},
-};
+use huff_utils::token::{Token, TokenKind};
 use std::mem::discriminant;
 
 #[derive(Debug)]
@@ -13,27 +11,21 @@ pub struct Parser<'a> {
     pub tokens: Vec<Token<'a>>,
     // Current position
     pub pos: usize,
-    pub current_token: Token<'a>
+    pub current_token: Token<'a>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<Token<'a>>) -> Self {
         let initial_token = tokens.get(0).unwrap().clone();
-        Self {
-            tokens: tokens,
-            pos: 0,
-            current_token: initial_token
-        }
+        Self { tokens, pos: 0, current_token: initial_token }
     }
 
     pub fn parse(&mut self) -> Result<(), ParserError> {
         // remove all whitespaces and newlines first
         // NOTE: lexer considers newlines as whitespaces
-        self.tokens.retain(|&token| {
-            match token.kind {
-                TokenKind::Whitespace => false,
-                _ => true
-            }
+        self.tokens.retain(|&token| match token.kind {
+            TokenKind::Whitespace => false,
+            _ => true,
         });
         while !self.check(TokenKind::Eof) {
             self.parse_statement()?;
@@ -51,11 +43,13 @@ impl<'a> Parser<'a> {
             self.consume();
             Ok(())
         } else {
-            println!("Expected current token of kind {} to match {}", self.current_token.kind, kind);
+            println!(
+                "Expected current token of kind {} to match {}",
+                self.current_token.kind, kind
+            );
             Err(ParserError::SyntaxError)
         }
     }
-
 
     /*
         Check the current token's type against the given type.
@@ -77,13 +71,13 @@ impl<'a> Parser<'a> {
         Take a look at next token without consuming.
     */
     pub fn peek(&mut self) -> Token<'a> {
-        self.tokens.get(self.pos+1).unwrap().clone()
+        self.tokens.get(self.pos + 1).unwrap().clone()
     }
 
     // -----------------------------------------------------------------------
     // PARSING LOGIC
     // -----------------------------------------------------------------------
-    
+
     /*
         Parse a statement.
     */
@@ -95,7 +89,7 @@ impl<'a> Parser<'a> {
             TokenKind::Function => self.parse_function(),
             TokenKind::Constant => self.parse_constant(),
             TokenKind::Macro => self.parse_macro(),
-            _ => Err(ParserError::SyntaxError)
+            _ => Err(ParserError::SyntaxError),
         };
         Ok(())
     }
@@ -112,7 +106,7 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Ident("FUNC_TYPE"))?;
         self.match_kind(TokenKind::Returns)?;
         self.parse_args(false)?;
-        
+
         Ok(())
     }
 
@@ -127,8 +121,8 @@ impl<'a> Parser<'a> {
             TokenKind::FreeStoragePointer | TokenKind::Literal(_) => {
                 self.consume();
                 Ok(())
-            },
-            _ => Err(ParserError::SyntaxError)
+            }
+            _ => Err(ParserError::SyntaxError),
         }
     }
 
@@ -164,9 +158,9 @@ impl<'a> Parser<'a> {
                 TokenKind::Label(_) => self.consume(),
                 TokenKind::Ident("MACRO_NAME") => self.parse_macro_call()?,
                 TokenKind::OpenBracket => self.parse_constant_push()?,
-                _ => return Err(ParserError::SyntaxError)
+                _ => return Err(ParserError::SyntaxError),
             };
-        };
+        }
         // consume close brace
         self.match_kind(TokenKind::CloseBrace)?;
         Ok(())
@@ -194,7 +188,9 @@ impl<'a> Parser<'a> {
         while !self.check(TokenKind::CloseParen) {
             // type comes first
             // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
-            if name_only {self.match_kind(TokenKind::Ident("EVMType"))?};
+            if name_only {
+                self.match_kind(TokenKind::Ident("EVMType"))?
+            };
             // naming is optional
             if self.check(TokenKind::Ident("x")) {
                 self.match_kind(TokenKind::Ident("x"))?;
@@ -237,7 +233,7 @@ impl<'a> Parser<'a> {
             // We can pass either directly hex values or labels (without the ":")
             match self.current_token.kind {
                 TokenKind::Literal(_) | TokenKind::Ident(_) => self.consume(),
-                _ => return Err(ParserError::SyntaxError)
+                _ => return Err(ParserError::SyntaxError),
             }
             if self.check(TokenKind::Comma) {
                 self.consume();
@@ -263,5 +259,5 @@ impl<'a> Parser<'a> {
             self.consume();
         }
         Ok(())
-    } 
+    }
 }
