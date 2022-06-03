@@ -126,6 +126,7 @@ pub struct Contract<'a> {
 }
 
 ///
+#[derive(Debug)]
 pub struct MacroDefinition<'a> {
     ///
     pub name: String,
@@ -153,6 +154,7 @@ impl MacroDefinition<'_> {
 }
 
 ///
+#[derive(Debug)]
 pub struct MacroInvocation<'a> {
     ///
     macro_name: String,
@@ -169,6 +171,7 @@ pub struct ConstantDefinition<'a> {
 }
 
 ///
+#[derive(Debug)]
 pub enum Statement<'a> {
     ///
     Literal(Literal),

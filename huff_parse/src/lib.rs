@@ -3,18 +3,24 @@ use huff_utils::token::{ Contract, MacroDefinition, Statement, MacroInvocation }
 
 use std::mem::discriminant;
 
-enum ParserError {
+///
+#[derive(Debug)]
+pub enum ParserError {
     SyntaxError,
 }
 
-struct Parser<'a> {
+///
+pub struct Parser<'a> {
+    ///
     tokens: Vec<Token<'a>>,
+    ///
     cursor: usize,
+    ///
     current_token: Token<'a>,
 }
 
 impl<'a> Parser<'a> {
-    fn new(tokens: Vec<Token<'a>>) -> Self {
+    pub fn new(tokens: Vec<Token<'a>>) -> Self {
         let initial_token = tokens.get(0).unwrap().clone();
         Self {
             tokens: tokens,
@@ -146,7 +152,7 @@ impl<'a> Parser<'a> {
         Ok(statements)
     }
 
-    fn parse_macro(&mut self) -> Result<MacroDefinition<'a>, ParserError> {
+    pub fn parse_macro(&mut self) -> Result<MacroDefinition<'a>, ParserError> {
         let macro_name: String;
         let macro_arguments: Vec<String>;
         let macro_takes: usize;
