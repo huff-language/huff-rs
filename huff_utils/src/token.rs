@@ -78,7 +78,7 @@ pub enum TokenKind<'a> {
     /// A string literal
     Str(&'a str),
     // TODO below aren't lexed
-    /// Hex
+    /// literal
     Literal(&'a str),
     /// Opcode
     Opcode(Opcode),
