@@ -292,9 +292,6 @@ fn parses_function_with_keyword_name() {
 
         let _ = lexer.next(); // dup1
         let _ = lexer.next(); // whitespace
-                              // TODO- Fix hex parsing, this test accounts for the current error where the token is split
-                              // into 2!
-        let _ = lexer.next(); // function sig (0x7c09063f is for `takes`, but doesn't matter here)
         let _ = lexer.next(); // function sig (0x7c09063f is for `takes`, but doesn't matter here)
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // eq
@@ -376,14 +373,8 @@ fn parses_function_with_keyword_name_in_macro() {
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // {
         let _ = lexer.next(); // whitespace
-                              // TODO- Fix hex parsing, this test accounts for the current error where the token is split
-                              // into 2!
-        let _ = lexer.next(); // 0x01
         let _ = lexer.next(); // 0x01
         let _ = lexer.next(); // whitespace
-                              // TODO- Fix hex parsing, this test accounts for the current error where the token is split
-                              // into 2!
-        let _ = lexer.next(); // 0x02
         let _ = lexer.next(); // 0x02
         let _ = lexer.next(); // whitespace
 
