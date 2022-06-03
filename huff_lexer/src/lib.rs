@@ -132,7 +132,7 @@ impl<'a> Lexer<'a> {
     pub fn greedy_peeknchars(&mut self, n: usize) -> String {
         let mut newspan: Span = self.span;
         newspan.end += n;
-        println!("{}", newspan.end);
+        println!("{}", self.nthpeek(40).unwrap());
         while newspan.end+1 <= self.source.len() && self.nthpeek(newspan.end+1).unwrap().is_alphanumeric() {
             newspan.end += 1;
         }
@@ -324,9 +324,8 @@ impl<'a> Iterator for Lexer<'a> {
                     }
 
                     // goes over all opcodes
-                    for opcode in OPCODES_MAP.keys() {
-                        let opcode = *opcode;
-                        let peeked = self.greedy_peeknchars(opcode.len()-1);
+                    for opcode in OPCODES {
+                        let peeked = self.peeknchars(opcode.len()-1);
                         if opcode == peeked {
                             self.dyn_consume(|c| c.is_alphanumeric());
                             found_kind = Some(TokenKind::Opcode(OPCODES_MAP.get(opcode).unwrap().to_owned()));

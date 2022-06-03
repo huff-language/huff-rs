@@ -5,7 +5,7 @@ use huff_utils::evm::{OPCODES, OPCODES_MAP};
 
 #[test]
 fn opcodes() {
-    for opcode in OPCODES_MAP.keys() {
+    for opcode in OPCODES {
         let opcode = (*opcode).to_owned();
         let source = opcode.clone();
         let mut lexer = Lexer::new(&source);

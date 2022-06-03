@@ -3,15 +3,20 @@ use strum_macros::EnumString;
 use phf::phf_map;
 
 /// All the EVM opcodes as a static array
+/// They are arranged in a particular order such that all the opcodes that have common
+/// prefixes are ordered by decreasing length to avoid mismatch when lexing.
+/// Example : [origin, or] or [push32, ..., push3]
 pub const OPCODES: [&str; 142] = [
-    "lt","gt","slt","sgt","eq","iszero","and","or","xor","not","sha3","address","balance","origin","caller","callvalue","calldataload","calldatasize",
-    "calldatacopy","codesize","codecopy","blockhash","coinbase","timestamp","number","difficulty","gaslimit","chainid","selfbalance","pop","mload","mstore",
-    "mstore8","sload","sstore","jump","jumpi","pc","msize","push1","push2","push3","push4","push5","push6","push7","push8","push9","push10","push17","push18",
-    "push19","push20","push21","push22","push23","push24","push25","push26","dup1","dup2","dup3","dup4","dup5","dup6","dup7","dup8","dup9","dup10","swap1","swap2",
-    "swap3","swap4","swap5","swap6","swap7","swap8","swap9","swap10","stop","add","mul","sub","div","sdiv","mod","smod","addmod","mulmod","exp","signextend","byte",
-    "shl","shr","sar","gasprice","extcodesize","extcodecopy","returndatasize","returndatacopy","extcodehash","gas","jumpdest","push11","push12","push13","push14",
-    "push15","push16","push27","push28","push29","push30","push31","push32","dup11","dup12","dup13","dup14","dup15","dup16","swap11","swap12","swap13","swap14",
-    "swap15","swap16","log0","log1","log2","log3","log4","create","call","callcode","return","delegatecall","staticcall","create2","revert","invalid","selfdestruct"
+    "lt","gt","slt","sgt","eq","iszero","and","origin", "or","xor","not","sha3","address","balance","caller","callvalue","calldataload","calldatasize",
+    "calldatacopy","codesize","codecopy","blockhash","coinbase","timestamp","number","difficulty","gaslimit","chainid","selfbalance","pop","mload",
+    "mstore8","mstore","sload","sstore","jumpdest","jumpi","jump","pc","msize",
+    "stop","addmod","add","mulmod","mul","sub","div","sdiv","mod","smod","exp","signextend","byte",
+    "shl","shr","sar","gasprice","extcodesize","extcodecopy","returndatasize","returndatacopy","extcodehash","gas",
+    "log0","log1","log2","log3","log4","create2","create","callcode","call","return","delegatecall","staticcall","revert","invalid","selfdestruct",
+    "push32","push31","push30","push29","push28","push27","push26","push25","push24","push23","push22","push21","push20","push19","push18","push17","push16","push15",
+    "push14","push13","push12","push11","push10","push9","push8","push7","push6","push5","push4","push3","push2","push1",
+    "swap16","swap15","swap14","swap13","swap12","swap11","swap10","swap9","swap8","swap7","swap6","swap5","swap4","swap3","swap2","swap1",
+    "dup16","dup15","dup14","dup13","dup12","dup11","dup10","dup9","dup8","dup7","dup6","dup5","dup4","dup3","dup2","dup1"
 ];
 
 /// Hashmap of all the EVM opcodes
