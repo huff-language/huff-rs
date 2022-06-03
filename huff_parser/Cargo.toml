@@ -1,5 +1,5 @@
 [package]
-name = "huff_parse"
+name = "huff_parser"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 huff_utils = { path = "../huff_utils" }
+huff_lexer = { path = "../huff_lexer" }
+proptest = "1.0.0"
