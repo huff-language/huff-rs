@@ -28,10 +28,10 @@ impl<'a> Parser<'a> {
 
     pub fn parse(&mut self) -> Result<(), ParserError> {
         // remove all whitespaces and newlines first
+        // NOTE: lexer considers newlines as whitespaces
         self.tokens.retain(|&token| {
             match token.kind {
                 TokenKind::Whitespace => false,
-                TokenKind::Newline => false,
                 _ => true
             }
         });
@@ -105,14 +105,11 @@ impl<'a> Parser<'a> {
     */
     fn parse_function(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::Function)?;
-        
         // function name should be next
         self.match_kind(TokenKind::Ident("x"))?;
-        
         self.parse_args(false)?;
-        
-        self.match_kind(TokenKind::FuncType)?; // view, payable or nonpayable
-        
+        // TODO: Replace with a TokenKind specific to view, payable or nonpayable keywords
+        self.match_kind(TokenKind::Ident("FUNC_TYPE"))?;
         self.match_kind(TokenKind::Returns)?;
         self.parse_args(false)?;
         
@@ -163,7 +160,7 @@ impl<'a> Parser<'a> {
         while !self.check(TokenKind::CloseBrace) {
             match self.current_token.kind {
                 TokenKind::Literal(_) => self.consume(),
-                TokenKind::Opcode => self.consume(),
+                TokenKind::Opcode(_) => self.consume(),
                 TokenKind::Label(_) => self.consume(),
                 TokenKind::Ident("MACRO_NAME") => self.parse_macro_call()?,
                 TokenKind::OpenBracket => self.parse_constant_push()?,
@@ -179,8 +176,8 @@ impl<'a> Parser<'a> {
         Parse new lines.
     */
     fn parse_newline(&mut self) -> Result<(), ParserError> {
-        self.match_kind(TokenKind::Newline)?;
-        while self.check(TokenKind::Newline) {
+        self.match_kind(TokenKind::Whitespace)?;
+        while self.check(TokenKind::Whitespace) {
             self.consume();
         }
         Ok(())
@@ -196,7 +193,8 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
             // type comes first
-            if name_only {self.match_kind(TokenKind::Type)?};
+            // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
+            if name_only {self.match_kind(TokenKind::Ident("EVMType"))?};
             // naming is optional
             if self.check(TokenKind::Ident("x")) {
                 self.match_kind(TokenKind::Ident("x"))?;
@@ -261,7 +259,7 @@ impl<'a> Parser<'a> {
         Parses whitespaces and newlines until none are left.
     */
     fn parse_nl_or_whitespace(&mut self) -> Result<(), ParserError> {
-        while self.check(TokenKind::Newline) || self.check(TokenKind::Whitespace) {
+        while self.check(TokenKind::Whitespace) {
             self.consume();
         }
         Ok(())

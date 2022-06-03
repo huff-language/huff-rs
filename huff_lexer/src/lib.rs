@@ -402,10 +402,6 @@ impl<'a> Iterator for Lexer<'a> {
 
             if self.peek().is_none() {
                 self.eof = true;
-                return Some(Ok(Token {
-                    kind: TokenKind::Eof,
-                    span: self.span,
-                }))
             }
 
             let token = Token { kind, span: self.span };
