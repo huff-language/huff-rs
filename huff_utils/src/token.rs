@@ -123,7 +123,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
                 for b in l.iter() {
                     let _ = write!(&mut s, "{:02x}", b);
                 }
-                return write!(f, "{}", s);
+                return write!(f, "{}", s)
             }
             TokenKind::Opcode(o) => return write!(f, "{}", o),
             TokenKind::Label(s) => return write!(f, "{}", s),

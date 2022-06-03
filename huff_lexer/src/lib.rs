@@ -121,26 +121,7 @@ impl<'a> Lexer<'a> {
         newspan.end += n;
         // Break with an empty string if the bounds are exceeded
         if newspan.end > self.source.len() {
-            return String::default();
-        }
-        self.source[newspan.range().unwrap()].to_string()
-    }
-
-    /// Try to peek at next y characters from the source
-    /// It will peek at the n characters then try to keep peeking
-    /// until reaching a non alphanumeric character
-    pub fn greedy_peeknchars(&mut self, n: usize) -> String {
-        let mut newspan: Span = self.span;
-        newspan.end += n;
-        println!("{}", self.nthpeek(40).unwrap());
-        while newspan.end < self.source.len()
-            && self.nthpeek(newspan.end + 1).unwrap().is_alphanumeric()
-        {
-            newspan.end += 1;
-        }
-        // Break with an empty string if the bounds are exceeded
-        if newspan.end > self.source.len() {
-            return String::default();
+            return String::default()
         }
         self.source[newspan.range().unwrap()].to_string()
     }
@@ -176,7 +157,7 @@ impl<'a> Lexer<'a> {
         while self.peek() != None {
             let peeked = self.peekncharsfrom(word.len(), current_pos);
             if word == peeked {
-                break;
+                break
             }
             self.consume();
             current_pos += 1;
@@ -255,7 +236,7 @@ impl<'a> Iterator for Lexer<'a> {
                         return Some(Err(LexicalError::new(
                             LexicalErrorKind::InvalidCharacter('#'),
                             self.current_span(),
-                        )));
+                        )))
                     }
                 }
                 // Alphabetical characters
@@ -333,7 +314,7 @@ impl<'a> Iterator for Lexer<'a> {
                             found_kind = Some(TokenKind::Opcode(
                                 OPCODES_MAP.get(opcode).unwrap().to_owned(),
                             ));
-                            break;
+                            break
                         }
                     }
 
@@ -372,7 +353,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('"') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str(&str[1..str.len() - 1]);
+                            break TokenKind::Str(&str[1..str.len() - 1])
                         }
                         Some('\\') if matches!(self.nthpeek(1), Some('\\') | Some('"')) => {
                             self.consume();
@@ -383,7 +364,7 @@ impl<'a> Iterator for Lexer<'a> {
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
                                 self.span,
-                            )));
+                            )))
                         }
                     }
                     self.consume();
@@ -394,7 +375,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('\'') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str(&str[1..str.len() - 1]);
+                            break TokenKind::Str(&str[1..str.len() - 1])
                         }
                         Some('\\') if matches!(self.nthpeek(1), Some('\\') | Some('\'')) => {
                             self.consume();
@@ -405,7 +386,7 @@ impl<'a> Iterator for Lexer<'a> {
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
                                 self.span,
-                            )));
+                            )))
                         }
                     }
                     self.consume();
@@ -425,7 +406,7 @@ impl<'a> Iterator for Lexer<'a> {
 
             let token = Token { kind, span: self.span };
 
-            return Some(Ok(token));
+            return Some(Ok(token))
         }
 
         // Mark EOF
@@ -434,7 +415,7 @@ impl<'a> Iterator for Lexer<'a> {
         // If we haven't returned an eof token, return one
         if !self.eof_returned {
             self.eof_returned = true;
-            return Some(Ok(Token { kind: TokenKind::Eof, span: self.span }));
+            return Some(Ok(Token { kind: TokenKind::Eof, span: self.span }))
         }
 
         None
