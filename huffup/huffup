@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+set -e
+
+# -----------------------------------------------------------
+# Forked from Foundry.
+# https://github.com/foundry-rs/foundry/tree/master/foundryup
+# -----------------------------------------------------------
+
+HUFF_DIR=${HUFF_DIR-"$HOME/.huff"}
+HUFF_BIN_DIR="$HUFF_DIR/bin"
+HUFF_MAN_DIR="$HUFF_DIR/share/man/man1"
+
+main() {
+  need_cmd git
+  need_cmd curl
+
+  while [[ $1 ]]; do
+    case $1 in
+      --)               shift; break;;
+
+      -r|--repo)        shift; HUFFUP_REPO=$1;;
+      -b|--branch)      shift; HUFFUP_BRANCH=$1;;
+      -v|--version)     shift; HUFFUP_VERSION=$1;;
+      -p|--path)        shift; HUFFUP_LOCAL_REPO=$1;;
+      -P|--pr)          shift; HUFFUP_PR=$1;;
+      -C|--commit)      shift; HUFFUP_COMMIT=$1;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        err "internal error: unknown option "$1"\n";;
+    esac; shift
+  done
+
+  if [ ! -z "$HUFFUP_PR" ]; then
+    if [ -z "$HUFFUP_BRANCH" ]; then
+      HUFFUP_BRANCH="refs/pull/$HUFFUP_PR/head"
+    else
+      err "can't use --pr and --branch at the same time"
+    fi
+  fi
+
+  # Installs huff from a local repository if --path parameter is provided
+  if [[ -n "$HUFFUP_LOCAL_REPO" ]]; then
+    need_cmd cargo
+
+    # Ignore branches/versions as we do not want to modify local git state
+    if [ -n "$HUFFUP_REPO" ] || [ -n "$HUFFUP_BRANCH" ] || [ -n "$HUFFUP_VERSION" ]; then
+      warn "--branch, --version, and --repo arguments are ignored during local install"
+    fi
+
+    # Enter local repo and build
+    say "installing from $HUFFUP_LOCAL_REPO"
+    cd $HUFFUP_LOCAL_REPO
+    RUSTFLAGS="-C target-cpu=native" ensure cargo build --release # need 4 speed
+
+
+    # Remove prior installations if they exist
+    rm -f "$HUFF_BIN_DIR/huff"
+
+    # Symlink from local repo binaries to bin dir
+    ensure ln -s "$PWD/target/release/huff" "$HUFF_BIN_DIR/huff"
+
+    say "done"
+    exit 0
+  fi
+
+  HUFFUP_REPO=${HUFFUP_REPO-huff-language/huff-rs}
+
+  if [[ "$HUFFUP_REPO" == "huff-language/huff-rs" && -z "$HUFFUP_BRANCH" && -z "$HUFFUP_COMMIT" ]]; then
+    HUFFUP_VERSION=${HUFFUP_VERSION-nightly}
+    HUFFUP_TAG=$HUFFUP_VERSION
+
+    # Normalize versions (handle channels, versions without v prefix
+    if [[ "$HUFFUP_VERSION" == "nightly" ]]; then
+      # Locate real nightly tag
+      SHA=$(curl -sSf https://api.github.com/repos/${HUFFUP_REPO}/git/refs/tags/nightly \
+        | grep -Eo '"sha"[^,]*' \
+        | grep -Eo '[^:]*$' \
+        | tr -d '"' \
+        | tr -d ' ')
+      HUFFUP_TAG="nightly-${SHA}"
+    elif [[ "$HUFFUP_VERSION" == nightly* ]]; then
+      HUFFUP_VERSION="nightly"
+    elif [[ "$HUFFUP_VERSION" == [[:digit:]]* ]]; then
+      # Add v prefix
+      HUFFUP_VERSION="v${HUFFUP_VERSION}"
+      HUFFUP_TAG="${HUFFUP_VERSION}"
+    fi
+
+    say "installing huff (version ${HUFFUP_VERSION}, tag ${HUFFUP_TAG})"
+
+    PLATFORM="$(uname -s)"
+    case $PLATFORM in
+      Linux)
+        PLATFORM="linux"
+        ;;
+      Darwin)
+        PLATFORM="darwin"
+        ;;
+      *)
+        err "unsupported platform: $PLATFORM"
+        ;;
+    esac
+
+    ARCHITECTURE="$(uname -m)"
+    if [ "${ARCHITECTURE}" = "x86_64" ]; then
+      # Redirect stderr to /dev/null to avoid printing errors if non Rosetta.
+      if [ "$(sysctl -n sysctl.proc_translated 2>/dev/null)" = "1" ]; then
+        ARCHITECTURE="arm64" # Rosetta.
+      else
+        ARCHITECTURE="amd64" # Intel.
+      fi
+    elif [ "${ARCHITECTURE}" = "arm64" ] ||[ "${ARCHITECTURE}" = "aarch64" ] ; then
+      ARCHITECTURE="arm64" # Arm.
+    else
+      ARCHITECTURE="amd64" # Amd.
+    fi
+
+    # Compute the URL of the release tarball in the Huff repository.
+    RELEASE_URL="https://github.com/${HUFFUP_REPO}/releases/download/${HUFFUP_TAG}/"
+    BIN_TARBALL_URL="${RELEASE_URL}huff${HUFFUP_VERSION}_${PLATFORM}_${ARCHITECTURE}.tar.gz"
+    MAN_TARBALL_URL="${RELEASE_URL}huff${HUFFUP_VERSION}.tar.gz"
+
+    # Download the binaries tarball and unpack it into the .huff bin directory.
+    say "downloading latest huff-rs"
+    ensure curl -# -L $BIN_TARBALL_URL | tar -xzC $HUFF_BIN_DIR
+    # Download the man tarball and unpack it into the .huff man directory.
+    say "downloading manpages"
+    ensure curl -# -L $MAN_TARBALL_URL | tar -xzC $HUFF_MAN_DIR
+    say "installed - $($HUFF_BIN_DIR/huff --version)"
+    say "done"
+
+    if [[ $(which huff) =~ "cargo" ]]; then
+      warn "it appears your system has already has huff-rs installed via cargo. you may need to run 'rm $(which huff)' to allow huffup to take precedence!"
+    fi
+  else
+    need_cmd cargo
+    HUFFUP_BRANCH=${HUFFUP_BRANCH-master}
+    REPO_PATH="${HUFF_DIR}/${HUFFUP_REPO}"
+
+    if [ ! -d $REPO_PATH ]; then
+      # Repo path did not exist, grab the author from the repo, make a directory in .huff, cd to it and clone.
+      IFS="/" read -ra AUTHOR <<< "$HUFFUP_REPO"
+      ensure mkdir -p "$HUFF_DIR/$AUTHOR"
+      cd "$HUFF_DIR/$AUTHOR"
+      ensure git clone https://github.com/${HUFFUP_REPO}
+    fi
+    # force checkout, discarding any local changes
+    cd $REPO_PATH
+    ensure git fetch origin ${HUFFUP_BRANCH}:remotes/origin/${HUFFUP_BRANCH}
+    ensure git checkout origin/${HUFFUP_BRANCH}
+    # If set, checkout specific commit from branch
+    if [ ! -z $HUFFUP_COMMIT ]; then
+      say "installing at commit ${HUFFUP_COMMIT}"
+      ensure git checkout ${HUFFUP_COMMIT}
+    fi
+    # Build the repo and install it locally to the .huff bin directory.
+    # --root appends /bin to the directory it is given, so we pass HUFF_DIR.
+    RUSTFLAGS="-C target-cpu=native" ensure cargo install --path ./huff_cli --bins --locked --force --root $HUFF_DIR
+
+    # If help2man is installed, use it to add Huff man pages.
+    if command -v help2man &> /dev/null ; then
+      help2man -N $HUFF_BIN_DIR/huff > $HUFF_MAN_DIR/huff.1
+    fi
+    say "done"
+  fi
+}
+
+usage() {
+  cat 1>&2 <<EOF
+The installer for Huff.
+Update or revert to a specific Huff version with ease.
+USAGE:
+    huffup <OPTIONS>
+OPTIONS:
+    -h, --help      Print help information
+    -v, --version   Install a specific version
+    -b, --branch    Install a specific branch
+    -P, --pr        Install a specific Pull Request
+    -C, --commit    Install a specific commit
+    -r, --repo      Install from a remote GitHub repo (uses default branch if no other options are set)
+    -p, --path      Install a local repository
+EOF
+}
+
+say() {
+  printf 'huffup: %s\n' "$1"
+}
+
+warn() {
+  say "warning: ${1}" >&2
+}
+
+err() {
+  say "$1" >&2
+  exit 1
+}
+
+need_cmd() {
+  if ! check_cmd "$1"; then
+    err "need '$1' (command not found)"
+  fi
+}
+
+check_cmd() {
+  command -v "$1" > /dev/null 2>&1
+}
+
+# Run a command that should never fail. If the command fails execution
+# will immediately terminate with an error showing the failing
+# command.
+ensure() {
+  if ! "$@"; then err "command failed: $*"; fi
+}
+
+main "$@" || exit 1

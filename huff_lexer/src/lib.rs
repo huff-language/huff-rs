@@ -58,6 +58,7 @@
 //! assert_eq!(lexer.span, Span::new(26..27));
 //!
 //! // We covered the whole source
+//! lexer.next();
 //! assert_eq!(lexer.span.end, source.len());
 //! assert!(lexer.eof);
 //! assert!(lexer.next().is_none());
@@ -66,7 +67,7 @@
 #![deny(missing_docs)]
 #![allow(dead_code)]
 
-use huff_utils::{error::*, span::*, token::*};
+use huff_utils::{error::*, span::*, token::*, evm::*};
 use std::{iter::Peekable, str::Chars};
 
 /// ## Lexer
@@ -81,12 +82,20 @@ pub struct Lexer<'a> {
     pub span: Span,
     /// If the lexer has reached the end of file.
     pub eof: bool,
+    /// EOF Token has been returned.
+    pub eof_returned: bool,
 }
 
 impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
     pub fn new(source: &'a str) -> Self {
-        Self { chars: source.chars().peekable(), source, span: Span::default(), eof: false }
+        Self {
+            chars: source.chars().peekable(),
+            source,
+            span: Span::default(),
+            eof: false,
+            eof_returned: false,
+        }
     }
 
     /// Public associated function that returns the current lexing span.
@@ -284,12 +293,44 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
+                    // Check for macro keyword
+                    let fsp = "FREE_STORAGE_POINTER";
+                    let peeked = self.peeknchars(fsp.len() - 1);
+                    if fsp == peeked {
+                        self.dyn_consume(|c| c.is_alphabetic() || c.eq(&'_'));
+                        // Consume the parenthesis following the FREE_STORAGE_POINTER
+                        if let Some('(') = self.peek() {
+                            self.consume();
+                        }
+                        if let Some(')') = self.peek() {
+                            self.consume();
+                        }
+                        found_kind = Some(TokenKind::FreeStoragePointer);
+                    }
+
+                    // goes over all opcodes
+                    for opcode in OPCODES {
+                        let peeked = self.peeknchars(opcode.len() - 1);
+                        if opcode == peeked {
+                            self.dyn_consume(|c| c.is_alphanumeric());
+                            found_kind = Some(TokenKind::Opcode(
+                                OPCODES_MAP.get(opcode).unwrap().to_owned(),
+                            ));
+                            break;
+                        }
+                    }
+
                     if let Some(kind) = found_kind {
                         kind
                     } else {
                         self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
                         TokenKind::Ident(self.slice())
                     }
+                }
+                // If it's the start of a hex literal
+                ch if ch == '0' && self.peek().unwrap() == 'x' => {
+                    self.dyn_consume(|c| c.is_numeric() || c.eq(&'x'));
+                    TokenKind::Literal(self.slice())
                 }
                 '=' => TokenKind::Assign,
                 '(' => TokenKind::OpenParen,
@@ -333,7 +374,28 @@ impl<'a> Iterator for Lexer<'a> {
                             )))
                         }
                     }
-
+                    self.consume();
+                },
+                // Allow string literals to be wrapped by single quotes
+                '\'' => loop {
+                    match self.peek() {
+                        Some('\'') => {
+                            self.consume();
+                            let str = self.slice();
+                            break TokenKind::Str(&str[1..str.len() - 1])
+                        }
+                        Some('\\') if matches!(self.nthpeek(1), Some('\\') | Some('\'')) => {
+                            self.consume();
+                        }
+                        Some(_) => {}
+                        None => {
+                            self.eof = true;
+                            return Some(Err(LexicalError::new(
+                                LexicalErrorKind::UnexpectedEof,
+                                self.span,
+                            )))
+                        }
+                    }
                     self.consume();
                 },
                 // At this point, the source code has an invalid or unsupported token
@@ -345,20 +407,20 @@ impl<'a> Iterator for Lexer<'a> {
                 }
             };
 
-            if self.peek().is_none() {
-                self.eof = true;
-                return Some(Ok(Token {
-                    kind: TokenKind::Eof,
-                    span: self.span,
-                }))
-            }
-
             let token = Token { kind, span: self.span };
 
             return Some(Ok(token))
         }
 
+        // Mark EOF
         self.eof = true;
+
+        // If we haven't returned an eof token, return one
+        if !self.eof_returned {
+            self.eof_returned = true;
+            return Some(Ok(Token { kind: TokenKind::Eof, span: self.span }))
+        }
+
         None
     }
 }

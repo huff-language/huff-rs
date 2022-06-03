@@ -163,7 +163,7 @@ impl<'a> Parser<'a> {
         while !self.check(TokenKind::CloseBrace) {
             match self.current_token.kind {
                 TokenKind::Literal(_) => self.consume(),
-                TokenKind::Opcode => self.consume(),
+                TokenKind::Opcode(_) => self.consume(),
                 TokenKind::Label(_) => self.consume(),
                 TokenKind::Ident("MACRO_NAME") => self.parse_macro_call()?,
                 TokenKind::OpenBracket => self.parse_constant_push()?,

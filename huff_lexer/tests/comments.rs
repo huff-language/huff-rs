@@ -1,7 +1,7 @@
-use proptest::prelude::*;
-
 use huff_lexer::*;
 use huff_utils::prelude::*;
+
+// use proptest::prelude::*;
 
 // proptest! {
 //     #[test]
@@ -81,15 +81,16 @@ fn single_line_comments() {
     assert_eq!(lexer.span, open_paren_span);
 
     // Lastly, we should have a closing parenthesis
+    println!("fart");
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
     let close_paren_span = Span::new(47..48);
     assert_eq!(unwrapped, Token::new(TokenKind::CloseParen, close_paren_span));
     assert_eq!(lexer.span, close_paren_span);
 
+    let tok = lexer.next();
     // We covered the whole source
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
     assert_eq!(source.len(), 48);
 }
 
@@ -158,7 +159,7 @@ fn multi_line_comments() {
     assert_eq!(lexer.span, close_paren_span);
 
     // We covered the whole source
+    let tok = lexer.next();
     assert!(lexer.eof);
-    assert!(lexer.next().is_none());
     assert_eq!(source.len(), 48);
 }

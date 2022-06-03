@@ -1,5 +1,5 @@
-use crate::span::Span;
-use std::fmt;
+use crate::{evm::Opcode, span::Span};
+use std::{fmt, fmt::Write};
 
 type Literal = [u8; 32];
 
@@ -22,98 +22,118 @@ impl<'a> Token<'a> {
 /// The kind of token
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind<'a> {
+    /// EOF Token
+    Eof,
+    /// A Comment
+    Comment(&'a str),
+    /// Division
+    /// Lexing done at the comment level due to clash
+    Div,
+    /// "#define" keyword
+    Define,
+    /// "#include" keyword
+    Include,
+    /// "macro" keyword
+    Macro,
+    /// "function" keyword
+    Function,
+    /// "constant" keyword
+    Constant,
+    /// "takes" keyword
+    Takes,
+    /// "returns" keyword
+    Returns,
+    /// "FREE_STORAGE_POINTER()" keyword
+    FreeStoragePointer,
+    /// An Identifier
+    Ident(&'a str),
+    /// Equal Sign
+    Assign,
+    /// An open parenthesis
+    OpenParen,
+    /// A close parenthesis
+    CloseParen,
+    /// An open bracket
+    OpenBracket,
+    /// A close bracket
+    CloseBracket,
+    /// An open brace
+    OpenBrace,
+    /// A close brace
+    CloseBrace,
     /// Addition
     Add,
     /// Subtraction
     Sub,
     /// Multiplication
     Mul,
-    /// Division
-    Div,
-    /// Semicolon
-    Semi,
-    /// Equal Sign
-    Assign,
-    /// Number
-    Num(usize),
-    /// A string literal
-    Str(&'a str),
-    /// An Identifier
-    Ident(&'a str),
-    /// A Space
-    Whitespace,
-    /// An open parenthesis
-    OpenParen,
-    /// A close parenthesis
-    CloseParen,
-    /// An open brace
-    OpenBrace,
-    /// A close brace
-    CloseBrace,
-    /// An open bracket
-    OpenBracket,
-    /// A close bracket
-    CloseBracket,
     /// A comma
     Comma,
     /// A newline
     Newline,
-    /// "#define" keyword
-    Define,
-    /// "takes" keyword
-    Takes,
-    /// "returns" keyword
-    Returns,
-    /// "macro" keyword
-    Macro,
-    /// "constant" keyword
-    Constant,
-    /// "function" keyword
-    Function,
-    /// "FREE_STORAGE_POINTER()" keyword
-    FreeStoragePointer,
+    /// Number
+    Num(usize),
+    /// A Space
+    Whitespace,
+    /// A string literal
+    Str(&'a str),
+    // TODO below aren't lexed
     /// Hex
-    Literal(Literal),
+    Literal(&'a str),
     /// Opcode
-    Opcode,
-    /// End Of File
-    Eof,
+    Opcode(Opcode),
     /// Huff label (aka PC)
     Label(&'a str),
-    /// Import path
-    Path(&'a str),
-    /// A Comment
-    Comment(&'a str),
     /// EVM Type
     Type,
     /// Type of function ; view | payable | nonpayable
     FuncType,
-    /// "include" keyword
-    Include
+    // TODO: recursive dependency resolution at the lexing level?
+    // Import path
+    // Path(&'a str),
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let x = match *self {
-            TokenKind::Add => "+",
-            TokenKind::Sub => "+",
-            TokenKind::Mul => "*",
+            TokenKind::Eof => "EOF",
+            TokenKind::Comment(s) => return write!(f, "Comment({})", s),
             TokenKind::Div => "/",
-            TokenKind::Whitespace => " ",
-            TokenKind::Semi => ";",
+            TokenKind::Define => "#define",
+            TokenKind::Include => "#include",
+            TokenKind::Macro => "macro",
+            TokenKind::Function => "function",
+            TokenKind::Constant => "constant",
+            TokenKind::Takes => "takes",
+            TokenKind::Returns => "returns",
+            TokenKind::FreeStoragePointer => "FREE_STORAGE_POINTER()",
+            TokenKind::Ident(s) => return write!(f, "{}", s),
             TokenKind::Assign => "=",
             TokenKind::OpenParen => "(",
             TokenKind::CloseParen => ")",
+            TokenKind::OpenBracket => "[",
+            TokenKind::CloseBracket => "]",
             TokenKind::OpenBrace => "{",
             TokenKind::CloseBrace => "}",
+            TokenKind::Add => "+",
+            TokenKind::Sub => "+",
+            TokenKind::Mul => "*",
             TokenKind::Comma => ",",
-            TokenKind::Str(str) => str,
             TokenKind::Num(num) => return write!(f, "{}", num),
+            TokenKind::Whitespace => " ",
+            TokenKind::Str(str) => str,
+            // TODO these aren't lexed yet
+            // TokenKind::Literal(l) => {
+            //     let mut s = String::new();
+            //     for b in l.iter() {
+            //         let _ = write!(&mut s, "{:02x}", b);
+            //     }
+            //     return write!(f, "{}", s)
+            // }
+            TokenKind::Opcode(o) => return write!(f, "{}", o),
+            TokenKind::Label(s) => return write!(f, "{}", s),
             TokenKind::Ident(str) => str,
             TokenKind::Eof => "EOF",
-            TokenKind::Whitespace => "WHITESPACE",
-            TokenKind::Takes => "takes",
-            TokenKind::Returns => "returns",
             _ => "oof",
         };
 
