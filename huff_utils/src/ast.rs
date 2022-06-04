@@ -1,4 +1,4 @@
-use crate::{evm::Opcode, token::TokenKind};
+use crate::evm::Opcode;
 
 type Literal = [u8; 32];
 

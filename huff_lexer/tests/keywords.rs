@@ -267,7 +267,19 @@ fn parses_function_type_keywords() {
 
 #[test]
 fn parses_function_definition_with_keyword_name() {
-    let key_words = ["macro", "function", "constant", "takes", "returns", "define", "include", "nonpayable", "payable", "view", "pure"];
+    let key_words = [
+        "macro",
+        "function",
+        "constant",
+        "takes",
+        "returns",
+        "define",
+        "include",
+        "nonpayable",
+        "payable",
+        "view",
+        "pure",
+    ];
 
     for s in key_words {
         let source = format!("#define function {}(uint256) view returns(uint256)", s);
@@ -314,7 +326,19 @@ fn parses_function_definition_with_keyword_name() {
 
 #[test]
 fn parses_function_with_keyword_name_before_colon() {
-    let key_words = ["macro", "function", "constant", "takes", "returns", "define", "include", "nonpayable", "payable", "view", "pure"];
+    let key_words = [
+        "macro",
+        "function",
+        "constant",
+        "takes",
+        "returns",
+        "define",
+        "include",
+        "nonpayable",
+        "payable",
+        "view",
+        "pure",
+    ];
 
     for s in key_words {
         // ex:
@@ -355,7 +379,19 @@ fn parses_function_with_keyword_name_before_colon() {
 
 #[test]
 fn parses_function_with_keyword_name() {
-    let key_words = ["macro", "function", "constant", "takes", "returns", "define", "include", "nonpayable", "payable", "view", "pure"];
+    let key_words = [
+        "macro",
+        "function",
+        "constant",
+        "takes",
+        "returns",
+        "define",
+        "include",
+        "nonpayable",
+        "payable",
+        "view",
+        "pure",
+    ];
 
     for s in key_words {
         let source = format!("dup1 0x7c09063f eq {} jumpi", s);
@@ -387,7 +423,19 @@ fn parses_function_with_keyword_name() {
 
 #[test]
 fn parses_function_with_keyword_name_in_macro() {
-    let key_words = ["macro", "function", "constant", "takes", "returns", "define", "include", "nonpayable", "payable", "view", "pure"];
+    let key_words = [
+        "macro",
+        "function",
+        "constant",
+        "takes",
+        "returns",
+        "define",
+        "include",
+        "nonpayable",
+        "payable",
+        "view",
+        "pure",
+    ];
 
     for s in key_words {
         let source = format!(

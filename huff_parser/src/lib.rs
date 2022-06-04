@@ -36,7 +36,7 @@ pub enum ParserError {
     /// A Syntax Error
     SyntaxError,
     /// Unexpected Token
-    Unexpected
+    Unexpected,
 }
 
 /// The Parser
@@ -99,7 +99,7 @@ impl<'a> Parser<'a> {
         loop {
             let token = self.peek().unwrap();
             if !kinds.contains(&token.kind) {
-                break;
+                break
             }
             self.current_token = token;
             self.cursor += 1;
@@ -131,9 +131,9 @@ impl<'a> Parser<'a> {
         // match to fucntion, constant, macro, or event
         match self.current_token.kind {
             TokenKind::Function => {
-                let function_definition = self.parse_function().unwrap();
+                let _function_definition = self.parse_function().unwrap();
                 Ok(())
-            },
+            }
             TokenKind::Event => {
                 let _event_definition = self.parse_event().unwrap();
                 Ok(())
@@ -165,23 +165,25 @@ impl<'a> Parser<'a> {
 
         // function types should be next
         let mut types: Vec<FunctionType> = vec![];
-        let mut tok = self.peek_behind().unwrap().kind;
+        let mut tok = self.current_token.kind;
+
         if tok != TokenKind::Returns {
+            let kinds =
+                [TokenKind::View, TokenKind::Pure, TokenKind::Payable, TokenKind::NonPayable];
             loop {
-                let kinds = [TokenKind::View, TokenKind::Pure, TokenKind::Payable, TokenKind::NonPayable];
                 if !kinds.contains(&tok) {
-                    break;
+                    break
                 }
-                let fnty = match tok {
+                let fn_type = match tok {
                     TokenKind::View => FunctionType::View,
                     TokenKind::Pure => FunctionType::Pure,
                     TokenKind::Payable => FunctionType::Payable,
                     TokenKind::NonPayable => FunctionType::NonPayable,
                     _ => return Err(ParserError::Unexpected),
                 };
-                types.push(fnty);
+                types.push(fn_type);
                 self.consume();
-                tok = self.peek_behind().unwrap().kind;
+                tok = self.current_token.kind;
             }
         }
 

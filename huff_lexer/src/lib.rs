@@ -113,19 +113,14 @@ impl<'a> Lexer<'a> {
     /// Get the length of the previous lexing span.
     pub fn lookback_len(&self) -> usize {
         if let Some(lookback) = self.lookback {
-            return lookback.span.end - lookback.span.start;
+            return lookback.span.end - lookback.span.start
         }
         0
     }
 
     /// Checks the previous token kind against the input.
     pub fn checked_lookback(&self, kind: TokenKind) -> bool {
-        self.lookback.and_then(|t| {
-            if t.kind == kind {
-                return Some(true);
-            }
-            None
-        }).is_some()
+        self.lookback.and_then(|t| if t.kind == kind { Some(true) } else { None }).is_some()
     }
 
     /// Try to peek at the next character from the source
@@ -217,7 +212,8 @@ impl<'a> Lexer<'a> {
     /// - The `macro`, `function`, `constant`, `event` keywords must be preceded by a `#define`
     ///   keyword.
     /// - The `takes` keyword must be preceded by an assignment operator: `=`.
-    /// - The `nonpayable`, `payable`, `view`, and `pure` keywords must be preceeded by one of these keywords or a close paren.
+    /// - The `nonpayable`, `payable`, `view`, and `pure` keywords must be preceeded by one of these
+    ///   keywords or a close paren.
     /// - The `returns` keyword must be succeeded by an open parenthesis and must *not* be succeeded
     ///   by a colon or preceded by the keyword `function`
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
@@ -225,24 +221,26 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Macro) |
             Some(TokenKind::Function) |
             Some(TokenKind::Constant) |
-            Some(TokenKind::Event) => {
-                self.checked_lookback(TokenKind::Define)
-            }
+            Some(TokenKind::Event) => self.checked_lookback(TokenKind::Define),
             Some(TokenKind::NonPayable) |
             Some(TokenKind::Payable) |
             Some(TokenKind::View) |
             Some(TokenKind::Pure) => {
-                let keys = [TokenKind::NonPayable, TokenKind::Payable, TokenKind::View, TokenKind::Pure, TokenKind::CloseParen];
+                let keys = [
+                    TokenKind::NonPayable,
+                    TokenKind::Payable,
+                    TokenKind::View,
+                    TokenKind::Pure,
+                    TokenKind::CloseParen,
+                ];
                 for key in keys {
                     if self.checked_lookback(key) {
-                        return true;
+                        return true
                     }
                 }
                 false
             }
-            Some(TokenKind::Takes) => {
-                self.checked_lookback(TokenKind::Assign)
-            }
+            Some(TokenKind::Takes) => self.checked_lookback(TokenKind::Assign),
             Some(TokenKind::Returns) => {
                 // Allow for loose and tight syntax (e.g. `returns (0)` & `returns(0)`)
                 self.peek_n_chars_from(2, self.span.end).trim().starts_with('(') &&
