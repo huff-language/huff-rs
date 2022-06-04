@@ -118,7 +118,10 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Define)?;
         // match to fucntion, constant or macro
         match self.current_token.kind {
-            TokenKind::Function => self.parse_function(),
+            TokenKind::Function => {
+                let function_definition = self.parse_function().unwrap();
+                Ok(())
+            },
             TokenKind::Constant => self.parse_constant(),
             TokenKind::Macro => {
                 let macro_definitions = self.parse_macro().unwrap();
@@ -129,20 +132,44 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    /*
-        Parse a function.
-    */
-    fn parse_function(&mut self) -> Result<(), ParserError> {
+    /// Parse a function.
+    /// Adheres to https://github.com/huff-language/huffc/blob/master/src/parser/high-level.ts#L87-L111
+    fn parse_function(&mut self) -> Result<Function<'a>, ParserError> {
+        let name: &'a str;
+        let inputs: Vec<String>;
+        let fn_type: String;
+        let outputs: Vec<String>;
+
+        // the first token should be of `TokenKind::Function`
         self.match_kind(TokenKind::Function)?;
         // function name should be next
         self.match_kind(TokenKind::Ident("x"))?;
-        self.parse_args(false)?;
-        // TODO: Replace with a TokenKind specific to view, payable or nonpayable keywords
-        self.match_kind(TokenKind::Ident("FUNC_TYPE"))?;
-        self.match_kind(TokenKind::Returns)?;
-        self.parse_args(false)?;
+        let tok = self.peek_behind().unwrap().kind;
+        match tok {
+            TokenKind::Ident(fn_name) => name = fn_name,
+            _ => return Err(ParserError::SyntaxError),
+        }
 
-        Ok(())
+        // function inputs should be next
+        inputs = self.parse_args(false)?;
+
+        // function type should be next
+        // TODO: Replace with a TokenKind specific to view, payable or nonpayable keywords
+        // TODO: Waiting until #14 is merged, will be easiest to add special rules to match function
+        // TODO: types to a TokenKind.
+        self.match_kind(TokenKind::Ident("FUNC_TYPE"))?;
+        let tok = self.peek_behind().unwrap().kind;
+        match tok {
+            TokenKind::Ident(fn_type_) => fn_type = fn_type_.to_string(),
+            _ => return Err(ParserError::SyntaxError),
+        }
+
+        // next token should be of `TokenKind::Returns`
+        self.match_kind(TokenKind::Returns)?;
+        // function outputs should be next
+        outputs = self.parse_args(false)?;
+
+        Ok(Function { name, inputs, fn_type, outputs })
     }
 
     /*
@@ -282,6 +309,8 @@ impl<'a> Parser<'a> {
                 self.match_kind(TokenKind::Ident("EVMType"))?
             };
             // naming is optional
+            // TODO: Are parameter names allowed in Huff? I can't find any examples of it, unless
+            // TODO: this is intended to be a new feature. -vex
             if self.check(TokenKind::Ident("x")) {
                 self.match_kind(TokenKind::Ident("x"))?;
                 let tok = self.peek_behind().unwrap().kind;

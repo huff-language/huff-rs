@@ -43,11 +43,11 @@ pub struct Function<'a> {
     /// The name of the function
     pub name: &'a str,
     /// The parameters of the function
-    pub parameters: Vec<String>,
-    /// The function decorators
-    pub decorators: Vec<String>,
-    /// The return type of the function
-    pub return_type: String,
+    pub inputs: Vec<String>,
+    /// The function type
+    pub fn_type: String,
+    /// The return values of the function
+    pub outputs: Vec<String>,
 }
 
 /// An Event Signature
