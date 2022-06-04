@@ -33,8 +33,22 @@ use huff_utils::{
 /// A Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub enum ParserError {
-    /// A Syntax Error
-    SyntaxError,
+    /// A general syntax error that accepts a message
+    SyntaxError(&'static str),
+    /// Unexpected type
+    UnexpectedType,
+    /// Invalid definition
+    InvalidDefinition,
+    /// Invalid constant value
+    InvalidConstantValue,
+    /// Invalid name (macro, event, function, constant)
+    InvalidName,
+    /// Invalid arguments
+    InvalidArgs,
+    /// Invalid macro call arguments
+    InvalidMacroArgs,
+    /// Invalid return arguments
+    InvalidReturnArgs,
 }
 
 /// The Parser
@@ -77,7 +91,7 @@ impl<'a> Parser<'a> {
                 "Expected current token of kind {} to match {}",
                 self.current_token.kind, kind
             );
-            Err(ParserError::SyntaxError)
+            Err(ParserError::UnexpectedType)
         }
     }
 
@@ -126,8 +140,15 @@ impl<'a> Parser<'a> {
                 let _ = self.parse_macro().unwrap();
                 Ok(())
             }
-            _ => Err(ParserError::SyntaxError),
-        }
+            _ => {
+                println!(
+                    "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
+                    self.current_token.kind
+                );
+                return Err(ParserError::InvalidDefinition)
+            }
+        }?;
+        Ok(())
     }
 
     /// Parse a function.
@@ -155,7 +176,10 @@ impl<'a> Parser<'a> {
 
         let name: &'a str = match tok {
             TokenKind::Ident(event_name) => event_name,
-            _ => return Err(ParserError::SyntaxError),
+            _ => {
+                println!("Event name must be of kind Ident. Got: {}", tok);
+                return Err(ParserError::InvalidName)
+            }
         };
 
         // Parse the event's parameters
@@ -174,7 +198,13 @@ impl<'a> Parser<'a> {
                 self.consume();
                 Ok(())
             }
-            _ => Err(ParserError::SyntaxError),
+            _ => {
+                println!(
+                    "Constant value must be of kind FreeStoragePointer or Literal. Got: {}",
+                    self.current_token.kind
+                );
+                Err(ParserError::InvalidConstantValue)
+            }
         }
     }
 
@@ -228,7 +258,9 @@ impl<'a> Parser<'a> {
                 TokenKind::OpenBracket => {
                     self.parse_constant_push()?;
                 }
-                _ => return Err(ParserError::SyntaxError),
+                _ => return Err(ParserError::SyntaxError(
+                    "Invalid token in macro body. Must be of kind Hex, Opcode, Macro, or Label.",
+                )),
             };
         }
         // consume close brace
@@ -323,7 +355,9 @@ impl<'a> Parser<'a> {
         let num_token = self.match_kind(TokenKind::Num(0))?;
         let value: usize = match num_token {
             TokenKind::Num(value) => value,
-            _ => return Err(ParserError::SyntaxError),
+            _ => return Err(ParserError::InvalidArgs), /* Should never reach this code,
+                                                        * `match_kind` will throw an error if the
+                                                        * token kind isn't a `Num`. */
         };
         self.match_kind(TokenKind::CloseParen)?;
         Ok(value)
@@ -343,7 +377,13 @@ impl<'a> Parser<'a> {
             // We can pass either directly hex values or labels (without the ":")
             match self.current_token.kind {
                 TokenKind::Literal(_) | TokenKind::Ident(_) => self.consume(),
-                _ => return Err(ParserError::SyntaxError),
+                _ => {
+                    println!(
+                        "Invalid macro call arguments. Must be of kind Ident or Literal. Got: {}",
+                        self.current_token.kind
+                    );
+                    return Err(ParserError::InvalidMacroArgs)
+                }
             }
             if self.check(TokenKind::Comma) {
                 self.consume();
