@@ -37,6 +37,8 @@ pub enum TokenKind<'a> {
     Macro,
     /// "function" keyword
     Function,
+    /// "event" keyword
+    Event,
     /// "constant" keyword
     Constant,
     /// "takes" keyword
@@ -97,6 +99,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Include => "#include",
             TokenKind::Macro => "macro",
             TokenKind::Function => "function",
+            TokenKind::Event => "event",
             TokenKind::Constant => "constant",
             TokenKind::Takes => "takes",
             TokenKind::Returns => "returns",
