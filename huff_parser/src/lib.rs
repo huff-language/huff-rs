@@ -70,10 +70,11 @@ impl<'a> Parser<'a> {
     }
 
     /// Match current token to a type.
-    pub fn match_kind(&mut self, kind: TokenKind) -> Result<(), ParserError> {
+    pub fn match_kind(&mut self, kind: TokenKind) -> Result<TokenKind, ParserError> {
         if std::mem::discriminant(&mut self.current_token.kind) == std::mem::discriminant(&kind) {
+            let curr_kind: TokenKind = self.current_token.kind;
             self.consume();
-            Ok(())
+            Ok(curr_kind)
         } else {
             println!(
                 "Expected current token of kind {} to match {}",
@@ -171,46 +172,15 @@ impl<'a> Parser<'a> {
         let macro_returns: usize;
         let macro_statements: Vec<Statement<'static>>;
 
-        self.match_kind(TokenKind::Define)?;
         self.match_kind(TokenKind::Macro)?;
-        self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
-
-        let tok = self.peek_behind().unwrap().kind;
-        let macro_ident;
-
-        match tok {
-            TokenKind::Ident(name) => macro_ident = name,
-            _ => return Err(ParserError::SyntaxError),
-        }
-
-        macro_name = macro_ident.to_string();
+        let macro_name = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
 
         macro_arguments = self.parse_args(false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
-        self.match_kind(TokenKind::OpenParen)?;
-        self.match_kind(TokenKind::Num(1))?;
-
-        let tok = self.peek_behind().unwrap().kind;
-        let takes: usize = match tok {
-            TokenKind::Num(value) => value,
-            _ => return Err(ParserError::SyntaxError),
-        };
-
-        macro_takes = takes;
-
-        self.match_kind(TokenKind::CloseParen)?;
+        macro_takes = self.parse_single_arg()?;
         self.match_kind(TokenKind::Returns)?;
-        self.match_kind(TokenKind::OpenParen)?;
-        self.match_kind(TokenKind::Num(1))?;
-
-        let tok = self.peek_behind().unwrap().kind;
-        let returns: usize = match tok {
-            TokenKind::Num(value) => value,
-            _ => return Err(ParserError::SyntaxError),
-        };
-
-        macro_returns = returns;
+        macro_returns = self.parse_single_arg()?;
         macro_statements = self.parse_body()?;
 
         Ok(MacroDefinition::new(
@@ -238,10 +208,10 @@ impl<'a> Parser<'a> {
                     self.consume();
                     statements.push(Statement::Opcode(o));
                 }
-                // TokenKind::Ident("MACRO_NAME") => {
-                //     let literals = self.parse_macro_call();
-                //     statements.push();
-                // },
+                TokenKind::Ident("MACRO_NAME") => {
+                    let literals = self.parse_macro_call();
+                    //statements.push(Statement::MacroInvocation("aa": []));
+                }
                 TokenKind::Label(_) => {
                     self.consume();
                 }
@@ -279,17 +249,11 @@ impl<'a> Parser<'a> {
             // type comes first
             // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
             if name_only {
-                self.match_kind(TokenKind::Ident("EVMType"))?
+                self.match_kind(TokenKind::Ident("EVMType"))?;
             };
             // naming is optional
             if self.check(TokenKind::Ident("x")) {
-                self.match_kind(TokenKind::Ident("x"))?;
-                let tok = self.peek_behind().unwrap().kind;
-
-                match tok {
-                    TokenKind::Ident(name) => args.push(name.to_string()),
-                    _ => return Err(ParserError::SyntaxError),
-                }
+                let arg_name = self.match_kind(TokenKind::Ident("x"))?.to_string();
             }
             // multiple args possible
             if self.check(TokenKind::Comma) {
@@ -344,11 +308,15 @@ impl<'a> Parser<'a> {
     // }
 
     /// Parses the following : (x)
-    fn parse_single_arg(&mut self) -> Result<(), ParserError> {
+    fn parse_single_arg(&mut self) -> Result<usize, ParserError> {
         self.match_kind(TokenKind::OpenParen)?;
-        self.match_kind(TokenKind::Num(0))?;
+        let num_token = self.match_kind(TokenKind::Num(0))?;
+        let value: usize = match num_token {
+            TokenKind::Num(value) => value,
+            _ => return Err(ParserError::SyntaxError),
+        };
         self.match_kind(TokenKind::CloseParen)?;
-        Ok(())
+        Ok(value)
     }
 
     /// Parse call to a macro.
