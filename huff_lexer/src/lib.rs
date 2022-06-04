@@ -262,6 +262,16 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
+                    // Check for the event keyword
+                    if found_kind == None {
+                        let event_keyword = "event";
+                        let peeked = self.peeknchars(event_keyword.len() - 1);
+                        if event_keyword == peeked {
+                            self.dyn_consume(|c| c.is_alphabetic());
+                            found_kind = Some(TokenKind::Event);
+                        }
+                    }
+
                     // Check for the constant keyword
                     if found_kind == None {
                         let constant_keyword = "constant";
