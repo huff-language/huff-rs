@@ -82,7 +82,7 @@ pub struct MacroDefinition<'a> {
 
 impl MacroDefinition<'_> {
     /// Public associated function that instantiates a MacroDefinition.
-    pub fn new<'a>(
+    pub fn new(
         name: String,
         parameters: Vec<String>,
         statements: Vec<Statement<'static>>,

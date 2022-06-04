@@ -40,9 +40,9 @@ pub enum ParserError {
 /// The Parser
 #[derive(Debug, Clone)]
 pub struct Parser<'a> {
-    // Vector of the tokens
+    /// Vector of the tokens
     pub tokens: Vec<Token<'a>>,
-    // Current position
+    /// Current position
     pub cursor: usize,
     /// Current token
     pub current_token: Token<'a>,
@@ -51,7 +51,7 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     /// Public associated function that instantiates a Parser.
     pub fn new(tokens: Vec<Token<'a>>) -> Self {
-        let initial_token = tokens.get(0).unwrap().clone();
+        let initial_token = *tokens.get(0).unwrap();
         Self { tokens, cursor: 0, current_token: initial_token }
     }
 
@@ -59,10 +59,7 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<(), ParserError> {
         // remove all whitespaces and newlines first
         // NOTE: lexer considers newlines as whitespaces
-        self.tokens.retain(|&token| match token.kind {
-            TokenKind::Whitespace => false,
-            _ => true,
-        });
+        self.tokens.retain(|&token| !matches!(token.kind, TokenKind::Whitespace));
         while !self.check(TokenKind::Eof) {
             self.parse_statement()?;
         }
@@ -71,7 +68,7 @@ impl<'a> Parser<'a> {
 
     /// Match current token to a type.
     pub fn match_kind(&mut self, kind: TokenKind) -> Result<TokenKind, ParserError> {
-        if std::mem::discriminant(&mut self.current_token.kind) == std::mem::discriminant(&kind) {
+        if std::mem::discriminant(&self.current_token.kind) == std::mem::discriminant(&kind) {
             let curr_kind: TokenKind = self.current_token.kind;
             self.consume();
             Ok(curr_kind)
@@ -86,7 +83,7 @@ impl<'a> Parser<'a> {
 
     /// Check the current token's type against the given type.
     pub fn check(&mut self, kind: TokenKind) -> bool {
-        std::mem::discriminant(&mut self.current_token.kind) == std::mem::discriminant(&kind)
+        std::mem::discriminant(&self.current_token.kind) == std::mem::discriminant(&kind)
     }
 
     /// Consumes the next token.
@@ -100,7 +97,7 @@ impl<'a> Parser<'a> {
         if self.cursor >= self.tokens.len() {
             None
         } else {
-            Some(self.tokens.get(self.cursor + 1).unwrap().clone())
+            Some(*self.tokens.get(self.cursor + 1).unwrap())
         }
     }
 
@@ -109,7 +106,7 @@ impl<'a> Parser<'a> {
         if self.cursor == 0 || self.cursor > self.tokens.len() {
             None
         } else {
-            Some(self.tokens.get(self.cursor - 1).unwrap().clone())
+            Some(*self.tokens.get(self.cursor - 1).unwrap())
         }
     }
 
@@ -122,12 +119,11 @@ impl<'a> Parser<'a> {
             TokenKind::Function => self.parse_function(),
             TokenKind::Constant => self.parse_constant(),
             TokenKind::Macro => {
-                let macro_definitions = self.parse_macro().unwrap();
+                let _ = self.parse_macro().unwrap();
                 Ok(())
             }
             _ => Err(ParserError::SyntaxError),
-        };
-        Ok(())
+        }
     }
 
     /*
@@ -166,22 +162,16 @@ impl<'a> Parser<'a> {
     ///
     /// It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
     pub fn parse_macro(&mut self) -> Result<MacroDefinition<'a>, ParserError> {
-        let macro_name: String;
-        let macro_arguments: Vec<String>;
-        let macro_takes: usize;
-        let macro_returns: usize;
-        let macro_statements: Vec<Statement<'static>>;
-
         self.match_kind(TokenKind::Macro)?;
-        let macro_name = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
+        let macro_name: String = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
 
-        macro_arguments = self.parse_args(false)?;
+        let macro_arguments: Vec<String> = self.parse_args(false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
-        macro_takes = self.parse_single_arg()?;
+        let macro_takes: usize = self.parse_single_arg()?;
         self.match_kind(TokenKind::Returns)?;
-        macro_returns = self.parse_single_arg()?;
-        macro_statements = self.parse_body()?;
+        let macro_returns: usize = self.parse_single_arg()?;
+        let macro_statements: Vec<Statement<'static>> = self.parse_body()?;
 
         Ok(MacroDefinition::new(
             macro_name,
@@ -209,7 +199,7 @@ impl<'a> Parser<'a> {
                     statements.push(Statement::Opcode(o));
                 }
                 TokenKind::Ident("MACRO_NAME") => {
-                    let literals = self.parse_macro_call();
+                    let _literals = self.parse_macro_call();
                     //statements.push(Statement::MacroInvocation("aa": []));
                 }
                 TokenKind::Label(_) => {
@@ -243,7 +233,7 @@ impl<'a> Parser<'a> {
     /// Works for both inputs and outputs.
     /// It should parse the following : (uint256 a, bool b, ...)
     pub fn parse_args(&mut self, name_only: bool) -> Result<Vec<String>, ParserError> {
-        let mut args: Vec<String> = Vec::new();
+        let args: Vec<String> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
             // type comes first
@@ -253,7 +243,7 @@ impl<'a> Parser<'a> {
             };
             // naming is optional
             if self.check(TokenKind::Ident("x")) {
-                let arg_name = self.match_kind(TokenKind::Ident("x"))?.to_string();
+                let _arg_name = self.match_kind(TokenKind::Ident("x"))?.to_string();
             }
             // multiple args possible
             if self.check(TokenKind::Comma) {
@@ -344,6 +334,7 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
+    /// Parses a constant push.
     pub fn parse_constant_push(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::OpenBracket)?;
         self.match_kind(TokenKind::Ident("CONSTANT"))?;
