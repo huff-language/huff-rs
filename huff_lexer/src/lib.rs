@@ -64,6 +64,7 @@
 
 #![deny(missing_docs)]
 #![allow(dead_code)]
+
 use bytes::BytesMut;
 use huff_utils::{error::*, evm::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
@@ -198,13 +199,13 @@ impl<'a> Lexer<'a> {
     /// `TokenKind::Ident`.
     ///
     /// Rules:
-    /// - The `macro`, `function` and `constant` keywords must be preceded by a `#define` keyword.
+    /// - The `macro`, `function`, `constant`, `event` keywords must be preceded by a `#define` keyword.
     /// - The `takes` keyword must be preceded by an assignment operator: `=`.
     /// - The `returns` keyword must be succeeded by an open parenthesis and must *not* be succeeded
     ///   by a colon or preceded by the keyword `function`
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
         match found_kind {
-            Some(TokenKind::Macro) | Some(TokenKind::Function) | Some(TokenKind::Constant) => {
+            Some(TokenKind::Macro) | Some(TokenKind::Function) | Some(TokenKind::Constant) | Some(TokenKind::Event) => {
                 let define_key = TokenKind::Define.to_string();
                 self.try_look_back(self.prev_span_len() + define_key.len()).trim() == define_key
             }
@@ -291,6 +292,7 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Constant,
                         TokenKind::Takes,
                         TokenKind::Returns,
+                        TokenKind::Event
                     ];
                     for kind in &keys {
                         let key = kind.to_string();
