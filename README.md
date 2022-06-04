@@ -62,7 +62,6 @@ In order to fix any formatting issues, run:
 ```bash
 cargo +nightly fmt -- 
 ```
-```
 
 
 ## References
