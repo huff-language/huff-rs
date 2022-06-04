@@ -61,7 +61,7 @@ impl<'a> Parser<'a> {
         // NOTE: lexer considers newlines as whitespaces
         self.tokens.retain(|&token| !matches!(token.kind, TokenKind::Whitespace));
         while !self.check(TokenKind::Eof) {
-            self.parse_statement()?;
+            self.parse_definition()?;
         }
         Ok(())
     }
@@ -111,7 +111,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a statement.
-    pub fn parse_statement(&mut self) -> Result<(), ParserError> {
+    fn parse_definition(&mut self) -> Result<(), ParserError> {
         // first token should be keyword "#define"
         self.match_kind(TokenKind::Define)?;
         // match to fucntion, constant, macro, or event
