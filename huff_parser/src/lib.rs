@@ -33,8 +33,22 @@ use huff_utils::{
 /// A Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub enum ParserError {
-    /// A Syntax Error
-    SyntaxError,
+    /// A general syntax error that accepts a message
+    SyntaxError(&'static str),
+    /// Unexpected type
+    UnexpectedType,
+    /// Invalid definition
+    InvalidDefinition,
+    /// Invalid constant value
+    InvalidConstantValue,
+    /// Invalid macro name
+    InvalidMacroName,
+    /// Invalid arguments
+    InvalidArgs,
+    /// Invalid macro call arguments
+    InvalidMacroArgs,
+    /// Invalid return arguments
+    InvalidReturnArgs,
 }
 
 /// The Parser
@@ -79,7 +93,7 @@ impl<'a> Parser<'a> {
                 "Expected current token of kind {} to match {}",
                 self.current_token.kind, kind
             );
-            Err(ParserError::SyntaxError)
+            Err(ParserError::UnexpectedType)
         }
     }
 
@@ -124,7 +138,13 @@ impl<'a> Parser<'a> {
                 let macro_definitions = self.parse_macro().unwrap();
                 Ok(())
             }
-            _ => Err(ParserError::SyntaxError),
+            _ => {
+                println!(
+                    "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
+                    self.current_token.kind
+                );
+                Err(ParserError::InvalidDefinition)
+            }
         };
         Ok(())
     }
@@ -157,7 +177,13 @@ impl<'a> Parser<'a> {
                 self.consume();
                 Ok(())
             }
-            _ => Err(ParserError::SyntaxError),
+            _ => {
+                println!(
+                    "Constant value must be of kind FreeStoragePointer or Literal. Got: {}",
+                    self.current_token.kind
+                );
+                Err(ParserError::InvalidConstantValue)
+            }
         }
     }
 
@@ -180,7 +206,10 @@ impl<'a> Parser<'a> {
 
         match tok {
             TokenKind::Ident(name) => macro_ident = name,
-            _ => return Err(ParserError::SyntaxError),
+            _ => {
+                println!("Invalid macro name. Must be of kind Ident. Got: {}", tok);
+                return Err(ParserError::InvalidMacroName)
+            }
         }
 
         macro_name = macro_ident.to_string();
@@ -194,7 +223,10 @@ impl<'a> Parser<'a> {
         let tok = self.peek_behind().unwrap().kind;
         let takes: usize = match tok {
             TokenKind::Num(value) => value,
-            _ => return Err(ParserError::SyntaxError),
+            _ => {
+                println!("Invalid macro arguments. Must be of kind Num. Got: {}", tok);
+                return Err(ParserError::InvalidMacroArgs)
+            }
         };
 
         macro_takes = takes;
@@ -207,7 +239,10 @@ impl<'a> Parser<'a> {
         let tok = self.peek_behind().unwrap().kind;
         let returns: usize = match tok {
             TokenKind::Num(value) => value,
-            _ => return Err(ParserError::SyntaxError),
+            _ => {
+                println!("Invalid macro return arguments. Must be of kind Num. Got: {}", tok);
+                return Err(ParserError::InvalidReturnArgs)
+            }
         };
 
         macro_returns = returns;
@@ -248,7 +283,9 @@ impl<'a> Parser<'a> {
                 TokenKind::OpenBracket => {
                     self.parse_constant_push()?;
                 }
-                _ => return Err(ParserError::SyntaxError),
+                _ => return Err(ParserError::SyntaxError(
+                    "Invalid token in macro body. Must be of kind Hex, Opcode, Macro, or Label.",
+                )),
             };
         }
         // consume close brace
@@ -288,7 +325,10 @@ impl<'a> Parser<'a> {
 
                 match tok {
                     TokenKind::Ident(name) => args.push(name.to_string()),
-                    _ => return Err(ParserError::SyntaxError),
+                    _ => {
+                        println!("Invalid argument name. Must be of kind Ident. Got: {}", tok);
+                        return Err(ParserError::InvalidArgs)
+                    }
                 }
             }
             // multiple args possible
@@ -365,7 +405,13 @@ impl<'a> Parser<'a> {
             // We can pass either directly hex values or labels (without the ":")
             match self.current_token.kind {
                 TokenKind::Literal(_) | TokenKind::Ident(_) => self.consume(),
-                _ => return Err(ParserError::SyntaxError),
+                _ => {
+                    println!(
+                        "Invalid macro call arguments. Must be of kind Ident or Literal. Got: {}",
+                        self.current_token.kind
+                    );
+                    return Err(ParserError::InvalidMacroArgs)
+                }
             }
             if self.check(TokenKind::Comma) {
                 self.consume();
