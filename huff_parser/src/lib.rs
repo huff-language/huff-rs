@@ -35,6 +35,8 @@ use huff_utils::{
 pub enum ParserError {
     /// A Syntax Error
     SyntaxError,
+    /// Unexpected Token
+    Unexpected
 }
 
 /// The Parser
@@ -90,6 +92,18 @@ impl<'a> Parser<'a> {
     pub fn consume(&mut self) {
         self.current_token = self.peek().unwrap();
         self.cursor += 1;
+    }
+
+    /// Consumes following tokens until not contained in the kinds vec of TokenKinds.
+    pub fn consume_all(&mut self, kinds: Vec<TokenKind>) {
+        loop {
+            let token = self.peek().unwrap();
+            if !kinds.contains(&token.kind) {
+                break;
+            }
+            self.current_token = token;
+            self.cursor += 1;
+        }
     }
 
     /// Take a look at next token without consuming.
@@ -149,23 +163,34 @@ impl<'a> Parser<'a> {
         // function inputs should be next
         let inputs: Vec<String> = self.parse_args(false)?;
 
-        // function type should be next
-        // TODO: Replace with a TokenKind specific to view, payable or nonpayable keywords
-        // TODO: Waiting until #14 is merged, will be easiest to add special rules to match function
-        // TODO: types to a TokenKind.
-        self.match_kind(TokenKind::Ident("FUNC_TYPE"))?;
-        let tok = self.peek_behind().unwrap().kind;
-        let fn_type: String = match tok {
-            TokenKind::Ident(fn_ty_) => fn_ty_.to_string(),
-            _ => return Err(ParserError::SyntaxError),
-        };
+        // function types should be next
+        let mut types: Vec<FunctionType> = vec![];
+        let mut tok = self.peek_behind().unwrap().kind;
+        if tok != TokenKind::Returns {
+            loop {
+                let kinds = [TokenKind::View, TokenKind::Pure, TokenKind::Payable, TokenKind::NonPayable];
+                if !kinds.contains(&tok) {
+                    break;
+                }
+                let fnty = match tok {
+                    TokenKind::View => FunctionType::View,
+                    TokenKind::Pure => FunctionType::Pure,
+                    TokenKind::Payable => FunctionType::Payable,
+                    TokenKind::NonPayable => FunctionType::NonPayable,
+                    _ => return Err(ParserError::Unexpected),
+                };
+                types.push(fnty);
+                self.consume();
+                tok = self.peek_behind().unwrap().kind;
+            }
+        }
 
         // next token should be of `TokenKind::Returns`
         self.match_kind(TokenKind::Returns)?;
         // function outputs should be next
         let outputs: Vec<String> = self.parse_args(false)?;
 
-        Ok(Function { name, inputs, fn_type, outputs })
+        Ok(Function { name, inputs, types, outputs })
     }
 
     /// Parse an event.

@@ -79,10 +79,9 @@ pub struct Lexer<'a> {
     pub source: &'a str,
     /// The current lexing span.
     pub span: Span,
-    /// The previous lexing span.
-    pub lookback: Span,
-    /// The current token
-    pub token: Option<Token<'a>>,
+    /// The previous lexed Token.
+    /// Cannot be a whitespace.
+    pub lookback: Option<Token<'a>>,
     /// If the lexer has reached the end of file.
     pub eof: bool,
     /// EOF Token has been returned.
@@ -96,8 +95,7 @@ impl<'a> Lexer<'a> {
             chars: source.chars().peekable(),
             source,
             span: Span::default(),
-            lookback: Span::default(),
-            token: None,
+            lookback: None,
             eof: false,
             eof_returned: false,
         }
@@ -114,7 +112,20 @@ impl<'a> Lexer<'a> {
 
     /// Get the length of the previous lexing span.
     pub fn lookback_len(&self) -> usize {
-        self.lookback.end - self.lookback.start
+        if let Some(lookback) = self.lookback {
+            return lookback.span.end - lookback.span.start;
+        }
+        0
+    }
+
+    /// Checks the previous token kind against the input.
+    pub fn checked_lookback(&self, kind: TokenKind) -> bool {
+        self.lookback.and_then(|t| {
+            if t.kind == kind {
+                return Some(true);
+            }
+            None
+        }).is_some()
     }
 
     /// Try to peek at the next character from the source
@@ -196,16 +207,6 @@ impl<'a> Lexer<'a> {
     ///
     /// Only sets the previous span if the current token is not a whitespace.
     pub fn reset(&mut self) {
-        if let Some(t) = self.token {
-            match t.kind {
-                TokenKind::Whitespace => {},
-                _ => {
-                    self.lookback = self.span;
-                }
-            }
-        } else {
-            self.lookback = self.span;
-        }
         self.span.start = self.span.end;
     }
 
@@ -225,8 +226,7 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Function) |
             Some(TokenKind::Constant) |
             Some(TokenKind::Event) => {
-                let define_key = TokenKind::Define.to_string();
-                self.try_look_back(self.lookback_len() + define_key.len()).trim() == define_key
+                self.checked_lookback(TokenKind::Define)
             }
             Some(TokenKind::NonPayable) |
             Some(TokenKind::Payable) |
@@ -234,22 +234,19 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Pure) => {
                 let keys = [TokenKind::NonPayable, TokenKind::Payable, TokenKind::View, TokenKind::Pure, TokenKind::CloseParen];
                 for key in keys {
-                    if self.try_look_back(key.to_string().len()) == key.to_string() {
+                    if self.checked_lookback(key) {
                         return true;
                     }
                 }
                 false
             }
             Some(TokenKind::Takes) => {
-                let assign = TokenKind::Assign.to_string();
-                self.try_look_back(self.lookback_len() + assign.len()).trim() == assign
+                self.checked_lookback(TokenKind::Assign)
             }
             Some(TokenKind::Returns) => {
-                let function_key = TokenKind::Function.to_string();
                 // Allow for loose and tight syntax (e.g. `returns (0)` & `returns(0)`)
                 self.peek_n_chars_from(2, self.span.end).trim().starts_with('(') &&
-                    self.try_look_back(self.lookback_len() + function_key.len()).trim() !=
-                        function_key &&
+                    !self.checked_lookback(TokenKind::Function) &&
                     self.peek_n_chars_from(1, self.span.end) != ":"
             }
             _ => true,
@@ -476,7 +473,9 @@ impl<'a> Iterator for Lexer<'a> {
             }
 
             let token = Token { kind, span: self.span };
-            self.token = Some(token);
+            if token.kind != TokenKind::Whitespace {
+                self.lookback = Some(token);
+            }
 
             return Some(Ok(token))
         }
@@ -488,7 +487,9 @@ impl<'a> Iterator for Lexer<'a> {
         if !self.eof_returned {
             self.eof_returned = true;
             let token = Token { kind: TokenKind::Eof, span: self.span };
-            self.token = Some(token);
+            if token.kind != TokenKind::Whitespace {
+                self.lookback = Some(token);
+            }
             return Some(Ok(token))
         }
 

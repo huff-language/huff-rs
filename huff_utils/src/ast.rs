@@ -1,4 +1,4 @@
-use crate::evm::Opcode;
+use crate::{evm::Opcode, token::TokenKind};
 
 type Literal = [u8; 32];
 
@@ -45,9 +45,21 @@ pub struct Function<'a> {
     /// The parameters of the function
     pub inputs: Vec<String>,
     /// The function type
-    pub fn_type: String,
+    pub types: Vec<FunctionType>,
     /// The return values of the function
     pub outputs: Vec<String>,
+}
+
+/// Function Types
+pub enum FunctionType {
+    /// Viewable Function
+    View,
+    /// Payable Function
+    Payable,
+    /// Non Payable Function
+    NonPayable,
+    /// Pure Function
+    Pure,
 }
 
 /// An Event Signature

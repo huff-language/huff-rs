@@ -248,27 +248,17 @@ fn parses_function_type_keywords() {
 
     // Lex view first
     let tok = lexer.next().unwrap().unwrap();
-    let view_span = Span::new(23..28);
-    assert_eq!(tok, Token::new(TokenKind::Takes, view_span));
+    let view_span = Span::new(24..28);
+    assert_eq!(tok, Token::new(TokenKind::View, view_span));
     assert_eq!(lexer.span, view_span);
 
     // Lex the next 4 chars
-    let _ = lexer.next(); // open parenthesis
-    let _ = lexer.next(); // 0
-    let _ = lexer.next(); // close parenthesis
     let _ = lexer.next(); // whitespace
-
-    // Lex Returns
-    let tok = lexer.next();
-    let unwrapped = tok.unwrap().unwrap();
-    let returns_span = Span::new(32..39);
-    assert_eq!(unwrapped, Token::new(TokenKind::Returns, returns_span));
-    assert_eq!(lexer.span, returns_span);
-
-    // Lex the last 3 chars
-    let _ = lexer.next(); // open parenthesis
-    let _ = lexer.next(); // 0
-    let _ = lexer.next(); // close parenthesis
+    let _ = lexer.next(); // returns
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // paren
+    let _ = lexer.next(); // uint256
+    let _ = lexer.next(); // paren
 
     // We covered the whole source
     assert_eq!(lexer.span.end, source.len());
