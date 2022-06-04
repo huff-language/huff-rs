@@ -111,29 +111,27 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a statement.
-    fn parse_statement(&mut self) -> Result<(), ParserError> {
+    pub fn parse_statement(&mut self) -> Result<(), ParserError> {
         // first token should be keyword "#define"
         self.match_kind(TokenKind::Define)?;
-        // match to fucntion, constant or macro
+        // match to fucntion, constant, macro, or event
         match self.current_token.kind {
             TokenKind::Function => self.parse_function(),
             TokenKind::Event => {
-                let event_definition = self.parse_event().unwrap();
+                let _event_definition = self.parse_event().unwrap();
                 Ok(())
             }
             TokenKind::Constant => self.parse_constant(),
             TokenKind::Macro => {
                 let _ = self.parse_macro().unwrap();
                 Ok(())
-            },
+            }
             _ => Err(ParserError::SyntaxError),
         }
     }
 
-    /*
-        Parse a function.
-    */
-    fn parse_function(&mut self) -> Result<(), ParserError> {
+    /// Parse a function.
+    pub fn parse_function(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::Function)?;
         // function name should be next
         self.match_kind(TokenKind::Ident("x"))?;
@@ -147,10 +145,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse an event.
-    fn parse_event(&mut self) -> Result<Event<'a>, ParserError> {
-        let name: &'a str;
-        let parameters: Vec<String>;
-
+    pub fn parse_event(&mut self) -> Result<Event<'a>, ParserError> {
         // The event should start with `TokenKind::Event`
         self.match_kind(TokenKind::Event)?;
 
@@ -158,21 +153,19 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Ident("x"))?;
         let tok = self.peek_behind().unwrap().kind;
 
-        match tok {
-            TokenKind::Ident(event_name) => name = event_name,
+        let name: &'a str = match tok {
+            TokenKind::Ident(event_name) => event_name,
             _ => return Err(ParserError::SyntaxError),
-        }
+        };
 
         // Parse the event's parameters
-        parameters = self.parse_args(false)?;
+        let parameters: Vec<String> = self.parse_args(false)?;
 
         Ok(Event { name, parameters })
     }
 
-    /*
-        Parse a constant.
-    */
-    fn parse_constant(&mut self) -> Result<(), ParserError> {
+    /// Parse a constant.
+    pub fn parse_constant(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::Constant)?;
         self.match_kind(TokenKind::Ident("x"))?;
         self.match_kind(TokenKind::Assign)?;
@@ -325,7 +318,7 @@ impl<'a> Parser<'a> {
     // }
 
     /// Parses the following : (x)
-    fn parse_single_arg(&mut self) -> Result<usize, ParserError> {
+    pub fn parse_single_arg(&mut self) -> Result<usize, ParserError> {
         self.match_kind(TokenKind::OpenParen)?;
         let num_token = self.match_kind(TokenKind::Num(0))?;
         let value: usize = match num_token {
@@ -337,14 +330,14 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse call to a macro.
-    fn parse_macro_call(&mut self) -> Result<(), ParserError> {
+    pub fn parse_macro_call(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
         self.parse_macro_call_args()?;
         Ok(())
     }
 
     /// Parse the arguments of a macro call.
-    fn parse_macro_call_args(&mut self) -> Result<(), ParserError> {
+    pub fn parse_macro_call_args(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
             // We can pass either directly hex values or labels (without the ":")
