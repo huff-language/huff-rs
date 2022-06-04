@@ -1,5 +1,6 @@
+#![allow(dead_code)]
+
 use huff_utils::token::{Token, TokenKind};
-use std::mem::discriminant;
 
 #[derive(Debug)]
 pub enum ParserError {
@@ -16,17 +17,14 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<Token<'a>>) -> Self {
-        let initial_token = tokens.get(0).unwrap().clone();
+        let initial_token = *tokens.get(0).unwrap();
         Self { tokens, pos: 0, current_token: initial_token }
     }
 
     pub fn parse(&mut self) -> Result<(), ParserError> {
         // remove all whitespaces and newlines first
         // NOTE: lexer considers newlines as whitespaces
-        self.tokens.retain(|&token| match token.kind {
-            TokenKind::Whitespace => false,
-            _ => true,
-        });
+        self.tokens.retain(|&token| !matches!(token.kind, TokenKind::Whitespace));
         while !self.check(TokenKind::Eof) {
             self.parse_statement()?;
         }
@@ -39,7 +37,7 @@ impl<'a> Parser<'a> {
     pub fn match_kind(&mut self, kind: TokenKind) -> Result<(), ParserError> {
         // if match, consume token
         // if not, return error and stop parsing
-        if std::mem::discriminant(&mut self.current_token.kind) == std::mem::discriminant(&kind) {
+        if std::mem::discriminant(&self.current_token.kind) == std::mem::discriminant(&kind) {
             self.consume();
             Ok(())
         } else {
@@ -56,7 +54,7 @@ impl<'a> Parser<'a> {
     */
     pub fn check(&mut self, kind: TokenKind) -> bool {
         // check if current token is of type kind
-        std::mem::discriminant(&mut self.current_token.kind) == std::mem::discriminant(&kind)
+        std::mem::discriminant(&self.current_token.kind) == std::mem::discriminant(&kind)
     }
 
     /*
@@ -71,7 +69,7 @@ impl<'a> Parser<'a> {
         Take a look at next token without consuming.
     */
     pub fn peek(&mut self) -> Token<'a> {
-        self.tokens.get(self.pos + 1).unwrap().clone()
+        *self.tokens.get(self.pos + 1).unwrap()
     }
 
     // -----------------------------------------------------------------------
@@ -90,8 +88,7 @@ impl<'a> Parser<'a> {
             TokenKind::Constant => self.parse_constant(),
             TokenKind::Macro => self.parse_macro(),
             _ => Err(ParserError::SyntaxError),
-        };
-        Ok(())
+        }
     }
 
     /*

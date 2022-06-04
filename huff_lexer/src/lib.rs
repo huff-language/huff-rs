@@ -205,15 +205,15 @@ impl<'a> Lexer<'a> {
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
         match found_kind {
             Some(TokenKind::Macro) | Some(TokenKind::Function) | Some(TokenKind::Constant) => {
-                let define_key = "#define";
+                let define_key = TokenKind::Define.to_string();
                 self.try_look_back(self.prev_span_len() + define_key.len()).trim() == define_key
             }
             Some(TokenKind::Takes) => {
-                let assign = "=";
+                let assign = TokenKind::Assign.to_string();
                 self.try_look_back(self.prev_span_len() + assign.len()).trim() == assign
             }
             Some(TokenKind::Returns) => {
-                let function_key = "function";
+                let function_key = TokenKind::Function.to_string();
                 // Allow for loose and tight syntax (e.g. `returns (0)` & `returns(0)`)
                 self.peek_n_chars_from(2, self.span.end).trim().starts_with('(') &&
                     self.try_look_back(self.prev_span_len() + function_key.len()).trim() !=
@@ -259,8 +259,9 @@ impl<'a> Iterator for Lexer<'a> {
                 '#' => {
                     let mut found_kind: Option<TokenKind> = None;
 
-                    let keys = [("#define", TokenKind::Define), ("#include", TokenKind::Include)];
-                    for (key, kind) in &keys {
+                    let keys = [TokenKind::Define, TokenKind::Include];
+                    for kind in &keys {
+                        let key = kind.to_string();
                         let peeked = self.peek_n_chars(key.len() - 1);
 
                         if *key == peeked {
@@ -285,13 +286,14 @@ impl<'a> Iterator for Lexer<'a> {
                     let mut found_kind: Option<TokenKind> = None;
 
                     let keys = [
-                        ("macro", TokenKind::Macro),
-                        ("function", TokenKind::Function),
-                        ("constant", TokenKind::Constant),
-                        ("takes", TokenKind::Takes),
-                        ("returns", TokenKind::Returns),
+                        TokenKind::Macro,
+                        TokenKind::Function,
+                        TokenKind::Constant,
+                        TokenKind::Takes,
+                        TokenKind::Returns,
                     ];
-                    for (key, kind) in &keys {
+                    for kind in &keys {
+                        let key = kind.to_string();
                         let peeked = self.peek_n_chars(key.len() - 1);
 
                         if *key == peeked {
