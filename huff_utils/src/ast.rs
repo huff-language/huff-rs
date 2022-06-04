@@ -1,6 +1,9 @@
 use crate::evm::Opcode;
 
-type Literal = [u8; 32];
+/// A Huff literal
+///
+///32-byte EVM word
+pub type Literal = [u8; 32];
 
 /// A File Path
 ///
@@ -100,6 +103,19 @@ pub struct MacroInvocation<'a> {
     pub macro_name: String,
     /// A list of Macro arguments
     pub args: Vec<&'a Literal>,
+}
+
+impl<'a> MacroInvocation<'a> {
+    /// Public associated function that instantiates a MacroDefinition.
+    pub fn new(
+        macro_name: String,
+        args: Vec<&'a Literal>
+    ) -> Self {
+        MacroInvocation {
+            macro_name,
+            args,
+        }
+    }
 }
 
 /// A Constant

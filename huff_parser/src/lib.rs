@@ -110,7 +110,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Parse a statement.
+    /// Parse a definition.
     fn parse_definition(&mut self) -> Result<(), ParserError> {
         // first token should be keyword "#define"
         self.match_kind(TokenKind::Define)?;
@@ -131,7 +131,6 @@ impl<'a> Parser<'a> {
     */
     fn parse_function(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::Function)?;
-        // function name should be next
         self.match_kind(TokenKind::Ident("x"))?;
         self.parse_args(false)?;
         // TODO: Replace with a TokenKind specific to view, payable or nonpayable keywords
@@ -149,6 +148,7 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Constant)?;
         self.match_kind(TokenKind::Ident("x"))?;
         self.match_kind(TokenKind::Assign)?;
+
         match self.current_token.kind {
             TokenKind::FreeStoragePointer | TokenKind::Literal(_) => {
                 self.consume();
@@ -163,13 +163,17 @@ impl<'a> Parser<'a> {
     /// It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
     pub fn parse_macro(&mut self) -> Result<MacroDefinition<'a>, ParserError> {
         self.match_kind(TokenKind::Macro)?;
-        let macro_name: String = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
 
+        let macro_name: String = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
         let macro_arguments: Vec<String> = self.parse_args(false)?;
+
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
+
         let macro_takes: usize = self.parse_single_arg()?;
+
         self.match_kind(TokenKind::Returns)?;
+
         let macro_returns: usize = self.parse_single_arg()?;
         let macro_statements: Vec<Statement<'static>> = self.parse_body()?;
 
@@ -310,19 +314,24 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse call to a macro.
-    fn parse_macro_call(&mut self) -> Result<(), ParserError> {
-        self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
-        self.parse_macro_call_args()?;
-        Ok(())
+    fn parse_macro_call(&mut self) -> Result<MacroInvocation<'a>, ParserError> {
+        let macro_name: String = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
+        let args: Vec<&'a Literal> = self.parse_macro_call_args()?;
+        Ok(MacroInvocation::new(macro_name, args));
     }
 
     /// Parse the arguments of a macro call.
-    fn parse_macro_call_args(&mut self) -> Result<(), ParserError> {
+    fn parse_macro_call_args(&mut self) -> Result<Vec<&'a Literal>, ParserError> {
+        let args: Vec<&'a Literal> = Vec::new();
+
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
             // We can pass either directly hex values or labels (without the ":")
             match self.current_token.kind {
-                TokenKind::Literal(_) | TokenKind::Ident(_) => self.consume(),
+                TokenKind::Literal(val) | TokenKind::Ident(val) => { 
+                    args.push(val);
+                    self.consume();
+                },
                 _ => return Err(ParserError::SyntaxError),
             }
             if self.check(TokenKind::Comma) {
@@ -331,7 +340,7 @@ impl<'a> Parser<'a> {
         }
         // consume close parenthesis
         self.consume();
-        Ok(())
+        Ok(args)
     }
 
     /// Parses a constant push.
