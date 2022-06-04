@@ -41,8 +41,8 @@ pub enum ParserError {
     InvalidDefinition,
     /// Invalid constant value
     InvalidConstantValue,
-    /// Invalid macro name
-    InvalidMacroName,
+    /// Invalid name (macro, event, function, constant)
+    InvalidName,
     /// Invalid arguments
     InvalidArgs,
     /// Invalid macro call arguments
@@ -145,9 +145,9 @@ impl<'a> Parser<'a> {
                     "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
                     self.current_token.kind
                 );
-                Err(ParserError::InvalidDefinition)
+                return Err(ParserError::InvalidDefinition)
             }
-        };
+        }?;
         Ok(())
     }
 
@@ -176,7 +176,10 @@ impl<'a> Parser<'a> {
 
         let name: &'a str = match tok {
             TokenKind::Ident(event_name) => event_name,
-            _ => return Err(ParserError::SyntaxError),
+            _ => {
+                println!("Event name must be of kind Ident. Got: {}", tok);
+                return Err(ParserError::InvalidName)
+            }
         };
 
         // Parse the event's parameters
@@ -352,7 +355,9 @@ impl<'a> Parser<'a> {
         let num_token = self.match_kind(TokenKind::Num(0))?;
         let value: usize = match num_token {
             TokenKind::Num(value) => value,
-            _ => return Err(ParserError::SyntaxError),
+            _ => return Err(ParserError::InvalidArgs), /* Should never reach this code,
+                                                        * `match_kind` will throw an error if the
+                                                        * token kind isn't a `Num`. */
         };
         self.match_kind(TokenKind::CloseParen)?;
         Ok(value)
