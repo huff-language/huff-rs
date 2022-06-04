@@ -149,15 +149,6 @@ impl<'a> Lexer<'a> {
         self.source[Span::new(from..(from + n)).range().unwrap()].to_string()
     }
 
-    /// Try to look back `dist` chars from `span.start`, but return an empty string if
-    /// `self.span.start - dist` will underflow.
-    pub fn try_look_back(&mut self, dist: usize) -> String {
-        match self.span.start.checked_sub(dist) {
-            Some(n) => self.peek_n_chars_from(dist - 1, n),
-            None => String::default(),
-        }
-    }
-
     /// Gets the current slice of the source code covered by span
     pub fn slice(&self) -> &'a str {
         &self.source[self.span.range().unwrap()]
