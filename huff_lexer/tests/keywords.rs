@@ -232,8 +232,54 @@ fn parses_takes_and_returns_keywords_tight_syntax() {
 }
 
 #[test]
+fn parses_function_type_keywords() {
+    let source = "#define function test() view returns (uint256)";
+    let mut lexer = Lexer::new(source);
+    assert_eq!(lexer.source, source);
+
+    let _ = lexer.next(); // #define
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // function
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // test
+    let _ = lexer.next(); // open parenthesis
+    let _ = lexer.next(); // close parenthesis
+    let _ = lexer.next(); // whitespace
+
+    // Lex view first
+    let tok = lexer.next().unwrap().unwrap();
+    let view_span = Span::new(24..28);
+    assert_eq!(tok, Token::new(TokenKind::View, view_span));
+    assert_eq!(lexer.span, view_span);
+
+    // Lex the next 4 chars
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // returns
+    let _ = lexer.next(); // whitespace
+    let _ = lexer.next(); // paren
+    let _ = lexer.next(); // uint256
+    let _ = lexer.next(); // paren
+
+    // We covered the whole source
+    assert_eq!(lexer.span.end, source.len());
+    assert!(lexer.eof);
+}
+
+#[test]
 fn parses_function_definition_with_keyword_name() {
-    let key_words = ["macro", "function", "constant", "takes", "returns", "define", "include"];
+    let key_words = [
+        "macro",
+        "function",
+        "constant",
+        "takes",
+        "returns",
+        "define",
+        "include",
+        "nonpayable",
+        "payable",
+        "view",
+        "pure",
+    ];
 
     for s in key_words {
         let source = format!("#define function {}(uint256) view returns(uint256)", s);
@@ -280,7 +326,19 @@ fn parses_function_definition_with_keyword_name() {
 
 #[test]
 fn parses_function_with_keyword_name_before_colon() {
-    let key_words = ["macro", "function", "constant", "takes", "returns", "define", "include"];
+    let key_words = [
+        "macro",
+        "function",
+        "constant",
+        "takes",
+        "returns",
+        "define",
+        "include",
+        "nonpayable",
+        "payable",
+        "view",
+        "pure",
+    ];
 
     for s in key_words {
         // ex:
@@ -321,7 +379,19 @@ fn parses_function_with_keyword_name_before_colon() {
 
 #[test]
 fn parses_function_with_keyword_name() {
-    let key_words = ["macro", "function", "constant", "takes", "returns", "define", "include"];
+    let key_words = [
+        "macro",
+        "function",
+        "constant",
+        "takes",
+        "returns",
+        "define",
+        "include",
+        "nonpayable",
+        "payable",
+        "view",
+        "pure",
+    ];
 
     for s in key_words {
         let source = format!("dup1 0x7c09063f eq {} jumpi", s);
@@ -353,7 +423,19 @@ fn parses_function_with_keyword_name() {
 
 #[test]
 fn parses_function_with_keyword_name_in_macro() {
-    let key_words = ["macro", "function", "constant", "takes", "returns", "define", "include"];
+    let key_words = [
+        "macro",
+        "function",
+        "constant",
+        "takes",
+        "returns",
+        "define",
+        "include",
+        "nonpayable",
+        "payable",
+        "view",
+        "pure",
+    ];
 
     for s in key_words {
         let source = format!(

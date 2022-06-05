@@ -9,6 +9,7 @@
 //!
 //! It also exposes a number of practical methods for accessing information about the source code
 //! throughout lexing.
+//!
 //! #### Usage
 //!
 //! The following example steps through the lexing of a simple, single-line source code macro
@@ -18,6 +19,22 @@
 //! use huff_utils::{token::*, span::*};
 //! use huff_lexer::{Lexer};
 //! use huff_parser::{Parser};
+//!
+//! // Mock source code as a string
+//! let source = "#define macro HELLO_WORLD() = takes(0) returns(0) {}";
+//!
+//! // Create a lexer from the source code
+//! let lexer = Lexer::new(source);
+//!
+//! // Grab the tokens from the lexer
+//! let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+//!
+//! // Parser incantation
+//! let mut parser = Parser::new(tokens);
+//!
+//! // Parse into an AST
+//! parser.parse();
+//! assert_eq!(parser.current_token.kind, TokenKind::Eof);
 //! ```
 
 #![warn(missing_docs)]
@@ -29,6 +46,7 @@ use huff_utils::{
     ast::*,
     token::{Token, TokenKind},
 };
+use tiny_keccak::{Hasher, Keccak};
 
 /// A Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
@@ -106,6 +124,18 @@ impl<'a> Parser<'a> {
         self.cursor += 1;
     }
 
+    /// Consumes following tokens until not contained in the kinds vec of TokenKinds.
+    pub fn consume_all(&mut self, kinds: Vec<TokenKind>) {
+        loop {
+            let token = self.peek().unwrap();
+            if !kinds.contains(&token.kind) {
+                break
+            }
+            self.current_token = token;
+            self.cursor += 1;
+        }
+    }
+
     /// Take a look at next token without consuming.
     pub fn peek(&mut self) -> Option<Token<'a>> {
         if self.cursor >= self.tokens.len() {
@@ -130,7 +160,10 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Define)?;
         // match to fucntion, constant, macro, or event
         match self.current_token.kind {
-            TokenKind::Function => self.parse_function(),
+            TokenKind::Function => {
+                let _function_definition = self.parse_function().unwrap();
+                Ok(())
+            }
             TokenKind::Event => {
                 let _event_definition = self.parse_event().unwrap();
                 Ok(())
@@ -151,18 +184,46 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    /// Parse a function.
-    pub fn parse_function(&mut self) -> Result<(), ParserError> {
+    /// Parses a function.
+    /// Adheres to https://github.com/huff-language/huffc/blob/master/src/parser/high-level.ts#L87-L111
+    fn parse_function(&mut self) -> Result<Function<'a>, ParserError> {
+        // the first token should be of `TokenKind::Function`
         self.match_kind(TokenKind::Function)?;
         // function name should be next
         self.match_kind(TokenKind::Ident("x"))?;
-        self.parse_args(false)?;
-        // TODO: Replace with a TokenKind specific to view, payable or nonpayable keywords
-        self.match_kind(TokenKind::Ident("FUNC_TYPE"))?;
-        self.match_kind(TokenKind::Returns)?;
-        self.parse_args(false)?;
+        let tok = self.peek_behind().unwrap().kind;
+        let name: &'a str = match tok {
+            TokenKind::Ident(fn_name) => fn_name,
+            _ => {
+                println!("Function name should be of kind Ident. Got: {}", tok);
+                return Err(ParserError::InvalidName)
+            }
+        };
 
-        Ok(())
+        // function inputs should be next
+        let inputs: Vec<String> = self.parse_args(false)?;
+        // function type should be next
+        let fn_type = match self.current_token.kind {
+            TokenKind::View => FunctionType::View,
+            TokenKind::Pure => FunctionType::Pure,
+            TokenKind::Payable => FunctionType::Payable,
+            TokenKind::NonPayable => FunctionType::NonPayable,
+            _ => return Err(ParserError::UnexpectedType),
+        };
+        // consume the function type
+        self.consume();
+
+        // next token should be of `TokenKind::Returns`
+        self.match_kind(TokenKind::Returns)?;
+        // function outputs should be next
+        let outputs: Vec<String> = self.parse_args(false)?;
+
+        let mut signature = [0u8; 4]; // Only keep first 4 bytes
+        let mut hasher = Keccak::v256();
+        hasher.update(format!("{}({})", name, inputs.join(",")).as_bytes());
+        hasher.finalize(&mut signature);
+
+        Ok(Function { name, signature, inputs, fn_type, outputs })
     }
 
     /// Parse an event.
@@ -294,6 +355,8 @@ impl<'a> Parser<'a> {
                 self.match_kind(TokenKind::Ident("EVMType"))?;
             };
             // naming is optional
+            // TODO: Are parameter names allowed in Huff? I can't find any examples of it, unless
+            // TODO: this is intended to be a new feature. -vex
             if self.check(TokenKind::Ident("x")) {
                 let _arg_name = self.match_kind(TokenKind::Ident("x"))?.to_string();
             }

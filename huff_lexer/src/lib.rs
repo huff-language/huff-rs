@@ -79,8 +79,9 @@ pub struct Lexer<'a> {
     pub source: &'a str,
     /// The current lexing span.
     pub span: Span,
-    /// The previous lexing span. (used for lookbacks)
-    pub prev_span: Span,
+    /// The previous lexed Token.
+    /// Cannot be a whitespace.
+    pub lookback: Option<Token<'a>>,
     /// If the lexer has reached the end of file.
     pub eof: bool,
     /// EOF Token has been returned.
@@ -94,7 +95,7 @@ impl<'a> Lexer<'a> {
             chars: source.chars().peekable(),
             source,
             span: Span::default(),
-            prev_span: Span::default(),
+            lookback: None,
             eof: false,
             eof_returned: false,
         }
@@ -110,8 +111,16 @@ impl<'a> Lexer<'a> {
     }
 
     /// Get the length of the previous lexing span.
-    pub fn prev_span_len(&self) -> usize {
-        self.prev_span.end - self.prev_span.start
+    pub fn lookback_len(&self) -> usize {
+        if let Some(lookback) = self.lookback {
+            return lookback.span.end - lookback.span.start
+        }
+        0
+    }
+
+    /// Checks the previous token kind against the input.
+    pub fn checked_lookback(&self, kind: TokenKind) -> bool {
+        self.lookback.and_then(|t| if t.kind == kind { Some(true) } else { None }).is_some()
     }
 
     /// Try to peek at the next character from the source
@@ -138,15 +147,6 @@ impl<'a> Lexer<'a> {
     /// Peek n chars from a given start point in the source
     pub fn peek_n_chars_from(&mut self, n: usize, from: usize) -> String {
         self.source[Span::new(from..(from + n)).range().unwrap()].to_string()
-    }
-
-    /// Try to look back `dist` chars from `span.start`, but return an empty string if
-    /// `self.span.start - dist` will underflow.
-    pub fn try_look_back(&mut self, dist: usize) -> String {
-        match self.span.start.checked_sub(dist) {
-            Some(n) => self.peek_n_chars_from(dist - 1, n),
-            None => String::default(),
-        }
     }
 
     /// Gets the current slice of the source code covered by span
@@ -190,8 +190,9 @@ impl<'a> Lexer<'a> {
     }
 
     /// Resets the Lexer's span
+    ///
+    /// Only sets the previous span if the current token is not a whitespace.
     pub fn reset(&mut self) {
-        self.prev_span = self.span;
         self.span.start = self.span.end;
     }
 
@@ -202,6 +203,8 @@ impl<'a> Lexer<'a> {
     /// - The `macro`, `function`, `constant`, `event` keywords must be preceded by a `#define`
     ///   keyword.
     /// - The `takes` keyword must be preceded by an assignment operator: `=`.
+    /// - The `nonpayable`, `payable`, `view`, and `pure` keywords must be preceeded by one of these
+    ///   keywords or a close paren.
     /// - The `returns` keyword must be succeeded by an open parenthesis and must *not* be succeeded
     ///   by a colon or preceded by the keyword `function`
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
@@ -209,20 +212,30 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Macro) |
             Some(TokenKind::Function) |
             Some(TokenKind::Constant) |
-            Some(TokenKind::Event) => {
-                let define_key = TokenKind::Define.to_string();
-                self.try_look_back(self.prev_span_len() + define_key.len()).trim() == define_key
+            Some(TokenKind::Event) => self.checked_lookback(TokenKind::Define),
+            Some(TokenKind::NonPayable) |
+            Some(TokenKind::Payable) |
+            Some(TokenKind::View) |
+            Some(TokenKind::Pure) => {
+                let keys = [
+                    TokenKind::NonPayable,
+                    TokenKind::Payable,
+                    TokenKind::View,
+                    TokenKind::Pure,
+                    TokenKind::CloseParen,
+                ];
+                for key in keys {
+                    if self.checked_lookback(key) {
+                        return true
+                    }
+                }
+                false
             }
-            Some(TokenKind::Takes) => {
-                let assign = TokenKind::Assign.to_string();
-                self.try_look_back(self.prev_span_len() + assign.len()).trim() == assign
-            }
+            Some(TokenKind::Takes) => self.checked_lookback(TokenKind::Assign),
             Some(TokenKind::Returns) => {
-                let function_key = TokenKind::Function.to_string();
                 // Allow for loose and tight syntax (e.g. `returns (0)` & `returns(0)`)
                 self.peek_n_chars_from(2, self.span.end).trim().starts_with('(') &&
-                    self.try_look_back(self.prev_span_len() + function_key.len()).trim() !=
-                        function_key &&
+                    !self.checked_lookback(TokenKind::Function) &&
                     self.peek_n_chars_from(1, self.span.end) != ":"
             }
             _ => true,
@@ -297,6 +310,10 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Takes,
                         TokenKind::Returns,
                         TokenKind::Event,
+                        TokenKind::NonPayable,
+                        TokenKind::Payable,
+                        TokenKind::View,
+                        TokenKind::Pure,
                     ];
                     for kind in &keys {
                         let key = kind.to_string();
@@ -445,6 +462,9 @@ impl<'a> Iterator for Lexer<'a> {
             }
 
             let token = Token { kind, span: self.span };
+            if token.kind != TokenKind::Whitespace {
+                self.lookback = Some(token);
+            }
 
             return Some(Ok(token))
         }
@@ -455,7 +475,11 @@ impl<'a> Iterator for Lexer<'a> {
         // If we haven't returned an eof token, return one
         if !self.eof_returned {
             self.eof_returned = true;
-            return Some(Ok(Token { kind: TokenKind::Eof, span: self.span }))
+            let token = Token { kind: TokenKind::Eof, span: self.span };
+            if token.kind != TokenKind::Whitespace {
+                self.lookback = Some(token);
+            }
+            return Some(Ok(token))
         }
 
         None

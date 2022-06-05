@@ -45,6 +45,14 @@ pub enum TokenKind<'a> {
     Takes,
     /// "returns" keyword
     Returns,
+    /// "view" keyword
+    View,
+    /// "pure" keyword
+    Pure,
+    /// "payable" keyword
+    Payable,
+    /// "nonpayable" keyword
+    NonPayable,
     /// "FREE_STORAGE_POINTER()" keyword
     FreeStoragePointer,
     /// An Identifier
@@ -101,6 +109,10 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Function => "function",
             TokenKind::Event => "event",
             TokenKind::Constant => "constant",
+            TokenKind::View => "view",
+            TokenKind::Pure => "pure",
+            TokenKind::Payable => "payable",
+            TokenKind::NonPayable => "nonpayable",
             TokenKind::Takes => "takes",
             TokenKind::Returns => "returns",
             TokenKind::FreeStoragePointer => "FREE_STORAGE_POINTER()",
@@ -113,7 +125,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::OpenBrace => "{",
             TokenKind::CloseBrace => "}",
             TokenKind::Add => "+",
-            TokenKind::Sub => "+",
+            TokenKind::Sub => "-",
             TokenKind::Mul => "*",
             TokenKind::Comma => ",",
             TokenKind::Num(num) => return write!(f, "{}", num),
