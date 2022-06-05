@@ -369,7 +369,8 @@ impl<'a> Iterator for Lexer<'a> {
                     if fsp == peeked {
                         self.nconsume(token_length);
                         // Consume the parenthesis following the FREE_STORAGE_POINTER
-                        // Note: This will consume `FREE_STORAGE_POINTER)` or `FREE_STORAGE_POINTER(` as well
+                        // Note: This will consume `FREE_STORAGE_POINTER)` or
+                        // `FREE_STORAGE_POINTER(` as well
                         if let Some('(') = self.peek() {
                             self.consume();
                         }
