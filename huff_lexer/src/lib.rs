@@ -76,8 +76,8 @@ pub enum Context {
     Global,
     /// macro context
     Macro,
-    /// function context
-    Function,
+    /// ABI context
+    Abi,
     /// constant context
     Constant,
 }
@@ -352,7 +352,7 @@ impl<'a> Iterator for Lexer<'a> {
                     if found_kind != None {
                         match found_kind.unwrap() {
                             TokenKind::Macro => self.context = Context::Macro,
-                            TokenKind::Function => self.context = Context::Function,
+                            TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
                             TokenKind::Constant => self.context = Context::Constant,
                             _ => (),
                         }
@@ -375,7 +375,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // goes over all opcodes
                     for opcode in OPCODES {
-                        if self.context == Context::Function {
+                        if self.context == Context::Abi {
                             break
                         }
                         let peeked = self.peek_n_chars(opcode.len() - 1);
