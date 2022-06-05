@@ -21,6 +21,7 @@ fn parses_valid_function_definition() {
                 inputs: vec!["uint256".to_string(), "bool".to_string()],
                 fn_type: FunctionType::View,
                 outputs: vec!["uint256".to_string()],
+                signature: [84, 204, 215, 119],
             },
         ),
         (
@@ -30,6 +31,7 @@ fn parses_valid_function_definition() {
                 inputs: vec!["uint256".to_string()],
                 fn_type: FunctionType::Pure,
                 outputs: vec!["uint256".to_string()],
+                signature: [41, 233, 159, 7],
             },
         ),
         (
@@ -39,6 +41,7 @@ fn parses_valid_function_definition() {
                 inputs: vec!["uint256".to_string()],
                 fn_type: FunctionType::NonPayable,
                 outputs: vec!["uint256".to_string()],
+                signature: [41, 233, 159, 7],
             },
         ),
         (
@@ -48,6 +51,7 @@ fn parses_valid_function_definition() {
                 inputs: vec!["uint256".to_string()],
                 fn_type: FunctionType::Payable,
                 outputs: vec!["uint256".to_string()],
+                signature: [41, 233, 159, 7],
             },
         ),
     ]);
