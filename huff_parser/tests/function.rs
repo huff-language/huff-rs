@@ -3,13 +3,12 @@ use huff_parser::*;
 use huff_utils::prelude::*;
 
 #[test]
-fn parses_function_definition() {
+fn parses_valid_function_definition() {
     let sources = [
         "#define function test(uint256) view returns(uint256)",
         "#define function test(uint256) pure returns(uint256)",
         "#define function test(uint256) nonpayable returns(uint256)",
-        "#define function test(uint256) payable returns(uint256)",
-        "#define function test(uint256) returns(uint256)",
+        "#define function test(uint256) payable returns(uint256)"
     ];
 
     for source in sources {
@@ -21,4 +20,14 @@ fn parses_function_definition() {
 
         // TODO: Ensure that the parser constructed the `Function` node correctly.
     }
+}
+
+#[test]
+#[should_panic]
+fn cannot_parse_invalid_function_definition() {
+    let source = "#define function test(uint256) returns(uint256)";
+    let lexer = Lexer::new(source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens);
+    parser.parse();
 }
