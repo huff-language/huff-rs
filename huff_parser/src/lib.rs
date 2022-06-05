@@ -162,37 +162,23 @@ impl<'a> Parser<'a> {
 
         // function inputs should be next
         let inputs: Vec<String> = self.parse_args(false)?;
-
-        // function types should be next
-        let mut types: Vec<FunctionType> = vec![];
-        let mut tok = self.current_token.kind;
-
-        if tok != TokenKind::Returns {
-            let kinds =
-                [TokenKind::View, TokenKind::Pure, TokenKind::Payable, TokenKind::NonPayable];
-            loop {
-                if !kinds.contains(&tok) {
-                    break
-                }
-                let fn_type = match tok {
-                    TokenKind::View => FunctionType::View,
-                    TokenKind::Pure => FunctionType::Pure,
-                    TokenKind::Payable => FunctionType::Payable,
-                    TokenKind::NonPayable => FunctionType::NonPayable,
-                    _ => return Err(ParserError::Unexpected),
-                };
-                types.push(fn_type);
-                self.consume();
-                tok = self.current_token.kind;
-            }
-        }
+        // function type should be next
+        let fn_type = match self.current_token.kind {
+            TokenKind::View => FunctionType::View,
+            TokenKind::Pure => FunctionType::Pure,
+            TokenKind::Payable => FunctionType::Payable,
+            TokenKind::NonPayable => FunctionType::NonPayable,
+            _ => return Err(ParserError::Unexpected),
+        };
+        // consume the function type
+        self.consume();
 
         // next token should be of `TokenKind::Returns`
         self.match_kind(TokenKind::Returns)?;
         // function outputs should be next
         let outputs: Vec<String> = self.parse_args(false)?;
 
-        Ok(Function { name, inputs, types, outputs })
+        Ok(Function { name, inputs, fn_type, outputs })
     }
 
     /// Parse an event.

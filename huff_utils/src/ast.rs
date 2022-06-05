@@ -45,12 +45,13 @@ pub struct Function<'a> {
     /// The parameters of the function
     pub inputs: Vec<String>,
     /// The function type
-    pub types: Vec<FunctionType>,
+    pub fn_type: FunctionType,
     /// The return values of the function
     pub outputs: Vec<String>,
 }
 
 /// Function Types
+#[derive(Debug)]
 pub enum FunctionType {
     /// Viewable Function
     View,
