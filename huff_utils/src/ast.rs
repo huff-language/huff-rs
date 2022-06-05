@@ -42,6 +42,8 @@ pub struct Constant<'a> {
 pub struct Function<'a> {
     /// The name of the function
     pub name: &'a str,
+    /// The function signature
+    pub signature: [u8; 4],
     /// The parameters of the function
     pub inputs: Vec<String>,
     /// The function type

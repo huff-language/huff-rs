@@ -29,6 +29,7 @@ use huff_utils::{
     ast::*,
     token::{Token, TokenKind},
 };
+use tiny_keccak::{Hasher, Keccak};
 
 /// A Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
@@ -200,7 +201,12 @@ impl<'a> Parser<'a> {
         // function outputs should be next
         let outputs: Vec<String> = self.parse_args(false)?;
 
-        Ok(Function { name, inputs, fn_type, outputs })
+        let mut signature = [0u8; 4]; // Only keep first 4 bytes
+        let mut hasher = Keccak::v256();
+        hasher.update(format!("{}({})", name, inputs.join(",")).as_bytes());
+        hasher.finalize(&mut signature);
+
+        Ok(Function { name, signature, inputs, fn_type, outputs })
     }
 
     /// Parse an event.
