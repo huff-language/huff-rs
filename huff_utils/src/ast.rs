@@ -39,15 +39,31 @@ pub struct Constant<'a> {
 }
 
 /// A Function Signature
+#[derive(Debug, PartialEq, Eq)]
 pub struct Function<'a> {
     /// The name of the function
     pub name: &'a str,
+    /// The function signature
+    pub signature: [u8; 4],
     /// The parameters of the function
-    pub parameters: Vec<String>,
-    /// The function decorators
-    pub decorators: Vec<String>,
-    /// The return type of the function
-    pub return_type: String,
+    pub inputs: Vec<String>,
+    /// The function type
+    pub fn_type: FunctionType,
+    /// The return values of the function
+    pub outputs: Vec<String>,
+}
+
+/// Function Types
+#[derive(Debug, PartialEq, Eq)]
+pub enum FunctionType {
+    /// Viewable Function
+    View,
+    /// Payable Function
+    Payable,
+    /// Non Payable Function
+    NonPayable,
+    /// Pure Function
+    Pure,
 }
 
 /// An Event Signature

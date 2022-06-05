@@ -60,7 +60,7 @@ cargo +nightly clippy --all --all-features -- -D warnings
 
 In order to fix any formatting issues, run:
 ```bash
-cargo +nightly fmt -- 
+cargo +nightly fmt --all
 ```
 ```
 

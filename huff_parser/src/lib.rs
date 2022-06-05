@@ -9,6 +9,7 @@
 //!
 //! It also exposes a number of practical methods for accessing information about the source code
 //! throughout lexing.
+//!
 //! #### Usage
 //!
 //! The following example steps through the lexing of a simple, single-line source code macro
@@ -18,6 +19,22 @@
 //! use huff_utils::{token::*, span::*};
 //! use huff_lexer::{Lexer};
 //! use huff_parser::{Parser};
+//!
+//! // Mock source code as a string
+//! let source = "#define macro HELLO_WORLD() = takes(0) returns(0) {}";
+//!
+//! // Create a lexer from the source code
+//! let lexer = Lexer::new(source);
+//!
+//! // Grab the tokens from the lexer
+//! let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+//!
+//! // Parser incantation
+//! let mut parser = Parser::new(tokens);
+//!
+//! // Parse into an AST
+//! parser.parse();
+//! assert_eq!(parser.current_token.kind, TokenKind::Eof);
 //! ```
 
 #![warn(missing_docs)]
@@ -29,12 +46,27 @@ use huff_utils::{
     ast::*,
     token::{Token, TokenKind},
 };
+use tiny_keccak::{Hasher, Keccak};
 
 /// A Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub enum ParserError {
-    /// A Syntax Error
-    SyntaxError,
+    /// A general syntax error that accepts a message
+    SyntaxError(&'static str),
+    /// Unexpected type
+    UnexpectedType,
+    /// Invalid definition
+    InvalidDefinition,
+    /// Invalid constant value
+    InvalidConstantValue,
+    /// Invalid name (macro, event, function, constant)
+    InvalidName,
+    /// Invalid arguments
+    InvalidArgs,
+    /// Invalid macro call arguments
+    InvalidMacroArgs,
+    /// Invalid return arguments
+    InvalidReturnArgs,
 }
 
 /// The Parser
@@ -61,7 +93,7 @@ impl<'a> Parser<'a> {
         // NOTE: lexer considers newlines as whitespaces
         self.tokens.retain(|&token| !matches!(token.kind, TokenKind::Whitespace));
         while !self.check(TokenKind::Eof) {
-            self.parse_statement()?;
+            self.parse_definition()?;
         }
         Ok(())
     }
@@ -77,7 +109,7 @@ impl<'a> Parser<'a> {
                 "Expected current token of kind {} to match {}",
                 self.current_token.kind, kind
             );
-            Err(ParserError::SyntaxError)
+            Err(ParserError::UnexpectedType)
         }
     }
 
@@ -90,6 +122,18 @@ impl<'a> Parser<'a> {
     pub fn consume(&mut self) {
         self.current_token = self.peek().unwrap();
         self.cursor += 1;
+    }
+
+    /// Consumes following tokens until not contained in the kinds vec of TokenKinds.
+    pub fn consume_all(&mut self, kinds: Vec<TokenKind>) {
+        loop {
+            let token = self.peek().unwrap();
+            if !kinds.contains(&token.kind) {
+                break
+            }
+            self.current_token = token;
+            self.cursor += 1;
+        }
     }
 
     /// Take a look at next token without consuming.
@@ -111,41 +155,102 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a statement.
-    fn parse_statement(&mut self) -> Result<(), ParserError> {
+    fn parse_definition(&mut self) -> Result<(), ParserError> {
         // first token should be keyword "#define"
         self.match_kind(TokenKind::Define)?;
-        // match to fucntion, constant or macro
+        // match to fucntion, constant, macro, or event
         match self.current_token.kind {
-            TokenKind::Function => self.parse_function(),
+            TokenKind::Function => {
+                let _function_definition = self.parse_function().unwrap();
+                Ok(())
+            }
+            TokenKind::Event => {
+                let _event_definition = self.parse_event().unwrap();
+                Ok(())
+            }
             TokenKind::Constant => self.parse_constant(),
             TokenKind::Macro => {
                 let _ = self.parse_macro().unwrap();
                 Ok(())
             }
-            _ => Err(ParserError::SyntaxError),
-        }
-    }
-
-    /*
-        Parse a function.
-    */
-    fn parse_function(&mut self) -> Result<(), ParserError> {
-        self.match_kind(TokenKind::Function)?;
-        // function name should be next
-        self.match_kind(TokenKind::Ident("x"))?;
-        self.parse_args(false)?;
-        // TODO: Replace with a TokenKind specific to view, payable or nonpayable keywords
-        self.match_kind(TokenKind::Ident("FUNC_TYPE"))?;
-        self.match_kind(TokenKind::Returns)?;
-        self.parse_args(false)?;
-
+            _ => {
+                println!(
+                    "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
+                    self.current_token.kind
+                );
+                return Err(ParserError::InvalidDefinition)
+            }
+        }?;
         Ok(())
     }
 
-    /*
-        Parse a constant.
-    */
-    fn parse_constant(&mut self) -> Result<(), ParserError> {
+    /// Parses a function.
+    /// Adheres to https://github.com/huff-language/huffc/blob/master/src/parser/high-level.ts#L87-L111
+    pub fn parse_function(&mut self) -> Result<Function<'a>, ParserError> {
+        // the first token should be of `TokenKind::Function`
+        self.match_kind(TokenKind::Function)?;
+        // function name should be next
+        self.match_kind(TokenKind::Ident("x"))?;
+        let tok = self.peek_behind().unwrap().kind;
+        let name: &'a str = match tok {
+            TokenKind::Ident(fn_name) => fn_name,
+            _ => {
+                println!("Function name should be of kind Ident. Got: {}", tok);
+                return Err(ParserError::InvalidName)
+            }
+        };
+
+        // function inputs should be next
+        let inputs: Vec<String> = self.parse_args(false, true)?;
+        // function type should be next
+        let fn_type = match self.current_token.kind {
+            TokenKind::View => FunctionType::View,
+            TokenKind::Pure => FunctionType::Pure,
+            TokenKind::Payable => FunctionType::Payable,
+            TokenKind::NonPayable => FunctionType::NonPayable,
+            _ => return Err(ParserError::UnexpectedType),
+        };
+        // consume the function type
+        self.consume();
+
+        // next token should be of `TokenKind::Returns`
+        self.match_kind(TokenKind::Returns)?;
+        // function outputs should be next
+        let outputs: Vec<String> = self.parse_args(false, true)?;
+
+        let mut signature = [0u8; 4]; // Only keep first 4 bytes
+        let mut hasher = Keccak::v256();
+        hasher.update(format!("{}({})", name, inputs.join(",")).as_bytes());
+        hasher.finalize(&mut signature);
+
+        Ok(Function { name, signature, inputs, fn_type, outputs })
+    }
+
+    /// Parse an event.
+    pub fn parse_event(&mut self) -> Result<Event<'a>, ParserError> {
+        // The event should start with `TokenKind::Event`
+        self.match_kind(TokenKind::Event)?;
+
+        // Parse the event name
+        self.match_kind(TokenKind::Ident("x"))?;
+        let tok = self.peek_behind().unwrap().kind;
+
+        let name: &'a str = match tok {
+            TokenKind::Ident(event_name) => event_name,
+            _ => {
+                println!("Event name must be of kind Ident. Got: {}", tok);
+                return Err(ParserError::InvalidName)
+            }
+        };
+
+        // Parse the event's parameters
+        let parameters: Vec<String> = self.parse_args(true, true)?;
+
+        Ok(Event { name, parameters })
+    }
+
+    /// Parse a constant.
+    pub fn parse_constant(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::Constant)?;
         self.match_kind(TokenKind::Ident("x"))?;
         self.match_kind(TokenKind::Assign)?;
@@ -154,7 +259,13 @@ impl<'a> Parser<'a> {
                 self.consume();
                 Ok(())
             }
-            _ => Err(ParserError::SyntaxError),
+            _ => {
+                println!(
+                    "Constant value must be of kind FreeStoragePointer or Literal. Got: {}",
+                    self.current_token.kind
+                );
+                Err(ParserError::InvalidConstantValue)
+            }
         }
     }
 
@@ -165,7 +276,7 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Macro)?;
         let macro_name: String = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
 
-        let macro_arguments: Vec<String> = self.parse_args(false)?;
+        let macro_arguments: Vec<String> = self.parse_args(true, false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
         let macro_takes: usize = self.parse_single_arg()?;
@@ -208,7 +319,9 @@ impl<'a> Parser<'a> {
                 TokenKind::OpenBracket => {
                     self.parse_constant_push()?;
                 }
-                _ => return Err(ParserError::SyntaxError),
+                _ => return Err(ParserError::SyntaxError(
+                    "Invalid token in macro body. Must be of kind Hex, Opcode, Macro, or Label.",
+                )),
             };
         }
         // consume close brace
@@ -232,17 +345,24 @@ impl<'a> Parser<'a> {
     /// Arguments can be typed or not. Between parenthesis.
     /// Works for both inputs and outputs.
     /// It should parse the following : (uint256 a, bool b, ...)
-    pub fn parse_args(&mut self, name_only: bool) -> Result<Vec<String>, ParserError> {
-        let args: Vec<String> = Vec::new();
+    pub fn parse_args(
+        &mut self,
+        select_name: bool,
+        select_type: bool,
+    ) -> Result<Vec<String>, ParserError> {
+        let mut args: Vec<String> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
             // type comes first
             // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
-            if name_only {
-                self.match_kind(TokenKind::Ident("EVMType"))?;
+            if select_type {
+                args.push(self.match_kind(TokenKind::Ident("EVMType"))?.to_string());
             };
             // naming is optional
-            if self.check(TokenKind::Ident("x")) {
+            // TODO: Are parameter names allowed in Huff? I can't find any examples of it, unless
+            // TODO: this is intended to be a new feature. -vex
+            // TODO: add name of arg to args vector
+            if select_name && self.check(TokenKind::Ident("x")) {
                 let _arg_name = self.match_kind(TokenKind::Ident("x"))?.to_string();
             }
             // multiple args possible
@@ -255,75 +375,41 @@ impl<'a> Parser<'a> {
         Ok(args)
     }
 
-    // TODO: Below is from the vi/parser branch
-
-    // pub struct MacroInvocation<'a> {
-    //     macro_name: String,
-    //     args: Vec<&'a Literal>,
-    // }
-
-    // fn parse_macro_call(&self) -> Result<MacroInvocation, ParserError> {
-    //     let invocation: MacroInvocation;
-
-    //     self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
-    //     let tok = self.peek_behind().kind;
-
-    //     match tok {
-    //         TokenKind::Ident(name) => invocation.macro_name = name,
-    //         _ => return Err(ParserError::SyntaxError),
-    //     }
-
-    //     self.parse_macro_call_args()?;
-
-    //     Ok()
-    // }
-
-    // fn parse_macro_call_args(&self) -> Result<Vec<Literal<'a>>, ParserError> {
-    //     self.match_kind(TokenKind::OpenParen)?;
-    //     while !self.check(TokenKind::CloseParen) {
-    //         match self.current_token.kind {
-    //             TokenKind::Literal(_) | TokenKind::Ident(_) => self.consume(),
-    //             _ => return Err(ParserError::SyntaxError)
-    //         }
-    //         if self.check(TokenKind::Comma) {
-    //             self.consume();
-    //         }
-    //     }
-    //     self.consume();
-    //     Ok(())
-    // }
-
-    // fn parse_constant_push(&self) {
-
-    // }
-
     /// Parses the following : (x)
-    fn parse_single_arg(&mut self) -> Result<usize, ParserError> {
+    pub fn parse_single_arg(&mut self) -> Result<usize, ParserError> {
         self.match_kind(TokenKind::OpenParen)?;
         let num_token = self.match_kind(TokenKind::Num(0))?;
         let value: usize = match num_token {
             TokenKind::Num(value) => value,
-            _ => return Err(ParserError::SyntaxError),
+            _ => return Err(ParserError::InvalidArgs), /* Should never reach this code,
+                                                        * `match_kind` will throw an error if the
+                                                        * token kind isn't a `Num`. */
         };
         self.match_kind(TokenKind::CloseParen)?;
         Ok(value)
     }
 
     /// Parse call to a macro.
-    fn parse_macro_call(&mut self) -> Result<(), ParserError> {
+    pub fn parse_macro_call(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
         self.parse_macro_call_args()?;
         Ok(())
     }
 
     /// Parse the arguments of a macro call.
-    fn parse_macro_call_args(&mut self) -> Result<(), ParserError> {
+    pub fn parse_macro_call_args(&mut self) -> Result<(), ParserError> {
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
             // We can pass either directly hex values or labels (without the ":")
             match self.current_token.kind {
                 TokenKind::Literal(_) | TokenKind::Ident(_) => self.consume(),
-                _ => return Err(ParserError::SyntaxError),
+                _ => {
+                    println!(
+                        "Invalid macro call arguments. Must be of kind Ident or Literal. Got: {}",
+                        self.current_token.kind
+                    );
+                    return Err(ParserError::InvalidMacroArgs)
+                }
             }
             if self.check(TokenKind::Comma) {
                 self.consume();
