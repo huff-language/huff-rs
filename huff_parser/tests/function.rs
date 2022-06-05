@@ -18,9 +18,12 @@ fn parses_valid_function_definition() {
             0,
             Function {
                 name: "test",
-                inputs: vec!["uint256".to_string(), "bool".to_string()],
+                inputs: vec![
+                    Argument { name: None, arg_type: Some(String::from("uint256")) },
+                    Argument { name: None, arg_type: Some(String::from("bool")) },
+                ],
                 fn_type: FunctionType::View,
-                outputs: vec!["uint256".to_string()],
+                outputs: vec![Argument { name: None, arg_type: Some(String::from("uint256")) }],
                 signature: [84, 204, 215, 119],
             },
         ),
@@ -28,9 +31,9 @@ fn parses_valid_function_definition() {
             1,
             Function {
                 name: "test",
-                inputs: vec!["uint256".to_string()],
+                inputs: vec![Argument { name: None, arg_type: Some(String::from("uint256")) }],
                 fn_type: FunctionType::Pure,
-                outputs: vec!["uint256".to_string()],
+                outputs: vec![Argument { name: None, arg_type: Some(String::from("uint256")) }],
                 signature: [41, 233, 159, 7],
             },
         ),
@@ -38,9 +41,9 @@ fn parses_valid_function_definition() {
             2,
             Function {
                 name: "test",
-                inputs: vec!["uint256".to_string()],
+                inputs: vec![Argument { name: None, arg_type: Some(String::from("uint256")) }],
                 fn_type: FunctionType::NonPayable,
-                outputs: vec!["uint256".to_string()],
+                outputs: vec![Argument { name: None, arg_type: Some(String::from("uint256")) }],
                 signature: [41, 233, 159, 7],
             },
         ),
@@ -48,16 +51,15 @@ fn parses_valid_function_definition() {
             3,
             Function {
                 name: "test",
-                inputs: vec!["uint256".to_string()],
+                inputs: vec![Argument { name: None, arg_type: Some(String::from("uint256")) }],
                 fn_type: FunctionType::Payable,
-                outputs: vec!["uint256".to_string()],
+                outputs: vec![Argument { name: None, arg_type: Some(String::from("uint256")) }],
                 signature: [41, 233, 159, 7],
             },
         ),
     ]);
 
-    for source in sources.into_iter().enumerate() {
-        let (index, source) = source;
+    for (index, source) in sources.into_iter().enumerate() {
         let lexer = Lexer::new(source);
         let tokens = lexer
             .into_iter()

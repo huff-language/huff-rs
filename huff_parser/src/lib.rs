@@ -201,7 +201,7 @@ impl<'a> Parser<'a> {
         };
 
         // function inputs should be next
-        let inputs: Vec<String> = self.parse_args(false, true)?;
+        let inputs: Vec<Argument> = self.parse_args(true, true)?;
         // function type should be next
         let fn_type = match self.current_token.kind {
             TokenKind::View => FunctionType::View,
@@ -216,11 +216,13 @@ impl<'a> Parser<'a> {
         // next token should be of `TokenKind::Returns`
         self.match_kind(TokenKind::Returns)?;
         // function outputs should be next
-        let outputs: Vec<String> = self.parse_args(false, true)?;
+        let outputs: Vec<Argument> = self.parse_args(true, true)?;
 
         let mut signature = [0u8; 4]; // Only keep first 4 bytes
         let mut hasher = Keccak::v256();
-        hasher.update(format!("{}({})", name, inputs.join(",")).as_bytes());
+        let input_types =
+            inputs.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
+        hasher.update(format!("{}({})", name, input_types.join(",")).as_bytes());
         hasher.finalize(&mut signature);
 
         Ok(Function { name, signature, inputs, fn_type, outputs })
@@ -244,7 +246,7 @@ impl<'a> Parser<'a> {
         };
 
         // Parse the event's parameters
-        let parameters: Vec<String> = self.parse_args(true, true)?;
+        let parameters: Vec<Argument> = self.parse_args(true, true)?;
 
         Ok(Event { name, parameters })
     }
@@ -276,7 +278,7 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Macro)?;
         let macro_name: String = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
 
-        let macro_arguments: Vec<String> = self.parse_args(true, false)?;
+        let macro_arguments: Vec<Argument> = self.parse_args(true, false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
         let macro_takes: usize = self.parse_single_arg()?;
@@ -349,26 +351,31 @@ impl<'a> Parser<'a> {
         &mut self,
         select_name: bool,
         select_type: bool,
-    ) -> Result<Vec<String>, ParserError> {
-        let mut args: Vec<String> = Vec::new();
+    ) -> Result<Vec<Argument>, ParserError> {
+        let mut args: Vec<Argument> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
             // type comes first
             // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
-            if select_type {
-                args.push(self.match_kind(TokenKind::Ident("EVMType"))?.to_string());
+            let arg_type = if select_type {
+                Some(self.match_kind(TokenKind::Ident("EVMType"))?.to_string())
+            } else {
+                None
             };
-            // naming is optional
-            // TODO: Are parameter names allowed in Huff? I can't find any examples of it, unless
-            // TODO: this is intended to be a new feature. -vex
-            // TODO: add name of arg to args vector
-            if select_name && self.check(TokenKind::Ident("x")) {
-                let _arg_name = self.match_kind(TokenKind::Ident("x"))?.to_string();
-            }
+
+            // name comes second (is optional)
+            let name = if select_name && self.check(TokenKind::Ident("x")) {
+                Some(self.match_kind(TokenKind::Ident("x"))?.to_string())
+            } else {
+                None
+            };
+
             // multiple args possible
             if self.check(TokenKind::Comma) {
                 self.consume();
             }
+
+            args.push(Argument { arg_type, name });
         }
         // consume close parenthesis
         self.match_kind(TokenKind::CloseParen)?;
