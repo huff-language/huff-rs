@@ -322,7 +322,11 @@ impl<'a> Parser<'a> {
     /// Arguments can be typed or not. Between parenthesis.
     /// Works for both inputs and outputs.
     /// It should parse the following : (uint256 a, bool b, ...)
-    pub fn parse_args(&mut self, select_name: bool, select_type: bool) -> Result<Vec<String>, ParserError> {
+    pub fn parse_args(
+        &mut self,
+        select_name: bool,
+        select_type: bool,
+    ) -> Result<Vec<String>, ParserError> {
         let mut args: Vec<String> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
