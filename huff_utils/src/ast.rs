@@ -13,6 +13,7 @@ pub type FilePath<'a> = &'a str;
 /// Thus, it is also the root of the AST.
 ///
 /// For examples of Huff contracts, see the [huff-examples repository](https://github.com/huff-language/huff-examples).
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Contract<'a> {
     /// Macro definitions
     pub macros: Vec<MacroDefinition<'a>>,
@@ -31,6 +32,7 @@ pub struct Contract<'a> {
 }
 
 /// A Constant Definition
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Constant<'a> {
     /// The name of the constant
     pub name: &'a str,
@@ -39,7 +41,7 @@ pub struct Constant<'a> {
 }
 
 /// A Function Signature
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Function<'a> {
     /// The name of the function
     pub name: &'a str,
@@ -54,7 +56,7 @@ pub struct Function<'a> {
 }
 
 /// Function Types
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FunctionType {
     /// Viewable Function
     View,
@@ -67,6 +69,7 @@ pub enum FunctionType {
 }
 
 /// An Event Signature
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Event<'a> {
     /// The name of the event
     pub name: &'a str,
@@ -75,6 +78,7 @@ pub struct Event<'a> {
 }
 
 /// A Table Definition
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Table<'a> {
     /// The name of the table
     pub name: &'a str,
@@ -82,7 +86,7 @@ pub struct Table<'a> {
 }
 
 /// A Macro Definition
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MacroDefinition<'a> {
     /// The Macro Name
     pub name: String,
@@ -110,7 +114,7 @@ impl MacroDefinition<'_> {
 }
 
 /// A Macro Invocation
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MacroInvocation<'a> {
     /// The Macro Name
     pub macro_name: String,
@@ -118,16 +122,30 @@ pub struct MacroInvocation<'a> {
     pub args: Vec<&'a Literal>,
 }
 
+/// Free Storage Pointer Unit Struct
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct FreeStoragePointer;
+
+/// A Constant Value
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ConstVal {
+    /// A literal value for the constant
+    Literal(Literal),
+    /// A Free Storage Pointer
+    FreeStoragePointer(FreeStoragePointer),
+}
+
 /// A Constant
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ConstantDefinition<'a> {
     /// The Constant name
     pub name: &'a str,
     /// The Constant value
-    pub value: Literal,
+    pub value: ConstVal,
 }
 
 /// A Statement
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Statement<'a> {
     /// A Literal Statement
     Literal(Literal),

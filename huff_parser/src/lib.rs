@@ -88,14 +88,21 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse
-    pub fn parse(&mut self) -> Result<(), ParserError> {
-        // remove all whitespaces and newlines first
-        // NOTE: lexer considers newlines as whitespaces
+    pub fn parse(&mut self) -> Result<Contract<'a>, ParserError> {
+        // Remove all whitespaces and newlines first
         self.tokens.retain(|&token| !matches!(token.kind, TokenKind::Whitespace));
+
+        // Initialize an empty Contract
+        let mut contract = Contract::default();
+
+        // Iterate over tokens and construct the Contract aka AST
         while !self.check(TokenKind::Eof) {
-            self.parse_definition()?;
+            match self.parse_definition()? {
+
+            }
         }
-        Ok(())
+
+        Ok(contract)
     }
 
     /// Match current token to a type.
@@ -161,16 +168,19 @@ impl<'a> Parser<'a> {
         // match to fucntion, constant, macro, or event
         match self.current_token.kind {
             TokenKind::Function => {
-                let _function_definition = self.parse_function().unwrap();
+                let _function_definition = self.parse_function()?;
                 Ok(())
             }
             TokenKind::Event => {
-                let _event_definition = self.parse_event().unwrap();
+                let _event_definition = self.parse_event()?;
                 Ok(())
             }
-            TokenKind::Constant => self.parse_constant(),
+            TokenKind::Constant => {
+                let const_def = self.parse_constant()?;
+                Ok(())
+            }
             TokenKind::Macro => {
-                let _ = self.parse_macro().unwrap();
+                let _ = self.parse_macro()?;
                 Ok(())
             }
             _ => {
@@ -250,23 +260,44 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a constant.
-    pub fn parse_constant(&mut self) -> Result<(), ParserError> {
+    pub fn parse_constant(&mut self) -> Result<ConstantDefinition, ParserError> {
+        // Constant Identifier
         self.match_kind(TokenKind::Constant)?;
+
+        // Parse the constant name
         self.match_kind(TokenKind::Ident("x"))?;
+        let tok = self.peek_behind().unwrap().kind;
+        let name: &'a str = match tok {
+            TokenKind::Ident(event_name) => event_name,
+            _ => {
+                println!("Event name must be of kind Ident. Got: {}", tok);
+                return Err(ParserError::InvalidName)
+            }
+        };
+
+        // We must assign a value to the constant
         self.match_kind(TokenKind::Assign)?;
-        match self.current_token.kind {
-            TokenKind::FreeStoragePointer | TokenKind::Literal(_) => {
+
+        let value: ConstVal = match self.current_token.kind {
+            TokenKind::FreeStoragePointer => {
                 self.consume();
-                Ok(())
+                ConstVal::fsp(FreeStoragePointer{})
+            }
+            TokenKind::Literal(l) => {
+                self.consume();
+                ConstVal::literal(l)
             }
             _ => {
                 println!(
                     "Constant value must be of kind FreeStoragePointer or Literal. Got: {}",
                     self.current_token.kind
                 );
-                Err(ParserError::InvalidConstantValue)
+                return Err(ParserError::InvalidConstantValue)
             }
-        }
+        };
+
+        // Return the Constant Definition
+        Ok(ConstantDefinition { name, value })
     }
 
     /// Parses a macro.
