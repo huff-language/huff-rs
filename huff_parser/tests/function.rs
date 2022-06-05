@@ -8,7 +8,7 @@ fn parses_valid_function_definition() {
         "#define function test(uint256) view returns(uint256)",
         "#define function test(uint256) pure returns(uint256)",
         "#define function test(uint256) nonpayable returns(uint256)",
-        "#define function test(uint256) payable returns(uint256)"
+        "#define function test(uint256) payable returns(uint256)",
     ];
 
     for source in sources {
