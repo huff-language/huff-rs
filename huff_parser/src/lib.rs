@@ -333,7 +333,7 @@ impl<'a> Parser<'a> {
             // type comes first
             // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
             if select_type {
-                args.push(String::from(self.match_kind(TokenKind::Ident("EVMType"))?.to_string()));
+                args.push(self.match_kind(TokenKind::Ident("EVMType"))?.to_string());
             };
             // naming is optional
             // TODO: Are parameter names allowed in Huff? I can't find any examples of it, unless
