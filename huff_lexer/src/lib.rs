@@ -298,10 +298,11 @@ impl<'a> Iterator for Lexer<'a> {
                     let keys = [TokenKind::Define, TokenKind::Include];
                     for kind in &keys {
                         let key = kind.to_string();
-                        let peeked = self.peek_n_chars(key.len() - 1);
+                        let token_length = key.len() - 1;
+                        let peeked = self.peek_n_chars(token_length);
 
                         if *key == peeked {
-                            self.dyn_consume(|c| c.is_alphabetic());
+                            self.nconsume(token_length);
                             found_kind = Some(*kind);
                             break
                         }
@@ -335,10 +336,11 @@ impl<'a> Iterator for Lexer<'a> {
                     ];
                     for kind in &keys {
                         let key = kind.to_string();
-                        let peeked = self.peek_n_chars(key.len() - 1);
+                        let token_length = key.len() - 1;
+                        let peeked = self.peek_n_chars(token_length);
 
                         if *key == peeked {
-                            self.dyn_consume(|c| c.is_alphabetic());
+                            self.nconsume(token_length);
                             found_kind = Some(*kind);
                             break
                         }
@@ -362,10 +364,12 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // Check for macro keyword
                     let fsp = "FREE_STORAGE_POINTER";
-                    let peeked = self.peek_n_chars(fsp.len() - 1);
+                    let token_length = fsp.len() - 1;
+                    let peeked = self.peek_n_chars(token_length);
                     if fsp == peeked {
-                        self.dyn_consume(|c| c.is_alphabetic() || c.eq(&'_'));
+                        self.nconsume(token_length);
                         // Consume the parenthesis following the FREE_STORAGE_POINTER
+                        // Note: This will consume `FREE_STORAGE_POINTER)` or `FREE_STORAGE_POINTER(` as well
                         if let Some('(') = self.peek() {
                             self.consume();
                         }
@@ -380,9 +384,10 @@ impl<'a> Iterator for Lexer<'a> {
                         if self.context == Context::Abi {
                             break
                         }
-                        let peeked = self.peek_n_chars(opcode.len() - 1);
+                        let token_length = opcode.len() - 1;
+                        let peeked = self.peek_n_chars(token_length);
                         if opcode == peeked {
-                            self.dyn_consume(|c| c.is_alphanumeric());
+                            self.nconsume(token_length);
                             found_kind = Some(TokenKind::Opcode(
                                 OPCODES_MAP.get(opcode).unwrap().to_owned(),
                             ));
