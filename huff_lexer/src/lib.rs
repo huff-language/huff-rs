@@ -70,6 +70,8 @@ use huff_utils::{error::*, evm::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
 
 /// Defines a context in which the lexing happens.
+/// Allows to differientate between EVM types and opcodes that can either
+/// be identical or the latter being a substring of the former (example : bytes32 and byte)
 #[derive(PartialEq, Eq)]
 pub enum Context {
     /// global context
