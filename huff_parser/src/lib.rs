@@ -176,7 +176,10 @@ impl<'a> Parser<'a> {
         let tok = self.peek_behind().unwrap().kind;
         let name: &'a str = match tok {
             TokenKind::Ident(fn_name) => fn_name,
-            _ => return Err(ParserError::SyntaxError),
+            _ => {
+                println!("Function name should be of kind Ident. Got: {}", tok);
+                return Err(ParserError::InvalidName)
+            }
         };
 
         // function inputs should be next
@@ -187,7 +190,7 @@ impl<'a> Parser<'a> {
             TokenKind::Pure => FunctionType::Pure,
             TokenKind::Payable => FunctionType::Payable,
             TokenKind::NonPayable => FunctionType::NonPayable,
-            _ => return Err(ParserError::Unexpected),
+            _ => return Err(ParserError::UnexpectedType),
         };
         // consume the function type
         self.consume();
