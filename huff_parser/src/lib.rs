@@ -186,7 +186,7 @@ impl<'a> Parser<'a> {
 
     /// Parses a function.
     /// Adheres to https://github.com/huff-language/huffc/blob/master/src/parser/high-level.ts#L87-L111
-    fn parse_function(&mut self) -> Result<Function<'a>, ParserError> {
+    pub fn parse_function(&mut self) -> Result<Function<'a>, ParserError> {
         // the first token should be of `TokenKind::Function`
         self.match_kind(TokenKind::Function)?;
         // function name should be next
@@ -201,7 +201,7 @@ impl<'a> Parser<'a> {
         };
 
         // function inputs should be next
-        let inputs: Vec<String> = self.parse_args(false)?;
+        let inputs: Vec<String> = self.parse_args(false, true)?;
         // function type should be next
         let fn_type = match self.current_token.kind {
             TokenKind::View => FunctionType::View,
@@ -216,7 +216,7 @@ impl<'a> Parser<'a> {
         // next token should be of `TokenKind::Returns`
         self.match_kind(TokenKind::Returns)?;
         // function outputs should be next
-        let outputs: Vec<String> = self.parse_args(false)?;
+        let outputs: Vec<String> = self.parse_args(false, true)?;
 
         let mut signature = [0u8; 4]; // Only keep first 4 bytes
         let mut hasher = Keccak::v256();
@@ -244,7 +244,7 @@ impl<'a> Parser<'a> {
         };
 
         // Parse the event's parameters
-        let parameters: Vec<String> = self.parse_args(false)?;
+        let parameters: Vec<String> = self.parse_args(true, true)?;
 
         Ok(Event { name, parameters })
     }
@@ -276,7 +276,7 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Macro)?;
         let macro_name: String = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
 
-        let macro_arguments: Vec<String> = self.parse_args(false)?;
+        let macro_arguments: Vec<String> = self.parse_args(true, false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
         let macro_takes: usize = self.parse_single_arg()?;
@@ -345,19 +345,24 @@ impl<'a> Parser<'a> {
     /// Arguments can be typed or not. Between parenthesis.
     /// Works for both inputs and outputs.
     /// It should parse the following : (uint256 a, bool b, ...)
-    pub fn parse_args(&mut self, name_only: bool) -> Result<Vec<String>, ParserError> {
-        let args: Vec<String> = Vec::new();
+    pub fn parse_args(
+        &mut self,
+        select_name: bool,
+        select_type: bool,
+    ) -> Result<Vec<String>, ParserError> {
+        let mut args: Vec<String> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
             // type comes first
             // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
-            if name_only {
-                self.match_kind(TokenKind::Ident("EVMType"))?;
+            if select_type {
+                args.push(self.match_kind(TokenKind::Ident("EVMType"))?.to_string());
             };
             // naming is optional
             // TODO: Are parameter names allowed in Huff? I can't find any examples of it, unless
             // TODO: this is intended to be a new feature. -vex
-            if self.check(TokenKind::Ident("x")) {
+            // TODO: add name of arg to args vector
+            if select_name && self.check(TokenKind::Ident("x")) {
                 let _arg_name = self.match_kind(TokenKind::Ident("x"))?.to_string();
             }
             // multiple args possible
@@ -369,48 +374,6 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::CloseParen)?;
         Ok(args)
     }
-
-    // TODO: Below is from the vi/parser branch
-
-    // pub struct MacroInvocation<'a> {
-    //     macro_name: String,
-    //     args: Vec<&'a Literal>,
-    // }
-
-    // fn parse_macro_call(&self) -> Result<MacroInvocation, ParserError> {
-    //     let invocation: MacroInvocation;
-
-    //     self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
-    //     let tok = self.peek_behind().kind;
-
-    //     match tok {
-    //         TokenKind::Ident(name) => invocation.macro_name = name,
-    //         _ => return Err(ParserError::SyntaxError),
-    //     }
-
-    //     self.parse_macro_call_args()?;
-
-    //     Ok()
-    // }
-
-    // fn parse_macro_call_args(&self) -> Result<Vec<Literal<'a>>, ParserError> {
-    //     self.match_kind(TokenKind::OpenParen)?;
-    //     while !self.check(TokenKind::CloseParen) {
-    //         match self.current_token.kind {
-    //             TokenKind::Literal(_) | TokenKind::Ident(_) => self.consume(),
-    //             _ => return Err(ParserError::SyntaxError)
-    //         }
-    //         if self.check(TokenKind::Comma) {
-    //             self.consume();
-    //         }
-    //     }
-    //     self.consume();
-    //     Ok(())
-    // }
-
-    // fn parse_constant_push(&self) {
-
-    // }
 
     /// Parses the following : (x)
     pub fn parse_single_arg(&mut self) -> Result<usize, ParserError> {
