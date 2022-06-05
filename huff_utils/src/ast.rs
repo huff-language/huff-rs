@@ -45,9 +45,22 @@ pub struct Function<'a> {
     /// The parameters of the function
     pub inputs: Vec<String>,
     /// The function type
-    pub fn_type: String,
+    pub fn_type: FunctionType,
     /// The return values of the function
     pub outputs: Vec<String>,
+}
+
+/// Function Types
+#[derive(Debug)]
+pub enum FunctionType {
+    /// Viewable Function
+    View,
+    /// Payable Function
+    Payable,
+    /// Non Payable Function
+    NonPayable,
+    /// Pure Function
+    Pure,
 }
 
 /// An Event Signature
@@ -82,7 +95,7 @@ pub struct MacroDefinition<'a> {
 
 impl MacroDefinition<'_> {
     /// Public associated function that instantiates a MacroDefinition.
-    pub fn new<'a>(
+    pub fn new(
         name: String,
         parameters: Vec<String>,
         statements: Vec<Statement<'static>>,
