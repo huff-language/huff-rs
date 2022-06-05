@@ -39,6 +39,7 @@ pub struct Constant<'a> {
 }
 
 /// A Function Signature
+#[derive(Debug, PartialEq, Eq)]
 pub struct Function<'a> {
     /// The name of the function
     pub name: &'a str,
@@ -51,7 +52,7 @@ pub struct Function<'a> {
 }
 
 /// Function Types
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum FunctionType {
     /// Viewable Function
     View,
