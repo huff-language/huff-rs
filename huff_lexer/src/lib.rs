@@ -69,6 +69,19 @@ use bytes::BytesMut;
 use huff_utils::{error::*, evm::*, span::*, token::*};
 use std::{iter::Peekable, str::Chars};
 
+/// Defines a context in which the lexing happens.
+#[derive(PartialEq, Eq)]
+pub enum Context {
+    /// global context
+    Global,
+    /// macro context
+    Macro,
+    /// function context
+    Function,
+    /// constant context
+    Constant,
+}
+
 /// ## Lexer
 ///
 /// The lexer encapsulated in a struct.
@@ -86,6 +99,8 @@ pub struct Lexer<'a> {
     pub eof: bool,
     /// EOF Token has been returned.
     pub eof_returned: bool,
+    /// Current context.
+    pub context: Context,
 }
 
 impl<'a> Lexer<'a> {
@@ -98,6 +113,7 @@ impl<'a> Lexer<'a> {
             lookback: None,
             eof: false,
             eof_returned: false,
+            context: Context::Global,
         }
     }
 
@@ -333,6 +349,15 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = None;
                     }
 
+                    if found_kind != None {
+                        match found_kind.unwrap() {
+                            TokenKind::Macro => self.context = Context::Macro,
+                            TokenKind::Function => self.context = Context::Function,
+                            TokenKind::Constant => self.context = Context::Constant,
+                            _ => (),
+                        }
+                    }
+
                     // Check for macro keyword
                     let fsp = "FREE_STORAGE_POINTER";
                     let peeked = self.peek_n_chars(fsp.len() - 1);
@@ -350,6 +375,9 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // goes over all opcodes
                     for opcode in OPCODES {
+                        if self.context == Context::Function {
+                            break
+                        }
                         let peeked = self.peek_n_chars(opcode.len() - 1);
                         if opcode == peeked {
                             self.dyn_consume(|c| c.is_alphanumeric());
