@@ -80,5 +80,5 @@ fn cannot_parse_invalid_function_definition() {
     let lexer = Lexer::new(source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens);
-    parser.parse();
+    parser.parse().unwrap();
 }

@@ -22,22 +22,13 @@ pub struct Contract<'a> {
     /// File Imports
     pub imports: Vec<FilePath<'a>>,
     /// Constants
-    pub constants: Vec<Constant<'a>>,
+    pub constants: Vec<ConstantDefinition<'a>>,
     /// Functions
     pub functions: Vec<Function<'a>>,
     /// Events
     pub events: Vec<Event<'a>>,
     /// Tables
     pub tables: Vec<Table<'a>>,
-}
-
-/// A Constant Definition
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Constant<'a> {
-    /// The name of the constant
-    pub name: &'a str,
-    /// The literal value of the constant
-    pub literal: Literal,
 }
 
 /// A Function Signature
@@ -135,7 +126,7 @@ pub enum ConstVal {
     FreeStoragePointer(FreeStoragePointer),
 }
 
-/// A Constant
+/// A Constant Definition
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ConstantDefinition<'a> {
     /// The Constant name

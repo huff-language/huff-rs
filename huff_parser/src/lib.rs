@@ -89,20 +89,67 @@ impl<'a> Parser<'a> {
 
     /// Parse
     pub fn parse(&mut self) -> Result<Contract<'a>, ParserError> {
-        // Remove all whitespaces and newlines first
-        self.tokens.retain(|&token| !matches!(token.kind, TokenKind::Whitespace));
+        // Remove all whitespaces, newlines, and comments first
+        self.tokens
+            .retain(|&token| !matches!(token.kind, TokenKind::Whitespace | TokenKind::Comment(_)));
 
         // Initialize an empty Contract
-        let mut contract = Contract::default();
+        let mut contract: Contract<'a> = Contract::<'a>::default();
+
+        // First iterate over imports
+        while !self.check(TokenKind::Eof) && !self.check(TokenKind::Define) {
+            contract.imports.push(self.parse_imports()?);
+        }
 
         // Iterate over tokens and construct the Contract aka AST
         while !self.check(TokenKind::Eof) {
-            match self.parse_definition()? {
+            // first token should be keyword "#define"
+            self.match_kind(TokenKind::Define)?;
 
-            }
+            // match to fucntion, constant, macro, or event
+            match self.current_token.kind {
+                TokenKind::Function => {
+                    contract.functions.push(self.parse_function()?);
+                }
+                TokenKind::Event => {
+                    contract.events.push(self.parse_event()?);
+                }
+                TokenKind::Constant => {
+                    contract.constants.push(self.parse_constant()?);
+                }
+                TokenKind::Macro => {
+                    contract.macros.push(self.parse_macro()?);
+                }
+                _ => {
+                    println!(
+                        "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
+                        self.current_token.kind
+                    );
+                    return Err(ParserError::InvalidDefinition)
+                }
+            };
         }
 
         Ok(contract)
+    }
+
+    /// Parses Contract Imports
+    pub fn parse_imports(&mut self) -> Result<FilePath<'a>, ParserError> {
+        // First token should be keyword "#include"
+        self.match_kind(TokenKind::Include)?;
+
+        // Then let's grab and validate the file path
+        self.match_kind(TokenKind::Ident("x"))?;
+        let tok = self.peek_behind().unwrap().kind;
+        let path: &'a str = match tok {
+            TokenKind::Ident(file_path) => file_path,
+            _ => {
+                println!("Invalid import path string. Got: {}", tok);
+                return Err(ParserError::InvalidName)
+            }
+        };
+
+        Ok(path)
     }
 
     /// Match current token to a type.
@@ -159,39 +206,6 @@ impl<'a> Parser<'a> {
         } else {
             Some(*self.tokens.get(self.cursor - 1).unwrap())
         }
-    }
-
-    /// Parse a statement.
-    fn parse_definition(&mut self) -> Result<(), ParserError> {
-        // first token should be keyword "#define"
-        self.match_kind(TokenKind::Define)?;
-        // match to fucntion, constant, macro, or event
-        match self.current_token.kind {
-            TokenKind::Function => {
-                let _function_definition = self.parse_function()?;
-                Ok(())
-            }
-            TokenKind::Event => {
-                let _event_definition = self.parse_event()?;
-                Ok(())
-            }
-            TokenKind::Constant => {
-                let const_def = self.parse_constant()?;
-                Ok(())
-            }
-            TokenKind::Macro => {
-                let _ = self.parse_macro()?;
-                Ok(())
-            }
-            _ => {
-                println!(
-                    "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
-                    self.current_token.kind
-                );
-                return Err(ParserError::InvalidDefinition)
-            }
-        }?;
-        Ok(())
     }
 
     /// Parses a function.
@@ -260,7 +274,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a constant.
-    pub fn parse_constant(&mut self) -> Result<ConstantDefinition, ParserError> {
+    pub fn parse_constant(&mut self) -> Result<ConstantDefinition<'a>, ParserError> {
         // Constant Identifier
         self.match_kind(TokenKind::Constant)?;
 
@@ -281,11 +295,11 @@ impl<'a> Parser<'a> {
         let value: ConstVal = match self.current_token.kind {
             TokenKind::FreeStoragePointer => {
                 self.consume();
-                ConstVal::fsp(FreeStoragePointer{})
+                ConstVal::FreeStoragePointer(FreeStoragePointer {})
             }
             TokenKind::Literal(l) => {
                 self.consume();
-                ConstVal::literal(l)
+                ConstVal::Literal(l)
             }
             _ => {
                 println!(
