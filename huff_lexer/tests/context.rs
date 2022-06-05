@@ -4,7 +4,7 @@ use huff_utils::{evm::*, prelude::*};
 
 #[test]
 fn function_context() {
-    let source = "#define function test(bytes32) {} returns (bytes)";
+    let source = "#define function test(bytes32) {} returns (address)";
     let lexer = Lexer::new(source);
     let tokens = lexer
         .into_iter()
@@ -15,7 +15,7 @@ fn function_context() {
     // check input
     assert_eq!(tokens.get(4).unwrap().kind, TokenKind::Ident("bytes32"));
     // check output
-    assert_eq!(tokens.get(tokens.len() - 3).unwrap().kind, TokenKind::Ident("bytes"));
+    assert_eq!(tokens.get(tokens.len() - 3).unwrap().kind, TokenKind::Ident("address"));
 }
 
 #[test]
