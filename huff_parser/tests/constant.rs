@@ -1,5 +1,3 @@
-use std::io::Bytes;
-
 use bytes::BytesMut;
 use huff_lexer::*;
 use huff_parser::*;
