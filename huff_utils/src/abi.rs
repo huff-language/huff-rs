@@ -9,12 +9,25 @@
 //! instance like so:
 //!
 //! ```rust
-//! use huff_parser::*;
-//! use huff_utils::abi::*;
+//! use huff_utils::{abi::Abi, ast::*};
 //!
 //! // Generate a default contract for demonstrative purposes.
 //! // Realistically, contract generation would be done as shown in [huff_parser](./huff_parser)
-//! let contract = Contract::default();
+//! let contract = Contract {
+//!     macros: vec![],
+//!     invocations: vec![],
+//!     imports: vec![],
+//!     constants: vec![],
+//!     functions: vec![Function {
+//!         name: "CONSTRUCTOR",
+//!         signature: [0u8, 0u8, 0u8, 0u8],
+//!         inputs: vec![],
+//!         fn_type: FunctionType::NonPayable,
+//!         outputs: vec![],
+//!     }],
+//!     events: vec![],
+//!     tables: vec![],
+//! };
 //!
 //! // Create an ABI using that generate contract
 //! let abi: Abi = contract.into();
@@ -59,7 +72,7 @@ impl<'a> From<ast::Contract<'a>> for Abi {
             .filter(|function: &&ast::Function| function.name == "CONSTRUCTOR")
             .cloned()
             .collect();
-        let constructor: ast::Function = constructors[0].clone();
+        let constructor: ast::Function = constructors.get(0).unwrap().clone();
 
         // Instantiate functions and events
         let mut functions = BTreeMap::new();
@@ -275,7 +288,7 @@ impl From<&str> for FunctionParamType {
             "Bool" | "bool" => Self::Bool,
             "String" | "string" | "str" | "Str" => Self::String,
             "Array" | "array" => Self::Array(Box::new(FunctionParamType::Bool)),
-            "FixedBytes" | "bytes" => Self::Array(Box::new(FunctionParamType::Bool)),
+            "FixedBytes" | "bytes32" => Self::Array(Box::new(FunctionParamType::Bool)),
             _ => {
                 // TODO: add trace here
                 panic!("{}", format!("Failed to create FunctionParamType from string: {}", string))
