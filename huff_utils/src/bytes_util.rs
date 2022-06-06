@@ -1,5 +1,4 @@
-use bytes::{BufMut, BytesMut};
-use std::ops::Index;
+use bytes::BytesMut;
 
 /// Convert a string (hex value) to an array containing 32 bytes
 pub fn str_to_array(s: &str) -> [u8; 32] {

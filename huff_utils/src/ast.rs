@@ -53,7 +53,7 @@ impl<'a> Contract<'a> {
             literal_consts.iter().fold(Vec::new(), |mut acc, constant| {
                 // Get the `Literal` value of the `ConstVal`
                 let literal: Option<Literal> = match constant {
-                    ConstVal::Literal(literal) => Some(literal.clone()),
+                    ConstVal::Literal(literal) => Some(*literal),
                     _ => None,
                 };
 
@@ -68,7 +68,7 @@ impl<'a> Contract<'a> {
             });
 
         let final_pointers: Vec<Literal> =
-            fsp_consts.iter().fold(literal_pointers, |mut acc, constant| {
+            fsp_consts.iter().fold(literal_pointers, |mut acc, _constant| {
                 // Push the lowest available storage pointer to the accumulator
                 // TODO: Set the constant's value to the found pointer
                 acc.push(find_lowest(0, &acc));
