@@ -405,13 +405,14 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 // If it's the start of a hex literal
                 ch if ch == '0' && self.peek().unwrap() == 'x' => {
+                    self.consume(); // Consume the 'x' after '0' (separated from the `dyn_consume` so we don't have
+                                    // to match `x` in the actual hex)
                     self.dyn_consume(|c| {
                         c.is_numeric() ||
-                            // Match a-f, A-F, and 'x'
-                            // Note: This still allows for invalid hex, as it doesn't care if
-                            // there are multiple 'x' values in the literal.
-                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}' | 'x')
+                        // Match a-f & A-F
+                        matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
                     });
+                    self.span.start += 2; // Ignore the "0x"
                     let mut arr: [u8; 32] = Default::default();
                     let mut buf = BytesMut::from(self.slice());
                     buf.resize(32, 0);

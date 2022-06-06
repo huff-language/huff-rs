@@ -51,10 +51,10 @@ fn macro_with_simple_body() {
             name: "HELLO_WORLD".to_string(),
             parameters: vec![],
             statements: vec![
-                Statement::Literal(create_literal_from_str("0x00")),
+                Statement::Literal(create_literal_from_str("00")),
                 Statement::Opcode(Opcode::Mstore),
-                Statement::Literal(create_literal_from_str("0x01")),
-                Statement::Literal(create_literal_from_str("0x02")),
+                Statement::Literal(create_literal_from_str("01")),
+                Statement::Literal(create_literal_from_str("02")),
                 Statement::Opcode(Opcode::Add)
             ],
             takes: 3,
