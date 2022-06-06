@@ -45,29 +45,9 @@
 use huff_utils::{
     ast::*,
     token::{Token, TokenKind},
+    error::ParserError
 };
 use tiny_keccak::{Hasher, Keccak};
-
-/// A Parser Error
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
-pub enum ParserError {
-    /// A general syntax error that accepts a message
-    SyntaxError(&'static str),
-    /// Unexpected type
-    UnexpectedType,
-    /// Invalid definition
-    InvalidDefinition,
-    /// Invalid constant value
-    InvalidConstantValue,
-    /// Invalid name (macro, event, function, constant)
-    InvalidName,
-    /// Invalid arguments
-    InvalidArgs,
-    /// Invalid macro call arguments
-    InvalidMacroArgs,
-    /// Invalid return arguments
-    InvalidReturnArgs,
-}
 
 /// The Parser
 #[derive(Debug, Clone)]

@@ -1,4 +1,4 @@
-use crate::evm::Opcode;
+use crate::{evm::Opcode, error::ParserError};
 
 type Literal = [u8; 32];
 
@@ -29,6 +29,23 @@ pub struct Contract<'a> {
     pub events: Vec<Event<'a>>,
     /// Tables
     pub tables: Vec<Table<'a>>,
+}
+
+impl<'a> Contract<'a> {
+    /// Generates a list of storage pointers from constants
+    pub fn derive_storage_pointers(&self) -> Result<Vec<String>, ParserError> {
+        // Split literals and free storage pointers
+        let literal_consts = self.constants.iter().filter(|constant| !matches!(constant.value, ConstVal::Literal(_)));
+        let fsp_consts = self.constants.iter().filter(|constant| !matches!(constant.value, ConstVal::FreeStoragePointer(_)));
+
+        // First, validate literal storage pointers to prevent FREE_STORAGE_POINTER clashes
+
+        Ok(self.constants.iter().fold(Vec::new(), |acc, constant| {
+            // TODO: find next lowest storage pointer in the acc
+            // TODO: push the new storage pointer to the accumulator
+        }))
+    }
+
 }
 
 /// A function, event, or macro argument
