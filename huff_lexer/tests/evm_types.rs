@@ -1,8 +1,5 @@
 use huff_lexer::*;
-use huff_utils::{
-    prelude::*,
-    types::*,
-};
+use huff_utils::{prelude::*, types::*};
 
 #[test]
 fn primitive_type_parsing() {
@@ -18,13 +15,13 @@ fn primitive_type_parsing() {
 
     for (evm_type, evm_type_enum) in evm_types {
         let source = format!("#define function test({}) view returns (uint256)", evm_type);
-        let mut lexer = Lexer::new(source.as_str());
+        let lexer = Lexer::new(source.as_str());
         let tokens = lexer
-        .into_iter()
-        .map(|x| x.unwrap())
-        .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
-        .collect::<Vec<Token>>();
+            .into_iter()
+            .map(|x| x.unwrap())
+            .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
+            .collect::<Vec<Token>>();
 
-        assert_eq!(tokens.get(5).unwrap().kind, TokenKind::EVMType(EVMType::Primitive(evm_type_enum)));
+        assert_eq!(tokens.get(4).unwrap().kind, TokenKind::PrimitiveType(evm_type_enum));
     }
 }

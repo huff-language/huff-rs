@@ -45,6 +45,7 @@
 use huff_utils::{
     ast::*,
     token::{Token, TokenKind},
+    types::*,
 };
 use tiny_keccak::{Hasher, Keccak};
 
@@ -413,11 +414,8 @@ impl<'a> Parser<'a> {
         while !self.check(TokenKind::CloseParen) {
             // type comes first
             // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
-            let arg_type = if select_type {
-                Some(self.match_kind(TokenKind::Ident("EVMType"))?.to_string())
-            } else {
-                None
-            };
+            let arg_type =
+                if select_type { Some(self.parse_arg_type()?.to_string()) } else { None };
 
             // name comes second (is optional)
             let name = if select_name && self.check(TokenKind::Ident("x")) {
@@ -497,5 +495,49 @@ impl<'a> Parser<'a> {
             self.consume();
         }
         Ok(())
+    }
+
+    pub fn parse_arg_type(&mut self) -> Result<TokenKind, ParserError> {
+        match self.current_token.kind {
+            TokenKind::PrimitiveType(prim) => Ok(self.parse_primitive_type(prim)?),
+            TokenKind::ArrayType(prim, _size) => {
+                self.parse_primitive_type(prim);
+                Ok(self.match_kind(self.current_token.kind)?)
+            }
+            _ => Err(ParserError::InvalidArgs),
+        }
+    }
+
+    pub fn parse_primitive_type(
+        &mut self,
+        prim: PrimitiveEVMType,
+    ) -> Result<TokenKind, ParserError> {
+        match prim {
+            PrimitiveEVMType::Uint(size) => {
+                if !(8..=256).contains(&size) || size % 8 != 0 {
+                    return Err(ParserError::InvalidArgs)
+                }
+                Ok(self.match_kind(self.current_token.kind)?)
+            }
+            PrimitiveEVMType::Bytes(size) => {
+                if !(1..=32).contains(&size) {
+                    return Err(ParserError::InvalidArgs)
+                }
+                Ok(self.match_kind(self.current_token.kind)?)
+            }
+            PrimitiveEVMType::Bool => Ok(self.match_kind(self.current_token.kind)?),
+            PrimitiveEVMType::Address => Ok(self.match_kind(self.current_token.kind)?),
+            PrimitiveEVMType::String => Ok(self.match_kind(self.current_token.kind)?),
+            PrimitiveEVMType::DynBytes => Ok(self.match_kind(self.current_token.kind)?),
+            PrimitiveEVMType::Int(size) => {
+                if !(8..=256).contains(&size) || size % 8 != 0 {
+                    return Err(ParserError::InvalidArgs)
+                }
+                let curr_token_kind = self.current_token.kind;
+                self.consume();
+                Ok(curr_token_kind)
+            }
+            _ => Err(ParserError::InvalidArgs),
+        }
     }
 }

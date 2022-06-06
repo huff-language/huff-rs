@@ -64,9 +64,9 @@
 
 #![deny(missing_docs)]
 #![allow(dead_code)]
-use regex::Regex;
 use bytes::BytesMut;
 use huff_utils::{error::*, evm::*, span::*, token::*, types::*};
+use regex::Regex;
 use std::{iter::Peekable, str::Chars};
 
 /// Defines a context in which the lexing happens.
@@ -80,6 +80,8 @@ pub enum Context {
     Macro,
     /// ABI context
     Abi,
+    /// Lexing args of functions inputs/outputs and events
+    AbiArgs,
     /// constant context
     Constant,
 }
@@ -382,7 +384,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // goes over all opcodes
                     for opcode in OPCODES {
-                        if self.context == Context::Abi {
+                        if self.context == Context::AbiArgs {
                             break
                         }
                         let token_length = opcode.len() - 1;
@@ -398,9 +400,9 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // Last case ; we are in ABI context and
                     // we are parsing an EVM type
-                    if self.context == Context::Abi {
+                    if self.context == Context::AbiArgs {
                         let curr_char = self.peek();
-                        if curr_char != None && !['(',')'].contains(&curr_char.unwrap()) {
+                        if curr_char != None && !['(', ')'].contains(&curr_char.unwrap()) {
                             self.dyn_consume(|c| c.is_alphanumeric() || *c == '[' || *c == ']');
                             // got a type at this point, we have to know which
                             let raw_type: &str = self.slice();
@@ -409,21 +411,21 @@ impl<'a> Iterator for Lexer<'a> {
                                 // split to get array size and type
                                 // TODO: support multi-dimensional arrays
                                 let words: Vec<String> = Regex::new(r"\[")
-                                .unwrap()
-                                .split("raw_type")
-                                .map(|x| x.replace("]",""))
-                                .collect();
-                                found_kind = Some(TokenKind::EVMType(EVMType::Array(
+                                    .unwrap()
+                                    .split("raw_type")
+                                    .map(|x| x.replace(']', ""))
+                                    .collect();
+                                found_kind = Some(TokenKind::ArrayType(
                                     PrimitiveEVMType::from(words[0].clone()),
                                     words[1].parse::<usize>().unwrap(),
-                                )));
-
+                                ));
                             } else {
-                                found_kind = Some(TokenKind::EVMType(EVMType::Primitive(PrimitiveEVMType::from(raw_type.to_string()))));
+                                found_kind = Some(TokenKind::PrimitiveType(
+                                    PrimitiveEVMType::from(raw_type.to_string()),
+                                ));
                             }
                         }
                     }
-
 
                     if let Some(kind) = found_kind {
                         kind
@@ -448,8 +450,18 @@ impl<'a> Iterator for Lexer<'a> {
                     TokenKind::Literal(arr)
                 }
                 '=' => TokenKind::Assign,
-                '(' => TokenKind::OpenParen,
-                ')' => TokenKind::CloseParen,
+                '(' => {
+                    if self.context == Context::Abi {
+                        self.context = Context::AbiArgs;
+                    }
+                    TokenKind::OpenParen
+                }
+                ')' => {
+                    if self.context == Context::AbiArgs {
+                        self.context = Context::Abi;
+                    }
+                    TokenKind::CloseParen
+                }
                 '[' => TokenKind::OpenBracket,
                 ']' => TokenKind::CloseBracket,
                 '{' => TokenKind::OpenBrace,

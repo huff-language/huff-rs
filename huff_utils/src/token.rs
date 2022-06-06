@@ -1,8 +1,7 @@
-use crate::{evm::Opcode, span::Span, types::EVMType};
+use crate::{evm::Opcode, span::Span, types::PrimitiveEVMType};
 use std::{fmt, fmt::Write};
 
 type Literal = [u8; 32];
-type wEVMType = EVMType;
 
 /// A single Token
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -97,7 +96,9 @@ pub enum TokenKind<'a> {
     // Import path
     // Path(&'a str),
     /// EVM Type
-    EVMType(wEVMType),
+    PrimitiveType(PrimitiveEVMType),
+    /// Array of EVM Types
+    ArrayType(PrimitiveEVMType, usize),
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
@@ -145,7 +146,8 @@ impl<'a> fmt::Display for TokenKind<'a> {
             }
             TokenKind::Opcode(o) => return write!(f, "{}", o),
             TokenKind::Label(s) => return write!(f, "{}", s),
-            TokenKind::EVMType(_) => "EVMType",
+            TokenKind::PrimitiveType(pt) => return write!(f, "{}", pt),
+            TokenKind::ArrayType(pt, num) => return write!(f, "{}[{}]", pt, num),
         };
 
         write!(f, "{}", x)
