@@ -17,8 +17,8 @@ pub type FilePath<'a> = &'a str;
 pub struct Contract<'a> {
     /// Macro definitions
     pub macros: Vec<MacroDefinition<'a>>,
-    /// Invocations of macros
-    pub invocations: Vec<MacroInvocation<'a>>,
+    /// Main macro definition
+    pub main: MacroDefinition<'a>,
     /// File Imports
     pub imports: Vec<FilePath<'a>>,
     /// Constants
@@ -86,7 +86,7 @@ pub struct Table<'a> {
 }
 
 /// A Macro Definition
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct MacroDefinition<'a> {
     /// The Macro Name
     pub name: String,
