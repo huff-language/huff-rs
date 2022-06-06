@@ -31,6 +31,15 @@ pub struct Contract<'a> {
     pub tables: Vec<Table<'a>>,
 }
 
+/// A function, event, or macro argument
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Argument {
+    /// Type of the argument
+    pub arg_type: Option<String>,
+    /// The name of the argument
+    pub name: Option<String>,
+}
+
 /// A Function Signature
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Function<'a> {
@@ -39,11 +48,11 @@ pub struct Function<'a> {
     /// The function signature
     pub signature: [u8; 4],
     /// The parameters of the function
-    pub inputs: Vec<String>,
+    pub inputs: Vec<Argument>,
     /// The function type
     pub fn_type: FunctionType,
     /// The return values of the function
-    pub outputs: Vec<String>,
+    pub outputs: Vec<Argument>,
 }
 
 /// Function Types
@@ -65,7 +74,7 @@ pub struct Event<'a> {
     /// The name of the event
     pub name: &'a str,
     /// The parameters of the event
-    pub parameters: Vec<String>,
+    pub parameters: Vec<Argument>,
 }
 
 /// A Table Definition
@@ -82,7 +91,7 @@ pub struct MacroDefinition<'a> {
     /// The Macro Name
     pub name: String,
     /// A list of Macro parameters
-    pub parameters: Vec<String>,
+    pub parameters: Vec<Argument>,
     /// A list of Statements contained in the Macro
     pub statements: Vec<Statement<'a>>,
     /// The take size
@@ -95,7 +104,7 @@ impl MacroDefinition<'_> {
     /// Public associated function that instantiates a MacroDefinition.
     pub fn new(
         name: String,
-        parameters: Vec<String>,
+        parameters: Vec<Argument>,
         statements: Vec<Statement<'static>>,
         takes: usize,
         returns: usize,
