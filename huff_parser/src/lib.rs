@@ -87,11 +87,22 @@ impl<'a> Parser<'a> {
         Self { tokens, cursor: 0, current_token: initial_token }
     }
 
+    /// Resets the current token and cursor to the first token in the parser's token vec
+    ///
+    /// PANICS if the tokens vec is empty!
+    pub fn reset(&mut self) {
+        self.current_token = *self.tokens.get(0).unwrap();
+        self.cursor = 0;
+    }
+
     /// Parse
     pub fn parse(&mut self) -> Result<Contract<'a>, ParserError> {
         // Remove all whitespaces, newlines, and comments first
         self.tokens
             .retain(|&token| !matches!(token.kind, TokenKind::Whitespace | TokenKind::Comment(_)));
+
+        // Reset the initial token
+        self.reset();
 
         // Initialize an empty Contract
         let mut contract: Contract<'a> = Contract::<'a>::default();
@@ -139,10 +150,10 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Include)?;
 
         // Then let's grab and validate the file path
-        self.match_kind(TokenKind::Ident("x"))?;
+        self.match_kind(TokenKind::Str("x"))?;
         let tok = self.peek_behind().unwrap().kind;
         let path: &'a str = match tok {
-            TokenKind::Ident(file_path) => file_path,
+            TokenKind::Str(file_path) => file_path,
             _ => {
                 println!("Invalid import path string. Got: {}", tok);
                 return Err(ParserError::InvalidName)

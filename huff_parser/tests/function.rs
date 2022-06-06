@@ -5,6 +5,7 @@ use huff_utils::{
     prelude::*,
 };
 use std::collections::HashMap;
+
 #[test]
 fn parses_valid_function_definition() {
     let sources = [
