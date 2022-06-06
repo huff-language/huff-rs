@@ -46,6 +46,7 @@ use huff_utils::{
     ast::*,
     token::{Token, TokenKind},
 };
+use std::path::Path;
 use tiny_keccak::{Hasher, Keccak};
 
 /// A Parser Error
@@ -67,6 +68,8 @@ pub enum ParserError {
     InvalidMacroArgs,
     /// Invalid return arguments
     InvalidReturnArgs,
+    /// Invalid import path
+    InvalidImportPath,
 }
 
 /// The Parser
@@ -152,13 +155,19 @@ impl<'a> Parser<'a> {
         // Then let's grab and validate the file path
         self.match_kind(TokenKind::Str("x"))?;
         let tok = self.peek_behind().unwrap().kind;
-        let path: &'a str = match tok {
+        let path: &'a Path = Path::new(match tok {
             TokenKind::Str(file_path) => file_path,
             _ => {
                 println!("Invalid import path string. Got: {}", tok);
                 return Err(ParserError::InvalidName)
             }
-        };
+        });
+
+        // Validate that a file @ the path exists
+        if !(path.exists() && path.is_file() && path.to_str().unwrap().ends_with(".huff")) {
+            println!("Invalid file path. Got: {}", path.to_str().unwrap());
+            return Err(ParserError::InvalidImportPath)
+        }
 
         Ok(path)
     }
