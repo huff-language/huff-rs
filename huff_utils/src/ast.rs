@@ -35,15 +35,23 @@ impl<'a> Contract<'a> {
     /// Generates a list of storage pointers from constants
     pub fn derive_storage_pointers(&self) -> Result<Vec<String>, ParserError> {
         // Split literals and free storage pointers
-        let literal_consts = self.constants.iter().filter(|constant| !matches!(constant.value, ConstVal::Literal(_)));
-        let fsp_consts = self.constants.iter().filter(|constant| !matches!(constant.value, ConstVal::FreeStoragePointer(_)));
+        let literal_consts: Vec<ConstVal> = self.constants.iter().filter(|constant| !matches!(constant.value, ConstVal::Literal(_))).map(|definition| definition.value.clone()).collect();
+        let fsp_consts: Vec<ConstVal> = self.constants.iter().filter(|constant| !matches!(constant.value, ConstVal::FreeStoragePointer(_))).map(|definition| definition.value.clone()).collect();
 
         // First, validate literal storage pointers to prevent FREE_STORAGE_POINTER clashes
-
-        Ok(self.constants.iter().fold(Vec::new(), |acc, constant| {
+        let literal_pointers: Vec<Vec<u8>> = literal_consts.iter().fold(Vec::new(), |acc, constant| {
             // TODO: find next lowest storage pointer in the acc
             // TODO: push the new storage pointer to the accumulator
-        }))
+            vec![]
+        });
+
+        let final_pointers: Vec<Vec<u8>> = fsp_consts.iter().fold(literal_pointers, |acc, constant| {
+            // TODO: find next lowest storage pointer in the acc
+            // TODO: push the new storage pointer to the accumulator
+            vec![]
+        });
+
+        Ok(final_pointers.iter().map(|pointer| format!("0x{:x?}", pointer)).collect())
     }
 
 }
