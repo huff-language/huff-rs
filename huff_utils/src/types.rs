@@ -1,9 +1,9 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 
-/// All the valid primitive EVM types.
+/// Primitive EVM types
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum EVMType {
+pub enum PrimitiveEVMType {
     /// String type
     String,
     /// Bytes array type
@@ -18,9 +18,49 @@ pub enum EVMType {
     Address,
     /// Bytes type ; bytes1, bytes2, ..., bytes32
     Bytes(usize),
+}
+
+/// Automatically converts an input string to a PrimitiveEVMType.
+/// Example : PrimitiveEVMType::from("uint256") => PrimitiveEVMType::Uint(256)
+impl From<String> for PrimitiveEVMType {
+    fn from(input: String) -> Self {
+        if input.starts_with("uint") {
+            let size = input.get(4..input.len()).unwrap().parse::<usize>().unwrap();
+            return PrimitiveEVMType::Uint(size);
+        }
+        if input.starts_with("int") {
+            let size = input.get(3..input.len()).unwrap().parse::<usize>().unwrap();
+            return PrimitiveEVMType::Int(size);
+        }
+        if input.starts_with("bytes") && input.len() != 5 {
+            let size = input.get(5..input.len()).unwrap().parse::<usize>().unwrap();
+            return PrimitiveEVMType::Bytes(size);
+        }
+        if input.starts_with("bool") {
+            return PrimitiveEVMType::Bool;
+        }
+        if input.starts_with("address") {
+            return PrimitiveEVMType::Address;
+        }
+        if input.starts_with("string") {
+            return PrimitiveEVMType::String;
+        }
+        if input == "bytes" {
+            return PrimitiveEVMType::DynBytes;
+        } else {
+            panic!("Invalid PrimitiveEVMType type: {}", input);
+        }
+    }
+}
+
+/// All the valid primitive EVM types.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum EVMType {
+    /// Primitive EVM type
+    Primitive(PrimitiveEVMType),
     /// Array ; can be of any type, bounded or not
     /// a size of 0 indicates unbounded
-    Array(Box<EVMType>, usize)
+    Array(PrimitiveEVMType, usize)
 }
 
 impl From<String> for EVMType {
@@ -28,27 +68,27 @@ impl From<String> for EVMType {
         // is uint?
         if input.starts_with("uint") {
             let size = input.get(4..input.len()).unwrap().parse::<usize>().unwrap();
-            return EVMType::Uint(size);
+            return EVMType::Primitive(PrimitiveEVMType::Uint(size));
         }
         if input.starts_with("int") {
             let size = input.get(3..input.len()).unwrap().parse::<usize>().unwrap();
-            return EVMType::Int(size);
+            return EVMType::Primitive(PrimitiveEVMType::Int(size));
         }
         if input.starts_with("bytes") && input.len() != 5 {
             let size = input.get(5..input.len()).unwrap().parse::<usize>().unwrap();
-            return EVMType::Bytes(size);
+            return EVMType::Primitive(PrimitiveEVMType::Bytes(size));
         }
         if input.starts_with("bool") {
-            return EVMType::Bool;
+            return EVMType::Primitive(PrimitiveEVMType::Bool);
         }
         if input.starts_with("address") {
-            return EVMType::Address;
+            return EVMType::Primitive(PrimitiveEVMType::Address);
         }
         if input.starts_with("string") {
-            return EVMType::String;
+            return EVMType::Primitive(PrimitiveEVMType::String);
         }
         if input == "bytes" {
-            return EVMType::DynBytes;
+            return EVMType::Primitive(PrimitiveEVMType::DynBytes);
         } else {
             panic!("Invalid EVM type: {}", input);
         }

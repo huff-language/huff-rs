@@ -414,18 +414,13 @@ impl<'a> Iterator for Lexer<'a> {
                                 .map(|x| x.replace("]",""))
                                 .collect();
                                 found_kind = Some(TokenKind::EVMType(EVMType::Array(
-                                    EVMType::from(words[0]),
+                                    PrimitiveEVMType::from(words[0].clone()),
                                     words[1].parse::<usize>().unwrap(),
                                 )));
 
+                            } else {
+                                found_kind = Some(TokenKind::EVMType(EVMType::Primitive(PrimitiveEVMType::from(raw_type.to_string()))));
                             }
-                            let kind = match raw_type {
-                                "address" => EVMType::Address,
-                                "bool" => EVMType::Bool,
-                                "string" => EVMType::String,
-                                "bytes" => EVMType::DynBytes,
-                                _ => None 
-                            };
                         }
                     }
 
