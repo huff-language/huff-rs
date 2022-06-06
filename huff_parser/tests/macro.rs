@@ -1,31 +1,65 @@
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::prelude::*;
+use huff_utils::{evm::Opcode, prelude::*};
+
+mod common;
+use common::*;
 
 fn lex_and_parse(source: &str) -> Result<(), ParserError> {
     let lexer = Lexer::new(source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens);
-    parser.parse()
+    let _ = parser.parse();
+    Ok(())
 }
 
 #[test]
 fn empty_macro() {
-    let source = "#define macro HELLO_WORLD() = takes(0) returns(0) {}";
+    let source = "#define macro HELLO_WORLD() = takes(0) returns(4) {}";
     let lexer = Lexer::new(source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens);
-    parser.parse();
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    assert_eq!(
+        macro_definition,
+        MacroDefinition {
+            name: "HELLO_WORLD".to_string(),
+            parameters: vec![],
+            statements: vec![],
+            takes: 0,
+            returns: 4,
+        }
+    );
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
 
 #[test]
 fn macro_with_simple_body() {
     let source =
-        "#define macro HELLO_WORLD() = takes(0) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
+        "#define macro HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
     let lexer = Lexer::new(source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens);
-    parser.parse();
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    assert_eq!(
+        macro_definition,
+        MacroDefinition {
+            name: "HELLO_WORLD".to_string(),
+            parameters: vec![],
+            statements: vec![
+                Statement::Literal(create_literal_from_str("0x00")),
+                Statement::Opcode(Opcode::Mstore),
+                Statement::Literal(create_literal_from_str("0x01")),
+                Statement::Literal(create_literal_from_str("0x02")),
+                Statement::Opcode(Opcode::Add)
+            ],
+            takes: 3,
+            returns: 0,
+        }
+    );
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }

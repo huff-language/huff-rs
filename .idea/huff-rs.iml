@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/huff_cli/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/huff_cli/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/huff_codegen/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/huff_lexer/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/huff_lexer/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/huff_parse/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/huff_utils/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/huff_parser/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/huff_parser/tests" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

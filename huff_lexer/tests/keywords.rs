@@ -604,3 +604,31 @@ fn parses_takes_keyword_arbitrary_whitespace() {
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
 }
+
+#[test]
+fn parses_define_with_extra_suffix() {
+    let source = "#defineabc";
+    let mut lexer = Lexer::new(source);
+    assert_eq!(lexer.source, source);
+
+    // Define Identifier first
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let span = Span::new(0..7);
+    assert_eq!(unwrapped, Token::new(TokenKind::Define, span));
+    assert_eq!(lexer.span, span);
+}
+
+#[test]
+fn parses_include_with_extra_suffix() {
+    let source = "#includeabc";
+    let mut lexer = Lexer::new(source);
+    assert_eq!(lexer.source, source);
+
+    // Define Identifier first
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let span = Span::new(0..8);
+    assert_eq!(unwrapped, Token::new(TokenKind::Include, span));
+    assert_eq!(lexer.span, span);
+}
