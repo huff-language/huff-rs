@@ -1,6 +1,7 @@
 use crate::{
     report::{Report, Reporter},
-    span::{Span, Spanned}, token::TokenKind,
+    span::{Span, Spanned},
+    token::TokenKind,
 };
 use std::io::Write;
 
@@ -52,7 +53,7 @@ pub struct CodegenError<'a> {
     /// An Optional Span where the error occured
     pub span: Option<Span>,
     /// An Optional Token Kind
-    pub token: Option<TokenKind<'a>>
+    pub token: Option<TokenKind<'a>>,
 }
 
 impl<'a> CodegenError<'a> {

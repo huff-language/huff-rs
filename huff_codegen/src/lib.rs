@@ -16,10 +16,8 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
+use huff_utils::{artifact::*, ast::*, error::CodegenError, prelude::Abi};
 use std::io::{self, Write};
-use huff_utils::{error::CodegenError, prelude::Abi};
-use huff_utils::{ast::*, artifact::*};
-
 
 /// ### Codegen
 ///
@@ -57,7 +55,8 @@ impl<'a> Codegen<'a> {
         let contract_code_offset = constructor_length; // padNBytes(toHex(13 + constructorLength), 2);
 
         // TODO: Properly encode the args
-        let constructor_args = args.iter().fold("".to_string(), |acc, arg| format!("{},{}", acc, arg));
+        let constructor_args =
+            args.iter().fold("".to_string(), |acc, arg| format!("{},{}", acc, arg));
 
         let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
