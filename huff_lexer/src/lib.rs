@@ -412,7 +412,7 @@ impl<'a> Iterator for Lexer<'a> {
                                 // TODO: support multi-dimensional arrays
                                 let words: Vec<String> = Regex::new(r"\[")
                                     .unwrap()
-                                    .split("raw_type")
+                                    .split(raw_type)
                                     .map(|x| x.replace(']', ""))
                                     .collect();
                                 found_kind = Some(TokenKind::ArrayType(
