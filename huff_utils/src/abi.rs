@@ -6,6 +6,8 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::ast;
+
 /// #### Abi
 ///
 /// The ABI of the generated code.
@@ -27,6 +29,30 @@ impl Abi {
     /// Public associated function to instatiate a new Abi.
     pub fn new() -> Self {
         Self::default()
+    }
+}
+
+// Allows for simple ABI Generation by directly translating the AST
+impl<'a> From<ast::Contract<'a>> for Abi {
+    fn from(contract: ast::Contract<'a>) -> Self {
+        let constructors: Vec<ast::Function> = contract.functions.iter().filter(|function: &&ast::Function| function.name == "CONSTRUCTOR").cloned().collect();
+        let constructor: ast::Function = constructors[0];
+        let mut functions = BTreeMap::new();
+        let mut events = BTreeMap::new();
+
+        Self {
+            constructor: Some(Constructor {
+                inputs: constructor.inputs.iter().map(|argument| FunctionParam {
+                    name: argument.name.unwrap_or_default(),
+                    kind: argument.arg_type.unwrap_or_default().as_ref().into(),
+                    internal_type: None
+                }).collect()
+            }),
+            functions,
+            events,
+            receive: false,
+            fallback: false
+        }
     }
 }
 
@@ -135,4 +161,15 @@ pub enum FunctionParamType {
     FixedArray(Box<FunctionParamType>, usize),
     /// A tuple of parameters
     Tuple(Vec<FunctionParamType>),
+}
+
+impl From<&str> for FunctionParamType {
+    fn from(string: &str) -> Self {
+        match string {
+            "Address" | "address" => Self::Address,
+            "Bytes" | "bytes" => Self::Bytes,
+            "Int" | "int" | "integer" | "Integer" => Self::Int(0),
+            _ => Self::Bool
+        }
+    }
 }
