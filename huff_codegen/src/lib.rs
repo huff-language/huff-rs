@@ -5,51 +5,70 @@
 //! #### Usage
 //!
 //! ```rust
-//! use huff_codegen::*;
+//! use huf&f_codegen::*;
 //!
 //! let mut cg = Codegen::new(false);
 //! assert!(!cg.abiout);
 //! ```
 
-#![deny(missing_docs)]
+#![warn(missing_docs)]
+#![warn(unused_extern_crates)]
+#![forbid(unsafe_code)]
+#![forbid(where_clauses_object_safety)]
 
-use huff_utils::{error::CodegenError, prelude::Abi};
 use std::io::{self, Write};
+use huff_utils::{error::CodegenError, prelude::Abi};
+use huff_utils::{ast::*, artifact::*};
 
-/// A MOCK AST Struct
-/// WARN: Should be deleted and use parser::Ast instead!
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Ast {
-    /// Expressions
-    pub exprs: Vec<String>,
-}
-
-impl Ast {
-    /// Public associated function to instatiate a new Ast.
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self { exprs: vec![] }
-    }
-}
 
 /// ### Codegen
 ///
 /// Code Generation Manager responsible for generating the code for the Huff Language.
-pub struct Codegen {
+pub struct Codegen<'a> {
     /// Whether to output the abi
     pub abiout: bool,
+    /// The Input AST
+    pub ast: Option<Contract<'a>>,
+    /// A cached codegen output artifact
+    pub artifact: Option<Artifact>,
 }
 
-impl Codegen {
+impl<'a> Codegen<'a> {
     /// Public associated function to instantiate a new Codegen instance.
     pub fn new(abiout: bool) -> Self {
-        Self { abiout }
+        Self { abiout, ast: None, artifact: None }
+    }
+
+    /// Generate a codegen artifact
+    ///
+    /// Takes in a vector of strings representing constructor arguments.
+    pub fn churn(&mut self, args: Vec<String>) -> Result<Artifact, CodegenError<'a>> {
+        let mut artifact = Artifact::default();
+
+        // TODO: actually generate the bytecode
+        // TODO: see huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
+        let main_bytecode = "";
+        let constructor_bytecode = "";
+
+        let contract_length = main_bytecode.len() / 2;
+        let constructor_length = constructor_bytecode.len() / 2;
+
+        let contract_size = contract_length; // padNBytes(toHex(contractLength), 2);
+        let contract_code_offset = constructor_length; // padNBytes(toHex(13 + constructorLength), 2);
+
+        // TODO: Properly encode the args
+        let constructor_args = args.iter().fold("".to_string(), |acc, arg| format!("{},{}", acc, arg));
+
+        let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);
+        let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
+        artifact.bytecode = format!("{}{}{}", constructor_code, main_bytecode, constructor_args);
+        Ok(artifact)
     }
 
     /// #### `write`
     ///
     /// Write the generated code to the output writer.
-    pub fn write(&self, ast: &Ast) -> Result<Vec<u8>, CodegenError> {
+    pub fn write(&self, ast: &Contract) -> Result<Vec<u8>, CodegenError> {
         let out = Vec::new();
         // self.entry();
         // self.start_main();
@@ -70,7 +89,7 @@ impl Codegen {
     /// #### `export`
     ///
     /// Exports the output to the specified target file.
-    pub fn export(&self, ast: &Ast, target: &str, input: &str) -> Result<(), CodegenError> {
+    pub fn export(&self, ast: &Contract, target: &str, input: &str) -> Result<(), CodegenError> {
         let out = self.write(ast)?;
 
         // TODO: validate target is in format `./target/`
@@ -121,7 +140,7 @@ impl Codegen {
     /// #### `abigen`
     ///
     /// Generates an ABI for the given Ast.
-    pub fn abigen(&self, _ast: &Ast) -> Result<Abi, CodegenError> {
+    pub fn abigen(&self, _ast: &Contract<'a>) -> Result<Abi, CodegenError> {
         let abi = Abi::new();
 
         // TODO: Construct the abi using the ast
