@@ -19,6 +19,8 @@ pub struct Contract<'a> {
     pub macros: Vec<MacroDefinition<'a>>,
     /// Main macro definition
     pub main: MacroDefinition<'a>,
+    /// Constructor definition
+    pub constructor: MacroDefinition<'a>,
     /// File Imports
     pub imports: Vec<FilePath<'a>>,
     /// Constants
