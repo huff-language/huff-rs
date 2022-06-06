@@ -410,11 +410,14 @@ impl<'a> Iterator for Lexer<'a> {
                             if EVMTypeArrayRegex.is_match(raw_type) {
                                 // split to get array size and type
                                 // TODO: support multi-dimensional arrays
-                                let words: Vec<String> = Regex::new(r"\[")
+                                let mut words: Vec<String> = Regex::new(r"\[")
                                     .unwrap()
                                     .split(raw_type)
                                     .map(|x| x.replace(']', ""))
                                     .collect();
+                                if words[1].is_empty() {
+                                    words[1] = String::from("0");
+                                }
                                 found_kind = Some(TokenKind::ArrayType(
                                     PrimitiveEVMType::from(words[0].clone()),
                                     words[1].parse::<usize>().unwrap(),

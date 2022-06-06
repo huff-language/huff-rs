@@ -98,6 +98,7 @@ pub enum TokenKind<'a> {
     /// EVM Type
     PrimitiveType(PrimitiveEVMType),
     /// Array of EVM Types
+    /// if unbounded ; size of 0
     ArrayType(PrimitiveEVMType, usize),
 }
 
@@ -147,7 +148,13 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Opcode(o) => return write!(f, "{}", o),
             TokenKind::Label(s) => return write!(f, "{}", s),
             TokenKind::PrimitiveType(pt) => return write!(f, "{}", pt),
-            TokenKind::ArrayType(pt, num) => return write!(f, "{}[{}]", pt, num),
+            TokenKind::ArrayType(pt, num) => {
+                if num > 0 {
+                    return write!(f, "{}[{}]", pt, num)
+                } else {
+                    return write!(f, "{}[]", pt)
+                }
+            }
         };
 
         write!(f, "{}", x)
