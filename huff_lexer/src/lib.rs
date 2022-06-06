@@ -64,9 +64,9 @@
 
 #![deny(missing_docs)]
 #![allow(dead_code)]
-
+use regex::Regex;
 use bytes::BytesMut;
-use huff_utils::{error::*, evm::*, span::*, token::*};
+use huff_utils::{error::*, evm::*, span::*, token::*, types::*};
 use std::{iter::Peekable, str::Chars};
 
 /// Defines a context in which the lexing happens.
@@ -395,6 +395,40 @@ impl<'a> Iterator for Lexer<'a> {
                             break
                         }
                     }
+
+                    // Last case ; we are in ABI context and
+                    // we are parsing an EVM type
+                    if self.context == Context::Abi {
+                        let curr_char = self.peek();
+                        if curr_char != None && !['(',')'].contains(&curr_char.unwrap()) {
+                            self.dyn_consume(|c| c.is_alphanumeric() || *c == '[' || *c == ']');
+                            // got a type at this point, we have to know which
+                            let raw_type: &str = self.slice();
+                            // check for arrays first
+                            if EVMTypeArrayRegex.is_match(raw_type) {
+                                // split to get array size and type
+                                // TODO: support multi-dimensional arrays
+                                let words: Vec<String> = Regex::new(r"\[")
+                                .unwrap()
+                                .split("raw_type")
+                                .map(|x| x.replace("]",""))
+                                .collect();
+                                found_kind = Some(TokenKind::EVMType(EVMType::Array(
+                                    EVMType::from(words[0]),
+                                    words[1].parse::<usize>().unwrap(),
+                                )));
+
+                            }
+                            let kind = match raw_type {
+                                "address" => EVMType::Address,
+                                "bool" => EVMType::Bool,
+                                "string" => EVMType::String,
+                                "bytes" => EVMType::DynBytes,
+                                _ => None 
+                            };
+                        }
+                    }
+
 
                     if let Some(kind) = found_kind {
                         kind
