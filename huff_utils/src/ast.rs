@@ -31,6 +31,15 @@ pub struct Contract<'a> {
     pub tables: Vec<Table<'a>>,
 }
 
+/// A function, event, or macro argument
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Argument {
+    /// Type of the argument
+    pub arg_type: Option<String>,
+    /// The name of the argument
+    pub name: Option<String>,
+}
+
 /// A Function Signature
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Function<'a> {
