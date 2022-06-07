@@ -9,7 +9,7 @@ use std::collections::HashMap;
 #[test]
 fn parses_valid_function_definition() {
     let sources = [
-        "#define function test(uint256,bool) view returns(uint256)",
+        "#define function test(uint256,bool b) view returns(uint256)",
         "#define function test(uint256) pure returns(uint256)",
         "#define function test(uint256) nonpayable returns(uint256)",
         "#define function test(uint256) payable returns(uint256)",
@@ -25,7 +25,11 @@ fn parses_valid_function_definition() {
                         arg_type: Some(String::from("uint256")),
                         indexed: false,
                     },
-                    Argument { name: None, arg_type: Some(String::from("bool")), indexed: false },
+                    Argument {
+                        name: Some(String::from("b")),
+                        arg_type: Some(String::from("bool")),
+                        indexed: false,
+                    },
                 ],
                 fn_type: FunctionType::View,
                 outputs: vec![Argument {

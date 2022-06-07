@@ -437,13 +437,11 @@ impl<'a> Iterator for Lexer<'a> {
                                     arr_size,
                                 ));
                             } else {
-                                // We don't want to consider an "indexed" hereq
-                                // TODO: This also prohibits argument names from being lexed within
-                                // TODO: the ABI context. Need to fix that.
-                                if raw_type != TokenKind::Indexed.to_string() {
-                                    found_kind = Some(TokenKind::PrimitiveType(
-                                        PrimitiveEVMType::from(raw_type.to_string()),
-                                    ));
+                                // We don't want to consider any argument names or the "indexed"
+                                // keyword here.
+                                let primitive = PrimitiveEVMType::try_from(raw_type.to_string());
+                                if let Ok(primitive) = primitive {
+                                    found_kind = Some(TokenKind::PrimitiveType(primitive));
                                 }
                             }
                         }

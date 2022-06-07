@@ -20,6 +20,13 @@ pub enum PrimitiveEVMType {
     Bytes(usize),
 }
 
+impl PrimitiveEVMType {
+    /// Try to convert from an input string to a PrimitiveEVMType.
+    pub fn try_from(input: String) -> std::thread::Result<PrimitiveEVMType> {
+        std::panic::catch_unwind(|| PrimitiveEVMType::from(input))
+    }
+}
+
 /// Automatically converts an input string to a PrimitiveEVMType.
 /// Example : PrimitiveEVMType::from("uint256") => PrimitiveEVMType::Uint(256)
 impl From<String> for PrimitiveEVMType {

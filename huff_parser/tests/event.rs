@@ -6,17 +6,21 @@ use huff_utils::{ast::Event, prelude::*};
 fn parse_event() {
     let sources = [
         (
-            "#define event TestEvent(uint256 indexed,uint8 indexed)",
+            "#define event TestEvent(uint256 indexed a,uint8 indexed)",
             Event {
                 name: "TestEvent",
                 parameters: vec![
-                    Argument { arg_type: Some(String::from("uint256")), name: None, indexed: true },
+                    Argument {
+                        arg_type: Some(String::from("uint256")),
+                        name: Some(String::from("a")),
+                        indexed: true,
+                    },
                     Argument { arg_type: Some(String::from("uint8")), name: None, indexed: true },
                 ],
             },
         ),
         (
-            "#define event TestEvent(uint256,uint8)",
+            "#define event TestEvent(uint256,uint8 b)",
             Event {
                 name: "TestEvent",
                 parameters: vec![
@@ -25,7 +29,11 @@ fn parse_event() {
                         name: None,
                         indexed: false,
                     },
-                    Argument { arg_type: Some(String::from("uint8")), name: None, indexed: false },
+                    Argument {
+                        arg_type: Some(String::from("uint8")),
+                        name: Some(String::from("b")),
+                        indexed: false,
+                    },
                 ],
             },
         ),
