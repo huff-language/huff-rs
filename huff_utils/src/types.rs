@@ -20,42 +20,37 @@ pub enum PrimitiveEVMType {
     Bytes(usize),
 }
 
-impl PrimitiveEVMType {
-    /// Try to convert from an input string to a PrimitiveEVMType.
-    pub fn try_from(input: String) -> std::thread::Result<PrimitiveEVMType> {
-        std::panic::catch_unwind(|| PrimitiveEVMType::from(input))
-    }
-}
-
 /// Automatically converts an input string to a PrimitiveEVMType.
 /// Example : PrimitiveEVMType::from("uint256") => PrimitiveEVMType::Uint(256)
-impl From<String> for PrimitiveEVMType {
-    fn from(input: String) -> Self {
+impl TryFrom<String> for PrimitiveEVMType {
+    type Error = String;
+
+    fn try_from(input: String) -> Result<Self, Self::Error> {
         if input.starts_with("uint") {
             let size = input.get(4..input.len()).unwrap().parse::<usize>().unwrap();
-            return PrimitiveEVMType::Uint(size)
+            return Ok(PrimitiveEVMType::Uint(size))
         }
         if input.starts_with("int") {
             let size = input.get(3..input.len()).unwrap().parse::<usize>().unwrap();
-            return PrimitiveEVMType::Int(size)
+            return Ok(PrimitiveEVMType::Int(size))
         }
         if input.starts_with("bytes") && input.len() != 5 {
             let size = input.get(5..input.len()).unwrap().parse::<usize>().unwrap();
-            return PrimitiveEVMType::Bytes(size)
+            return Ok(PrimitiveEVMType::Bytes(size))
         }
         if input.starts_with("bool") {
-            return PrimitiveEVMType::Bool
+            return Ok(PrimitiveEVMType::Bool)
         }
         if input.starts_with("address") {
-            return PrimitiveEVMType::Address
+            return Ok(PrimitiveEVMType::Address)
         }
         if input.starts_with("string") {
-            return PrimitiveEVMType::String
+            return Ok(PrimitiveEVMType::String)
         }
         if input == "bytes" {
-            PrimitiveEVMType::DynBytes
+            Ok(PrimitiveEVMType::DynBytes)
         } else {
-            panic!("Invalid PrimitiveEVMType type: {}", input);
+            Err(format!("Invalid PrimitiveEVMType type: {}", input))
         }
     }
 }

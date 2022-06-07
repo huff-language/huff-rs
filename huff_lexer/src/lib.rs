@@ -432,10 +432,16 @@ impl<'a> Iterator for Lexer<'a> {
                                         err
                                     })
                                     .unwrap();
-                                found_kind = Some(TokenKind::ArrayType(
-                                    PrimitiveEVMType::from(words[0].clone()),
-                                    arr_size,
-                                ));
+                                let primitive = PrimitiveEVMType::try_from(words[0].clone());
+                                if let Ok(primitive) = primitive {
+                                    found_kind = Some(TokenKind::ArrayType(primitive, arr_size));
+                                } else {
+                                    let err = LexicalError {
+                                        kind: LexicalErrorKind::InvalidPrimitiveType(&words[0]),
+                                        span: self.span,
+                                    };
+                                    tracing::error!("{}", format!("{:?}", err));
+                                }
                             } else {
                                 // We don't want to consider any argument names or the "indexed"
                                 // keyword here.

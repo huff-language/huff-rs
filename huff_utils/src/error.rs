@@ -30,6 +30,8 @@ pub enum LexicalErrorKind<'a> {
     /// Invalid Array Size
     /// String param expected to be usize parsable
     InvalidArraySize(&'a str),
+    /// Invalid Primitive EVM Type
+    InvalidPrimitiveType(&'a str),
 }
 
 impl<'a> Spanned for LexicalError<'a> {
@@ -45,6 +47,9 @@ impl<'a, W: Write> Report<W> for LexicalError<'a> {
             LexicalErrorKind::UnexpectedEof => write!(f.out, "Found unexpected EOF"),
             LexicalErrorKind::InvalidArraySize(str) => {
                 write!(f.out, "Invalid array size: '{}'", str)
+            }
+            LexicalErrorKind::InvalidPrimitiveType(str) => {
+                write!(f.out, "Invalid Primitive EVM Type '{}'", str)
             }
         }
     }
