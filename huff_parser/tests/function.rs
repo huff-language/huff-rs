@@ -58,6 +58,19 @@ fn parses_valid_function_definition() {
                 signature: [41, 233, 159, 7],
             },
         ),
+        (
+            4,
+            Function {
+                name: "test",
+                inputs: vec![Argument {
+                    name: None,
+                    arg_type: Some(String::from("uint256[], bool[5]")),
+                }],
+                fn_type: FunctionType::Payable,
+                outputs: vec![Argument { name: None, arg_type: Some(String::from("uint256")) }],
+                signature: [5, 191, 166, 243],
+            },
+        ),
     ]);
 
     for (index, source) in sources.into_iter().enumerate() {
@@ -68,10 +81,10 @@ fn parses_valid_function_definition() {
             .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
             .collect::<Vec<Token>>();
         let mut parser = Parser::new(tokens);
-        parser.match_kind(TokenKind::Define);
+        let _ = parser.match_kind(TokenKind::Define);
         let function = parser.parse_function().unwrap();
 
-        // TODO: Ensure that the parser constructed the `Function` node correctly.
+        // Ensure that the parser constructed the `Function` node correctly.
         assert_eq!(function, *expected_fns.get(&index).unwrap());
     }
 }

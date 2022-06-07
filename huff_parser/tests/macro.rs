@@ -5,14 +5,6 @@ use huff_utils::{evm::Opcode, prelude::*};
 mod common;
 use common::*;
 
-fn lex_and_parse(source: &str) -> Result<(), ParserError> {
-    let lexer = Lexer::new(source);
-    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
-    let mut parser = Parser::new(tokens);
-    let _ = parser.parse();
-    Ok(())
-}
-
 #[test]
 fn empty_macro() {
     let source = "#define macro HELLO_WORLD() = takes(0) returns(4) {}";
@@ -51,10 +43,10 @@ fn macro_with_simple_body() {
             name: "HELLO_WORLD".to_string(),
             parameters: vec![],
             statements: vec![
-                Statement::Literal(create_literal_from_str("0x00")),
+                Statement::Literal(create_literal_from_str("00")),
                 Statement::Opcode(Opcode::Mstore),
-                Statement::Literal(create_literal_from_str("0x01")),
-                Statement::Literal(create_literal_from_str("0x02")),
+                Statement::Literal(create_literal_from_str("01")),
+                Statement::Literal(create_literal_from_str("02")),
                 Statement::Opcode(Opcode::Add)
             ],
             takes: 3,

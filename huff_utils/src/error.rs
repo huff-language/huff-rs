@@ -7,40 +7,46 @@ use std::io::Write;
 
 /// A Lexing Error
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct LexicalError {
+pub struct LexicalError<'a> {
     /// The kind of error
-    pub kind: LexicalErrorKind,
+    pub kind: LexicalErrorKind<'a>,
     /// The span where the error occured
     pub span: Span,
 }
 
-impl LexicalError {
+impl<'a> LexicalError<'a> {
     /// Public associated function to instatiate a new LexicalError.
-    pub fn new(kind: LexicalErrorKind, span: Span) -> Self {
+    pub fn new(kind: LexicalErrorKind<'a>, span: Span) -> Self {
         Self { kind, span }
     }
 }
 
 /// A Lexical Error Kind
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum LexicalErrorKind {
+pub enum LexicalErrorKind<'a> {
     /// Unexpected end of file
     UnexpectedEof,
     /// Invalid character
     InvalidCharacter(char),
+    /// Invalid Array Size
+    /// String param expected to be usize parsable
+    InvalidArraySize(&'a str),
 }
 
-impl Spanned for LexicalError {
+impl<'a> Spanned for LexicalError<'a> {
     fn span(&self) -> Span {
         self.span
     }
 }
 
-impl<W: Write> Report<W> for LexicalError {
+impl<'a, W: Write> Report<W> for LexicalError<'a> {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match self.kind {
             LexicalErrorKind::InvalidCharacter(ch) => write!(f.out, "Invalid character '{}'", ch),
             LexicalErrorKind::UnexpectedEof => write!(f.out, "Found unexpected EOF"),
+            LexicalErrorKind::InvalidArraySize(str) => {
+                write!(f.out, "Invalid array size: '{}'", str)
+            }
         }
     }
 }

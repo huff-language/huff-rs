@@ -1,11 +1,12 @@
 use crate::evm::Opcode;
+use std::path::Path;
 
 type Literal = [u8; 32];
 
 /// A File Path
 ///
 /// Used for parsing the huff imports.
-pub type FilePath<'a> = &'a str;
+pub type FilePath<'a> = &'a Path;
 
 /// A Huff Contract Representation
 ///

@@ -17,3 +17,6 @@ strum = "0.24"
 strum_macros = "0.24"
 codemap-diagnostic = "0.1.1"
 phf = { version = "0.10", features = ["macros"] }
+regex = "1"
+lazy_static = "1"
+tracing = "0.1.34"
