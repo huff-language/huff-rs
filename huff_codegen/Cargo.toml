@@ -17,3 +17,4 @@ proptest = "1.0.0"
 huff_utils = { path = "../huff_utils" }
 ethers = "0.6.2"
 hex = "0.4.3"
+tracing = "0.1.34"

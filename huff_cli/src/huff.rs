@@ -94,18 +94,34 @@ impl<'a> Huff {
             println!("Parsed AST: {:?}", contract);
 
             // Run code generation
-            let cg = Codegen::new(true);
-            println!("Created a new codegen instance");
-
-            let write_res = cg.write(&contract);
-            println!("Codegen writing result: {:?}", write_res);
+            let mut cg = Codegen::new();
 
             // Gracefully derive the output from the cli
             let output: OutputLocation = self.get_outputs();
-            println!("Cli got output location: {:?}", output);
 
-            let export_res = cg.export(&contract, &output.0, "INPUT");
-            println!("Codegen export result: {:?}", export_res);
+            // TODO: actually generate the bytecode
+            // TODO: see huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
+            let main_bytecode = "";
+            let constructor_bytecode = "";
+            let inputs = vec![];
+            let churn_res = cg.churn(inputs, main_bytecode, constructor_bytecode);
+            match churn_res {
+                Ok(_) => {
+                    println!("Successfully compiled {}!", file);
+                    // Then we can have the code gen output the artifact
+                    let abiout = cg.abigen(
+                        contract,
+                        Some(format!("./{}/{}.json", output.0, file.to_uppercase())),
+                    );
+                    if let Err(e) = abiout {
+                        tracing::error!("Failed to generate artifact!\nError: {:?}", e);
+                    }
+                }
+                Err(e) => {
+                    println!("Failed to compile!\nError: {:?}", e);
+                    tracing::error!("Failed to compile!\nError: {:?}", e);
+                }
+            }
         });
 
         Ok(())

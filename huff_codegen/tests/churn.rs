@@ -4,7 +4,7 @@ use huff_codegen::Codegen;
 #[test]
 fn churns_into_bytecode() {
     // Instantiate Codegen
-    let mut cg = Codegen::new(true);
+    let mut cg = Codegen::new();
 
     // The codegen instance should have no artifact
     assert!(cg.artifact.is_none());
@@ -27,7 +27,7 @@ fn churns_into_bytecode() {
 #[test]
 fn churns_constructor_args() {
     // Instantiate Codegen
-    let mut cg = Codegen::new(true);
+    let mut cg = Codegen::new();
 
     // The codegen instance should have no artifact
     assert!(cg.artifact.is_none());

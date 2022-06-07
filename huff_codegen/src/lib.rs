@@ -4,11 +4,27 @@
 //!
 //! #### Usage
 //!
+//! Below we showcase generating a compile artifact from compiled bytecode using `huff_codegen`.
+//!
 //! ```rust
 //! use huff_codegen::*;
 //!
-//! let mut cg = Codegen::new(false);
-//! assert!(!cg.abiout);
+//! // Instantiate an empty Codegen
+//! let mut cg = Codegen::new();
+//! assert!(cg.ast.is_none());
+//! assert!(cg.artifact.is_none());
+//!
+//! // ERC20 Bytecode
+//! let main_bytecode = "60003560E01c8063a9059cbb1461004857806340c10f19146100de57806370a082311461014e57806318160ddd1461016b578063095ea7b314610177578063dd62ed3e1461018e575b600435336024358160016000526000602001526040600020548082116100d8578190038260016000526000602001526040600020558281906001600052600060200152604060002054018360016000526000602001526040600020556000527fDDF252AD1BE2C89B69C2B068FC378DAA952BA7F163C4A11628F55A4DF523B3EF60206000a3600160005260206000f35b60006000fd5b60005433146100ed5760006000fd5b600435600060243582819060016000526000602001526040600020540183600160005260006020015260406000205580600254016002556000527fDDF252AD1BE2C89B69C2B068FC378DAA952BA7F163C4A11628F55A4DF523B3EF60206000a35b600435600160005260006020015260406000205460005260206000f35b60025460005260206000f35b602435600435336000526000602001526040600020555b60243560043560005260006020015260406000205460005260206000f3";
+//! let constructor_bytecode = "33600055";
+//! let inputs = vec![];
+//! let churn_res = cg.churn(inputs, main_bytecode, constructor_bytecode);
+//!
+//! // Validate the output bytecode
+//! assert_eq!(churn_res.unwrap().bytecode, "336000556101ac806100116000396000f360003560E01c8063a9059cbb1461004857806340c10f19146100de57806370a082311461014e57806318160ddd1461016b578063095ea7b314610177578063dd62ed3e1461018e575b600435336024358160016000526000602001526040600020548082116100d8578190038260016000526000602001526040600020558281906001600052600060200152604060002054018360016000526000602001526040600020556000527fDDF252AD1BE2C89B69C2B068FC378DAA952BA7F163C4A11628F55A4DF523B3EF60206000a3600160005260206000f35b60006000fd5b60005433146100ed5760006000fd5b600435600060243582819060016000526000602001526040600020540183600160005260006020015260406000205580600254016002556000527fDDF252AD1BE2C89B69C2B068FC378DAA952BA7F163C4A11628F55A4DF523B3EF60206000a35b600435600160005260006020015260406000205460005260206000f35b60025460005260206000f35b602435600435336000526000602001526040600020555b60243560043560005260006020015260406000205460005260206000f3");
+//!
+//! // Write the compile artifact out to a file
+//! // cg.export("./output.json");
 //! ```
 
 #![warn(missing_docs)]
@@ -17,14 +33,13 @@
 #![forbid(where_clauses_object_safety)]
 
 use huff_utils::{abi::*, artifact::*, ast::*, error::CodegenError};
-use std::io::{self, Write};
+use std::fs;
 
 /// ### Codegen
 ///
 /// Code Generation Manager responsible for generating the code for the Huff Language.
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Codegen<'a> {
-    /// Whether to output the abi
-    pub abiout: bool,
     /// The Input AST
     pub ast: Option<Contract<'a>>,
     /// A cached codegen output artifact
@@ -33,8 +48,8 @@ pub struct Codegen<'a> {
 
 impl<'a> Codegen<'a> {
     /// Public associated function to instantiate a new Codegen instance.
-    pub fn new(abiout: bool) -> Self {
-        Self { abiout, ast: None, artifact: None }
+    pub fn new() -> Self {
+        Self { ast: None, artifact: None }
     }
 
     /// Generate a codegen artifact
@@ -56,9 +71,6 @@ impl<'a> Codegen<'a> {
             self.artifact = Some(Artifact::default());
             self.artifact.as_mut().unwrap()
         };
-
-        // TODO: actually generate the bytecode
-        // TODO: see huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
 
         let contract_length = main_bytecode.len() / 2;
         let constructor_length = constructor_bytecode.len() / 2;
@@ -84,83 +96,40 @@ impl<'a> Codegen<'a> {
         Ok(artifact.clone())
     }
 
-    /// #### `write`
+    /// Export
     ///
-    /// Write the generated code to the output writer.
-    pub fn write(&self, ast: &Contract) -> Result<Vec<u8>, CodegenError> {
-        let out = Vec::new();
-        // self.entry();
-        // self.start_main();
-
-        // for expr in &ast.exprs {
-        //     self.expr(expr)?;
-        // }
-
-        // self.end_main();
-
-        // TODO::::
-
-        println!("Writer got ast: {:?}", ast);
-
-        Ok(out)
-    }
-
-    /// #### `export`
+    /// Writes a Codegen Artifact out to the specified file.
     ///
-    /// Exports the output to the specified target file.
-    pub fn export(&self, ast: &Contract, target: &str, input: &str) -> Result<(), CodegenError> {
-        let out = self.write(ast)?;
-
-        // TODO: validate target is in format `./target/`
-        // TODO: add additional ending slash if needed
-
-        match std::fs::create_dir(target) {
-            Err(err) if err.kind() != io::ErrorKind::AlreadyExists => {
-                panic!("failed to create target directory: {}", err)
-            }
-            _ => {}
-        };
-
-        // let hash = {
-        //     let mut hasher = DefaultHasher::new();
-        //     hasher.write_u64(rand::thread_rng().next_u64());
-        //     hasher.finish()
-        // };
-
-        let asm_file = format!("{}{}.s", target, input);
-        let out_file = format!("{}{}.o", target, input);
-
-        std::fs::File::create(&asm_file)
-            .expect("failed to open output file")
-            .write_all(&out)
-            .expect("failed to write output");
-
-        std::process::Command::new("as")
-            .arg(&asm_file)
-            .arg("-g")
-            .arg("-o")
-            .arg(&out_file)
-            .status()
-            .expect("failed to assemble output");
-
-        std::process::Command::new("ld")
-            .arg("-o")
-            .arg("out")
-            .arg("--dynamic-linker")
-            .arg("/lib64/ld-linux-x86-64.so.2")
-            .arg(&out_file)
-            .arg("-lc")
-            .status()
-            .expect("linking failed");
-
+    /// # Arguments
+    ///
+    /// * `out` - Output location to write the serialized json artifact to.
+    pub fn export(&self, output: String) -> Result<(), CodegenError> {
+        if let Some(art) = &self.artifact {
+            let serialized_artifact = serde_json::to_string(art).unwrap();
+            fs::write(output, serialized_artifact).expect("Unable to write file");
+        } else {
+            tracing::warn!(
+                "Failed to export the compile artifact to the specified output location {}!",
+                output
+            );
+        }
         Ok(())
     }
 
-    /// #### `abigen`
+    /// Abi Generation
     ///
     /// Generates an ABI for the given Ast.
     /// Stores the generated ABI in the Codegen `artifact`.
-    pub fn abigen(&mut self, ast: Contract<'a>) -> Result<Abi, CodegenError> {
+    ///
+    /// # Arguments
+    ///
+    /// * `ast` - The Contract Abstract Syntax Tree
+    /// * `output` - An optional output path
+    pub fn abigen(
+        &mut self,
+        ast: Contract<'a>,
+        output: Option<String>,
+    ) -> Result<Abi, CodegenError> {
         let abi: Abi = ast.into();
 
         // Set the abi on self
@@ -170,6 +139,13 @@ impl<'a> Codegen<'a> {
             }
             None => {
                 self.artifact = Some(Artifact { abi: Some(abi.clone()), ..Default::default() });
+            }
+        }
+
+        // If an output's specified, write the artifact out
+        if let Some(o) = output {
+            if self.export(o).is_err() {
+                // !! We should never get here since we set the artifact above !! //
             }
         }
 
