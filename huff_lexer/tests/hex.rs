@@ -2,14 +2,6 @@ use bytes::BytesMut;
 use huff_lexer::*;
 use huff_utils::prelude::*;
 
-fn str_to_array(s: &str) -> [u8; 32] {
-    let mut arr: [u8; 32] = Default::default();
-    let mut buf = BytesMut::from(s);
-    buf.resize(32, 0);
-    arr.copy_from_slice(buf.as_ref());
-    arr
-}
-
 #[test]
 fn parses_single_hex() {
     let source = "0xa57B";

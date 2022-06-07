@@ -44,8 +44,8 @@
 
 use huff_utils::{
     ast::*,
+    error::ParserError,
     token::{Token, TokenKind},
-    error::ParserError
 };
 use tiny_keccak::{Hasher, Keccak};
 

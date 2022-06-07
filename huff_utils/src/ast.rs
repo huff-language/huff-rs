@@ -1,4 +1,4 @@
-use crate::{evm::Opcode, error::ParserError};
+use crate::{bytes_util::find_lowest, error::ParserError, evm::Opcode};
 
 type Literal = [u8; 32];
 
@@ -33,27 +33,50 @@ pub struct Contract<'a> {
 
 impl<'a> Contract<'a> {
     /// Generates a list of storage pointers from constants
-    pub fn derive_storage_pointers(&self) -> Result<Vec<String>, ParserError> {
+    pub fn derive_storage_pointers(&self) -> Result<Vec<Literal>, ParserError> {
         // Split literals and free storage pointers
-        let literal_consts: Vec<ConstVal> = self.constants.iter().filter(|constant| !matches!(constant.value, ConstVal::Literal(_))).map(|definition| definition.value.clone()).collect();
-        let fsp_consts: Vec<ConstVal> = self.constants.iter().filter(|constant| !matches!(constant.value, ConstVal::FreeStoragePointer(_))).map(|definition| definition.value.clone()).collect();
+        let literal_consts: Vec<ConstVal> = self
+            .constants
+            .iter()
+            .filter(|constant| matches!(constant.value, ConstVal::Literal(_)))
+            .map(|definition| definition.value.clone())
+            .collect();
+        let fsp_consts: Vec<ConstVal> = self
+            .constants
+            .iter()
+            .filter(|constant| matches!(constant.value, ConstVal::FreeStoragePointer(_)))
+            .map(|definition| definition.value.clone())
+            .collect();
 
         // First, validate literal storage pointers to prevent FREE_STORAGE_POINTER clashes
-        let literal_pointers: Vec<Vec<u8>> = literal_consts.iter().fold(Vec::new(), |acc, constant| {
-            // TODO: find next lowest storage pointer in the acc
-            // TODO: push the new storage pointer to the accumulator
-            vec![]
-        });
+        let literal_pointers: Vec<Literal> =
+            literal_consts.iter().fold(Vec::new(), |mut acc, constant| {
+                // Get the `Literal` value of the `ConstVal`
+                let literal: Option<Literal> = match constant {
+                    ConstVal::Literal(literal) => Some(*literal),
+                    _ => None,
+                };
 
-        let final_pointers: Vec<Vec<u8>> = fsp_consts.iter().fold(literal_pointers, |acc, constant| {
-            // TODO: find next lowest storage pointer in the acc
-            // TODO: push the new storage pointer to the accumulator
-            vec![]
-        });
+                // Check if the pointer has already been used
+                if literal.is_none() || acc.contains(&literal.unwrap()) {
+                    return acc // TODO: Throw err, pointer already used.
+                }
 
-        Ok(final_pointers.iter().map(|pointer| format!("0x{:x?}", pointer)).collect())
+                // Push the Literal constant's storage pointer to the accumulator
+                acc.push(literal.unwrap());
+                acc
+            });
+
+        let final_pointers: Vec<Literal> =
+            fsp_consts.iter().fold(literal_pointers, |mut acc, _constant| {
+                // Push the lowest available storage pointer to the accumulator
+                // TODO: Set the constant's value to the found pointer
+                acc.push(find_lowest(0, &acc));
+                acc
+            });
+
+        Ok(final_pointers)
     }
-
 }
 
 /// A function, event, or macro argument
