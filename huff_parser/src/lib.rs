@@ -421,24 +421,32 @@ impl<'a> Parser<'a> {
         let mut args: Vec<Argument> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
+            let mut arg = Argument::default();
+
             // type comes first
             // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
-            let arg_type =
-                if select_type { Some(self.parse_arg_type()?.to_string()) } else { None };
+            if select_type {
+                arg.arg_type = Some(self.parse_arg_type()?.to_string());
+                // Check if the argument is indexed
+                // TODO: Ensure this can only be done for events- this function is used for
+                // TODO: events, functions, and macro arguments.
+                if self.check(TokenKind::Indexed) {
+                    arg.indexed = true;
+                    self.consume(); // consume "indexed" keyword
+                }
+            }
 
             // name comes second (is optional)
-            let name = if select_name && self.check(TokenKind::Ident("x")) {
-                Some(self.match_kind(TokenKind::Ident("x"))?.to_string())
-            } else {
-                None
-            };
+            if select_name && self.check(TokenKind::Ident("x")) {
+                arg.name = Some(self.match_kind(TokenKind::Ident("x"))?.to_string())
+            }
 
             // multiple args possible
             if self.check(TokenKind::Comma) {
                 self.consume();
             }
 
-            args.push(Argument { arg_type, name });
+            args.push(arg);
         }
         // consume close parenthesis
         self.match_kind(TokenKind::CloseParen)?;

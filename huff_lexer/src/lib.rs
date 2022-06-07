@@ -64,6 +64,7 @@
 
 #![deny(missing_docs)]
 #![allow(dead_code)]
+
 use bytes::BytesMut;
 use huff_utils::{error::*, evm::*, span::*, token::*, types::*};
 use regex::Regex;
@@ -333,6 +334,7 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Event,
                         TokenKind::NonPayable,
                         TokenKind::Payable,
+                        TokenKind::Indexed,
                         TokenKind::View,
                         TokenKind::Pure,
                     ];
@@ -435,9 +437,14 @@ impl<'a> Iterator for Lexer<'a> {
                                     arr_size,
                                 ));
                             } else {
-                                found_kind = Some(TokenKind::PrimitiveType(
-                                    PrimitiveEVMType::from(raw_type.to_string()),
-                                ));
+                                // We don't want to consider an "indexed" hereq
+                                // TODO: This also prohibits argument names from being lexed within
+                                // TODO: the ABI context. Need to fix that.
+                                if raw_type != TokenKind::Indexed.to_string() {
+                                    found_kind = Some(TokenKind::PrimitiveType(
+                                        PrimitiveEVMType::from(raw_type.to_string()),
+                                    ));
+                                }
                             }
                         }
                     }
@@ -455,8 +462,8 @@ impl<'a> Iterator for Lexer<'a> {
                                     // to match `x` in the actual hex)
                     self.dyn_consume(|c| {
                         c.is_numeric() ||
-                        // Match a-f & A-F
-                        matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
+                            // Match a-f & A-F
+                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
                     });
                     self.span.start += 2; // Ignore the "0x"
                     let mut arr: [u8; 32] = Default::default();

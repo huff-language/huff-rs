@@ -53,6 +53,8 @@ pub enum TokenKind<'a> {
     Payable,
     /// "nonpayable" keyword
     NonPayable,
+    /// "indexed" keyword
+    Indexed,
     /// "FREE_STORAGE_POINTER()" keyword
     FreeStoragePointer,
     /// An Identifier
@@ -118,6 +120,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Pure => "pure",
             TokenKind::Payable => "payable",
             TokenKind::NonPayable => "nonpayable",
+            TokenKind::Indexed => "indexed",
             TokenKind::Takes => "takes",
             TokenKind::Returns => "returns",
             TokenKind::FreeStoragePointer => "FREE_STORAGE_POINTER()",
