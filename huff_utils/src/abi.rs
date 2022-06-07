@@ -79,9 +79,11 @@ impl<'a> From<ast::Contract<'a>> for Abi {
         let mut events = BTreeMap::new();
 
         // Translate contract functions
+        // Excluding constructor
         contract
             .functions
             .iter()
+            .filter(|function: &&ast::Function| function.name != "CONSTRUCTOR")
             .map(|function| {
                 (
                     function.name.to_string(),

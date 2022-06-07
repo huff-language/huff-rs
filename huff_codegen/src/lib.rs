@@ -16,7 +16,7 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
-use huff_utils::{artifact::*, ast::*, error::CodegenError, prelude::Abi};
+use huff_utils::{abi::*, artifact::*, ast::*, error::CodegenError};
 use std::io::{self, Write};
 
 /// ### Codegen
@@ -139,58 +139,20 @@ impl<'a> Codegen<'a> {
     /// #### `abigen`
     ///
     /// Generates an ABI for the given Ast.
-    pub fn abigen(&self, _ast: &Contract<'a>) -> Result<Abi, CodegenError> {
-        let abi = Abi::new();
+    pub fn abigen(&mut self, ast: Contract<'a>) -> Result<Abi, CodegenError> {
+        let abi: Abi = ast.into();
 
-        // TODO: Construct the abi using the ast
+        // Set the abi on self
+        match &mut self.artifact {
+            Some(artifact) => {
+                artifact.abi = Some(abi.clone());
+            }
+            None => {
+                self.artifact = Some(Artifact { abi: Some(abi.clone()), ..Default::default() });
+            }
+        }
 
+        // Return the abi
         Ok(abi)
-
-        // The ABI array.
-        // const abi = [];
-
-        // // Add the functions to the ABI.
-        // Object.keys(functions).forEach((name) => {
-        //     // Get the function definition
-        //     const { inputs, outputs, type } = functions[name].data;
-
-        //     // Push the definition to the ABI.
-        //     abi.push({
-        //     name: name,
-        //     type: "function",
-        //     stateMutability: type,
-        //     payable: type === "payable" ? true : false,
-        //     inputs: inputs.map((type) => {
-        //         return { name: "", type };
-        //     }),
-        //     outputs: outputs.map((type) => {
-        //         return { name: "", type };
-        //     }),
-        //     });
-        // });
-
-        // // Add the events to the ABI.
-        // Object.keys(events).forEach((name) => {
-        //     // Get the event definition.
-        //     const inputs = events[name].args;
-
-        //     abi.push({
-        //     name: name,
-        //     type: "event",
-        //     anonymous: false,
-        //     inputs: inputs.map((type) => {
-        //         let indexed;
-        //         if (type.endsWith(" indexed")) {
-        //         indexed = true;
-        //         type = type.replace(" indexed", "");
-        //         }
-
-        //         return { name: "", type, indexed };
-        //     }),
-        //     });
-        // });
-
-        // // Return the ABI.
-        // return JSON.stringify(abi, null, 2);
     }
 }
