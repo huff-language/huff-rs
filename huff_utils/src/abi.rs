@@ -1,10 +1,43 @@
 //! ## Abi
 //!
 //! A module containing ABI type definitions for ethereum contracts.
-
-use std::collections::BTreeMap;
+//!
+//! #### Usage
+//!
+//! Let's say you have a `Contract<'a>` generated from the [huff_parser](./huff_parser),
+//! representing an AST. This crate let's you easily convert the `Contract<'a>` into an `Abi`
+//! instance like so:
+//!
+//! ```rust
+//! use huff_utils::{abi::Abi, ast::*};
+//!
+//! // Generate a default contract for demonstrative purposes.
+//! // Realistically, contract generation would be done as shown in [huff_parser](./huff_parser)
+//! let contract = Contract {
+//!     macros: vec![],
+//!     invocations: vec![],
+//!     imports: vec![],
+//!     constants: vec![],
+//!     functions: vec![Function {
+//!         name: "CONSTRUCTOR",
+//!         signature: [0u8, 0u8, 0u8, 0u8],
+//!         inputs: vec![],
+//!         fn_type: FunctionType::NonPayable,
+//!         outputs: vec![],
+//!     }],
+//!     events: vec![],
+//!     tables: vec![],
+//! };
+//!
+//! // Create an ABI using that generate contract
+//! let abi: Abi = contract.into();
+//! println!("Abi instant: {:?}", abi);
+//! ```
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+use crate::ast::{self, FunctionType};
 
 /// #### Abi
 ///
@@ -14,9 +47,9 @@ pub struct Abi {
     /// The constructor
     pub constructor: Option<Constructor>,
     /// A list of functions and their definitions
-    pub functions: BTreeMap<String, Vec<Function>>,
+    pub functions: BTreeMap<String, Function>,
     /// A list of events and their definitions
-    pub events: BTreeMap<String, Vec<Event>>,
+    pub events: BTreeMap<String, Event>,
     /// If the contract defines receive logic
     pub receive: bool,
     /// If the contract defines fallback logic
@@ -27,6 +60,103 @@ impl Abi {
     /// Public associated function to instatiate a new Abi.
     pub fn new() -> Self {
         Self::default()
+    }
+}
+
+// Allows for simple ABI Generation by directly translating the AST
+impl<'a> From<ast::Contract<'a>> for Abi {
+    fn from(contract: ast::Contract<'a>) -> Self {
+        let constructors: Vec<ast::Function> = contract
+            .functions
+            .iter()
+            .filter(|function: &&ast::Function| function.name == "CONSTRUCTOR")
+            .cloned()
+            .collect();
+        let constructor: ast::Function = constructors.get(0).unwrap().clone();
+
+        // Instantiate functions and events
+        let mut functions = BTreeMap::new();
+        let mut events = BTreeMap::new();
+
+        // Translate contract functions
+        contract
+            .functions
+            .iter()
+            .map(|function| {
+                (
+                    function.name.to_string(),
+                    Function {
+                        name: function.name.to_string(),
+                        inputs: function
+                            .inputs
+                            .iter()
+                            .map(|argument| FunctionParam {
+                                name: argument.name.clone().unwrap_or_default(),
+                                kind: argument.arg_type.clone().unwrap_or_default().into(),
+                                internal_type: None,
+                            })
+                            .collect(),
+                        outputs: function
+                            .outputs
+                            .iter()
+                            .map(|argument| FunctionParam {
+                                name: argument.name.clone().unwrap_or_default(),
+                                kind: argument.arg_type.clone().unwrap_or_default().into(),
+                                internal_type: None,
+                            })
+                            .collect(),
+                        constant: false,
+                        state_mutability: function.fn_type.clone().into(),
+                    },
+                )
+            })
+            .for_each(|val| {
+                let _ = functions.insert(val.0, val.1);
+            });
+
+        // Translate contract events
+        contract
+            .events
+            .iter()
+            .map(|event| {
+                (
+                    event.name.to_string(),
+                    Event {
+                        name: event.name.to_string(),
+                        inputs: event
+                            .parameters
+                            .iter()
+                            .map(|argument| EventParam {
+                                name: argument.name.clone().unwrap_or_default(),
+                                kind: argument.arg_type.clone().unwrap_or_default().into(),
+                                indexed: false, // TODO: This is not present in `argument`
+                            })
+                            .collect(),
+                        anonymous: false,
+                    },
+                )
+            })
+            .for_each(|val| {
+                let _ = events.insert(val.0, val.1);
+            });
+
+        Self {
+            constructor: Some(Constructor {
+                inputs: constructor
+                    .inputs
+                    .iter()
+                    .map(|argument| FunctionParam {
+                        name: argument.name.clone().unwrap_or_default(),
+                        kind: argument.arg_type.clone().unwrap_or_default().into(),
+                        internal_type: None,
+                    })
+                    .collect(),
+            }),
+            functions,
+            events,
+            receive: false,
+            fallback: false,
+        }
     }
 }
 
@@ -60,6 +190,17 @@ pub enum StateMutability {
     NonPayable,
     /// Payable
     Payable,
+}
+
+impl From<FunctionType> for StateMutability {
+    fn from(ty: FunctionType) -> Self {
+        match ty {
+            FunctionType::NonPayable => Self::NonPayable,
+            FunctionType::Payable => Self::Payable,
+            FunctionType::View => Self::View,
+            FunctionType::Pure => Self::Pure,
+        }
+    }
 }
 
 /// #### Event
@@ -135,4 +276,34 @@ pub enum FunctionParamType {
     FixedArray(Box<FunctionParamType>, usize),
     /// A tuple of parameters
     Tuple(Vec<FunctionParamType>),
+}
+
+impl From<&str> for FunctionParamType {
+    fn from(string: &str) -> Self {
+        match string {
+            "Address" | "address" => Self::Address,
+            "Bytes" | "bytes" => Self::Bytes,
+            "Int" | "int" | "integer" | "Integer" => Self::Int(0),
+            "Uint" | "uint" | "unsignedinteger" | "unsigned integer" => Self::Uint(0),
+            "Bool" | "bool" => Self::Bool,
+            "String" | "string" | "str" | "Str" => Self::String,
+            "Array" | "array" => Self::Array(Box::new(FunctionParamType::Bool)),
+            "FixedBytes" | "bytes32" => Self::Array(Box::new(FunctionParamType::Bool)),
+            _ => {
+                // TODO: add trace here
+                panic!("{}", format!("Failed to create FunctionParamType from string: {}", string))
+            }
+        }
+    }
+}
+
+impl From<String> for FunctionParamType {
+    fn from(string: String) -> Self {
+        match string.as_ref() {
+            "Address" | "address" => Self::Address,
+            "Bytes" | "bytes" => Self::Bytes,
+            "Int" | "int" | "integer" | "Integer" => Self::Int(0),
+            _ => Self::Bool,
+        }
+    }
 }
