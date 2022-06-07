@@ -497,6 +497,7 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
+    /// Parses the type of an argument.
     pub fn parse_arg_type(&mut self) -> Result<TokenKind, ParserError> {
         match self.current_token.kind {
             TokenKind::PrimitiveType(prim) => Ok(self.parse_primitive_type(prim)?),
@@ -508,6 +509,8 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parses a primitive EVM type.
+    /// Arrays of primitive types are not considered as primitive types themselves.
     pub fn parse_primitive_type(
         &mut self,
         prim: PrimitiveEVMType,

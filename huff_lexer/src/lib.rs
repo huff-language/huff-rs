@@ -415,6 +415,7 @@ impl<'a> Iterator for Lexer<'a> {
                                     .split(raw_type)
                                     .map(|x| x.replace(']', ""))
                                     .collect();
+                                // unbounded array == array with a size of 0
                                 if words[1].is_empty() {
                                     words[1] = String::from("0");
                                 }

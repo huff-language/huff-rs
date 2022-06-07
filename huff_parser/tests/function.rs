@@ -58,6 +58,19 @@ fn parses_valid_function_definition() {
                 signature: [41, 233, 159, 7],
             },
         ),
+        (
+            4,
+            Function {
+                name: "test",
+                inputs: vec![Argument {
+                    name: None,
+                    arg_type: Some(String::from("uint256[], bool[5]")),
+                }],
+                fn_type: FunctionType::Payable,
+                outputs: vec![Argument { name: None, arg_type: Some(String::from("uint256")) }],
+                signature: [5, 191, 166, 243],
+            },
+        ),
     ]);
 
     for (index, source) in sources.into_iter().enumerate() {

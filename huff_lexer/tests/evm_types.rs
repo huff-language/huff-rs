@@ -71,7 +71,6 @@ fn unbounded_array_parsing() {
             .map(|x| x.unwrap())
             .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
             .collect::<Vec<Token>>();
-
         assert_eq!(tokens.get(4).unwrap().kind, evm_type_enum);
     }
 }
