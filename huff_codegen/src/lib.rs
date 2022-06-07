@@ -39,29 +39,49 @@ impl<'a> Codegen<'a> {
 
     /// Generate a codegen artifact
     ///
-    /// Takes in a vector of strings representing constructor arguments.
-    pub fn churn(&mut self, args: Vec<String>) -> Result<Artifact, CodegenError<'a>> {
-        let mut artifact = Artifact::default();
+    /// # Arguments
+    ///
+    /// * `args` - A vector of Tokens representing constructor arguments
+    /// * `main_bytecode` - The compiled MAIN Macro bytecode
+    /// * `constructor_bytecode` - The compiled `CONSTRUCTOR` Macro bytecode
+    pub fn churn(
+        &mut self,
+        args: Vec<ethers::abi::token::Token>,
+        main_bytecode: &str,
+        constructor_bytecode: &str,
+    ) -> Result<Artifact, CodegenError<'a>> {
+        let mut artifact: &mut Artifact = if let Some(art) = &mut self.artifact {
+            art
+        } else {
+            self.artifact = Some(Artifact::default());
+            self.artifact.as_mut().unwrap()
+        };
 
         // TODO: actually generate the bytecode
         // TODO: see huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
-        let main_bytecode = "";
-        let constructor_bytecode = "";
 
         let contract_length = main_bytecode.len() / 2;
         let constructor_length = constructor_bytecode.len() / 2;
 
-        let contract_size = contract_length; // padNBytes(toHex(contractLength), 2);
-        let contract_code_offset = constructor_length; // padNBytes(toHex(13 + constructorLength), 2);
+        let contract_size = format!("{:04x}", contract_length);
+        let contract_code_offset = format!("{:04x}", 13 + constructor_length);
 
-        // TODO: Properly encode the args
+        println!("Contract Size: {}", contract_size);
+        println!("Contract Code Offset: {}", contract_code_offset);
+
+        // Encode tokens as hex strings using ethers-abi and hex crates
+        let encoded: Vec<Vec<u8>> =
+            args.iter().map(|tok| ethers::abi::encode(&[tok.clone()])).collect();
+        let hex_args: Vec<String> = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
         let constructor_args =
-            args.iter().fold("".to_string(), |acc, arg| format!("{},{}", acc, arg));
+            hex_args.iter().fold("".to_string(), |acc, arg| format!("{},{}", acc, arg));
 
+        // Generate the final bytecode
         let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
         artifact.bytecode = format!("{}{}{}", constructor_code, main_bytecode, constructor_args);
-        Ok(artifact)
+        artifact.runtime = main_bytecode.to_string();
+        Ok(artifact.clone())
     }
 
     /// #### `write`
@@ -139,6 +159,7 @@ impl<'a> Codegen<'a> {
     /// #### `abigen`
     ///
     /// Generates an ABI for the given Ast.
+    /// Stores the generated ABI in the Codegen `artifact`.
     pub fn abigen(&mut self, ast: Contract<'a>) -> Result<Abi, CodegenError> {
         let abi: Abi = ast.into();
 
