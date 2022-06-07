@@ -502,7 +502,7 @@ impl<'a> Parser<'a> {
         match self.current_token.kind {
             TokenKind::PrimitiveType(prim) => Ok(self.parse_primitive_type(prim)?),
             TokenKind::ArrayType(prim, _size) => {
-                self.parse_primitive_type(prim);
+                let _ = self.parse_primitive_type(prim);
                 Ok(self.match_kind(self.current_token.kind)?)
             }
             _ => Err(ParserError::InvalidArgs),
@@ -540,7 +540,6 @@ impl<'a> Parser<'a> {
                 self.consume();
                 Ok(curr_token_kind)
             }
-            _ => Err(ParserError::InvalidArgs),
         }
     }
 }

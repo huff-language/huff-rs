@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::{fmt, fmt::Write};
+use std::fmt;
 /// Primitive EVM types
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PrimitiveEVMType {
@@ -69,8 +69,8 @@ impl fmt::Display for PrimitiveEVMType {
     }
 }
 
-/// Array of regex to matching fancier EVM types
+// Array of regex to matching fancier EVM types
 lazy_static! {
     /// Array of regex to matching fancier EVM types
-    pub static ref EVMTypeArrayRegex: Regex = Regex::new(r"((u|)int[0-9]*|address|bool|bytes|string|bytes[0-9]*)\[[0-9]*\]").unwrap();
+    pub static ref EVM_TYPE_ARRAY_REGEX: Regex = Regex::new(r"((u|)int[0-9]*|address|bool|bytes|string|bytes[0-9]*)\[[0-9]*\]").unwrap();
 }

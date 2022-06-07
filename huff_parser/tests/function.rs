@@ -81,10 +81,10 @@ fn parses_valid_function_definition() {
             .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
             .collect::<Vec<Token>>();
         let mut parser = Parser::new(tokens);
-        parser.match_kind(TokenKind::Define);
+        let _ = parser.match_kind(TokenKind::Define);
         let function = parser.parse_function().unwrap();
 
-        // TODO: Ensure that the parser constructed the `Function` node correctly.
+        // Ensure that the parser constructed the `Function` node correctly.
         assert_eq!(function, *expected_fns.get(&index).unwrap());
     }
 }

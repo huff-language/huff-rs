@@ -407,7 +407,7 @@ impl<'a> Iterator for Lexer<'a> {
                             // got a type at this point, we have to know which
                             let raw_type: &str = self.slice();
                             // check for arrays first
-                            if EVMTypeArrayRegex.is_match(raw_type) {
+                            if EVM_TYPE_ARRAY_REGEX.is_match(raw_type) {
                                 // split to get array size and type
                                 // TODO: support multi-dimensional arrays
                                 let mut words: Vec<String> = Regex::new(r"\[")
