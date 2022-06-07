@@ -4,6 +4,10 @@
 
 #![allow(dead_code)]
 #![allow(clippy::enum_variant_names)]
+#![warn(missing_docs)]
+#![warn(unused_extern_crates)]
+#![forbid(unsafe_code)]
+#![forbid(where_clauses_object_safety)]
 
 use clap::Parser as ClapParser;
 use huff_codegen::*;
@@ -12,6 +16,14 @@ use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
 use std::path::Path;
+
+fn main() {
+    // Parse the command line arguments
+    let cli = Huff::parse();
+
+    // Run the Compiler
+    let _compile_res = cli.execute();
+}
 
 /// Efficient Huff compiler.
 #[derive(ClapParser, Debug, Clone)]
