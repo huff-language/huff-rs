@@ -1,4 +1,4 @@
-use crate::{evm::Opcode, span::Span};
+use crate::{evm::Opcode, span::Span, types::PrimitiveEVMType};
 use std::{fmt, fmt::Write};
 
 type Literal = [u8; 32];
@@ -95,6 +95,11 @@ pub enum TokenKind<'a> {
     // TODO: recursive dependency resolution at the lexing level?
     // Import path
     // Path(&'a str),
+    /// EVM Type
+    PrimitiveType(PrimitiveEVMType),
+    /// Array of EVM Types
+    /// if unbounded ; size of 0
+    ArrayType(PrimitiveEVMType, usize),
 }
 
 impl<'a> fmt::Display for TokenKind<'a> {
@@ -142,6 +147,14 @@ impl<'a> fmt::Display for TokenKind<'a> {
             }
             TokenKind::Opcode(o) => return write!(f, "{}", o),
             TokenKind::Label(s) => return write!(f, "{}", s),
+            TokenKind::PrimitiveType(pt) => return write!(f, "{}", pt),
+            TokenKind::ArrayType(pt, num) => {
+                if num > 0 {
+                    return write!(f, "{}[{}]", pt, num)
+                } else {
+                    return write!(f, "{}[]", pt)
+                }
+            }
         };
 
         write!(f, "{}", x)
