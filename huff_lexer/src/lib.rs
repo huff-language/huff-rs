@@ -264,7 +264,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token<'a>, LexicalError>;
+    type Item = Result<Token<'a>, LexicalError<'a>>;
 
     /// Iterates over the source code
     fn next(&mut self) -> Option<Self::Item> {
@@ -355,8 +355,8 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = None;
                     }
 
-                    if found_kind != None {
-                        match found_kind.unwrap() {
+                    if let Some(tokind) = found_kind {
+                        match tokind {
                             TokenKind::Macro => self.context = Context::Macro,
                             TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
                             TokenKind::Constant => self.context = Context::Constant,
@@ -401,8 +401,8 @@ impl<'a> Iterator for Lexer<'a> {
                     // Last case ; we are in ABI context and
                     // we are parsing an EVM type
                     if self.context == Context::AbiArgs {
-                        let curr_char = self.peek();
-                        if curr_char != None && !['(', ')'].contains(&curr_char.unwrap()) {
+                        let curr_char = self.peek()?;
+                        if !['(', ')'].contains(&curr_char) {
                             self.dyn_consume(|c| c.is_alphanumeric() || *c == '[' || *c == ']');
                             // got a type at this point, we have to know which
                             let raw_type: &str = self.slice();
@@ -419,9 +419,20 @@ impl<'a> Iterator for Lexer<'a> {
                                 if words[1].is_empty() {
                                     words[1] = String::from("0");
                                 }
+                                let arr_size: usize = words[1]
+                                    .parse::<usize>()
+                                    .map_err(|_| {
+                                        let err = LexicalError {
+                                            kind: LexicalErrorKind::InvalidArraySize(&words[1]),
+                                            span: self.span,
+                                        };
+                                        tracing::error!("{}", format!("{:?}", err));
+                                        err
+                                    })
+                                    .unwrap();
                                 found_kind = Some(TokenKind::ArrayType(
                                     PrimitiveEVMType::from(words[0].clone()),
-                                    words[1].parse::<usize>().unwrap(),
+                                    arr_size,
                                 ));
                             } else {
                                 found_kind = Some(TokenKind::PrimitiveType(
