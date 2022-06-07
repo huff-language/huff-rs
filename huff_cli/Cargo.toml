@@ -16,8 +16,10 @@ clap = { version = "3.1.18", features = ["derive"] }
 huff_codegen = { path = "../huff_codegen" }
 huff_lexer = { path = "../huff_lexer" }
 huff_utils = { path = "../huff_utils" }
+huff_parser = { path = "../huff_parser" }
+rayon = { version = "1.5.3" }
 
 [[bin]]
 name = "huff"
-path = "src/huff.rs"
+path = "src/main.rs"
 doc = false

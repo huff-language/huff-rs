@@ -1,13 +1,22 @@
+//! Huff
+//!
+//! The Huff Compiler CLI.
+
+#![allow(dead_code)]
+#![allow(clippy::enum_variant_names)]
+
+use clap::Parser as ClapParser;
+use huff_codegen::*;
+use huff_lexer::*;
+use huff_parser::*;
+use huff_utils::prelude::*;
+use rayon::prelude::*;
 use std::path::Path;
 
-use clap::Parser;
-use huff_codegen::*;
-use huff_utils::io::*;
-
 /// Efficient Huff compiler.
-#[derive(Parser, Debug, Clone)]
+#[derive(ClapParser, Debug, Clone)]
 #[clap(version, about, long_about = None)]
-struct Huff {
+pub struct Huff {
     path: Option<String>,
 
     /// The source path to the contracts (default: "./src").
@@ -35,76 +44,87 @@ struct Huff {
     print: bool,
 }
 
-// Parse files from an huff instance
-// TODO: We can probably turn this into a <BUILD> instance where we generate a list of all build
-// files TODO:    with dependencies including their raw sources and perform compilation on that
-// <BUILD> instance
-impl From<Huff> for Vec<String> {
-    fn from(huff: Huff) -> Self {
-        match huff.path {
-            Some(path) => {
-                // If the file is huff, we can use it
-                let ext = Path::new(&path).extension().unwrap_or_default();
-                if ext.eq("huff") {
-                    vec![path]
-                } else {
-                    // Otherwise, override the source files and use all files in the provided dir
-                    unpack_files(&path).unwrap_or_default()
-                }
-            }
-            None => {
-                // If there's no path, unpack source files
-                let source: String = huff.source;
-                unpack_files(&source).unwrap_or_default()
-            }
-        }
-    }
-}
-
 /// An aliased output location to derive from the cli arguments.
 #[derive(Debug, Clone)]
 pub struct OutputLocation(pub(crate) String);
 
-impl From<Huff> for OutputLocation {
-    fn from(huff: Huff) -> Self {
-        match huff.output {
-            Some(o) => OutputLocation(o),
-            None => OutputLocation(huff.outputdir),
-        }
-    }
+/// ExecutionError
+#[derive(Debug, PartialEq, Eq)]
+pub enum ExecutionError<'a> {
+    /// Failed to Lex Source
+    LexicalError(LexicalError<'a>),
+    /// File unpacking error
+    FileUnpackError(UnpackError),
+    /// Parsing Error
+    ParserError(ParserError),
 }
 
-fn main() {
-    // Parse the command line arguments
-    let cli = Huff::parse();
+impl<'a> Huff {
+    /// Executes the main compilation process
+    pub fn execute(&self) -> Result<(), ExecutionError<'a>> {
+        // Grab the input files
+        let files: Vec<String> = self.get_inputs()?;
 
-    // Gracefully derive file compilation
-    let files: Vec<String> = cli.clone().into();
-    println!("Compiling files: {:?}", files);
+        // Parallel compilation
+        files.into_par_iter().for_each(|file| {
+            // Perform Lexical Analysis
+            let lexer: Lexer = Lexer::new(&file);
 
-    // Perform Lexical Analysis
-    // let lexer: Lexer = Lexer::new();
-    // TODO: print compiled bytecode if flagged
-    // TODO: print output to terminal if flagged
+            // Grab the tokens from the lexer
+            let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
-    // TODO: Unpack output (if only one file or contract specified)
-    // TODO: Unpack output directory
+            // Parser incantation
+            let mut parser = Parser::new(tokens);
 
-    // Mock AST generated here
-    let ast: Ast = Ast::new();
-    println!("Created mock AST: {:?}", ast);
+            // Parse into an AST
+            let parse_res = parser.parse().map_err(ExecutionError::ParserError);
+            let contract = parse_res.unwrap();
+            println!("Parsed AST: {:?}", contract);
 
-    // Run code generation
-    let cg = Codegen::new(true);
-    println!("Created a new codegen instance");
+            // Run code generation
+            let cg = Codegen::new(true);
+            println!("Created a new codegen instance");
 
-    let write_res = cg.write(&ast);
-    println!("Codegen writing result: {:?}", write_res);
+            let write_res = cg.write(&contract);
+            println!("Codegen writing result: {:?}", write_res);
 
-    // Gracefully derive the output from the cli
-    let output: OutputLocation = cli.into();
-    println!("Cli got output location: {:?}", output);
+            // Gracefully derive the output from the cli
+            let output: OutputLocation = self.get_outputs();
+            println!("Cli got output location: {:?}", output);
 
-    let export_res = cg.export(&ast, &output.0, "INPUT");
-    println!("Codegen export result: {:?}", export_res);
+            let export_res = cg.export(&contract, &output.0, "INPUT");
+            println!("Codegen export result: {:?}", export_res);
+        });
+
+        Ok(())
+    }
+
+    /// Preprocesses input files for compiling
+    pub fn get_inputs(&self) -> Result<Vec<String>, ExecutionError<'a>> {
+        match &self.path {
+            Some(path) => {
+                // If the file is huff, we can use it
+                let ext = Path::new(&path).extension().unwrap_or_default();
+                if ext.eq("huff") {
+                    Ok(vec![path.clone()])
+                } else {
+                    // Otherwise, override the source files and use all files in the provided dir
+                    unpack_files(path).map_err(ExecutionError::FileUnpackError)
+                }
+            }
+            None => {
+                // If there's no path, unpack source files
+                let source: String = self.source.clone();
+                unpack_files(&source).map_err(ExecutionError::FileUnpackError)
+            }
+        }
+    }
+
+    /// Derives an output location
+    pub fn get_outputs(&self) -> OutputLocation {
+        match &self.output {
+            Some(o) => OutputLocation(o.clone()),
+            None => OutputLocation(self.outputdir.clone()),
+        }
+    }
 }

@@ -5,7 +5,7 @@
 //! #### Usage
 //!
 //! ```rust
-//! use huf&f_codegen::*;
+//! use huff_codegen::*;
 //!
 //! let mut cg = Codegen::new(false);
 //! assert!(!cg.abiout);
