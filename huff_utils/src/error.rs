@@ -16,6 +16,8 @@ pub enum ParserError {
     InvalidDefinition,
     /// Invalid constant value
     InvalidConstantValue,
+    /// Invalid constant
+    InvalidConstant,
     /// Invalid name (macro, event, function, constant)
     InvalidName,
     /// Invalid arguments
@@ -112,6 +114,8 @@ pub enum CodegenErrorKind {
     MissingMacroDefinition,
     /// Failed to recurse macro
     FailedMacroRecursion,
+    /// Missing Constant Definition
+    MissingConstantDefinition,
 }
 
 impl<'a> Spanned for CodegenError<'a> {
@@ -129,6 +133,9 @@ impl<'a, W: Write> Report<W> for CodegenError<'a> {
             CodegenErrorKind::InvalidMacroStatement => write!(f.out, "Invalid Macro Statement!"),
             CodegenErrorKind::MissingMacroDefinition => write!(f.out, "Missing Macro Definition!"),
             CodegenErrorKind::FailedMacroRecursion => write!(f.out, "Failed Macro Recursion!"),
+            CodegenErrorKind::MissingConstantDefinition => {
+                write!(f.out, "Missing Constant Definition!")
+            }
         }
     }
 }

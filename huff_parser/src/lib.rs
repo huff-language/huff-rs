@@ -44,11 +44,11 @@
 
 use huff_utils::{
     ast::*,
+    error::ParserError,
     token::{Token, TokenKind},
     types::*,
-    error::ParserError,
 };
-use std::{path::Path};
+use std::path::Path;
 use tiny_keccak::{Hasher, Keccak};
 
 /// The Parser
@@ -360,14 +360,15 @@ impl<'a> Parser<'a> {
                     let lit_args = self.parse_macro_call()?;
                     statements.push(Statement::MacroInvocation(MacroInvocation {
                         macro_name: ident_str.to_string(),
-                        args: lit_args
+                        args: lit_args,
                     }));
                 }
                 TokenKind::Label(_) => {
                     self.consume();
                 }
                 TokenKind::OpenBracket => {
-                    self.parse_constant_push()?;
+                    let constant = self.parse_constant_push()?;
+                    statements.push(Statement::Constant(constant));
                 }
                 _ => {
                     tracing::error!("Invalid Macro Body Token: {:?}", self.current_token);
@@ -375,7 +376,7 @@ impl<'a> Parser<'a> {
                         "Invalid token in macro body: {:?}. Must be of kind Hex, Opcode, Macro, or Label.",
                         self.current_token
                     )))
-                },
+                }
             };
         }
         // consume close brace
@@ -493,11 +494,17 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses a constant push.
-    pub fn parse_constant_push(&mut self) -> Result<(), ParserError> {
+    pub fn parse_constant_push(&mut self) -> Result<&'a str, ParserError> {
         self.match_kind(TokenKind::OpenBracket)?;
-        self.match_kind(TokenKind::Ident("CONSTANT"))?;
-        self.match_kind(TokenKind::CloseBracket)?;
-        Ok(())
+        match self.current_token.kind {
+            TokenKind::Ident(const_str) => {
+                // Consume the Ident and Validate Close Bracket
+                self.consume();
+                self.match_kind(TokenKind::CloseBracket)?;
+                Ok(const_str)
+            }
+            _ => Err(ParserError::InvalidConstant),
+        }
     }
 
     /// Parses whitespaces and newlines until none are left.

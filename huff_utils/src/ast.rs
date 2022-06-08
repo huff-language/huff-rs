@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{evm::Opcode, bytecode::*, error::CodegenError};
+use crate::{bytecode::*, error::CodegenError, evm::Opcode};
 use std::path::Path;
 
 type Literal = [u8; 32];
@@ -37,7 +37,16 @@ pub struct Contract<'a> {
 impl<'a> Contract<'a> {
     /// Returns the first macro that matches the provided name
     pub fn find_macro_by_name(&self, name: &'a str) -> Option<MacroDefinition<'a>> {
-        if let Some(m) = self.macros.iter().filter(|m| m.name == name).cloned().collect::<Vec<MacroDefinition>>().get(0) { Some(m.clone()) } else {
+        if let Some(m) = self
+            .macros
+            .iter()
+            .filter(|m| m.name == name)
+            .cloned()
+            .collect::<Vec<MacroDefinition>>()
+            .get(0)
+        {
+            Some(m.clone())
+        } else {
             tracing::warn!("Failed to find macro \"{}\" in contract", name);
             None
         }
@@ -123,7 +132,10 @@ impl<'a> ToIRBytecode<'a, CodegenError<'a>> for MacroDefinition<'a> {
         self.statements.iter().for_each(|statement| {
             match statement {
                 Statement::Literal(l) => {
-                    let combined = l.iter().map(|b| IRByte::Byte(Byte(format!("{:04x}", b)))).collect::<Vec<IRByte>>();
+                    let combined = l
+                        .iter()
+                        .map(|b| IRByte::Byte(Byte(format!("{:04x}", b))))
+                        .collect::<Vec<IRByte>>();
                     println!("Combined IRBytes: {:?}", combined);
                     combined.iter().for_each(|irb| inner_irbytes.push(irb.clone()));
                 }
@@ -134,6 +146,10 @@ impl<'a> ToIRBytecode<'a, CodegenError<'a>> for MacroDefinition<'a> {
                 }
                 Statement::MacroInvocation(mi) => {
                     inner_irbytes.push(IRByte::Statement(Statement::MacroInvocation(mi.clone())));
+                }
+                Statement::Constant(name) => {
+                    // Constant needs to be evaluated at the top-level
+                    inner_irbytes.push(IRByte::Constant(name));
                 }
             }
         });
@@ -169,7 +185,7 @@ pub enum MacroArg<'a> {
     /// Macro Literal Argument
     Literal(Literal),
     /// Macro Iden String Argument
-    Ident(&'a str)
+    Ident(&'a str),
 }
 
 /// Free Storage Pointer Unit Struct
@@ -203,4 +219,6 @@ pub enum Statement<'a> {
     Opcode(Opcode),
     /// A Macro Invocation Statement
     MacroInvocation(MacroInvocation<'a>),
+    /// A Constant Push
+    Constant(&'a str),
 }

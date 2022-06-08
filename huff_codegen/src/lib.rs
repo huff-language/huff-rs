@@ -32,7 +32,9 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
-use huff_utils::{abi::*, bytecode::*, artifact::*, ast::*, error::CodegenError, prelude::CodegenErrorKind};
+use huff_utils::{
+    abi::*, artifact::*, ast::*, bytecode::*, error::CodegenError, prelude::CodegenErrorKind,
+};
 use std::fs;
 
 /// ### Codegen
@@ -77,7 +79,7 @@ impl<'a> Codegen<'a> {
                         token: None,
                     })
                 }
-            }
+            },
         };
 
         // TODO: main logic to create the main contract bytecode
@@ -90,7 +92,10 @@ impl<'a> Codegen<'a> {
     }
 
     /// Gracefully get the Contract AST
-    pub fn graceful_ast_grab(&self, ast: Option<Contract<'a>>) -> Result<Contract<'a>, CodegenError> {
+    pub fn graceful_ast_grab(
+        &self,
+        ast: Option<Contract<'a>>,
+    ) -> Result<Contract<'a>, CodegenError> {
         match ast {
             Some(a) => Ok(a),
             None => match &self.ast {
@@ -103,7 +108,7 @@ impl<'a> Codegen<'a> {
                         token: None,
                     })
                 }
-            }
+            },
         }
     }
 
@@ -117,14 +122,17 @@ impl<'a> Codegen<'a> {
         let contract: Contract<'a> = self.graceful_ast_grab(ast.clone())?;
 
         // Find the constructor macro
-        let c_macro: MacroDefinition<'a> = if let Some(m) = contract.find_macro_by_name("CONSTRUCTOR") { m } else {
-            tracing::error!("CONSTRUCTOR Macro definition missing in AST!");
-            return Err(CodegenError {
-                kind: CodegenErrorKind::MissingConstructor,
-                span: None,
-                token: None,
-            });
-        };
+        let c_macro: MacroDefinition<'a> =
+            if let Some(m) = contract.find_macro_by_name("CONSTRUCTOR") {
+                m
+            } else {
+                tracing::error!("CONSTRUCTOR Macro definition missing in AST!");
+                return Err(CodegenError {
+                    kind: CodegenErrorKind::MissingConstructor,
+                    span: None,
+                    token: None,
+                })
+            };
 
         tracing::info!("Codegen found constructor macro: {:?}", c_macro);
 
@@ -139,7 +147,11 @@ impl<'a> Codegen<'a> {
     }
 
     /// Recurses a MacroDefinition to generate Bytecode
-    pub fn recurse_bytecode(&self, macro_def: MacroDefinition<'a>, ast: Option<Contract<'a>>) -> Result<Vec<Byte>, CodegenError> {
+    pub fn recurse_bytecode(
+        &self,
+        macro_def: MacroDefinition<'a>,
+        ast: Option<Contract<'a>>,
+    ) -> Result<Vec<Byte>, CodegenError> {
         let mut final_bytes: Vec<Byte> = vec![];
 
         println!("Recursing... {}", macro_def.name);
@@ -154,40 +166,86 @@ impl<'a> Codegen<'a> {
         for irbyte in irb.0.clone().iter() {
             match irbyte {
                 IRByte::Byte(b) => final_bytes.push(b.clone()),
-                IRByte::Statement(s) => match s {
-                    Statement::MacroInvocation(mi) => {
-                        // Get the macro that matches this invocation and turn into bytecode
-                        let ir_macro = if let Some(m) = contract.find_macro_by_name(&mi.macro_name) { m } else {
-                            // TODO: this is where the file imports must be resolved .. in case macro definition is external
-                            tracing::warn!("Invoked Macro \"{}\" not found in Contract", mi.macro_name);
+                IRByte::Constant(name) => {
+                    let constant = if let Some(m) = contract
+                        .constants
+                        .iter()
+                        .filter(|const_def| const_def.name == *name)
+                        .cloned()
+                        .collect::<Vec<ConstantDefinition>>()
+                        .get(0)
+                    {
+                        Some(m.clone())
+                    } else {
+                        tracing::warn!("Failed to find macro \"{}\" in contract", name);
+
+                        // TODO we should probably also try and find the constant defined in other
+                        // files here
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::MissingConstantDefinition,
+                            span: None,
+                            token: None,
+                        })
+                    };
+
+                    println!("Found constant definition: {:?}", constant);
+
+                    final_bytes.push(Byte("".to_string()))
+                }
+                IRByte::Statement(s) => {
+                    match s {
+                        Statement::MacroInvocation(mi) => {
+                            // Get the macro that matches this invocation and turn into bytecode
+                            let ir_macro =
+                                if let Some(m) = contract.find_macro_by_name(&mi.macro_name) {
+                                    m
+                                } else {
+                                    // TODO: this is where the file imports must be resolved .. in
+                                    // case macro definition is external
+                                    tracing::warn!(
+                                        "Invoked Macro \"{}\" not found in Contract",
+                                        mi.macro_name
+                                    );
+                                    return Err(CodegenError {
+                                        kind: CodegenErrorKind::MissingMacroDefinition,
+                                        span: None,
+                                        token: None,
+                                    })
+                                };
+
+                            println!("Found inner macro: {}", ir_macro.name);
+                            println!("{:?}", ir_macro);
+
+                            // Recurse
+                            let recursed_bytecode: Vec<Byte> = if let Ok(bytes) =
+                                self.recurse_bytecode(ir_macro.clone(), ast.clone())
+                            {
+                                bytes
+                            } else {
+                                tracing::error!(
+                                    "Codegen failed to recurse into macro {}",
+                                    ir_macro.name
+                                );
+                                return Err(CodegenError {
+                                    kind: CodegenErrorKind::FailedMacroRecursion,
+                                    span: None,
+                                    token: None,
+                                })
+                            };
+                            final_bytes = final_bytes
+                                .iter()
+                                .cloned()
+                                .chain(recursed_bytecode.iter().cloned())
+                                .collect();
+                        }
+                        _ => {
+                            tracing::error!("Codegen received unexpected Statement during Bytecode Construction!");
                             return Err(CodegenError {
-                                kind: CodegenErrorKind::MissingMacroDefinition,
+                                kind: CodegenErrorKind::InvalidMacroStatement,
                                 span: None,
                                 token: None,
                             })
-                        };
-
-                        println!("Found inner macro: {}", ir_macro.name);
-                        println!("{:?}", ir_macro);
-
-                        // Recurse
-                        let recursed_bytecode: Vec<Byte> = if let Ok(bytes) = self.recurse_bytecode(ir_macro.clone(), ast.clone()) { bytes } else {
-                            tracing::error!("Codegen failed to recurse into macro {}", ir_macro.name);
-                            return Err(CodegenError {
-                                kind: CodegenErrorKind::FailedMacroRecursion,
-                                span: None,
-                                token: None,
-                            });
-                        };
-                        final_bytes = final_bytes.iter().cloned().chain(recursed_bytecode.iter().cloned()).collect();
-                    }
-                    _ => {
-                        tracing::error!("Codegen received unexpected Statement during Bytecode Construction!");
-                        return Err(CodegenError {
-                            kind: CodegenErrorKind::InvalidMacroStatement,
-                            span: None,
-                            token: None,
-                        });
+                        }
                     }
                 }
             }
