@@ -1,5 +1,5 @@
 use huff_lexer::*;
-use huff_utils::{prelude::*};
+use huff_utils::prelude::*;
 
 #[test]
 fn parse_label() {
