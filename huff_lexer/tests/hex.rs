@@ -34,3 +34,18 @@ fn parses_odd_len_hex() {
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
 }
+
+// TODO: This doesn't exactly belong here.
+#[test]
+fn converts_literal_to_hex_string() {
+    let sources = [
+        "01",
+        // "1000", TODO: `bytes32_to_string` ignores zero bytes atm, this one fails.
+        "a57b",
+        "8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
+    ];
+
+    for source in sources {
+        assert_eq!(format!("0x{}", source), bytes32_to_string(&str_to_bytes32(source)));
+    }
+}

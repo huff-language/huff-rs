@@ -12,4 +12,14 @@ pub fn str_to_bytes32(s: &str) -> [u8; 32] {
     v.try_into().unwrap()
 }
 
-// TODO: create a bytes32 (`[u8; 32]`) -> hex String function
+/// Convert a `[u8; 32]` to a bytes string. Does not retain zeroed-out bytes.
+pub fn bytes32_to_string(bytes: &[u8; 32]) -> String {
+    let mut s = String::default();
+    for &b in bytes {
+        if b == 0 {
+            break
+        } // TODO: sometimes, the zeros are significant. This would break 0x1000 at 0x10, for example.
+        s = format!("{}{:02x}", s, b);
+    }
+    format!("0x{}", s)
+}
