@@ -114,7 +114,16 @@ impl<'a> Codegen<'a> {
         };
 
         // Find the constructor macro
-        // TODO:
+        let c_macro: MacroDefinition<'a> = if let Some(m) = contract.macros.iter().filter(|m| m.name == "CONSTRUCTOR").cloned().collect::<Vec<MacroDefinition>>().get(0) { m.clone() } else {
+            tracing::error!("CONSTRUCTOR Macro definition missing in AST!");
+            return Err(CodegenError {
+                kind: CodegenErrorKind::MissingConstructor,
+                span: None,
+                token: None,
+            });
+        };
+
+        tracing::info!("Codegen found constructor macro: {:?}", c_macro);
 
         // Create the constructor bytecode
         // self.process_macro()

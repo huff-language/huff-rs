@@ -104,6 +104,8 @@ pub enum CodegenErrorKind {
     InvalidOperator,
     /// Missing AST
     MissingAst,
+    /// AST is missing constructor
+    MissingConstructor,
 }
 
 impl<'a> Spanned for CodegenError<'a> {
@@ -117,8 +119,9 @@ impl<'a, W: Write> Report<W> for CodegenError<'a> {
         match self.kind {
             // CodegenErrorKind::ExpectedIntExpr => write!(f.out, "Expected integer expression"),
             // CodegenErrorKind::ExpectedIdent => write!(f.out, "Expected identifier"),
-            CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator"),
-            CodegenErrorKind::MissingAst => write!(f.out, "Codegen is missing an AST"),
+            CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator!"),
+            CodegenErrorKind::MissingAst => write!(f.out, "Codegen is missing an AST!"),
+            CodegenErrorKind::MissingConstructor => write!(f.out, "AST missing constructor macro!"),
         }
     }
 }
