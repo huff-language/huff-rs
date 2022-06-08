@@ -94,6 +94,9 @@ pub enum Context {
 /// The lexer encapsulated in a struct.
 pub struct Lexer<'a> {
     /// The source code as peekable chars.
+    /// SHOULD NOT BE MODIFIED EVER!
+    pub reference_chars: Peekable<Chars<'a>>,
+    /// The source code as peekable chars.
     pub chars: Peekable<Chars<'a>>,
     /// The raw source code.
     pub source: &'a str,
@@ -114,6 +117,7 @@ impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
     pub fn new(source: &'a str) -> Self {
         Self {
+            reference_chars: source.chars().peekable(),
             chars: source.chars().peekable(),
             source,
             span: Span::default(),
@@ -164,7 +168,7 @@ impl<'a> Lexer<'a> {
 
     /// Try to peek at the nth character from the source
     pub fn nth_peek(&mut self, n: usize) -> Option<char> {
-        self.chars.clone().nth(n)
+        self.reference_chars.clone().nth(n)
     }
 
     /// Try to peek at next n characters from the source
@@ -352,7 +356,9 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Pure,
                     ];
                     for kind in &keys {
-                        if self.context == Context::MacroBody {break}
+                        if self.context == Context::MacroBody {
+                            break
+                        }
                         let key = kind.to_string();
                         let token_length = key.len() - 1;
                         let peeked = self.peek_n_chars(token_length);
@@ -398,13 +404,13 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = Some(TokenKind::FreeStoragePointer);
                     }
 
-
-                    let potential_label: String = self.dyn_peek(|c| c.is_alphanumeric() || c == &'_' || c == &':');
-                    match potential_label.ends_with(":") {
+                    let potential_label: String =
+                        self.dyn_peek(|c| c.is_alphanumeric() || c == &'_' || c == &':');
+                    match potential_label.ends_with(':') {
                         true => {
                             self.dyn_consume(|c| c.is_alphanumeric() || c == &'_' || c == &':');
                             found_kind = Some(TokenKind::Label(self.slice()));
-                        },
+                        }
                         _ => {}
                     }
 
@@ -415,18 +421,13 @@ impl<'a> Iterator for Lexer<'a> {
                             break
                         }
                         if opcode == pot_op {
-                            self.nconsume(pot_op.len());
+                            self.dyn_consume(|c| c.is_alphanumeric());
                             found_kind = Some(TokenKind::Opcode(
                                 OPCODES_MAP.get(opcode).unwrap().to_owned(),
                             ));
                             break
-                        } else {
-                            println!("compared pot_op {} to opcode {}", pot_op, opcode);
-                            println!("Previously consumed {}", self.slice());
-                            println!("----------------------------------------------------");
                         }
                     }
-
 
                     // Last case ; we are in ABI context and
                     // we are parsing an EVM type
@@ -524,13 +525,13 @@ impl<'a> Iterator for Lexer<'a> {
                         self.context = Context::MacroBody;
                     }
                     TokenKind::OpenBrace
-                },
+                }
                 '}' => {
                     if self.context == Context::MacroBody {
                         self.context = Context::Global;
                     }
                     TokenKind::CloseBrace
-                },
+                }
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,
