@@ -105,12 +105,12 @@ pub struct MacroDefinition<'a> {
     pub returns: usize,
 }
 
-impl MacroDefinition<'_> {
+impl<'a> MacroDefinition<'a> {
     /// Public associated function that instantiates a MacroDefinition.
     pub fn new(
         name: String,
         parameters: Vec<Argument>,
-        statements: Vec<Statement<'static>>,
+        statements: Vec<Statement<'a>>,
         takes: usize,
         returns: usize,
     ) -> Self {
@@ -124,7 +124,16 @@ pub struct MacroInvocation<'a> {
     /// The Macro Name
     pub macro_name: String,
     /// A list of Macro arguments
-    pub args: Vec<&'a Literal>,
+    pub args: Vec<MacroArg<'a>>,
+}
+
+/// An argument passed when invoking a maco
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum MacroArg<'a> {
+    /// Macro Literal Argument
+    Literal(Literal),
+    /// Macro Iden String Argument
+    Ident(&'a str)
 }
 
 /// Free Storage Pointer Unit Struct

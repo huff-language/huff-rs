@@ -5,6 +5,29 @@ use crate::{
 };
 use std::io::Write;
 
+/// A Parser Error
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum ParserError {
+    /// A general syntax error that accepts a message
+    SyntaxError(String),
+    /// Unexpected type
+    UnexpectedType,
+    /// Invalid definition
+    InvalidDefinition,
+    /// Invalid constant value
+    InvalidConstantValue,
+    /// Invalid name (macro, event, function, constant)
+    InvalidName,
+    /// Invalid arguments
+    InvalidArgs,
+    /// Invalid macro call arguments
+    InvalidMacroArgs,
+    /// Invalid return arguments
+    InvalidReturnArgs,
+    /// Invalid import path
+    InvalidImportPath,
+}
+
 /// A Lexing Error
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct LexicalError<'a> {

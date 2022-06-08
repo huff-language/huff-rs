@@ -113,12 +113,15 @@ impl<'a> Codegen<'a> {
             }
         };
 
+        // Find the constructor macro
+        // TODO:
+
         // Create the constructor bytecode
-        
+        // self.process_macro()
 
         // Set bytecode and return
-        if self.main_bytecode.is_none() {
-            self.main_bytecode = Some(bytecode.clone());
+        if self.constructor_bytecode.is_none() {
+            self.constructor_bytecode = Some(bytecode.clone());
         }
         Ok(bytecode)
     }

@@ -497,6 +497,7 @@ impl<'a> Iterator for Lexer<'a> {
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,
                 // NOTE: TokenKind::Div is lexed further up since it overlaps with comment
+                ':' => TokenKind::Colon,
                 // identifiers
                 ',' => TokenKind::Comma,
                 '0'..='9' => {

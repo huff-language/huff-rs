@@ -81,6 +81,8 @@ pub enum TokenKind<'a> {
     Mul,
     /// A comma
     Comma,
+    /// A Colon
+    Colon,
     /// Number
     Num(usize),
     /// A Space
@@ -135,6 +137,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Add => "+",
             TokenKind::Sub => "-",
             TokenKind::Mul => "*",
+            TokenKind::Colon => ":",
             TokenKind::Comma => ",",
             TokenKind::Num(num) => return write!(f, "{}", num),
             TokenKind::Whitespace => " ",
