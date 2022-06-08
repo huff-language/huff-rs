@@ -73,7 +73,7 @@ use std::{iter::Peekable, str::Chars};
 /// Defines a context in which the lexing happens.
 /// Allows to differientate between EVM types and opcodes that can either
 /// be identical or the latter being a substring of the former (example : bytes32 and byte)
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Context {
     /// global context
     Global,
@@ -154,12 +154,10 @@ impl<'a> Lexer<'a> {
     /// Dynamically peeks characters based on the filter
     pub fn dyn_peek(&mut self, f: impl Fn(&char) -> bool + Copy) -> String {
         let mut chars: Vec<char> = Vec::new();
-        let mut curr_char = self.chars.peek().copied();
         let mut current_pos = self.span.start;
-        while curr_char.map(|x| f(&x)).unwrap_or(false) {
+        while self.nth_peek(current_pos).map(|x| f(&x)).unwrap_or(false) {
+            chars.push(self.nth_peek(current_pos).unwrap());
             current_pos += 1;
-            chars.push(curr_char.unwrap());
-            curr_char = self.nth_peek(current_pos);
         }
         chars.iter().collect()
     }
@@ -400,21 +398,35 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = Some(TokenKind::FreeStoragePointer);
                     }
 
+
+                    let potential_label: String = self.dyn_peek(|c| c.is_alphanumeric() || c == &'_' || c == &':');
+                    match potential_label.ends_with(":") {
+                        true => {
+                            self.dyn_consume(|c| c.is_alphanumeric() || c == &'_' || c == &':');
+                            found_kind = Some(TokenKind::Label(self.slice()));
+                        },
+                        _ => {}
+                    }
+
+                    let pot_op = self.dyn_peek(|c| c.is_alphanumeric());
                     // goes over all opcodes
                     for opcode in OPCODES {
                         if self.context != Context::MacroBody {
                             break
                         }
-                        let token_length = opcode.len() - 1;
-                        let peeked = self.peek_n_chars(token_length);
-                        if opcode == peeked {
-                            self.nconsume(token_length);
+                        if opcode == pot_op {
+                            self.nconsume(pot_op.len());
                             found_kind = Some(TokenKind::Opcode(
                                 OPCODES_MAP.get(opcode).unwrap().to_owned(),
                             ));
                             break
+                        } else {
+                            println!("compared pot_op {} to opcode {}", pot_op, opcode);
+                            println!("Previously consumed {}", self.slice());
+                            println!("----------------------------------------------------");
                         }
                     }
+
 
                     // Last case ; we are in ABI context and
                     // we are parsing an EVM type
@@ -472,12 +484,8 @@ impl<'a> Iterator for Lexer<'a> {
                     if let Some(kind) = found_kind {
                         kind
                     } else {
-                        self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_') || c.eq(&':'));
-                        let ident = self.slice();
-                        match ident.ends_with(":") {
-                            true => TokenKind::Label(ident.get(0..ident.len()).unwrap()),
-                            false => TokenKind::Ident(ident)
-                        }
+                        self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
+                        TokenKind::Ident(self.slice())
                     }
                 }
                 // If it's the start of a hex literal

@@ -47,6 +47,5 @@ fn macro_context() {
         .map(|x| x.unwrap())
         .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
         .collect::<Vec<Token>>();
-
     assert_eq!(tokens.get(tokens.len() - 3).unwrap().kind, TokenKind::Opcode(Opcode::Byte));
 }
