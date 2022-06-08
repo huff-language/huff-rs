@@ -32,7 +32,7 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
-use huff_utils::{abi::*, artifact::*, ast::*, error::CodegenError};
+use huff_utils::{abi::*, artifact::*, ast::*, error::CodegenError, prelude::CodegenErrorKind};
 use std::fs;
 
 /// ### Codegen
@@ -44,12 +44,83 @@ pub struct Codegen<'a> {
     pub ast: Option<Contract<'a>>,
     /// A cached codegen output artifact
     pub artifact: Option<Artifact>,
+    /// Intermediate main bytecode store
+    pub main_bytecode: Option<String>,
+    /// Intermediate constructor bytecode store
+    pub constructor_bytecode: Option<String>,
 }
 
 impl<'a> Codegen<'a> {
     /// Public associated function to instantiate a new Codegen instance.
     pub fn new() -> Self {
-        Self { ast: None, artifact: None }
+        Self { ast: None, artifact: None, main_bytecode: None, constructor_bytecode: None }
+    }
+
+    /// Generates main bytecode from a Contract AST
+    ///
+    /// # Arguments
+    ///
+    /// * `ast` - Optional Contract Abstract Syntax Tree
+    pub fn roll(&mut self, ast: Option<Contract<'a>>) -> Result<String, CodegenError> {
+        let mut bytecode: String = String::default();
+
+        // Grab the AST
+        let contract: &Contract<'a> = match &ast {
+            Some(a) => a,
+            None => match &self.ast {
+                Some(a) => a,
+                None => {
+                    tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::roll()!");
+                    return Err(CodegenError {
+                        kind: CodegenErrorKind::MissingAst,
+                        span: None,
+                        token: None,
+                    })
+                }
+            }
+        };
+
+        // TODO: main logic to create the main contract bytecode
+
+        // Set bytecode and return
+        if self.main_bytecode.is_none() {
+            self.main_bytecode = Some(bytecode.clone());
+        }
+        Ok(bytecode)
+    }
+
+    /// Generates constructor bytecode from a Contract AST
+    ///
+    /// # Arguments
+    ///
+    /// * `ast` - Optional Contract Abstract Syntax Tree
+    pub fn construct(&mut self, ast: Option<Contract<'a>>) -> Result<String, CodegenError> {
+        let mut bytecode: String = String::default();
+
+        // Grab the AST
+        let contract: &Contract<'a> = match &ast {
+            Some(a) => a,
+            None => match &self.ast {
+                Some(a) => a,
+                None => {
+                    tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
+                    return Err(CodegenError {
+                        kind: CodegenErrorKind::MissingAst,
+                        span: None,
+                        token: None,
+                    })
+                }
+            }
+        };
+
+        // Create the constructor bytecode
+        
+
+        // Set bytecode and return
+        if self.main_bytecode.is_none() {
+            self.main_bytecode = Some(bytecode.clone());
+        }
+        Ok(bytecode)
     }
 
     /// Generate a codegen artifact
