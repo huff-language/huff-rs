@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{bytecode::*, error::CodegenError, evm::Opcode};
 use std::path::Path;
 
-type Literal = [u8; 32];
+pub type Literal = [u8; 32];
 
 /// A File Path
 ///

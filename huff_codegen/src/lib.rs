@@ -175,12 +175,11 @@ impl<'a> Codegen<'a> {
                         .collect::<Vec<ConstantDefinition>>()
                         .get(0)
                     {
-                        Some(m.clone())
+                        m.clone()
                     } else {
                         tracing::warn!("Failed to find macro \"{}\" in contract", name);
 
-                        // TODO we should probably also try and find the constant defined in other
-                        // files here
+                        // TODO we should try and find the constant defined in other files here
                         return Err(CodegenError {
                             kind: CodegenErrorKind::MissingConstantDefinition,
                             span: None,
@@ -190,7 +189,21 @@ impl<'a> Codegen<'a> {
 
                     println!("Found constant definition: {:?}", constant);
 
-                    final_bytes.push(Byte("".to_string()))
+                    let push_bytes = match constant.value {
+                        ConstVal::Literal(l) => {
+                            let hex_literal: String = hex::encode(l);
+                            format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
+                        }
+                        ConstVal::FreeStoragePointer(_fsp) => {
+                            // TODO: we need to grab the using the offset?
+                            let offset: u8 = 0;
+                            let hex_literal: String = hex::encode([offset]);
+                            format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
+                        }
+                    };
+                    println!("Push bytes: {}", push_bytes);
+
+                    final_bytes.push(Byte(push_bytes))
                 }
                 IRByte::Statement(s) => {
                     match s {
@@ -287,7 +300,7 @@ impl<'a> Codegen<'a> {
         let encoded: Vec<Vec<u8>> =
             args.iter().map(|tok| ethers::abi::encode(&[tok.clone()])).collect();
         let hex_args: Vec<String> = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
-        let constructor_args = hex_args.join(",");
+        let constructor_args = hex_args.join("");
 
         // Generate the final bytecode
         let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);
