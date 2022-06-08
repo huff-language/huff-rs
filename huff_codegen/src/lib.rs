@@ -137,7 +137,7 @@ impl<'a> Codegen<'a> {
         tracing::info!("Codegen found constructor macro: {:?}", c_macro);
 
         // For each MacroInvocation Statement, recurse into bytecode
-        let recursed_bytecode: Vec<Byte> = self.recurse_bytecode(c_macro, ast)?;
+        let recursed_bytecode: Vec<Byte> = self.recurse_bytecode(c_macro.clone(), ast, &mut vec![c_macro])?;
         println!("Got recursed bytecode {:?}", recursed_bytecode);
         let bytecode = recursed_bytecode.iter().map(|byte| byte.0.to_string()).collect();
         println!("Final bytecode: {}", bytecode);
@@ -151,6 +151,7 @@ impl<'a> Codegen<'a> {
         &self,
         macro_def: MacroDefinition<'a>,
         ast: Option<Contract<'a>>,
+        scope: &mut Vec<MacroDefinition<'a>>,
     ) -> Result<Vec<Byte>, CodegenError> {
         let mut final_bytes: Vec<Byte> = vec![];
 
@@ -162,15 +163,16 @@ impl<'a> Codegen<'a> {
         // Generate the macro bytecode
         let irb = macro_def.to_irbytecode()?;
         println!("Got IRBytecode: {:?}", irb);
+        let irbz = irb.0;
 
-        for irbyte in irb.0.clone().iter() {
-            match irbyte {
+        for irbyte in irbz.iter() {
+            match irbyte.clone() {
                 IRByte::Byte(b) => final_bytes.push(b.clone()),
                 IRByte::Constant(name) => {
                     let constant = if let Some(m) = contract
                         .constants
                         .iter()
-                        .filter(|const_def| const_def.name == *name)
+                        .filter(|const_def| const_def.name == name)
                         .cloned()
                         .collect::<Vec<ConstantDefinition>>()
                         .get(0)
@@ -230,8 +232,9 @@ impl<'a> Codegen<'a> {
                             println!("{:?}", ir_macro);
 
                             // Recurse
+                            scope.push(ir_macro.clone());
                             let recursed_bytecode: Vec<Byte> = if let Ok(bytes) =
-                                self.recurse_bytecode(ir_macro.clone(), ast.clone())
+                                self.recurse_bytecode(ir_macro.clone(), ast.clone(), scope)
                             {
                                 bytes
                             } else {
@@ -260,6 +263,11 @@ impl<'a> Codegen<'a> {
                             })
                         }
                     }
+                }
+                IRByte::ArgCall(arg_name) => {
+                    // TODO: Check our scope, loop through all macros, all statements, to see if out arg is defined as a jumpdest
+                    // match 
+                    println!("Codegen found Arg Call: {}", arg_name);
                 }
             }
         }

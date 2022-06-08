@@ -370,6 +370,10 @@ impl<'a> Parser<'a> {
                     let constant = self.parse_constant_push()?;
                     statements.push(Statement::Constant(constant));
                 }
+                TokenKind::LeftAngle => {
+                    let arg_call = self.parse_arg_call()?;
+                    statements.push(Statement::ArgCall(arg_call));
+                }
                 _ => {
                     tracing::error!("Invalid Macro Body Token: {:?}", self.current_token);
                     return Err(ParserError::SyntaxError(format!(
@@ -504,6 +508,29 @@ impl<'a> Parser<'a> {
                 Ok(const_str)
             }
             _ => Err(ParserError::InvalidConstant),
+        }
+    }
+
+    /// Parses an argument call.
+    ///
+    /// ## Examples
+    ///
+    /// When an argument is called in Huff, it is wrapped in angle brackets like so:
+    ///
+    /// ```huff
+    /// #define macro EXAMPLE_FUNCTION(error) = takes (0) returns (0) {
+    ///     <error> jumpi
+    /// }
+    /// ```
+    pub fn parse_arg_call(&mut self) -> Result<&'a str, ParserError> {
+        self.match_kind(TokenKind::LeftAngle)?;
+        match self.current_token.kind {
+            TokenKind::Ident(arg_str) => {
+                self.consume();
+                self.match_kind(TokenKind::RightAngle)?;
+                Ok(arg_str)
+            }
+            _ => Err(ParserError::InvalidMacroArgs),
         }
     }
 

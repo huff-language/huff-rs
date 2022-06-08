@@ -73,6 +73,10 @@ pub enum TokenKind<'a> {
     OpenBrace,
     /// A close brace
     CloseBrace,
+    /// A Less-Than Angle Bracket
+    LeftAngle,
+    /// A Greater-Than Angle Bracket
+    RightAngle,
     /// Addition
     Add,
     /// Subtraction
@@ -134,6 +138,8 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::CloseBracket => "]",
             TokenKind::OpenBrace => "{",
             TokenKind::CloseBrace => "}",
+            TokenKind::LeftAngle => "<",
+            TokenKind::RightAngle => ">",
             TokenKind::Add => "+",
             TokenKind::Sub => "-",
             TokenKind::Mul => "*",
@@ -142,8 +148,6 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Num(num) => return write!(f, "{}", num),
             TokenKind::Whitespace => " ",
             TokenKind::Str(str) => str,
-
-            // TODO these aren't lexed yet
             TokenKind::Literal(l) => {
                 let mut s = String::new();
                 for b in l.iter() {

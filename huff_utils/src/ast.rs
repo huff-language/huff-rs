@@ -36,7 +36,7 @@ pub struct Contract<'a> {
 
 impl<'a> Contract<'a> {
     /// Returns the first macro that matches the provided name
-    pub fn find_macro_by_name(&self, name: &'a str) -> Option<MacroDefinition<'a>> {
+    pub fn find_macro_by_name(&self, name: &str) -> Option<MacroDefinition<'a>> {
         if let Some(m) = self
             .macros
             .iter()
@@ -151,6 +151,10 @@ impl<'a> ToIRBytecode<'a, CodegenError<'a>> for MacroDefinition<'a> {
                     // Constant needs to be evaluated at the top-level
                     inner_irbytes.push(IRByte::Constant(name));
                 }
+                Statement::ArgCall(arg_name) => {
+                    // Arg call needs to use a destination defined in the calling macro context
+                    inner_irbytes.push(IRByte::ArgCall(arg_name));
+                }
             }
         });
         Ok(IRBytecode(inner_irbytes))
@@ -221,4 +225,6 @@ pub enum Statement<'a> {
     MacroInvocation(MacroInvocation<'a>),
     /// A Constant Push
     Constant(&'a str),
+    /// An Arg Call
+    ArgCall(&'a str),
 }

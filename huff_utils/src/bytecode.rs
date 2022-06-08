@@ -17,6 +17,8 @@ pub enum IRByte<'a> {
     Statement(Statement<'a>),
     /// A Constant to be referenced
     Constant(&'a str),
+    /// An Arg Call needs to use the calling macro context
+    ArgCall(&'a str),
 }
 
 /// Full Intermediate Bytecode Representation
