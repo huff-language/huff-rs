@@ -48,7 +48,7 @@ fn compiles_constructor_bytecode() {
 
     // Grab the first macro
     let contract = parser.parse().unwrap();
-    let macros = contract.macros;
+    let macros = contract.macros.clone();
     println!("Macro Definitions: {:?}", macros);
     // assert_eq!(
     //     macro_definition,
@@ -62,11 +62,16 @@ fn compiles_constructor_bytecode() {
     // );
     // assert_eq!(parser.current_token.kind, TokenKind::Eof);
 
-    // // Instantiate Codegen
-    // let mut cg = Codegen::new();
+    // Instantiate Codegen
+    let mut cg = Codegen::new();
 
-    // // The codegen instance should have no artifact
-    // assert!(cg.artifact.is_none());
+    // The codegen instance should have no artifact
+    assert!(cg.artifact.is_none());
+
+    // Have the Codegen create the constructor bytecode
+    let cbyte_res = cg.construct(Some(contract));
+    println!("Constructor Bytecode Result: {:?}", cbyte_res);
+    assert!(cbyte_res.is_ok());
 
     // // Churn Contract using the bytecode
     // let inputs: Vec<Token> = vec![];

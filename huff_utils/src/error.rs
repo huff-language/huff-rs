@@ -106,6 +106,12 @@ pub enum CodegenErrorKind {
     MissingAst,
     /// AST is missing constructor
     MissingConstructor,
+    /// Invalid Macro Body Statement
+    InvalidMacroStatement,
+    /// The Macro Definition is Missing
+    MissingMacroDefinition,
+    /// Failed to recurse macro
+    FailedMacroRecursion,
 }
 
 impl<'a> Spanned for CodegenError<'a> {
@@ -117,11 +123,12 @@ impl<'a> Spanned for CodegenError<'a> {
 impl<'a, W: Write> Report<W> for CodegenError<'a> {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match self.kind {
-            // CodegenErrorKind::ExpectedIntExpr => write!(f.out, "Expected integer expression"),
-            // CodegenErrorKind::ExpectedIdent => write!(f.out, "Expected identifier"),
             CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator!"),
             CodegenErrorKind::MissingAst => write!(f.out, "Codegen is missing an AST!"),
             CodegenErrorKind::MissingConstructor => write!(f.out, "AST missing constructor macro!"),
+            CodegenErrorKind::InvalidMacroStatement => write!(f.out, "Invalid Macro Statement!"),
+            CodegenErrorKind::MissingMacroDefinition => write!(f.out, "Missing Macro Definition!"),
+            CodegenErrorKind::FailedMacroRecursion => write!(f.out, "Failed Macro Recursion!"),
         }
     }
 }

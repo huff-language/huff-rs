@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::evm::Opcode;
+use crate::{evm::Opcode, bytecode::*, error::CodegenError};
 use std::path::Path;
 
 type Literal = [u8; 32];
@@ -32,6 +32,16 @@ pub struct Contract<'a> {
     pub events: Vec<Event<'a>>,
     /// Tables
     pub tables: Vec<Table<'a>>,
+}
+
+impl<'a> Contract<'a> {
+    /// Returns the first macro that matches the provided name
+    pub fn find_macro_by_name(&self, name: &'a str) -> Option<MacroDefinition<'a>> {
+        if let Some(m) = self.macros.iter().filter(|m| m.name == name).cloned().collect::<Vec<MacroDefinition>>().get(0) { Some(m.clone()) } else {
+            tracing::warn!("Failed to find macro \"{}\" in contract", name);
+            None
+        }
+    }
 }
 
 /// A function, event, or macro argument
@@ -103,6 +113,32 @@ pub struct MacroDefinition<'a> {
     pub takes: usize,
     /// The return size
     pub returns: usize,
+}
+
+impl<'a> ToIRBytecode<'a, CodegenError<'a>> for MacroDefinition<'a> {
+    fn to_irbytecode(&self) -> Result<IRBytecode<'a>, CodegenError<'a>> {
+        let mut inner_irbytes: Vec<IRByte> = vec![];
+
+        // Iterate and translate each statement to bytecode
+        self.statements.iter().for_each(|statement| {
+            match statement {
+                Statement::Literal(l) => {
+                    let combined = l.iter().map(|b| IRByte::Byte(Byte(format!("{:04x}", b)))).collect::<Vec<IRByte>>();
+                    println!("Combined IRBytes: {:?}", combined);
+                    combined.iter().for_each(|irb| inner_irbytes.push(irb.clone()));
+                }
+                Statement::Opcode(o) => {
+                    let opcode_str = o.string();
+                    tracing::info!("Got opcode hex string: {}", opcode_str);
+                    inner_irbytes.push(IRByte::Byte(Byte(opcode_str)))
+                }
+                Statement::MacroInvocation(mi) => {
+                    inner_irbytes.push(IRByte::Statement(Statement::MacroInvocation(mi.clone())));
+                }
+            }
+        });
+        Ok(IRBytecode(inner_irbytes))
+    }
 }
 
 impl<'a> MacroDefinition<'a> {
