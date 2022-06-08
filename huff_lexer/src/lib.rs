@@ -64,6 +64,7 @@
 
 #![deny(missing_docs)]
 #![allow(dead_code)]
+
 use bytes::BytesMut;
 use huff_utils::{error::*, evm::*, span::*, token::*, types::*};
 use regex::Regex;
@@ -333,6 +334,7 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Event,
                         TokenKind::NonPayable,
                         TokenKind::Payable,
+                        TokenKind::Indexed,
                         TokenKind::View,
                         TokenKind::Pure,
                     ];
@@ -430,14 +432,23 @@ impl<'a> Iterator for Lexer<'a> {
                                         err
                                     })
                                     .unwrap();
-                                found_kind = Some(TokenKind::ArrayType(
-                                    PrimitiveEVMType::from(words[0].clone()),
-                                    arr_size,
-                                ));
+                                let primitive = PrimitiveEVMType::try_from(words[0].clone());
+                                if let Ok(primitive) = primitive {
+                                    found_kind = Some(TokenKind::ArrayType(primitive, arr_size));
+                                } else {
+                                    let err = LexicalError {
+                                        kind: LexicalErrorKind::InvalidPrimitiveType(&words[0]),
+                                        span: self.span,
+                                    };
+                                    tracing::error!("{}", format!("{:?}", err));
+                                }
                             } else {
-                                found_kind = Some(TokenKind::PrimitiveType(
-                                    PrimitiveEVMType::from(raw_type.to_string()),
-                                ));
+                                // We don't want to consider any argument names or the "indexed"
+                                // keyword here.
+                                let primitive = PrimitiveEVMType::try_from(raw_type.to_string());
+                                if let Ok(primitive) = primitive {
+                                    found_kind = Some(TokenKind::PrimitiveType(primitive));
+                                }
                             }
                         }
                     }
@@ -455,8 +466,8 @@ impl<'a> Iterator for Lexer<'a> {
                                     // to match `x` in the actual hex)
                     self.dyn_consume(|c| {
                         c.is_numeric() ||
-                        // Match a-f & A-F
-                        matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
+                            // Match a-f & A-F
+                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
                     });
                     self.span.start += 2; // Ignore the "0x"
                     let mut arr: [u8; 32] = Default::default();

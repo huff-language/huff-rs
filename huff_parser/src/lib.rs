@@ -246,7 +246,7 @@ impl<'a> Parser<'a> {
         };
 
         // function inputs should be next
-        let inputs: Vec<Argument> = self.parse_args(true, true)?;
+        let inputs: Vec<Argument> = self.parse_args(true, true, false)?;
         // function type should be next
         let fn_type = match self.current_token.kind {
             TokenKind::View => FunctionType::View,
@@ -261,7 +261,7 @@ impl<'a> Parser<'a> {
         // next token should be of `TokenKind::Returns`
         self.match_kind(TokenKind::Returns)?;
         // function outputs should be next
-        let outputs: Vec<Argument> = self.parse_args(true, true)?;
+        let outputs: Vec<Argument> = self.parse_args(true, true, false)?;
 
         let mut signature = [0u8; 4]; // Only keep first 4 bytes
         let mut hasher = Keccak::v256();
@@ -291,7 +291,7 @@ impl<'a> Parser<'a> {
         };
 
         // Parse the event's parameters
-        let parameters: Vec<Argument> = self.parse_args(true, true)?;
+        let parameters: Vec<Argument> = self.parse_args(true, true, true)?;
 
         Ok(Event { name, parameters })
     }
@@ -344,7 +344,7 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Macro)?;
         let macro_name: String = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
 
-        let macro_arguments: Vec<Argument> = self.parse_args(true, false)?;
+        let macro_arguments: Vec<Argument> = self.parse_args(true, false, false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
         let macro_takes: usize = self.parse_single_arg()?;
@@ -417,28 +417,37 @@ impl<'a> Parser<'a> {
         &mut self,
         select_name: bool,
         select_type: bool,
+        has_indexed: bool,
     ) -> Result<Vec<Argument>, ParserError> {
         let mut args: Vec<Argument> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
+            let mut arg = Argument::default();
+
             // type comes first
             // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
-            let arg_type =
-                if select_type { Some(self.parse_arg_type()?.to_string()) } else { None };
+            if select_type {
+                arg.arg_type = Some(self.parse_arg_type()?.to_string());
+                // Check if the argument is indexed
+                // TODO: Ensure this can only be done for events- this function is used for
+                // TODO: events, functions, and macro arguments.
+                if has_indexed && self.check(TokenKind::Indexed) {
+                    arg.indexed = true;
+                    self.consume(); // consume "indexed" keyword
+                }
+            }
 
             // name comes second (is optional)
-            let name = if select_name && self.check(TokenKind::Ident("x")) {
-                Some(self.match_kind(TokenKind::Ident("x"))?.to_string())
-            } else {
-                None
-            };
+            if select_name && self.check(TokenKind::Ident("x")) {
+                arg.name = Some(self.match_kind(TokenKind::Ident("x"))?.to_string())
+            }
 
             // multiple args possible
             if self.check(TokenKind::Comma) {
                 self.consume();
             }
 
-            args.push(Argument { arg_type, name });
+            args.push(arg);
         }
         // consume close parenthesis
         self.match_kind(TokenKind::CloseParen)?;

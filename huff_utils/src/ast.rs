@@ -39,6 +39,8 @@ pub struct Argument {
     pub arg_type: Option<String>,
     /// The name of the argument
     pub name: Option<String>,
+    /// Is the argument indexed? TODO: should be valid for event arguments ONLY
+    pub indexed: bool,
 }
 
 /// A Function Signature
