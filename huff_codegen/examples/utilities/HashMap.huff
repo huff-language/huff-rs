@@ -1,0 +1,52 @@
+// Given a piece of data (ie an address), hash it, generating the storage slot for a hashmap.
+#define macro GET_SLOT_FROM_KEY(mem_ptr) = takes(1) returns (1) {
+    // Input stack: [key]
+    // Load the data into memory and hash it, while preserving the memory location.
+    <mem_ptr>   // [<mem_ptr>, key]
+    mstore      // []
+    
+    // Hash the data, generating a key.
+    0x20                // [32]
+    <mem_ptr>           // [<mem_ptr>, 32]
+    sha3                // [slot]
+}
+
+// Given two keys (ie an address and a number), hash them together, generating a  for a secondary hashmap.
+// This should only be used if you have multiple maps in your contract.
+#define macro GET_SLOT_FROM_KEYS(mem_ptr) = takes(2) returns (1) {
+    // Input stack: [key1, key2]
+    // Load the data into memory.
+    <mem_ptr>           // [<mem_ptr>, key1, key2]
+    mstore              // [key2]
+    <mem_ptr> 0x20 add  // [<mem_ptr> + 32, key2]
+    mstore              // []
+    
+    // Hash the data, generating a key.
+    0x40        // [64]
+    <mem_ptr>   // [<mem_ptr>, 64]
+    sha3        // [key]
+}
+
+#define macro LOAD_ELEMENT(mem_ptr) = takes(1) returns(1) {
+    // Input stack: [key]
+    GET_SLOT_FROM_KEY(<mem_ptr>)  // [slot]
+    sload                       // [value]
+}
+
+#define macro LOAD_ELEMENT_FROM_KEYS(mem_ptr) = takes(2) returns(1) {
+    // Input stack: [key1, key2]
+    GET_SLOT_FROM_KEYS(<mem_ptr>) // [slot]
+    sload                       // [value]
+}
+
+#define macro STORE_ELEMENT(mem_ptr) = takes(2) returns(0) {
+    // Input stack: [key, value]
+    GET_SLOT_FROM_KEY(<mem_ptr>)  // [slot, value]
+    sstore                      // []
+}
+
+#define macro STORE_ELEMENT_FROM_KEYS(mem_ptr) = takes(2) returns (0) {
+    // Input stack: [key1, key2, value]
+    GET_SLOT_FROM_KEYS(<mem_ptr>) // [slot, value]
+    sstore                      // []
+}

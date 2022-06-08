@@ -1,6 +1,7 @@
 use crate::{
     report::{Report, Reporter},
     span::{Span, Spanned},
+    token::TokenKind,
 };
 use std::io::Write;
 
@@ -57,17 +58,19 @@ impl<'a, W: Write> Report<W> for LexicalError<'a> {
 
 /// A Code Generation Error
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct CodegenError {
+pub struct CodegenError<'a> {
     /// The kind of code generation error
     pub kind: CodegenErrorKind,
-    /// The span where the error occured
-    pub span: Span,
+    /// An Optional Span where the error occured
+    pub span: Option<Span>,
+    /// An Optional Token Kind
+    pub token: Option<TokenKind<'a>>,
 }
 
-impl CodegenError {
+impl<'a> CodegenError<'a> {
     /// Public associated function to instatiate a new CodegenError.
-    pub fn new(kind: CodegenErrorKind, span: Span) -> Self {
-        Self { kind, span }
+    pub fn new(kind: CodegenErrorKind, span: Option<Span>, token: Option<TokenKind<'a>>) -> Self {
+        Self { kind, span, token }
     }
 }
 
@@ -76,20 +79,23 @@ impl CodegenError {
 pub enum CodegenErrorKind {
     /// Invalid Operator
     InvalidOperator,
+    /// Missing AST
+    MissingAst,
 }
 
-impl Spanned for CodegenError {
+impl<'a> Spanned for CodegenError<'a> {
     fn span(&self) -> Span {
-        self.span
+        self.span.unwrap()
     }
 }
 
-impl<W: Write> Report<W> for CodegenError {
+impl<'a, W: Write> Report<W> for CodegenError<'a> {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match self.kind {
             // CodegenErrorKind::ExpectedIntExpr => write!(f.out, "Expected integer expression"),
             // CodegenErrorKind::ExpectedIdent => write!(f.out, "Expected identifier"),
             CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator"),
+            CodegenErrorKind::MissingAst => write!(f.out, "Codegen is missing an AST"),
         }
     }
 }

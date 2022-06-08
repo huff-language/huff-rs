@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::evm::Opcode;
 use std::path::Path;
 
@@ -59,7 +61,7 @@ pub struct Function<'a> {
 }
 
 /// Function Types
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FunctionType {
     /// Viewable Function
     View,
