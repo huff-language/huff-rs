@@ -85,8 +85,7 @@ impl<'a> Codegen<'a> {
         let encoded: Vec<Vec<u8>> =
             args.iter().map(|tok| ethers::abi::encode(&[tok.clone()])).collect();
         let hex_args: Vec<String> = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
-        let constructor_args =
-            hex_args.iter().fold("".to_string(), |acc, arg| format!("{},{}", acc, arg));
+        let constructor_args = hex_args.join(",");
 
         // Generate the final bytecode
         let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);

@@ -108,7 +108,7 @@ impl<'a> From<ast::Contract<'a>> for Abi {
                             })
                             .collect(),
                         constant: false,
-                        state_mutability: function.fn_type.clone().into(),
+                        state_mutability: function.fn_type.clone(),
                     },
                 )
             })
@@ -165,7 +165,7 @@ impl<'a> From<ast::Contract<'a>> for Abi {
 /// #### Function
 ///
 /// A function definition.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct Function {
     /// The function name
     pub name: String,
@@ -176,39 +176,13 @@ pub struct Function {
     /// Constant
     pub constant: bool,
     /// The state mutability
-    pub state_mutability: StateMutability,
-}
-
-/// #### StateMutability
-///
-/// The state mutability.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-pub enum StateMutability {
-    /// Doesn't read state
-    Pure,
-    /// Only reads state, no writes
-    View,
-    /// Not Payable
-    NonPayable,
-    /// Payable
-    Payable,
-}
-
-impl From<FunctionType> for StateMutability {
-    fn from(ty: FunctionType) -> Self {
-        match ty {
-            FunctionType::NonPayable => Self::NonPayable,
-            FunctionType::Payable => Self::Payable,
-            FunctionType::View => Self::View,
-            FunctionType::Pure => Self::Pure,
-        }
-    }
+    pub state_mutability: FunctionType,
 }
 
 /// #### Event
 ///
 /// An Event definition.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct Event {
     /// The event name
     pub name: String,
@@ -221,7 +195,7 @@ pub struct Event {
 /// #### EventParam
 ///
 /// Event parameters.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct EventParam {
     /// The parameter name
     pub name: String,
@@ -234,7 +208,7 @@ pub struct EventParam {
 /// #### Constructor
 ///
 /// The contract constructor
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct Constructor {
     /// Contstructor inputs
     pub inputs: Vec<FunctionParam>,
@@ -243,7 +217,7 @@ pub struct Constructor {
 /// #### FunctionParam
 ///
 /// A generic function parameter
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct FunctionParam {
     /// The function parameter name
     pub name: String,
@@ -256,7 +230,7 @@ pub struct FunctionParam {
 /// #### FunctionParamType
 ///
 /// The type of a function parameter
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum FunctionParamType {
     /// An address
     Address,
@@ -292,7 +266,10 @@ impl From<&str> for FunctionParamType {
             "Array" | "array" => Self::Array(Box::new(FunctionParamType::Bool)),
             "FixedBytes" | "bytes32" => Self::Array(Box::new(FunctionParamType::Bool)),
             _ => {
-                // TODO: add trace here
+                tracing::error!(
+                    "{}",
+                    format!("Failed to create FunctionParamType from string: {}", string)
+                );
                 panic!("{}", format!("Failed to create FunctionParamType from string: {}", string))
             }
         }
@@ -305,7 +282,18 @@ impl From<String> for FunctionParamType {
             "Address" | "address" => Self::Address,
             "Bytes" | "bytes" => Self::Bytes,
             "Int" | "int" | "integer" | "Integer" => Self::Int(0),
-            _ => Self::Bool,
+            "Uint" | "uint" | "unsignedinteger" | "unsigned integer" => Self::Uint(0),
+            "Bool" | "bool" => Self::Bool,
+            "String" | "string" | "str" | "Str" => Self::String,
+            "Array" | "array" => Self::Array(Box::new(FunctionParamType::Bool)),
+            "FixedBytes" | "bytes32" => Self::Array(Box::new(FunctionParamType::Bool)),
+            _ => {
+                tracing::error!(
+                    "{}",
+                    format!("Failed to create FunctionParamType from string: {}", string)
+                );
+                panic!("{}", format!("Failed to create FunctionParamType from string: {}", string))
+            }
         }
     }
 }
