@@ -355,11 +355,10 @@ fn parses_function_with_keyword_name_before_colon() {
 
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let fn_name_span = Span::new(0..s.len());
-        assert_eq!(unwrapped, Token::new(TokenKind::Ident(s), fn_name_span));
+        let fn_name_span = Span::new(0..s.len()+1);
+        assert_eq!(unwrapped, Token::new(TokenKind::Label((s.to_owned() + ":").as_str()), fn_name_span));
         assert_eq!(lexer.span, fn_name_span);
 
-        let _ = lexer.next(); // :
         let _ = lexer.next(); // whitespace
 
         let tok = lexer.next();

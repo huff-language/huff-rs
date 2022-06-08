@@ -77,8 +77,10 @@ use std::{iter::Peekable, str::Chars};
 pub enum Context {
     /// global context
     Global,
-    /// macro context
-    Macro,
+    /// Macro definition context
+    MacroDefinition,
+    /// Macro's body context
+    MacroBody,
     /// ABI context
     Abi,
     /// Lexing args of functions inputs/outputs and events
@@ -147,6 +149,19 @@ impl<'a> Lexer<'a> {
     /// Try to peek at the next character from the source
     pub fn peek(&mut self) -> Option<char> {
         self.chars.peek().copied()
+    }
+
+    /// Dynamically peeks characters based on the filter
+    pub fn dyn_peek(&mut self, f: impl Fn(&char) -> bool + Copy) -> String {
+        let mut chars: Vec<char> = Vec::new();
+        let mut curr_char = self.chars.peek().copied();
+        let mut current_pos = self.span.start;
+        while curr_char.map(|x| f(&x)).unwrap_or(false) {
+            current_pos += 1;
+            chars.push(curr_char.unwrap());
+            curr_char = self.nth_peek(current_pos);
+        }
+        chars.iter().collect()
     }
 
     /// Try to peek at the nth character from the source
@@ -339,6 +354,7 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Pure,
                     ];
                     for kind in &keys {
+                        if self.context == Context::MacroBody {break}
                         let key = kind.to_string();
                         let token_length = key.len() - 1;
                         let peeked = self.peek_n_chars(token_length);
@@ -359,7 +375,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     if let Some(tokind) = found_kind {
                         match tokind {
-                            TokenKind::Macro => self.context = Context::Macro,
+                            TokenKind::Macro => self.context = Context::MacroDefinition,
                             TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
                             TokenKind::Constant => self.context = Context::Constant,
                             _ => (),
@@ -386,7 +402,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // goes over all opcodes
                     for opcode in OPCODES {
-                        if self.context == Context::AbiArgs {
+                        if self.context != Context::MacroBody {
                             break
                         }
                         let token_length = opcode.len() - 1;
@@ -456,8 +472,12 @@ impl<'a> Iterator for Lexer<'a> {
                     if let Some(kind) = found_kind {
                         kind
                     } else {
-                        self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
-                        TokenKind::Ident(self.slice())
+                        self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_') || c.eq(&':'));
+                        let ident = self.slice();
+                        match ident.ends_with(":") {
+                            true => TokenKind::Label(ident.get(0..ident.len()).unwrap()),
+                            false => TokenKind::Ident(ident)
+                        }
                     }
                 }
                 // If it's the start of a hex literal
@@ -491,8 +511,18 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 '[' => TokenKind::OpenBracket,
                 ']' => TokenKind::CloseBracket,
-                '{' => TokenKind::OpenBrace,
-                '}' => TokenKind::CloseBrace,
+                '{' => {
+                    if self.context == Context::MacroDefinition {
+                        self.context = Context::MacroBody;
+                    }
+                    TokenKind::OpenBrace
+                },
+                '}' => {
+                    if self.context == Context::MacroBody {
+                        self.context = Context::Global;
+                    }
+                    TokenKind::CloseBrace
+                },
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,
