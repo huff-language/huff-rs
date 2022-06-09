@@ -409,7 +409,11 @@ impl<'a> Iterator for Lexer<'a> {
                     if let true = potential_label.ends_with(':') {
                         self.dyn_consume(|c| c.is_alphanumeric() || c == &'_' || c == &':');
                         let label = self.slice();
-                        found_kind = Some(TokenKind::Label(label.get(0..label.len() - 1).unwrap()));
+                        if let Some(l) = label.get(0..label.len() - 1) {
+                            found_kind = Some(TokenKind::Label(l));
+                        } else {
+                            tracing::error!("[huff_lexer] Fatal Label Colon Truncation!");
+                        }
                     }
 
                     let pot_op = self.dyn_peek(|c| c.is_alphanumeric());
@@ -420,9 +424,11 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                         if opcode == pot_op {
                             self.dyn_consume(|c| c.is_alphanumeric());
-                            found_kind = Some(TokenKind::Opcode(
-                                OPCODES_MAP.get(opcode).unwrap().to_owned(),
-                            ));
+                            if let Some(o) = OPCODES_MAP.get(opcode) {
+                                found_kind = Some(TokenKind::Opcode(o.to_owned()));
+                            } else {
+                                tracing::error!("[huff_lexer] Fatal Opcode Mapping!");
+                            }
                             break
                         }
                     }
