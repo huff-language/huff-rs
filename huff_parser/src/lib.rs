@@ -462,7 +462,7 @@ impl<'a> Parser<'a> {
     /// Parse call to a macro.
     pub fn parse_macro_call(&mut self) -> Result<Vec<MacroArg<'a>>, ParserError> {
         self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
-        Ok(self.parse_macro_call_args()?)
+        self.parse_macro_call_args()
     }
 
     /// Parse the arguments of a macro call.

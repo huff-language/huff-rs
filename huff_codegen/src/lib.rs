@@ -64,10 +64,10 @@ impl<'a> Codegen<'a> {
     ///
     /// * `ast` - Optional Contract Abstract Syntax Tree
     pub fn roll(&mut self, ast: Option<Contract<'a>>) -> Result<String, CodegenError> {
-        let mut bytecode: String = String::default();
+        let bytecode: String = String::default();
 
         // Grab the AST
-        let contract: &Contract<'a> = match &ast {
+        let _contract: &Contract<'a> = match &ast {
             Some(a) => a,
             None => match &self.ast {
                 Some(a) => a,
@@ -102,7 +102,7 @@ impl<'a> Codegen<'a> {
                 Some(a) => Ok(a.clone()),
                 None => {
                     tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
-                    return Err(CodegenError {
+                    Err(CodegenError {
                         kind: CodegenErrorKind::MissingAst,
                         span: None,
                         token: None,
