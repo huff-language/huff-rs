@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::evm::Opcode;
+use crate::{bytecode::*, error::CodegenError, evm::Opcode};
 use std::path::Path;
 
-type Literal = [u8; 32];
+/// A contained literal
+pub type Literal = [u8; 32];
 
 /// A File Path
 ///
@@ -35,50 +36,21 @@ pub struct Contract<'a> {
 }
 
 impl<'a> Contract<'a> {
-    /// Generates a list of storage pointers from constants
-    pub fn derive_storage_pointers(&self) -> Result<Vec<Literal>, ParserError> {
-        // Split literals and free storage pointers
-        let literal_consts: Vec<ConstVal> = self
-            .constants
+    /// Returns the first macro that matches the provided name
+    pub fn find_macro_by_name(&self, name: &str) -> Option<MacroDefinition<'a>> {
+        if let Some(m) = self
+            .macros
             .iter()
-            .filter(|constant| matches!(constant.value, ConstVal::Literal(_)))
-            .map(|definition| definition.value.clone())
-            .collect();
-        let fsp_consts: Vec<ConstVal> = self
-            .constants
-            .iter()
-            .filter(|constant| matches!(constant.value, ConstVal::FreeStoragePointer(_)))
-            .map(|definition| definition.value.clone())
-            .collect();
-
-        // First, validate literal storage pointers to prevent FREE_STORAGE_POINTER clashes
-        let literal_pointers: Vec<Literal> =
-            literal_consts.iter().fold(Vec::new(), |mut acc, constant| {
-                // Get the `Literal` value of the `ConstVal`
-                let literal: Option<Literal> = match constant {
-                    ConstVal::Literal(literal) => Some(*literal),
-                    _ => None,
-                };
-
-                // Check if the pointer has already been used
-                if literal.is_none() || acc.contains(&literal.unwrap()) {
-                    return acc // TODO: Throw err, pointer already used.
-                }
-
-                // Push the Literal constant's storage pointer to the accumulator
-                acc.push(literal.unwrap());
-                acc
-            });
-
-        let final_pointers: Vec<Literal> =
-            fsp_consts.iter().fold(literal_pointers, |mut acc, _constant| {
-                // Push the lowest available storage pointer to the accumulator
-                // TODO: Set the constant's value to the found pointer
-                acc.push(find_lowest(0, &acc));
-                acc
-            });
-
-        Ok(final_pointers)
+            .filter(|m| m.name == name)
+            .cloned()
+            .collect::<Vec<MacroDefinition>>()
+            .get(0)
+        {
+            Some(m.clone())
+        } else {
+            tracing::warn!("Failed to find macro \"{}\" in contract", name);
+            None
+        }
     }
 }
 
@@ -153,12 +125,49 @@ pub struct MacroDefinition<'a> {
     pub returns: usize,
 }
 
-impl MacroDefinition<'_> {
+impl<'a> ToIRBytecode<'a, CodegenError<'a>> for MacroDefinition<'a> {
+    fn to_irbytecode(&self) -> Result<IRBytecode<'a>, CodegenError<'a>> {
+        let mut inner_irbytes: Vec<IRByte> = vec![];
+
+        // Iterate and translate each statement to bytecode
+        self.statements.iter().for_each(|statement| {
+            match statement {
+                Statement::Literal(l) => {
+                    let combined = l
+                        .iter()
+                        .map(|b| IRByte::Byte(Byte(format!("{:04x}", b))))
+                        .collect::<Vec<IRByte>>();
+                    println!("Combined IRBytes: {:?}", combined);
+                    combined.iter().for_each(|irb| inner_irbytes.push(irb.clone()));
+                }
+                Statement::Opcode(o) => {
+                    let opcode_str = o.string();
+                    tracing::info!("Got opcode hex string: {}", opcode_str);
+                    inner_irbytes.push(IRByte::Byte(Byte(opcode_str)))
+                }
+                Statement::MacroInvocation(mi) => {
+                    inner_irbytes.push(IRByte::Statement(Statement::MacroInvocation(mi.clone())));
+                }
+                Statement::Constant(name) => {
+                    // Constant needs to be evaluated at the top-level
+                    inner_irbytes.push(IRByte::Constant(name));
+                }
+                Statement::ArgCall(arg_name) => {
+                    // Arg call needs to use a destination defined in the calling macro context
+                    inner_irbytes.push(IRByte::ArgCall(arg_name));
+                }
+            }
+        });
+        Ok(IRBytecode(inner_irbytes))
+    }
+}
+
+impl<'a> MacroDefinition<'a> {
     /// Public associated function that instantiates a MacroDefinition.
     pub fn new(
         name: String,
         parameters: Vec<Argument>,
-        statements: Vec<Statement<'static>>,
+        statements: Vec<Statement<'a>>,
         takes: usize,
         returns: usize,
     ) -> Self {
@@ -172,7 +181,16 @@ pub struct MacroInvocation<'a> {
     /// The Macro Name
     pub macro_name: String,
     /// A list of Macro arguments
-    pub args: Vec<&'a Literal>,
+    pub args: Vec<MacroArg<'a>>,
+}
+
+/// An argument passed when invoking a maco
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum MacroArg<'a> {
+    /// Macro Literal Argument
+    Literal(Literal),
+    /// Macro Iden String Argument
+    Ident(&'a str),
 }
 
 /// Free Storage Pointer Unit Struct
@@ -206,4 +224,8 @@ pub enum Statement<'a> {
     Opcode(Opcode),
     /// A Macro Invocation Statement
     MacroInvocation(MacroInvocation<'a>),
+    /// A Constant Push
+    Constant(&'a str),
+    /// An Arg Call
+    ArgCall(&'a str),
 }

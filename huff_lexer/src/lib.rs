@@ -65,20 +65,20 @@
 #![deny(missing_docs)]
 #![allow(dead_code)]
 
-use bytes::BytesMut;
-use huff_utils::{error::*, evm::*, span::*, token::*, types::*};
+use huff_utils::{bytes_util::*, error::*, evm::*, span::*, token::*, types::*};
 use regex::Regex;
 use std::{iter::Peekable, str::Chars};
-
 /// Defines a context in which the lexing happens.
 /// Allows to differientate between EVM types and opcodes that can either
 /// be identical or the latter being a substring of the former (example : bytes32 and byte)
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Context {
     /// global context
     Global,
-    /// macro context
-    Macro,
+    /// Macro definition context
+    MacroDefinition,
+    /// Macro's body context
+    MacroBody,
     /// ABI context
     Abi,
     /// Lexing args of functions inputs/outputs and events
@@ -91,6 +91,9 @@ pub enum Context {
 ///
 /// The lexer encapsulated in a struct.
 pub struct Lexer<'a> {
+    /// The source code as peekable chars.
+    /// SHOULD NOT BE MODIFIED EVER!
+    pub reference_chars: Peekable<Chars<'a>>,
     /// The source code as peekable chars.
     pub chars: Peekable<Chars<'a>>,
     /// The raw source code.
@@ -112,6 +115,7 @@ impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
     pub fn new(source: &'a str) -> Self {
         Self {
+            reference_chars: source.chars().peekable(),
             chars: source.chars().peekable(),
             source,
             span: Span::default(),
@@ -149,9 +153,20 @@ impl<'a> Lexer<'a> {
         self.chars.peek().copied()
     }
 
+    /// Dynamically peeks characters based on the filter
+    pub fn dyn_peek(&mut self, f: impl Fn(&char) -> bool + Copy) -> String {
+        let mut chars: Vec<char> = Vec::new();
+        let mut current_pos = self.span.start;
+        while self.nth_peek(current_pos).map(|x| f(&x)).unwrap_or(false) {
+            chars.push(self.nth_peek(current_pos).unwrap());
+            current_pos += 1;
+        }
+        chars.iter().collect()
+    }
+
     /// Try to peek at the nth character from the source
     pub fn nth_peek(&mut self, n: usize) -> Option<char> {
-        self.chars.clone().nth(n)
+        self.reference_chars.clone().nth(n)
     }
 
     /// Try to peek at next n characters from the source
@@ -339,6 +354,9 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Pure,
                     ];
                     for kind in &keys {
+                        if self.context == Context::MacroBody {
+                            break
+                        }
                         let key = kind.to_string();
                         let token_length = key.len() - 1;
                         let peeked = self.peek_n_chars(token_length);
@@ -359,7 +377,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     if let Some(tokind) = found_kind {
                         match tokind {
-                            TokenKind::Macro => self.context = Context::Macro,
+                            TokenKind::Macro => self.context = Context::MacroDefinition,
                             TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
                             TokenKind::Constant => self.context = Context::Constant,
                             _ => (),
@@ -384,18 +402,31 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = Some(TokenKind::FreeStoragePointer);
                     }
 
+                    let potential_label: String =
+                        self.dyn_peek(|c| c.is_alphanumeric() || c == &'_' || c == &':');
+                    if let true = potential_label.ends_with(':') {
+                        self.dyn_consume(|c| c.is_alphanumeric() || c == &'_' || c == &':');
+                        let label = self.slice();
+                        if let Some(l) = label.get(0..label.len() - 1) {
+                            found_kind = Some(TokenKind::Label(l));
+                        } else {
+                            tracing::error!("[huff_lexer] Fatal Label Colon Truncation!");
+                        }
+                    }
+
+                    let pot_op = self.dyn_peek(|c| c.is_alphanumeric());
                     // goes over all opcodes
                     for opcode in OPCODES {
-                        if self.context == Context::AbiArgs {
+                        if self.context != Context::MacroBody {
                             break
                         }
-                        let token_length = opcode.len() - 1;
-                        let peeked = self.peek_n_chars(token_length);
-                        if opcode == peeked {
-                            self.nconsume(token_length);
-                            found_kind = Some(TokenKind::Opcode(
-                                OPCODES_MAP.get(opcode).unwrap().to_owned(),
-                            ));
+                        if opcode == pot_op {
+                            self.dyn_consume(|c| c.is_alphanumeric());
+                            if let Some(o) = OPCODES_MAP.get(opcode) {
+                                found_kind = Some(TokenKind::Opcode(o.to_owned()));
+                            } else {
+                                tracing::error!("[huff_lexer] Fatal Opcode Mapping!");
+                            }
                             break
                         }
                     }
@@ -470,11 +501,7 @@ impl<'a> Iterator for Lexer<'a> {
                             matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
                     });
                     self.span.start += 2; // Ignore the "0x"
-                    let mut arr: [u8; 32] = Default::default();
-                    let mut buf = BytesMut::from(self.slice());
-                    buf.resize(32, 0);
-                    arr.copy_from_slice(buf.as_ref());
-                    TokenKind::Literal(arr)
+                    TokenKind::Literal(str_to_bytes32(self.slice()))
                 }
                 '=' => TokenKind::Assign,
                 '(' => {
@@ -491,12 +518,25 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 '[' => TokenKind::OpenBracket,
                 ']' => TokenKind::CloseBracket,
-                '{' => TokenKind::OpenBrace,
-                '}' => TokenKind::CloseBrace,
+                '{' => {
+                    if self.context == Context::MacroDefinition {
+                        self.context = Context::MacroBody;
+                    }
+                    TokenKind::OpenBrace
+                }
+                '}' => {
+                    if self.context == Context::MacroBody {
+                        self.context = Context::Global;
+                    }
+                    TokenKind::CloseBrace
+                }
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,
+                '<' => TokenKind::LeftAngle,
+                '>' => TokenKind::RightAngle,
                 // NOTE: TokenKind::Div is lexed further up since it overlaps with comment
+                ':' => TokenKind::Colon,
                 // identifiers
                 ',' => TokenKind::Comma,
                 '0'..='9' => {

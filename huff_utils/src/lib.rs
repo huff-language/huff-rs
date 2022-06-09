@@ -15,6 +15,9 @@ pub mod artifact;
 /// AST Module
 pub mod ast;
 
+/// Bytecode Traits Module
+pub mod bytecode;
+
 /// Span Module
 pub mod span;
 
@@ -36,7 +39,7 @@ pub mod evm;
 /// EVM Types Module
 pub mod types;
 
-/// Bytes Util
+/// Bytes Util Module
 pub mod bytes_util;
 
 /// Prelude wraps common utilities.

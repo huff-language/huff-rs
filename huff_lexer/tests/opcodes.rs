@@ -9,23 +9,26 @@ use huff_utils::{
 fn opcodes() {
     for opcode in OPCODES {
         let opcode = (*opcode).to_owned();
-        let source = opcode.clone();
-        let mut lexer = Lexer::new(&source);
+        let source = format!(
+            r#"
+            #define macro TEST() = takes(0) returns(0) {}
+                {}
+            {}
+            "#,
+            "{", opcode, "}",
+        );
+        let lexer = Lexer::new(&source);
         assert_eq!(lexer.source, source);
 
-        // The first token should be opcode
-        let tok = lexer.next().unwrap().unwrap();
-        assert_eq!(
-            tok,
-            Token::new(
-                TokenKind::Opcode(OPCODES_MAP.get(&opcode).unwrap().to_owned()),
-                Span::new(0..opcode.len())
-            )
-        );
-        assert_eq!(lexer.span, Span::new(0..opcode.len()));
+        let tokens = lexer
+            .into_iter()
+            .map(|x| x.unwrap())
+            .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
+            .collect::<Vec<Token>>();
 
-        // We should have reached EOF now
-        assert_eq!(lexer.span.end, source.len());
-        assert!(lexer.eof);
+        assert_eq!(
+            tokens.get(tokens.len() - 3).unwrap().kind,
+            TokenKind::Opcode(OPCODES_MAP.get(&opcode).unwrap().to_owned()),
+        );
     }
 }
