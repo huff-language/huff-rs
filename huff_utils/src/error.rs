@@ -5,6 +5,31 @@ use crate::{
 };
 use std::io::Write;
 
+/// A Parser Error
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum ParserError {
+    /// A general syntax error that accepts a message
+    SyntaxError(String),
+    /// Unexpected type
+    UnexpectedType,
+    /// Invalid definition
+    InvalidDefinition,
+    /// Invalid constant value
+    InvalidConstantValue,
+    /// Invalid constant
+    InvalidConstant,
+    /// Invalid name (macro, event, function, constant)
+    InvalidName,
+    /// Invalid arguments
+    InvalidArgs,
+    /// Invalid macro call arguments
+    InvalidMacroArgs,
+    /// Invalid return arguments
+    InvalidReturnArgs,
+    /// Invalid import path
+    InvalidImportPath,
+}
+
 /// A Lexing Error
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct LexicalError<'a> {
@@ -81,6 +106,16 @@ pub enum CodegenErrorKind {
     InvalidOperator,
     /// Missing AST
     MissingAst,
+    /// AST is missing constructor
+    MissingConstructor,
+    /// Invalid Macro Body Statement
+    InvalidMacroStatement,
+    /// The Macro Definition is Missing
+    MissingMacroDefinition,
+    /// Failed to recurse macro
+    FailedMacroRecursion,
+    /// Missing Constant Definition
+    MissingConstantDefinition,
 }
 
 impl<'a> Spanned for CodegenError<'a> {
@@ -92,10 +127,15 @@ impl<'a> Spanned for CodegenError<'a> {
 impl<'a, W: Write> Report<W> for CodegenError<'a> {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match self.kind {
-            // CodegenErrorKind::ExpectedIntExpr => write!(f.out, "Expected integer expression"),
-            // CodegenErrorKind::ExpectedIdent => write!(f.out, "Expected identifier"),
-            CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator"),
-            CodegenErrorKind::MissingAst => write!(f.out, "Codegen is missing an AST"),
+            CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator!"),
+            CodegenErrorKind::MissingAst => write!(f.out, "Codegen is missing an AST!"),
+            CodegenErrorKind::MissingConstructor => write!(f.out, "AST missing constructor macro!"),
+            CodegenErrorKind::InvalidMacroStatement => write!(f.out, "Invalid Macro Statement!"),
+            CodegenErrorKind::MissingMacroDefinition => write!(f.out, "Missing Macro Definition!"),
+            CodegenErrorKind::FailedMacroRecursion => write!(f.out, "Failed Macro Recursion!"),
+            CodegenErrorKind::MissingConstantDefinition => {
+                write!(f.out, "Missing Constant Definition!")
+            }
         }
     }
 }
