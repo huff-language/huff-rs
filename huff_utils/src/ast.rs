@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{bytecode::*, error::CodegenError, evm::Opcode};
+use crate::{bytecode::*, bytes_util::*, error::CodegenError, evm::Opcode};
 use std::path::Path;
 
 /// A contained literal
@@ -50,6 +50,21 @@ impl<'a> Contract<'a> {
         } else {
             tracing::warn!("Failed to find macro \"{}\" in contract", name);
             None
+        }
+    }
+
+    /// Derives the FreeStoragePointers into their bytes32 representation
+    pub fn derive_storage_pointers(&self) -> Option<Vec<[u8; 32]>> {
+        let mut storage_pointers: Vec<[u8; 32]> = Vec::new();
+        for constant in &self.constants {
+            if let ConstVal::FreeStoragePointer(_pointer) = &constant.value {
+                storage_pointers
+                    .push(str_to_bytes32(format!("{}", storage_pointers.len()).as_str()));
+            }
+        }
+        match !storage_pointers.is_empty() {
+            true => Some(storage_pointers),
+            false => None,
         }
     }
 }
