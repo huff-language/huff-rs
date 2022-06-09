@@ -65,11 +65,9 @@
 #![deny(missing_docs)]
 #![allow(dead_code)]
 
-use bytes::BytesMut;
-use huff_utils::{error::*, evm::*, span::*, token::*, types::*};
+use huff_utils::{bytes_util::*, error::*, evm::*, span::*, token::*, types::*};
 use regex::Regex;
 use std::{iter::Peekable, str::Chars};
-
 /// Defines a context in which the lexing happens.
 /// Allows to differientate between EVM types and opcodes that can either
 /// be identical or the latter being a substring of the former (example : bytes32 and byte)
@@ -470,11 +468,7 @@ impl<'a> Iterator for Lexer<'a> {
                             matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
                     });
                     self.span.start += 2; // Ignore the "0x"
-                    let mut arr: [u8; 32] = Default::default();
-                    let mut buf = BytesMut::from(self.slice());
-                    buf.resize(32, 0);
-                    arr.copy_from_slice(buf.as_ref());
-                    TokenKind::Literal(arr)
+                    TokenKind::Literal(str_to_bytes32(self.slice()))
                 }
                 '=' => TokenKind::Assign,
                 '(' => {

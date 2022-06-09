@@ -39,9 +39,13 @@ pub mod evm;
 /// EVM Types Module
 pub mod types;
 
+/// Bytes Util Module
+pub mod bytes_util;
+
 /// Prelude wraps common utilities.
 pub mod prelude {
     pub use crate::{
-        abi::*, artifact::*, ast::*, bytecode::*, error::*, io::*, report::*, span::*, token::*,
+        abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, io::*, report::*,
+        span::*, token::*,
     };
 }

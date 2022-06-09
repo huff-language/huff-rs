@@ -2,9 +2,6 @@ use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::{evm::Opcode, prelude::*};
 
-mod common;
-use common::*;
-
 #[test]
 fn empty_macro() {
     let source = "#define macro HELLO_WORLD() = takes(0) returns(4) {}";
@@ -43,10 +40,10 @@ fn macro_with_simple_body() {
             name: "HELLO_WORLD".to_string(),
             parameters: vec![],
             statements: vec![
-                Statement::Literal(create_literal_from_str("00")),
+                Statement::Literal(str_to_bytes32("00")),
                 Statement::Opcode(Opcode::Mstore),
-                Statement::Literal(create_literal_from_str("01")),
-                Statement::Literal(create_literal_from_str("02")),
+                Statement::Literal(str_to_bytes32("01")),
+                Statement::Literal(str_to_bytes32("02")),
                 Statement::Opcode(Opcode::Add)
             ],
             takes: 3,
@@ -101,7 +98,7 @@ fn macro_with_arg_calls() {
                 Statement::Constant("BALANCE_LOCATION"),
                 Statement::MacroInvocation(MacroInvocation {
                     macro_name: "LOAD_ELEMENT_FROM_KEYS".to_string(),
-                    args: vec![MacroArg::Literal(create_literal_from_str("00"))]
+                    args: vec![MacroArg::Literal(str_to_bytes32("00"))]
                 }),
                 Statement::Opcode(Opcode::Dup1),
                 Statement::Opcode(Opcode::Dup3),
@@ -115,7 +112,7 @@ fn macro_with_arg_calls() {
                 Statement::Constant("BALANCE_LOCATION"),
                 Statement::MacroInvocation(MacroInvocation {
                     macro_name: "STORE_ELEMENT_FROM_KEYS".to_string(),
-                    args: vec![MacroArg::Literal(create_literal_from_str("00"))]
+                    args: vec![MacroArg::Literal(str_to_bytes32("00"))]
                 })
             ],
             takes: 3,

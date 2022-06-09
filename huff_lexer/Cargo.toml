@@ -14,6 +14,5 @@ exclude = [ "huffs" ]
 [dependencies]
 proptest = "1.0.0"
 huff_utils = { path = "../huff_utils" }
-bytes = "1"
 regex = "1"
 tracing = "0.1.34"
