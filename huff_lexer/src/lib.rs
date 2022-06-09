@@ -1,6 +1,6 @@
 //! ## Huff Lexer
 //!
-//! Lexical analyzer for the huff language.
+//! Lexical analyzer for the Huff Language.
 //!
 //! The Huff Lexer is instantiable with a string representing the source code.
 //!
@@ -62,8 +62,11 @@
 //! assert!(lexer.eof);
 //! ```
 
-#![deny(missing_docs)]
 #![allow(dead_code)]
+#![warn(missing_docs)]
+#![warn(unused_extern_crates)]
+#![forbid(unsafe_code)]
+#![forbid(where_clauses_object_safety)]
 
 use huff_utils::{bytes_util::*, error::*, evm::*, span::*, token::*, types::*};
 use regex::Regex;
