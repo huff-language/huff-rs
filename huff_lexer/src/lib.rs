@@ -408,7 +408,8 @@ impl<'a> Iterator for Lexer<'a> {
                         self.dyn_peek(|c| c.is_alphanumeric() || c == &'_' || c == &':');
                     if let true = potential_label.ends_with(':') {
                         self.dyn_consume(|c| c.is_alphanumeric() || c == &'_' || c == &':');
-                        found_kind = Some(TokenKind::Label(self.slice()));
+                        let label = self.slice();
+                        found_kind = Some(TokenKind::Label(label.get(0..label.len() - 1).unwrap()));
                     }
 
                     let pot_op = self.dyn_peek(|c| c.is_alphanumeric());
