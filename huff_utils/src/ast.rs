@@ -54,7 +54,7 @@ impl<'a> Contract<'a> {
     }
 
     /// Derives the FreeStoragePointers into their bytes32 representation
-    pub fn derive_storage_pointers(&mut self) -> Option<Vec<[u8; 32]>> {
+    pub fn derive_storage_pointers(&mut self) {
         let mut storage_pointers: Vec<[u8; 32]> = Vec::new();
         let mut last_assigned_free_pointer = 0;
         // do the non fsp consts first, so we can check for conflicts
@@ -75,10 +75,6 @@ impl<'a> Contract<'a> {
                 last_assigned_free_pointer += 1;
                 constant.value = ConstVal::Literal(fsp_bytes);
             }
-        }
-        match !storage_pointers.is_empty() {
-            true => Some(storage_pointers),
-            false => None,
         }
     }
 }

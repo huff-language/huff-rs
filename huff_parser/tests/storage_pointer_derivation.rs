@@ -37,12 +37,8 @@ fn derives_storage_pointers() {
         num_constant,
         ConstantDefinition { name: "NUM", value: ConstVal::Literal(str_to_bytes32("a57B")) }
     );
-    // Ensure that storage pointers were derived correctly
-    let storage_pointers = contract.derive_storage_pointers().unwrap();
-    assert_eq!(storage_pointers[0], str_to_bytes32("a57B")); // 0xa57B
-    assert_eq!(storage_pointers[1], str_to_bytes32("0")); // FSP
-    assert_eq!(storage_pointers[2], str_to_bytes32("1")); // FSP #2
-
+    // Derive the AST's free storage pointers
+    contract.derive_storage_pointers();
     // Ensure that the storage pointers were set for the FSP constants in the AST
     assert_eq!(contract.constants[0].value, ConstVal::Literal(str_to_bytes32("0")));
     assert_eq!(contract.constants[1].value, ConstVal::Literal(str_to_bytes32("1")));
