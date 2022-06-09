@@ -137,7 +137,8 @@ impl<'a> Codegen<'a> {
         tracing::info!("Codegen found constructor macro: {:?}", c_macro);
 
         // For each MacroInvocation Statement, recurse into bytecode
-        let recursed_bytecode: Vec<Byte> = self.recurse_bytecode(c_macro.clone(), ast, &mut vec![c_macro])?;
+        let recursed_bytecode: Vec<Byte> =
+            self.recurse_bytecode(c_macro.clone(), ast, &mut vec![c_macro])?;
         println!("Got recursed bytecode {:?}", recursed_bytecode);
         let bytecode = recursed_bytecode.iter().map(|byte| byte.0.to_string()).collect();
         println!("Final bytecode: {}", bytecode);
@@ -265,8 +266,8 @@ impl<'a> Codegen<'a> {
                     }
                 }
                 IRByte::ArgCall(arg_name) => {
-                    // TODO: Check our scope, loop through all macros, all statements, to see if out arg is defined as a jumpdest
-                    // match 
+                    // TODO: Check our scope, loop through all macros, all statements, to see if out
+                    // arg is defined as a jumpdest match
                     println!("Codegen found Arg Call: {}", arg_name);
                 }
             }

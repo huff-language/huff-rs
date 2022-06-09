@@ -91,17 +91,17 @@ fn macro_with_arg_calls() {
         macro_definition,
         MacroDefinition {
             name: "TRANSFER_TAKE_FROM".to_string(),
-            parameters: vec![
-                Argument { arg_type: None, name: Some("error".to_string()), indexed: false }
-            ],
+            parameters: vec![Argument {
+                arg_type: None,
+                name: Some("error".to_string()),
+                indexed: false
+            }],
             statements: vec![
                 Statement::Opcode(Opcode::Dup2),
                 Statement::Constant("BALANCE_LOCATION"),
                 Statement::MacroInvocation(MacroInvocation {
                     macro_name: "LOAD_ELEMENT_FROM_KEYS".to_string(),
-                    args: vec![
-                        MacroArg::Literal(create_literal_from_str("00"))
-                    ]
+                    args: vec![MacroArg::Literal(create_literal_from_str("00"))]
                 }),
                 Statement::Opcode(Opcode::Dup1),
                 Statement::Opcode(Opcode::Dup3),
@@ -115,9 +115,7 @@ fn macro_with_arg_calls() {
                 Statement::Constant("BALANCE_LOCATION"),
                 Statement::MacroInvocation(MacroInvocation {
                     macro_name: "STORE_ELEMENT_FROM_KEYS".to_string(),
-                    args: vec![
-                        MacroArg::Literal(create_literal_from_str("00"))
-                    ]
+                    args: vec![MacroArg::Literal(create_literal_from_str("00"))]
                 })
             ],
             takes: 3,
