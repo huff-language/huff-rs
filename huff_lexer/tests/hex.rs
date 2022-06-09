@@ -39,8 +39,10 @@ fn parses_odd_len_hex() {
 #[test]
 fn converts_literal_to_hex_string() {
     let sources = [
+        "00",
         "01",
-        // "1000", TODO: `bytes32_to_string` ignores zero bytes atm, this one fails.
+        "1000",
+        "010101",
         "a57b",
         "8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
     ];
