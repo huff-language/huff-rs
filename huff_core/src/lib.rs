@@ -1,20 +1,4 @@
-//! ## Huff Core
-//!
-//! Core Compiler for the Huff Language.
-//!
-//! #### Usage
-//!
-//! The following example steps through compiling source code in the ./examples/ directory.
-//!
-//! ```rust
-//! use huff_core::{Compiler};
-//! use huff_lexer::{Lexer};
-//!
-//! // Instantiate the Compiler Instance
-//! let compiler = Compiler::new();
-//!
-//! // Mock run the compiler on examples
-//! ```
+#![doc = include_str!("../README.md")]
 
 #![warn(missing_docs)]
 #![warn(unused_extern_crates)]
@@ -26,16 +10,60 @@ use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
-use std::path::Path;
+use std::{path::{Path, PathBuf}, ffi::OsString, collections::BTreeMap, time::SystemTime};
 
 /// The core compiler
+#[derive(Default, Debug, Clone)]
 pub struct Compiler {
+    /// The location of the files to compile
+    pub sources: Vec<String>,
+    /// The output location
+    pub output: Option<String>,
+    /// Whether to optimize compilation or not.
+    pub optimize: bool,
+    /// Generate and log bytecode
+    pub bytecode: bool,
+}
 
+/// Enables tracing
+pub fn init_tracing_subscriber() {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .try_init()
+        .ok();
 }
 
 /// An aliased output location to derive from the cli arguments.
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct OutputLocation(pub(crate) String);
+
+impl Default for OutputLocation {
+    fn default() -> Self {
+        Self("./artifacts/".to_string())
+    }
+}
+
+/// File Encapsulation
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct FileSource {
+    /// File ID
+    pub id: Uuid,
+    /// File Path
+    pub path: String,
+    /// File Source
+    pub source: Option<String>,
+    /// Last File Access Time
+    pub access: Option<SystemTime>,
+}
+
+/// File Dependencies
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct FileDependencies {
+    /// The File Identifier
+    pub file: Uuid,
+    /// An Ordered List of File Dependencies
+    pub dependencies: Vec<FileSource>
+}
 
 /// CompilerError
 #[derive(Debug, PartialEq, Eq)]
@@ -46,13 +74,57 @@ pub enum CompilerError<'a> {
     FileUnpackError(UnpackError),
     /// Parsing Error
     ParserError(ParserError),
+    /// Reading PathBuf Failed
+    PathBufRead(OsString),
 }
 
 impl<'a> Compiler {
+    /// Public associated function to instantiate a new compiler.
+    pub fn new(sources: Vec<String>, output: Option<String>) -> Self {
+        if cfg!(feature="verbose") {
+            init_tracing_subscriber();
+        }
+        Self {
+            sources,
+            output,
+            optimize: false,
+            bytecode: false
+        }
+    }
+
+    /// Get the file sources for a vec of PathBufs
+    pub fn fetch_sources(&self, paths: Vec<PathBuf>) -> Vec<String> {
+        paths.into_par_iter().map(|pb| {
+            match pb.into_os_string().into_string() {
+                Ok(file_loc) => match std::fs::read_to_string(file_loc) {
+                    Ok(source) => Some(source),
+                    Err(e) => {
+                        tracing::error!("Failed to read file at \"{}\"!", file_loc);
+                        None
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Converting PathBuf \"{:?}\" Failed!", pb);
+                    None
+                }
+            }
+        }).filter(|f| f.is_some()).map(|f| f.unwrap_or_default()).collect()
+    }
+
     /// Executes the main compilation process
     pub fn execute(&self) -> Result<(), CompilerError<'a>> {
         // Grab the input files
-        let files: Vec<String> = self.get_inputs()?;
+        let file_paths: Vec<PathBuf> = self.get_inputs()?;
+
+        // Parallel file fetching
+        let now = SystemTime::now();
+        let file_sources: Vec<String> = self.fetch_sources(file_paths);
+
+        // Parallelized Import Fetching per-compile-file
+        let file_deps: BTreeMap<String, FileSources> = file_sources.into_par_iter().map(|file| {
+
+        });
+        // TODO: grab the imports and optimistically load
 
         // Parallel compilation
         files.into_par_iter().for_each(|file| {
@@ -66,9 +138,8 @@ impl<'a> Compiler {
             let mut parser = Parser::new(tokens);
 
             // Parse into an AST
-            let parse_res = parser.parse().map_err(ExecutionError::ParserError);
+            let parse_res = parser.parse().map_err(CompilerError::ParserError);
             let contract = parse_res.unwrap();
-            println!("Parsed AST: {:?}", contract);
 
             // Run code generation
             let mut cg = Codegen::new();
@@ -105,31 +176,29 @@ impl<'a> Compiler {
     }
 
     /// Preprocesses input files for compiling
-    pub fn get_inputs(&self) -> Result<Vec<String>, ExecutionError<'a>> {
-        match &self.path {
-            Some(path) => {
-                // If the file is huff, we can use it
-                let ext = Path::new(&path).extension().unwrap_or_default();
-                if ext.eq("huff") {
-                    Ok(vec![path.clone()])
-                } else {
-                    // Otherwise, override the source files and use all files in the provided dir
-                    unpack_files(path).map_err(ExecutionError::FileUnpackError)
+    pub fn get_inputs(&self) -> Result<Vec<PathBuf>, CompilerError<'a>> {
+        let mut paths = vec![];
+        for f in self.sources {
+            // If the file is huff, use the path, otherwise unpack
+            let ext = Path::new(&f).extension().unwrap_or_default();
+            if ext.eq("huff") {
+                paths.push(Path::new(&f).to_path_buf())
+            } else {
+                // Otherwise, override the source files and use all files in the provided dir
+                match unpack_files(&f) {
+                    Ok(files) => files.iter().for_each(|fil| paths.push(Path::new(&f).to_path_buf())),
+                    Err(e) => return Err(CompilerError::FileUnpackError(e)),
                 }
             }
-            None => {
-                // If there's no path, unpack source files
-                let source: String = self.source.clone();
-                unpack_files(&source).map_err(ExecutionError::FileUnpackError)
-            }
         }
+        Ok(paths)
     }
 
     /// Derives an output location
     pub fn get_outputs(&self) -> OutputLocation {
         match &self.output {
             Some(o) => OutputLocation(o.clone()),
-            None => OutputLocation(self.outputdir.clone()),
+            None => OutputLocation::default(),
         }
     }
 }

@@ -20,3 +20,8 @@ huff_lexer = { path = "../huff_lexer" }
 huff_utils = { path = "../huff_utils" }
 huff_parser = { path = "../huff_parser" }
 rayon = { version = "1.5.3" }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt"] }
+uuid = "1.1.1"
+
+[features]
+verbose = []
