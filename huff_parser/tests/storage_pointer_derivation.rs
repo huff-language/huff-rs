@@ -40,7 +40,7 @@ fn derives_storage_pointers() {
     );
     // Ensure that storage pointers were derived correctly
     let storage_pointers = contract.derive_storage_pointers().unwrap();
-    assert_eq!(storage_pointers[0], str_to_bytes32("0")); // FSP
-    assert_eq!(storage_pointers[1], str_to_bytes32("1")); // FSP #2
-    assert_eq!(storage_pointers[2], str_to_bytes32("a57B")); // 0xa57B
+    assert_eq!(storage_pointers[0], str_to_bytes32("a57B")); // 0xa57B
+    assert_eq!(storage_pointers[1], str_to_bytes32("0")); // FSP
+    assert_eq!(storage_pointers[2], str_to_bytes32("1")); // FSP #2
 }

@@ -56,15 +56,23 @@ impl<'a> Contract<'a> {
     /// Derives the FreeStoragePointers into their bytes32 representation
     pub fn derive_storage_pointers(&self) -> Option<Vec<[u8; 32]>> {
         let mut storage_pointers: Vec<[u8; 32]> = Vec::new();
+        let mut last_assigned_free_pointer = 0;
+        // do the non fsp consts first, so we can check for conflicts
+        // when going over the fsp consts
         for constant in &self.constants {
-            match &constant.value {
-                ConstVal::FreeStoragePointer(_) => {
-                    storage_pointers
-                        .push(str_to_bytes32(format!("{}", storage_pointers.len()).as_str()));
+            if let ConstVal::Literal(literal) = &constant.value {
+                storage_pointers.push(*literal);
+            }
+        }
+        for constant in &self.constants {
+            if let ConstVal::FreeStoragePointer(_) = &constant.value {
+                let mut fsp_bytes = str_to_bytes32(&format!("{}", last_assigned_free_pointer));
+                while storage_pointers.contains(&fsp_bytes) {
+                    last_assigned_free_pointer += 1;
+                    fsp_bytes = str_to_bytes32(&format!("{}", last_assigned_free_pointer));
                 }
-                ConstVal::Literal(literal) => {
-                    storage_pointers.push(*literal);
-                }
+                storage_pointers.push(fsp_bytes);
+                last_assigned_free_pointer += 1;
             }
         }
         match !storage_pointers.is_empty() {
