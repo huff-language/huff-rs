@@ -1,6 +1,6 @@
 /// Tests lexing the Free Storage Pointer Keyword
 use huff_lexer::*;
-use huff_utils::{evm::*, prelude::*};
+use huff_utils::{evm::*, prelude::*, types::*};
 
 #[test]
 fn function_context() {
@@ -13,9 +13,12 @@ fn function_context() {
         .collect::<Vec<Token>>();
 
     // check input
-    assert_eq!(tokens.get(4).unwrap().kind, TokenKind::Ident("bytes32"));
+    assert_eq!(tokens.get(4).unwrap().kind, TokenKind::PrimitiveType(PrimitiveEVMType::Bytes(32)));
     // check output
-    assert_eq!(tokens.get(tokens.len() - 3).unwrap().kind, TokenKind::Ident("address"));
+    assert_eq!(
+        tokens.get(tokens.len() - 3).unwrap().kind,
+        TokenKind::PrimitiveType(PrimitiveEVMType::Address)
+    );
 }
 
 #[test]
@@ -28,7 +31,10 @@ fn event_context() {
         .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
         .collect::<Vec<Token>>();
 
-    assert_eq!(tokens.get(tokens.len() - 5).unwrap().kind, TokenKind::Ident("bytes32"));
+    assert_eq!(
+        tokens.get(tokens.len() - 5).unwrap().kind,
+        TokenKind::PrimitiveType(PrimitiveEVMType::Bytes(32))
+    );
 }
 
 /// Won't parse bytes32 as an ident, but as an opcode

@@ -6,6 +6,7 @@ pub fn parse_extension(filename: &str) -> Option<&str> {
 }
 
 /// Unpacking errors
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum UnpackError {
     /// The file extension is not supported.
     UnsupportedExtension,

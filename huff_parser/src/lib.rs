@@ -46,7 +46,9 @@ use huff_utils::{
     ast::*,
     error::ParserError,
     token::{Token, TokenKind},
+    types::*,
 };
+use std::path::Path;
 use tiny_keccak::{Hasher, Keccak};
 
 /// The Parser
@@ -132,13 +134,19 @@ impl<'a> Parser<'a> {
         // Then let's grab and validate the file path
         self.match_kind(TokenKind::Str("x"))?;
         let tok = self.peek_behind().unwrap().kind;
-        let path: &'a str = match tok {
+        let path: &'a Path = Path::new(match tok {
             TokenKind::Str(file_path) => file_path,
             _ => {
                 println!("Invalid import path string. Got: {}", tok);
                 return Err(ParserError::InvalidName)
             }
-        };
+        });
+
+        // Validate that a file @ the path exists
+        if !(path.exists() && path.is_file() && path.to_str().unwrap().ends_with(".huff")) {
+            println!("Invalid file path. Got: {}", path.to_str().unwrap());
+            return Err(ParserError::InvalidImportPath)
+        }
 
         Ok(path)
     }
@@ -216,7 +224,7 @@ impl<'a> Parser<'a> {
         };
 
         // function inputs should be next
-        let inputs: Vec<Argument> = self.parse_args(true, true)?;
+        let inputs: Vec<Argument> = self.parse_args(true, true, false)?;
         // function type should be next
         let fn_type = match self.current_token.kind {
             TokenKind::View => FunctionType::View,
@@ -231,7 +239,7 @@ impl<'a> Parser<'a> {
         // next token should be of `TokenKind::Returns`
         self.match_kind(TokenKind::Returns)?;
         // function outputs should be next
-        let outputs: Vec<Argument> = self.parse_args(true, true)?;
+        let outputs: Vec<Argument> = self.parse_args(true, true, false)?;
 
         let mut signature = [0u8; 4]; // Only keep first 4 bytes
         let mut hasher = Keccak::v256();
@@ -261,7 +269,7 @@ impl<'a> Parser<'a> {
         };
 
         // Parse the event's parameters
-        let parameters: Vec<Argument> = self.parse_args(true, true)?;
+        let parameters: Vec<Argument> = self.parse_args(true, true, true)?;
 
         Ok(Event { name, parameters })
     }
@@ -314,7 +322,7 @@ impl<'a> Parser<'a> {
         self.match_kind(TokenKind::Macro)?;
         let macro_name: String = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
 
-        let macro_arguments: Vec<Argument> = self.parse_args(true, false)?;
+        let macro_arguments: Vec<Argument> = self.parse_args(true, false, false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
         let macro_takes: usize = self.parse_single_arg()?;
@@ -387,31 +395,37 @@ impl<'a> Parser<'a> {
         &mut self,
         select_name: bool,
         select_type: bool,
+        has_indexed: bool,
     ) -> Result<Vec<Argument>, ParserError> {
         let mut args: Vec<Argument> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
+            let mut arg = Argument::default();
+
             // type comes first
             // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
-            let arg_type = if select_type {
-                Some(self.match_kind(TokenKind::Ident("EVMType"))?.to_string())
-            } else {
-                None
-            };
+            if select_type {
+                arg.arg_type = Some(self.parse_arg_type()?.to_string());
+                // Check if the argument is indexed
+                // TODO: Ensure this can only be done for events- this function is used for
+                // TODO: events, functions, and macro arguments.
+                if has_indexed && self.check(TokenKind::Indexed) {
+                    arg.indexed = true;
+                    self.consume(); // consume "indexed" keyword
+                }
+            }
 
             // name comes second (is optional)
-            let name = if select_name && self.check(TokenKind::Ident("x")) {
-                Some(self.match_kind(TokenKind::Ident("x"))?.to_string())
-            } else {
-                None
-            };
+            if select_name && self.check(TokenKind::Ident("x")) {
+                arg.name = Some(self.match_kind(TokenKind::Ident("x"))?.to_string())
+            }
 
             // multiple args possible
             if self.check(TokenKind::Comma) {
                 self.consume();
             }
 
-            args.push(Argument { arg_type, name });
+            args.push(arg);
         }
         // consume close parenthesis
         self.match_kind(TokenKind::CloseParen)?;
@@ -477,5 +491,51 @@ impl<'a> Parser<'a> {
             self.consume();
         }
         Ok(())
+    }
+
+    /// Parses the type of an argument.
+    pub fn parse_arg_type(&mut self) -> Result<TokenKind, ParserError> {
+        match self.current_token.kind {
+            TokenKind::PrimitiveType(prim) => Ok(self.parse_primitive_type(prim)?),
+            TokenKind::ArrayType(prim, _size) => {
+                let _ = self.parse_primitive_type(prim);
+                Ok(self.match_kind(self.current_token.kind)?)
+            }
+            _ => Err(ParserError::InvalidArgs),
+        }
+    }
+
+    /// Parses a primitive EVM type.
+    /// Arrays of primitive types are not considered as primitive types themselves.
+    pub fn parse_primitive_type(
+        &mut self,
+        prim: PrimitiveEVMType,
+    ) -> Result<TokenKind, ParserError> {
+        match prim {
+            PrimitiveEVMType::Uint(size) => {
+                if !(8..=256).contains(&size) || size % 8 != 0 {
+                    return Err(ParserError::InvalidArgs)
+                }
+                Ok(self.match_kind(self.current_token.kind)?)
+            }
+            PrimitiveEVMType::Bytes(size) => {
+                if !(1..=32).contains(&size) {
+                    return Err(ParserError::InvalidArgs)
+                }
+                Ok(self.match_kind(self.current_token.kind)?)
+            }
+            PrimitiveEVMType::Bool => Ok(self.match_kind(self.current_token.kind)?),
+            PrimitiveEVMType::Address => Ok(self.match_kind(self.current_token.kind)?),
+            PrimitiveEVMType::String => Ok(self.match_kind(self.current_token.kind)?),
+            PrimitiveEVMType::DynBytes => Ok(self.match_kind(self.current_token.kind)?),
+            PrimitiveEVMType::Int(size) => {
+                if !(8..=256).contains(&size) || size % 8 != 0 {
+                    return Err(ParserError::InvalidArgs)
+                }
+                let curr_token_kind = self.current_token.kind;
+                self.consume();
+                Ok(curr_token_kind)
+            }
+        }
     }
 }

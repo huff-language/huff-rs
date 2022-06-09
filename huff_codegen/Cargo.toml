@@ -9,8 +9,12 @@ description = """
 Code Generation Crate for the Huff-Language
 """
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
+exclude = [ "examples" ]
 
 [dependencies]
 serde_json = "1.0.81"
 proptest = "1.0.0"
 huff_utils = { path = "../huff_utils" }
+ethers = "0.6.2"
+hex = "0.4.3"
+tracing = "0.1.34"

@@ -1,11 +1,14 @@
-use crate::{bytes_util::find_lowest, error::ParserError, evm::Opcode};
+use serde::{Deserialize, Serialize};
+
+use crate::evm::Opcode;
+use std::path::Path;
 
 type Literal = [u8; 32];
 
 /// A File Path
 ///
 /// Used for parsing the huff imports.
-pub type FilePath<'a> = &'a str;
+pub type FilePath<'a> = &'a Path;
 
 /// A Huff Contract Representation
 ///
@@ -86,6 +89,8 @@ pub struct Argument {
     pub arg_type: Option<String>,
     /// The name of the argument
     pub name: Option<String>,
+    /// Is the argument indexed? TODO: should be valid for event arguments ONLY
+    pub indexed: bool,
 }
 
 /// A Function Signature
@@ -104,7 +109,7 @@ pub struct Function<'a> {
 }
 
 /// Function Types
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FunctionType {
     /// Viewable Function
     View,

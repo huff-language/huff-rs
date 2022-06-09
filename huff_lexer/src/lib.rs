@@ -66,7 +66,8 @@
 #![allow(dead_code)]
 
 use bytes::BytesMut;
-use huff_utils::{error::*, evm::*, span::*, token::*};
+use huff_utils::{error::*, evm::*, span::*, token::*, types::*};
+use regex::Regex;
 use std::{iter::Peekable, str::Chars};
 
 /// Defines a context in which the lexing happens.
@@ -80,6 +81,8 @@ pub enum Context {
     Macro,
     /// ABI context
     Abi,
+    /// Lexing args of functions inputs/outputs and events
+    AbiArgs,
     /// constant context
     Constant,
 }
@@ -262,7 +265,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token<'a>, LexicalError>;
+    type Item = Result<Token<'a>, LexicalError<'a>>;
 
     /// Iterates over the source code
     fn next(&mut self) -> Option<Self::Item> {
@@ -331,6 +334,7 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Event,
                         TokenKind::NonPayable,
                         TokenKind::Payable,
+                        TokenKind::Indexed,
                         TokenKind::View,
                         TokenKind::Pure,
                     ];
@@ -353,8 +357,8 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = None;
                     }
 
-                    if found_kind != None {
-                        match found_kind.unwrap() {
+                    if let Some(tokind) = found_kind {
+                        match tokind {
                             TokenKind::Macro => self.context = Context::Macro,
                             TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
                             TokenKind::Constant => self.context = Context::Constant,
@@ -382,7 +386,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // goes over all opcodes
                     for opcode in OPCODES {
-                        if self.context == Context::Abi {
+                        if self.context == Context::AbiArgs {
                             break
                         }
                         let token_length = opcode.len() - 1;
@@ -396,6 +400,59 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
+                    // Last case ; we are in ABI context and
+                    // we are parsing an EVM type
+                    if self.context == Context::AbiArgs {
+                        let curr_char = self.peek()?;
+                        if !['(', ')'].contains(&curr_char) {
+                            self.dyn_consume(|c| c.is_alphanumeric() || *c == '[' || *c == ']');
+                            // got a type at this point, we have to know which
+                            let raw_type: &str = self.slice();
+                            // check for arrays first
+                            if EVM_TYPE_ARRAY_REGEX.is_match(raw_type) {
+                                // split to get array size and type
+                                // TODO: support multi-dimensional arrays
+                                let mut words: Vec<String> = Regex::new(r"\[")
+                                    .unwrap()
+                                    .split(raw_type)
+                                    .map(|x| x.replace(']', ""))
+                                    .collect();
+                                // unbounded array == array with a size of 0
+                                if words[1].is_empty() {
+                                    words[1] = String::from("0");
+                                }
+                                let arr_size: usize = words[1]
+                                    .parse::<usize>()
+                                    .map_err(|_| {
+                                        let err = LexicalError {
+                                            kind: LexicalErrorKind::InvalidArraySize(&words[1]),
+                                            span: self.span,
+                                        };
+                                        tracing::error!("{}", format!("{:?}", err));
+                                        err
+                                    })
+                                    .unwrap();
+                                let primitive = PrimitiveEVMType::try_from(words[0].clone());
+                                if let Ok(primitive) = primitive {
+                                    found_kind = Some(TokenKind::ArrayType(primitive, arr_size));
+                                } else {
+                                    let err = LexicalError {
+                                        kind: LexicalErrorKind::InvalidPrimitiveType(&words[0]),
+                                        span: self.span,
+                                    };
+                                    tracing::error!("{}", format!("{:?}", err));
+                                }
+                            } else {
+                                // We don't want to consider any argument names or the "indexed"
+                                // keyword here.
+                                let primitive = PrimitiveEVMType::try_from(raw_type.to_string());
+                                if let Ok(primitive) = primitive {
+                                    found_kind = Some(TokenKind::PrimitiveType(primitive));
+                                }
+                            }
+                        }
+                    }
+
                     if let Some(kind) = found_kind {
                         kind
                     } else {
@@ -405,13 +462,14 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 // If it's the start of a hex literal
                 ch if ch == '0' && self.peek().unwrap() == 'x' => {
+                    self.consume(); // Consume the 'x' after '0' (separated from the `dyn_consume` so we don't have
+                                    // to match `x` in the actual hex)
                     self.dyn_consume(|c| {
                         c.is_numeric() ||
-                            // Match a-f, A-F, and 'x'
-                            // Note: This still allows for invalid hex, as it doesn't care if
-                            // there are multiple 'x' values in the literal.
-                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}' | 'x')
+                            // Match a-f & A-F
+                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
                     });
+                    self.span.start += 2; // Ignore the "0x"
                     let mut arr: [u8; 32] = Default::default();
                     let mut buf = BytesMut::from(self.slice());
                     buf.resize(32, 0);
@@ -419,8 +477,18 @@ impl<'a> Iterator for Lexer<'a> {
                     TokenKind::Literal(arr)
                 }
                 '=' => TokenKind::Assign,
-                '(' => TokenKind::OpenParen,
-                ')' => TokenKind::CloseParen,
+                '(' => {
+                    if self.context == Context::Abi {
+                        self.context = Context::AbiArgs;
+                    }
+                    TokenKind::OpenParen
+                }
+                ')' => {
+                    if self.context == Context::AbiArgs {
+                        self.context = Context::Abi;
+                    }
+                    TokenKind::CloseParen
+                }
                 '[' => TokenKind::OpenBracket,
                 ']' => TokenKind::CloseBracket,
                 '{' => TokenKind::OpenBrace,

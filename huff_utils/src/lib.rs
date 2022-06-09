@@ -2,10 +2,15 @@
 //!
 //! Refactored utilities commonly used across the huff-rs project.
 
-#![deny(missing_docs)]
+#![warn(missing_docs)]
+#![warn(unused_extern_crates)]
+#![forbid(unsafe_code)]
 
 /// Abi Module
 pub mod abi;
+
+/// Artifact Module
+pub mod artifact;
 
 /// AST Module
 pub mod ast;
@@ -28,10 +33,16 @@ pub mod io;
 /// EVM Module
 pub mod evm;
 
+/// EVM Types Module
+pub mod types;
+
 /// Bytes Util
 pub mod bytes_util;
 
 /// Prelude wraps common utilities.
 pub mod prelude {
-    pub use crate::{abi::*, ast::*, bytes_util::*, error::*, io::*, report::*, span::*, token::*};
+    pub use crate::{
+        abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, io::*, report::*,
+        span::*, token::*,
+    };
 }
