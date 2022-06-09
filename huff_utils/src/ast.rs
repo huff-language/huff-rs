@@ -57,9 +57,14 @@ impl<'a> Contract<'a> {
     pub fn derive_storage_pointers(&self) -> Option<Vec<[u8; 32]>> {
         let mut storage_pointers: Vec<[u8; 32]> = Vec::new();
         for constant in &self.constants {
-            if let ConstVal::FreeStoragePointer(_pointer) = &constant.value {
-                storage_pointers
-                    .push(str_to_bytes32(format!("{}", storage_pointers.len()).as_str()));
+            match &constant.value {
+                ConstVal::FreeStoragePointer(_) => {
+                    storage_pointers
+                        .push(str_to_bytes32(format!("{}", storage_pointers.len()).as_str()));
+                }
+                ConstVal::Literal(literal) => {
+                    storage_pointers.push(*literal);
+                }
             }
         }
         match !storage_pointers.is_empty() {
