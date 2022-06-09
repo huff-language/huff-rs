@@ -19,6 +19,7 @@ huff_utils = { path = "../huff_utils" }
 huff_parser = { path = "../huff_parser" }
 rayon = { version = "1.5.3" }
 tracing = "0.1.34"
+ethers = "0.6.2"
 
 [[bin]]
 name = "huff"

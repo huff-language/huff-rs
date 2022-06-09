@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::evm::Opcode;
+use crate::{bytecode::*, error::CodegenError, evm::Opcode};
 use std::path::Path;
 
-type Literal = [u8; 32];
+/// A contained literal
+pub type Literal = [u8; 32];
 
 /// A File Path
 ///
@@ -32,6 +33,25 @@ pub struct Contract<'a> {
     pub events: Vec<Event<'a>>,
     /// Tables
     pub tables: Vec<Table<'a>>,
+}
+
+impl<'a> Contract<'a> {
+    /// Returns the first macro that matches the provided name
+    pub fn find_macro_by_name(&self, name: &str) -> Option<MacroDefinition<'a>> {
+        if let Some(m) = self
+            .macros
+            .iter()
+            .filter(|m| m.name == name)
+            .cloned()
+            .collect::<Vec<MacroDefinition>>()
+            .get(0)
+        {
+            Some(m.clone())
+        } else {
+            tracing::warn!("Failed to find macro \"{}\" in contract", name);
+            None
+        }
+    }
 }
 
 /// A function, event, or macro argument
@@ -105,12 +125,49 @@ pub struct MacroDefinition<'a> {
     pub returns: usize,
 }
 
-impl MacroDefinition<'_> {
+impl<'a> ToIRBytecode<'a, CodegenError<'a>> for MacroDefinition<'a> {
+    fn to_irbytecode(&self) -> Result<IRBytecode<'a>, CodegenError<'a>> {
+        let mut inner_irbytes: Vec<IRByte> = vec![];
+
+        // Iterate and translate each statement to bytecode
+        self.statements.iter().for_each(|statement| {
+            match statement {
+                Statement::Literal(l) => {
+                    let combined = l
+                        .iter()
+                        .map(|b| IRByte::Byte(Byte(format!("{:04x}", b))))
+                        .collect::<Vec<IRByte>>();
+                    println!("Combined IRBytes: {:?}", combined);
+                    combined.iter().for_each(|irb| inner_irbytes.push(irb.clone()));
+                }
+                Statement::Opcode(o) => {
+                    let opcode_str = o.string();
+                    tracing::info!("Got opcode hex string: {}", opcode_str);
+                    inner_irbytes.push(IRByte::Byte(Byte(opcode_str)))
+                }
+                Statement::MacroInvocation(mi) => {
+                    inner_irbytes.push(IRByte::Statement(Statement::MacroInvocation(mi.clone())));
+                }
+                Statement::Constant(name) => {
+                    // Constant needs to be evaluated at the top-level
+                    inner_irbytes.push(IRByte::Constant(name));
+                }
+                Statement::ArgCall(arg_name) => {
+                    // Arg call needs to use a destination defined in the calling macro context
+                    inner_irbytes.push(IRByte::ArgCall(arg_name));
+                }
+            }
+        });
+        Ok(IRBytecode(inner_irbytes))
+    }
+}
+
+impl<'a> MacroDefinition<'a> {
     /// Public associated function that instantiates a MacroDefinition.
     pub fn new(
         name: String,
         parameters: Vec<Argument>,
-        statements: Vec<Statement<'static>>,
+        statements: Vec<Statement<'a>>,
         takes: usize,
         returns: usize,
     ) -> Self {
@@ -124,7 +181,16 @@ pub struct MacroInvocation<'a> {
     /// The Macro Name
     pub macro_name: String,
     /// A list of Macro arguments
-    pub args: Vec<&'a Literal>,
+    pub args: Vec<MacroArg<'a>>,
+}
+
+/// An argument passed when invoking a maco
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum MacroArg<'a> {
+    /// Macro Literal Argument
+    Literal(Literal),
+    /// Macro Iden String Argument
+    Ident(&'a str),
 }
 
 /// Free Storage Pointer Unit Struct
@@ -158,4 +224,8 @@ pub enum Statement<'a> {
     Opcode(Opcode),
     /// A Macro Invocation Statement
     MacroInvocation(MacroInvocation<'a>),
+    /// A Constant Push
+    Constant(&'a str),
+    /// An Arg Call
+    ArgCall(&'a str),
 }

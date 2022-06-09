@@ -4,7 +4,7 @@
 //!
 //! The Huff Parser accepts a vector of Tokens during instantiation.
 //!
-//! Once instantiated, the parser will construct an AST from the Token Vector when the `parse`
+//! Once instantiated, the par&ser will construct an AST from the Token Vector when the `parse`
 //! method is called.
 //!
 //! It also exposes a number of practical methods for accessing information about the source code
@@ -44,34 +44,12 @@
 
 use huff_utils::{
     ast::*,
+    error::ParserError,
     token::{Token, TokenKind},
     types::*,
 };
 use std::path::Path;
 use tiny_keccak::{Hasher, Keccak};
-
-/// A Parser Error
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
-pub enum ParserError {
-    /// A general syntax error that accepts a message
-    SyntaxError(&'static str),
-    /// Unexpected type
-    UnexpectedType,
-    /// Invalid definition
-    InvalidDefinition,
-    /// Invalid constant value
-    InvalidConstantValue,
-    /// Invalid name (macro, event, function, constant)
-    InvalidName,
-    /// Invalid arguments
-    InvalidArgs,
-    /// Invalid macro call arguments
-    InvalidMacroArgs,
-    /// Invalid return arguments
-    InvalidReturnArgs,
-    /// Invalid import path
-    InvalidImportPath,
-}
 
 /// The Parser
 #[derive(Debug, Clone)]
@@ -136,7 +114,7 @@ impl<'a> Parser<'a> {
                     contract.macros.push(self.parse_macro()?);
                 }
                 _ => {
-                    println!(
+                    tracing::error!(
                         "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
                         self.current_token.kind
                     );
@@ -350,7 +328,7 @@ impl<'a> Parser<'a> {
         let macro_takes: usize = self.parse_single_arg()?;
         self.match_kind(TokenKind::Returns)?;
         let macro_returns: usize = self.parse_single_arg()?;
-        let macro_statements: Vec<Statement<'static>> = self.parse_body()?;
+        let macro_statements: Vec<Statement<'a>> = self.parse_body()?;
 
         Ok(MacroDefinition::new(
             macro_name,
@@ -364,8 +342,8 @@ impl<'a> Parser<'a> {
     /// Parse the body of a macro.
     ///
     /// Only HEX, OPCODES, labels and MACRO calls should be authorized.
-    pub fn parse_body(&mut self) -> Result<Vec<Statement<'static>>, ParserError> {
-        let mut statements: Vec<Statement<'static>> = Vec::new();
+    pub fn parse_body(&mut self) -> Result<Vec<Statement<'a>>, ParserError> {
+        let mut statements: Vec<Statement<'a>> = Vec::new();
         self.match_kind(TokenKind::OpenBrace)?;
         while !self.check(TokenKind::CloseBrace) {
             match self.current_token.kind {
@@ -377,19 +355,32 @@ impl<'a> Parser<'a> {
                     self.consume();
                     statements.push(Statement::Opcode(o));
                 }
-                TokenKind::Ident("MACRO_NAME") => {
-                    let _literals = self.parse_macro_call();
-                    //statements.push(Statement::MacroInvocation("aa": []));
+                TokenKind::Ident(ident_str) => {
+                    tracing::info!("Found iden string in macro: {}", ident_str);
+                    let lit_args = self.parse_macro_call()?;
+                    statements.push(Statement::MacroInvocation(MacroInvocation {
+                        macro_name: ident_str.to_string(),
+                        args: lit_args,
+                    }));
                 }
                 TokenKind::Label(_) => {
                     self.consume();
                 }
                 TokenKind::OpenBracket => {
-                    self.parse_constant_push()?;
+                    let constant = self.parse_constant_push()?;
+                    statements.push(Statement::Constant(constant));
                 }
-                _ => return Err(ParserError::SyntaxError(
-                    "Invalid token in macro body. Must be of kind Hex, Opcode, Macro, or Label.",
-                )),
+                TokenKind::LeftAngle => {
+                    let arg_call = self.parse_arg_call()?;
+                    statements.push(Statement::ArgCall(arg_call));
+                }
+                _ => {
+                    tracing::error!("Invalid Macro Body Token: {:?}", self.current_token);
+                    return Err(ParserError::SyntaxError(format!(
+                        "Invalid token in macro body: {:?}. Must be of kind Hex, Opcode, Macro, or Label.",
+                        self.current_token
+                    )))
+                }
             };
         }
         // consume close brace
@@ -469,21 +460,28 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse call to a macro.
-    pub fn parse_macro_call(&mut self) -> Result<(), ParserError> {
+    pub fn parse_macro_call(&mut self) -> Result<Vec<MacroArg<'a>>, ParserError> {
         self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
-        self.parse_macro_call_args()?;
-        Ok(())
+        self.parse_macro_call_args()
     }
 
     /// Parse the arguments of a macro call.
-    pub fn parse_macro_call_args(&mut self) -> Result<(), ParserError> {
+    pub fn parse_macro_call_args(&mut self) -> Result<Vec<MacroArg<'a>>, ParserError> {
+        let mut args = vec![];
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
             // We can pass either directly hex values or labels (without the ":")
             match self.current_token.kind {
-                TokenKind::Literal(_) | TokenKind::Ident(_) => self.consume(),
+                TokenKind::Literal(lit) => {
+                    args.push(MacroArg::Literal(lit));
+                    self.consume();
+                }
+                TokenKind::Ident(ident) => {
+                    args.push(MacroArg::Ident(ident));
+                    self.consume();
+                }
                 _ => {
-                    println!(
+                    tracing::error!(
                         "Invalid macro call arguments. Must be of kind Ident or Literal. Got: {}",
                         self.current_token.kind
                     );
@@ -496,15 +494,44 @@ impl<'a> Parser<'a> {
         }
         // consume close parenthesis
         self.consume();
-        Ok(())
+        Ok(args)
     }
 
     /// Parses a constant push.
-    pub fn parse_constant_push(&mut self) -> Result<(), ParserError> {
+    pub fn parse_constant_push(&mut self) -> Result<&'a str, ParserError> {
         self.match_kind(TokenKind::OpenBracket)?;
-        self.match_kind(TokenKind::Ident("CONSTANT"))?;
-        self.match_kind(TokenKind::CloseBracket)?;
-        Ok(())
+        match self.current_token.kind {
+            TokenKind::Ident(const_str) => {
+                // Consume the Ident and Validate Close Bracket
+                self.consume();
+                self.match_kind(TokenKind::CloseBracket)?;
+                Ok(const_str)
+            }
+            _ => Err(ParserError::InvalidConstant),
+        }
+    }
+
+    /// Parses an argument call.
+    ///
+    /// ## Examples
+    ///
+    /// When an argument is called in Huff, it is wrapped in angle brackets like so:
+    ///
+    /// ```huff
+    /// #define macro EXAMPLE_FUNCTION(error) = takes (0) returns (0) {
+    ///     <error> jumpi
+    /// }
+    /// ```
+    pub fn parse_arg_call(&mut self) -> Result<&'a str, ParserError> {
+        self.match_kind(TokenKind::LeftAngle)?;
+        match self.current_token.kind {
+            TokenKind::Ident(arg_str) => {
+                self.consume();
+                self.match_kind(TokenKind::RightAngle)?;
+                Ok(arg_str)
+            }
+            _ => Err(ParserError::InvalidMacroArgs),
+        }
     }
 
     /// Parses whitespaces and newlines until none are left.
