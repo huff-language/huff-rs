@@ -129,6 +129,20 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Overloaded Public associated function that instantiates a new lexer.
+    pub fn new(fs: &FileSource) -> Self {
+        Self {
+            reference_chars: source.chars().peekable(),
+            chars: source.chars().peekable(),
+            source,
+            span: Span::default(),
+            lookback: None,
+            eof: false,
+            eof_returned: false,
+            context: Context::Global,
+        }
+    }
+
     /// Public associated function that returns the current lexing span.
     pub fn current_span(&self) -> Span {
         if self.eof {

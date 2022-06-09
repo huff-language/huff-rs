@@ -139,3 +139,27 @@ impl<'a, W: Write> Report<W> for CodegenError<'a> {
         }
     }
 }
+
+/// CompilerError
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CompilerError<'a> {
+    /// Failed to Lex Source
+    LexicalError(LexicalError<'a>),
+    /// File unpacking error
+    FileUnpackError(UnpackError),
+    /// Parsing Error
+    ParserError(ParserError),
+    /// Reading PathBuf Failed
+    PathBufRead(OsString),
+}
+
+impl<'a> fmt::Display for CompilerError<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CompilerError::LexicalError(le) => write!(f, "LexicalError({:?})", le),
+            CompilerError::FileUnpackError(ue) => write!(f, "FileUnpackError({:?})", ue),
+            CompilerError::ParserError(pe) => write!(f, "ParserError({:?})", pe),
+            CompilerError::PathBufRead(os_str) => write!(f, "PathBufRead({:?})", os_str),
+        }
+    }
+}

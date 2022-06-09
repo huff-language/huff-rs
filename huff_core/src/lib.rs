@@ -10,6 +10,7 @@ use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
+use uuid::Uuid;
 use std::{path::{Path, PathBuf}, ffi::OsString, collections::BTreeMap, time::SystemTime};
 
 /// The core compiler
@@ -33,51 +34,6 @@ pub fn init_tracing_subscriber() {
         .ok();
 }
 
-/// An aliased output location to derive from the cli arguments.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct OutputLocation(pub(crate) String);
-
-impl Default for OutputLocation {
-    fn default() -> Self {
-        Self("./artifacts/".to_string())
-    }
-}
-
-/// File Encapsulation
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct FileSource {
-    /// File ID
-    pub id: Uuid,
-    /// File Path
-    pub path: String,
-    /// File Source
-    pub source: Option<String>,
-    /// Last File Access Time
-    pub access: Option<SystemTime>,
-}
-
-/// File Dependencies
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct FileDependencies {
-    /// The File Identifier
-    pub file: Uuid,
-    /// An Ordered List of File Dependencies
-    pub dependencies: Vec<FileSource>
-}
-
-/// CompilerError
-#[derive(Debug, PartialEq, Eq)]
-pub enum CompilerError<'a> {
-    /// Failed to Lex Source
-    LexicalError(LexicalError<'a>),
-    /// File unpacking error
-    FileUnpackError(UnpackError),
-    /// Parsing Error
-    ParserError(ParserError),
-    /// Reading PathBuf Failed
-    PathBufRead(OsString),
-}
-
 impl<'a> Compiler {
     /// Public associated function to instantiate a new compiler.
     pub fn new(sources: Vec<String>, output: Option<String>) -> Self {
@@ -93,11 +49,17 @@ impl<'a> Compiler {
     }
 
     /// Get the file sources for a vec of PathBufs
-    pub fn fetch_sources(&self, paths: Vec<PathBuf>) -> Vec<String> {
+    pub fn fetch_sources(paths: &Vec<PathBuf>) -> Vec<FileSource> {
         paths.into_par_iter().map(|pb| {
             match pb.into_os_string().into_string() {
                 Ok(file_loc) => match std::fs::read_to_string(file_loc) {
-                    Ok(source) => Some(source),
+                    Ok(source) => Some(FileSource {
+                        id: Uuid::new_v4(),
+                        path: file_loc,
+                        source: Some(source),
+                        access: Some(SystemTime::now()),
+                        dependencies: None
+                    }),
                     Err(e) => {
                         tracing::error!("Failed to read file at \"{}\"!", file_loc);
                         None
@@ -111,24 +73,56 @@ impl<'a> Compiler {
         }).filter(|f| f.is_some()).map(|f| f.unwrap_or_default()).collect()
     }
 
+    /// Recurses file dependencies
+    pub fn recurse_deps(fs: &mut FileSource) -> Result<FileSource, CompilerError<'a>> {
+        let file_source = if let Some(s) = fs.source {
+            s
+        } else {
+            // Read from path
+            let new_source = match std::fs::read_to_string(fs.path) {
+                Ok(source) => source,
+                Err(e) => {
+                    tracing::error!("Failed to read file at \"{}\"!", file_loc);
+                    return Err(CompilerError::PathBufRead(fs.path.into()))
+                }
+            };
+            fs.source = Some(new_source);
+            fs.access = Some(SystemTime::new())
+        };
+        let imports: Vec<String> = Lexer::lex_imports(file_source);
+        let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&imports)?;
+        let mut file_sources: Vec<FileSource> = Compiler::fetch_sources(&import_bufs);
+
+        // Now that we have all the file sources, we have to recurse and get their source
+        file_sources = file_sources.into_par_iter().map(|inner_fs| {
+            match Compiler::recurse_deps(&mut inner_fs) {
+                Ok(new_fs) => new_fs,
+                Err(_) => {
+                    tracing::error!("Failed to resolve nested dependencies for file \"{}\"", inner_fs.path);
+                    inner_fs
+                }
+            }
+        }).collect();
+
+        // Finally set the parent deps
+        fs.dependencies = Some(file_sources);
+    }
+
     /// Executes the main compilation process
     pub fn execute(&self) -> Result<(), CompilerError<'a>> {
         // Grab the input files
-        let file_paths: Vec<PathBuf> = self.get_inputs()?;
+        let file_paths: Vec<PathBuf> = Compiler::transform_paths(&self.sources)?;
 
         // Parallel file fetching
-        let now = SystemTime::now();
-        let file_sources: Vec<String> = self.fetch_sources(file_paths);
+        let mut files: Vec<FileSource> = Compiler::fetch_sources(&file_paths);
 
-        // Parallelized Import Fetching per-compile-file
-        let file_deps: BTreeMap<String, FileSources> = file_sources.into_par_iter().map(|file| {
-
-        });
-        // TODO: grab the imports and optimistically load
+        // Parallelized Dependency Fetching
+        files = files.into_par_iter().map(recurse_deps).collect();
 
         // Parallel compilation
         files.into_par_iter().for_each(|file| {
             // Perform Lexical Analysis
+            // Create a new lexer from the FileSource, flattening dependencies
             let lexer: Lexer = Lexer::new(&file);
 
             // Grab the tokens from the lexer
@@ -175,10 +169,10 @@ impl<'a> Compiler {
         Ok(())
     }
 
-    /// Preprocesses input files for compiling
-    pub fn get_inputs(&self) -> Result<Vec<PathBuf>, CompilerError<'a>> {
+    /// Transforms File Strings into PathBufs
+    pub fn transform_paths(sources: &Vec<String>) -> Result<Vec<PathBuf>, CompilerError<'a>> {
         let mut paths = vec![];
-        for f in self.sources {
+        for f in sources {
             // If the file is huff, use the path, otherwise unpack
             let ext = Path::new(&f).extension().unwrap_or_default();
             if ext.eq("huff") {
