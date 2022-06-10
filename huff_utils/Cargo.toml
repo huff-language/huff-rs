@@ -5,8 +5,8 @@ edition = "2021"
 authors = ["Andreas Bigger", "ex-table", "clabby"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
-description = """
 license-file = "../LICENSE"
+description = """
 Lexical Analysis Crate for the Huff-Language
 """
 keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
