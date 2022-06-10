@@ -48,7 +48,7 @@ pub mod bytes_util;
 /// Prelude wraps common utilities.
 pub mod prelude {
     pub use crate::{
-        abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, io::*, report::*,
-        span::*, token::*, files::*,
+        abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, files::*, io::*,
+        report::*, span::*, token::*,
     };
 }

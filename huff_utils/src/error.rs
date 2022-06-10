@@ -1,9 +1,10 @@
 use crate::{
+    io::UnpackError,
     report::{Report, Reporter},
     span::{Span, Spanned},
     token::TokenKind,
 };
-use std::io::Write;
+use std::{ffi::OsString, fmt, io::Write};
 
 /// A Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -141,7 +142,7 @@ impl<'a, W: Write> Report<W> for CodegenError<'a> {
 }
 
 /// CompilerError
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompilerError<'a> {
     /// Failed to Lex Source
     LexicalError(LexicalError<'a>),

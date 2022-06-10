@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-
 #![warn(missing_docs)]
 #![warn(unused_extern_crates)]
 #![forbid(unsafe_code)]
@@ -10,8 +9,11 @@ use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
+use std::{
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
 use uuid::Uuid;
-use std::{path::{Path, PathBuf}, ffi::OsString, collections::BTreeMap, time::SystemTime};
 
 /// The core compiler
 #[derive(Default, Debug, Clone)]
@@ -37,75 +39,78 @@ pub fn init_tracing_subscriber() {
 impl<'a> Compiler {
     /// Public associated function to instantiate a new compiler.
     pub fn new(sources: Vec<String>, output: Option<String>) -> Self {
-        if cfg!(feature="verbose") {
+        if cfg!(feature = "verbose") {
             init_tracing_subscriber();
         }
-        Self {
-            sources,
-            output,
-            optimize: false,
-            bytecode: false
-        }
+        Self { sources, output, optimize: false, bytecode: false }
     }
 
     /// Get the file sources for a vec of PathBufs
     pub fn fetch_sources(paths: &Vec<PathBuf>) -> Vec<FileSource> {
-        paths.into_par_iter().map(|pb| {
-            match pb.into_os_string().into_string() {
-                Ok(file_loc) => match std::fs::read_to_string(file_loc) {
+        paths
+            .into_par_iter()
+            .map(|pb| match pb.clone().into_os_string().into_string() {
+                Ok(file_loc) => match std::fs::read_to_string(file_loc.clone()) {
                     Ok(source) => Some(FileSource {
                         id: Uuid::new_v4(),
                         path: file_loc,
                         source: Some(source),
                         access: Some(SystemTime::now()),
-                        dependencies: None
+                        dependencies: None,
                     }),
-                    Err(e) => {
+                    Err(_) => {
                         tracing::error!("Failed to read file at \"{}\"!", file_loc);
                         None
                     }
-                }
-                Err(e) => {
+                },
+                Err(_) => {
                     tracing::error!("Converting PathBuf \"{:?}\" Failed!", pb);
                     None
                 }
-            }
-        }).filter(|f| f.is_some()).map(|f| f.unwrap_or_default()).collect()
+            })
+            .filter(|f| f.is_some())
+            .map(|f| f.unwrap_or_default())
+            .collect()
     }
 
     /// Recurses file dependencies
-    pub fn recurse_deps(fs: &mut FileSource) -> Result<FileSource, CompilerError<'a>> {
-        let file_source = if let Some(s) = fs.source {
-            s
+    pub fn recurse_deps(fs: FileSource) -> Result<FileSource, CompilerError<'a>> {
+        let mut new_fs = fs.clone();
+        let file_source = if let Some(s) = &fs.source {
+            s.clone()
         } else {
             // Read from path
-            let new_source = match std::fs::read_to_string(fs.path) {
+            let new_source = match std::fs::read_to_string(fs.path.clone()) {
                 Ok(source) => source,
-                Err(e) => {
-                    tracing::error!("Failed to read file at \"{}\"!", file_loc);
-                    return Err(CompilerError::PathBufRead(fs.path.into()))
+                Err(_) => {
+                    tracing::error!("Failed to read file at \"{}\"!", fs.path);
+                    return Err(CompilerError::PathBufRead(fs.path.clone().into()))
                 }
             };
-            fs.source = Some(new_source);
-            fs.access = Some(SystemTime::new())
+            new_fs.source = Some(new_source.clone());
+            new_fs.access = Some(SystemTime::now());
+            new_source
         };
-        let imports: Vec<String> = Lexer::lex_imports(file_source);
+        let imports: Vec<String> = Lexer::lex_imports(&file_source);
         let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&imports)?;
         let mut file_sources: Vec<FileSource> = Compiler::fetch_sources(&import_bufs);
 
         // Now that we have all the file sources, we have to recurse and get their source
-        file_sources = file_sources.into_par_iter().map(|inner_fs| {
-            match Compiler::recurse_deps(&mut inner_fs) {
+        file_sources = file_sources
+            .into_par_iter()
+            .map(|inner_fs| match Compiler::recurse_deps(inner_fs.clone()) {
                 Ok(new_fs) => new_fs,
-                Err(_) => {
-                    tracing::error!("Failed to resolve nested dependencies for file \"{}\"", inner_fs.path);
+                Err(e) => {
+                    tracing::error!("Failed to resolve nested dependencies with error \"{:?}\"", e);
                     inner_fs
                 }
-            }
-        }).collect();
+            })
+            .collect();
 
         // Finally set the parent deps
-        fs.dependencies = Some(file_sources);
+        new_fs.dependencies = Some(file_sources);
+
+        Ok(new_fs)
     }
 
     /// Executes the main compilation process
@@ -117,13 +122,25 @@ impl<'a> Compiler {
         let mut files: Vec<FileSource> = Compiler::fetch_sources(&file_paths);
 
         // Parallelized Dependency Fetching
-        files = files.into_par_iter().map(recurse_deps).collect();
+        files = files
+            .into_par_iter()
+            .map(|f| match Compiler::recurse_deps(f) {
+                Ok(fs) => Some(fs),
+                Err(_) => None,
+            })
+            .filter(|fs| fs.is_some())
+            .map(|fs| fs.unwrap())
+            .collect();
 
         // Parallel compilation
         files.into_par_iter().for_each(|file| {
+            // Fully Flatten a file into a source string containing source code of file and all its
+            // dependencies
+            let full_source = file.fully_flatten();
+
             // Perform Lexical Analysis
             // Create a new lexer from the FileSource, flattening dependencies
-            let lexer: Lexer = Lexer::new(&file);
+            let lexer: Lexer = Lexer::new(&full_source);
 
             // Grab the tokens from the lexer
             let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
@@ -149,11 +166,11 @@ impl<'a> Compiler {
             let churn_res = cg.churn(inputs, main_bytecode, constructor_bytecode);
             match churn_res {
                 Ok(_) => {
-                    println!("Successfully compiled {}!", file);
+                    println!("Successfully compiled {:?}!", file);
                     // Then we can have the code gen output the artifact
                     let abiout = cg.abigen(
                         contract,
-                        Some(format!("./{}/{}.json", output.0, file.to_uppercase())),
+                        Some(format!("./{}/{}.json", output.0, file.path.to_uppercase())),
                     );
                     if let Err(e) = abiout {
                         tracing::error!("Failed to generate artifact!\nError: {:?}", e);
@@ -179,8 +196,10 @@ impl<'a> Compiler {
                 paths.push(Path::new(&f).to_path_buf())
             } else {
                 // Otherwise, override the source files and use all files in the provided dir
-                match unpack_files(&f) {
-                    Ok(files) => files.iter().for_each(|fil| paths.push(Path::new(&f).to_path_buf())),
+                match unpack_files(f) {
+                    Ok(files) => {
+                        files.iter().for_each(|fil| paths.push(Path::new(&fil).to_path_buf()))
+                    }
                     Err(e) => return Err(CompilerError::FileUnpackError(e)),
                 }
             }

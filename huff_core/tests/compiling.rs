@@ -1,8 +1,3 @@
-//! Code Generation
-//!
-//! Tests the full compilation process from lexing to parsing to code generation.
-
-// use ethers::abi::Token;
 use huff_codegen::*;
 use huff_lexer::*;
 use huff_parser::*;

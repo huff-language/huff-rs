@@ -7,13 +7,14 @@ Core Compiler for the Huff Language.
 The following example steps through compiling source code in the [examples](./examples/) directory.
 
 ```rust
-use huff_core::{Compiler};
+use huff_core::Compiler;
+use huff_utils::error::CompilerError;
+
+// Read in the ERC20 example
+// let sources: Vec<FileSource> = Compiler::fetch_sources(vec![PathBuf::from("./examples/ERC20.huff")]);
 
 // Instantiate the Compiler Instance
-let compiler = Compiler::new();
-
-// Feed the compiler the examples
-compiler.
+let mut compiler = Compiler::new(vec!["./examples/ERC20.huff".to_string()], None);
 
 // Execute the compiler
 let res: Result<(), CompilerError<'_>> = compiler.execute();
