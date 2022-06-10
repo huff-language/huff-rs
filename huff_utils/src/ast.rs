@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{bytecode::*, error::CodegenError, evm::Opcode};
+use crate::{bytecode::*, bytes_util::*, error::CodegenError, evm::Opcode};
 use std::path::Path;
 
 /// A contained literal
@@ -50,6 +50,31 @@ impl<'a> Contract<'a> {
         } else {
             tracing::warn!("Failed to find macro \"{}\" in contract", name);
             None
+        }
+    }
+
+    /// Derives the FreeStoragePointers into their bytes32 representation
+    pub fn derive_storage_pointers(&mut self) {
+        let mut storage_pointers: Vec<[u8; 32]> = Vec::new();
+        let mut last_assigned_free_pointer = 0;
+        // do the non fsp consts first, so we can check for conflicts
+        // when going over the fsp consts
+        for constant in &self.constants {
+            if let ConstVal::Literal(literal) = &constant.value {
+                storage_pointers.push(*literal);
+            }
+        }
+        for constant in self.constants.iter_mut() {
+            if let ConstVal::FreeStoragePointer(_) = &constant.value {
+                let mut fsp_bytes = str_to_bytes32(&format!("{}", last_assigned_free_pointer));
+                while storage_pointers.contains(&fsp_bytes) {
+                    last_assigned_free_pointer += 1;
+                    fsp_bytes = str_to_bytes32(&format!("{}", last_assigned_free_pointer));
+                }
+                storage_pointers.push(fsp_bytes);
+                last_assigned_free_pointer += 1;
+                constant.value = ConstVal::Literal(fsp_bytes);
+            }
         }
     }
 }
