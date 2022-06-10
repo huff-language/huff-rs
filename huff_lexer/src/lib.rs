@@ -67,63 +67,52 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    // TODO: This does not account for commented out imports for example:
+    // `// #include "./Utils.huff"`
     /// Lex all imports
     pub fn lex_imports(source: &str) -> Vec<String> {
         let mut imports = vec![];
         let mut peekable_source = source.chars().peekable();
+        let mut include_chars_iterator = "#include".chars().peekable();
         while peekable_source.peek().is_some() {
-            let mut include_chars_iterator = "#include".chars().peekable();
-            // Skip over whitespace
-            while peekable_source.peek().is_some() {
-                if !peekable_source.peek().unwrap().is_whitespace() {
-                    break
-                } else {
-                    peekable_source.next();
-                }
-            }
-
-            loop {
+            while let Some(nc) = peekable_source.next() {
                 if include_chars_iterator.peek().is_none() {
-                    break
-                }
-                match peekable_source.next() {
-                    Some(nc) => {
-                        if nc != include_chars_iterator.next().unwrap() {
+                    // Reset the include chars iterator
+                    include_chars_iterator = "#include".chars().peekable();
+
+                    // Skip over whitespace
+                    while peekable_source.peek().is_some() {
+                        if !peekable_source.peek().unwrap().is_whitespace() {
                             break
+                        } else {
+                            peekable_source.next();
                         }
                     }
-                    None => break,
-                }
-            }
 
-            // Skip over whitespace
-            while peekable_source.peek().is_some() {
-                if !peekable_source.peek().unwrap().is_whitespace() {
-                    break
-                } else {
-                    peekable_source.next();
-                }
-            }
-
-            // Then we should have an import path between quotes
-            match peekable_source.peek() {
-                Some(char) => match char {
-                    '"' | '\'' => {
-                        peekable_source.next();
-                        let mut import = String::new();
-                        while peekable_source.peek().is_some() {
-                            match peekable_source.next().unwrap() {
-                                '"' | '\'' => {
-                                    imports.push(import);
-                                    break
+                    // Then we should have an import path between quotes
+                    match peekable_source.peek() {
+                        Some(char) => match char {
+                            '"' | '\'' => {
+                                peekable_source.next();
+                                let mut import = String::new();
+                                while peekable_source.peek().is_some() {
+                                    match peekable_source.next().unwrap() {
+                                        '"' | '\'' => {
+                                            imports.push(import);
+                                            break
+                                        }
+                                        c => import.push(c),
+                                    }
                                 }
-                                c => import.push(c),
                             }
-                        }
+                            _ => { /* Ignore non-include tokens */ }
+                        },
+                        None => { /* EOF */ }
                     }
-                    _ => { /* Ignore non-include tokens */ }
-                },
-                None => { /* EOF */ }
+                } else if nc != include_chars_iterator.next().unwrap() {
+                    include_chars_iterator = "#include".chars().peekable();
+                    break
+                }
             }
         }
         imports

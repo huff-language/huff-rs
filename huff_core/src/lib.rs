@@ -75,6 +75,7 @@ impl<'a> Compiler {
 
     /// Recurses file dependencies
     pub fn recurse_deps(fs: FileSource) -> Result<FileSource, CompilerError<'a>> {
+        println!("Inside recurse deps with file source: {:?}", fs.path);
         let mut new_fs = fs.clone();
         let file_source = if let Some(s) = &fs.source {
             s.clone()
@@ -92,7 +93,14 @@ impl<'a> Compiler {
             new_source
         };
         let imports: Vec<String> = Lexer::lex_imports(&file_source);
-        let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&imports)?;
+        println!("Got lexed imports: {:?}", imports);
+        // TODO: Localize imports
+        let localized_imports = imports
+            .iter()
+            .map(|import| FileSource::localize_file(&fs.path, import).unwrap_or_default())
+            .collect();
+        println!("Localized imports: {:?}", localized_imports);
+        let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&localized_imports)?;
         let mut file_sources: Vec<FileSource> = Compiler::fetch_sources(&import_bufs);
 
         // Now that we have all the file sources, we have to recurse and get their source

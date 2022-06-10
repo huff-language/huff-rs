@@ -14,7 +14,8 @@ use huff_utils::error::CompilerError;
 // let sources: Vec<FileSource> = Compiler::fetch_sources(vec![PathBuf::from("./examples/ERC20.huff")]);
 
 // Instantiate the Compiler Instance
-let mut compiler = Compiler::new(vec!["./examples/ERC20.huff".to_string()], None);
+// The path is `../examples/ERC20.huff` since the doc-string is run from inside the `src/` directory
+let mut compiler = Compiler::new(vec!["../examples/ERC20.huff".to_string()], None);
 
 // Execute the compiler
 let res: Result<(), CompilerError<'_>> = compiler.execute();

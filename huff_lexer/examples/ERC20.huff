@@ -1,9 +1,9 @@
 
 /* Imports */
-#include "./contracts/utils/Ownable.huff"
-#include "./contracts/utils/Address.huff"
-#include "./contracts/utils/Utils.huff"
-#include "./contracts/utils/HashMap.huff"
+#include "./utilities/Ownable.huff"
+#include "./utilities/Address.huff"
+#include "./utilities/Utils.huff"
+#include "./utilities/HashMap.huff"
 
 /* Interface */
 #define function mint(address,uint256) nonpayable returns ()
