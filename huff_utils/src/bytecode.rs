@@ -10,37 +10,37 @@ pub struct Byte(pub String);
 
 /// Intermediate Bytecode Representation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum IRByte<'a> {
+pub enum IRByte {
     /// Bytes
     Byte(Byte),
     /// Macro Statement to be expanded
-    Statement(Statement<'a>),
+    Statement(Statement),
     /// A Constant to be referenced
-    Constant(&'a str),
+    Constant(String),
     /// An Arg Call needs to use the calling macro context
-    ArgCall(&'a str),
+    ArgCall(String),
 }
 
 /// Full Intermediate Bytecode Representation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct IRBytecode<'a>(pub Vec<IRByte<'a>>);
+pub struct IRBytecode(pub Vec<IRByte>);
 
 /// ToIRBytecode
 ///
 /// Converts a stateful object to intermediate bytecode
-pub trait ToIRBytecode<'a, E> {
+pub trait ToIRBytecode<E> {
     /// Translates `self` to intermediate bytecode representation
-    fn to_irbytecode(&self) -> Result<IRBytecode<'a>, E>;
+    fn to_irbytecode(&self) -> Result<IRBytecode, E>;
 }
 
 /// Full Bytecode
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Bytecode<'a>(pub &'a str);
+pub struct Bytecode(pub String);
 
 /// ToBytecode
 ///
 /// Converts a stateful object to bytecode
 pub trait ToBytecode<'a, E> {
     /// Translates `self` to a bytecode string
-    fn to_bytecode(&self) -> Result<Bytecode<'a>, E>;
+    fn to_bytecode(&self) -> Result<Bytecode, E>;
 }

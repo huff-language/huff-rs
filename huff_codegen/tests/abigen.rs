@@ -6,7 +6,7 @@ use huff_utils::{ast, prelude::*};
 #[test]
 fn constructs_valid_abi() {
     let constructor = ast::Function {
-        name: "CONSTRUCTOR",
+        name: "CONSTRUCTOR".to_string(),
         signature: [0u8, 0u8, 0u8, 0u8],
         inputs: vec![],
         fn_type: FunctionType::NonPayable,
@@ -42,7 +42,7 @@ fn constructs_valid_abi() {
 #[should_panic]
 fn missing_constructor_fails() {
     let _constructor = ast::Function {
-        name: "CONSTRUCTOR",
+        name: "CONSTRUCTOR".to_string(),
         signature: [0u8, 0u8, 0u8, 0u8],
         inputs: vec![],
         fn_type: FunctionType::NonPayable,

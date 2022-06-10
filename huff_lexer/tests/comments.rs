@@ -28,7 +28,10 @@ fn single_line_comments() {
     // The first token should be a single line comment
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    assert_eq!(unwrapped, Token::new(TokenKind::Comment("// comment contents "), Span::new(0..20)));
+    assert_eq!(
+        unwrapped,
+        Token::new(TokenKind::Comment("// comment contents ".to_string()), Span::new(0..20))
+    );
     assert_eq!(lexer.span, Span::new(0..20));
 
     // The second token should be the newline character parsed as a whitespace
@@ -70,7 +73,7 @@ fn single_line_comments() {
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
     let function_span = Span::new(35..46);
-    assert_eq!(unwrapped, Token::new(TokenKind::Ident("HELLO_WORLD"), function_span));
+    assert_eq!(unwrapped, Token::new(TokenKind::Ident("HELLO_WORLD".to_string()), function_span));
     assert_eq!(lexer.span, function_span);
 
     // Then we should have an open paren
@@ -103,7 +106,7 @@ fn multi_line_comments() {
     let unwrapped = tok.unwrap().unwrap();
     assert_eq!(
         unwrapped,
-        Token::new(TokenKind::Comment("/* comment contents*/"), Span::new(0..21))
+        Token::new(TokenKind::Comment("/* comment contents*/".to_string()), Span::new(0..21))
     );
     assert_eq!(lexer.span, Span::new(0..21));
 
@@ -139,7 +142,7 @@ fn multi_line_comments() {
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
     let function_span = Span::new(35..46);
-    assert_eq!(unwrapped, Token::new(TokenKind::Ident("HELLO_WORLD"), function_span));
+    assert_eq!(unwrapped, Token::new(TokenKind::Ident("HELLO_WORLD".to_string()), function_span));
     assert_eq!(lexer.span, function_span);
 
     // Then we should have an open paren

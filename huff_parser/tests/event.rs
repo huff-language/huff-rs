@@ -8,7 +8,7 @@ fn parse_event() {
         (
             "#define event TestEvent(uint256 indexed a,uint8 indexed)",
             Event {
-                name: "TestEvent",
+                name: "TestEvent".to_string(),
                 parameters: vec![
                     Argument {
                         arg_type: Some(String::from("uint256")),
@@ -22,7 +22,7 @@ fn parse_event() {
         (
             "#define event TestEvent(uint256,uint8 b)",
             Event {
-                name: "TestEvent",
+                name: "TestEvent".to_string(),
                 parameters: vec![
                     Argument {
                         arg_type: Some(String::from("uint256")),
@@ -40,7 +40,7 @@ fn parse_event() {
         (
             "#define event TestEvent(uint256 indexed,uint8)",
             Event {
-                name: "TestEvent",
+                name: "TestEvent".to_string(),
                 parameters: vec![
                     Argument { arg_type: Some(String::from("uint256")), name: None, indexed: true },
                     Argument { arg_type: Some(String::from("uint8")), name: None, indexed: false },

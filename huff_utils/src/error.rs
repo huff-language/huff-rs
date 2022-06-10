@@ -1,9 +1,10 @@
 use crate::{
+    io::UnpackError,
     report::{Report, Reporter},
     span::{Span, Spanned},
     token::TokenKind,
 };
-use std::io::Write;
+use std::{ffi::OsString, fmt, io::Write};
 
 /// A Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -82,19 +83,19 @@ impl<'a, W: Write> Report<W> for LexicalError<'a> {
 }
 
 /// A Code Generation Error
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct CodegenError<'a> {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct CodegenError {
     /// The kind of code generation error
     pub kind: CodegenErrorKind,
     /// An Optional Span where the error occured
     pub span: Option<Span>,
     /// An Optional Token Kind
-    pub token: Option<TokenKind<'a>>,
+    pub token: Option<TokenKind>,
 }
 
-impl<'a> CodegenError<'a> {
+impl CodegenError {
     /// Public associated function to instatiate a new CodegenError.
-    pub fn new(kind: CodegenErrorKind, span: Option<Span>, token: Option<TokenKind<'a>>) -> Self {
+    pub fn new(kind: CodegenErrorKind, span: Option<Span>, token: Option<TokenKind>) -> Self {
         Self { kind, span, token }
     }
 }
@@ -118,13 +119,13 @@ pub enum CodegenErrorKind {
     MissingConstantDefinition,
 }
 
-impl<'a> Spanned for CodegenError<'a> {
+impl Spanned for CodegenError {
     fn span(&self) -> Span {
         self.span.unwrap()
     }
 }
 
-impl<'a, W: Write> Report<W> for CodegenError<'a> {
+impl<W: Write> Report<W> for CodegenError {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match self.kind {
             CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator!"),
@@ -136,6 +137,33 @@ impl<'a, W: Write> Report<W> for CodegenError<'a> {
             CodegenErrorKind::MissingConstantDefinition => {
                 write!(f.out, "Missing Constant Definition!")
             }
+        }
+    }
+}
+
+/// CompilerError
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompilerError<'a> {
+    /// Failed to Lex Source
+    LexicalError(LexicalError<'a>),
+    /// File unpacking error
+    FileUnpackError(UnpackError),
+    /// Parsing Error
+    ParserError(ParserError),
+    /// Reading PathBuf Failed
+    PathBufRead(OsString),
+    /// Bytecode Generation Error
+    CodegenError(CodegenError),
+}
+
+impl<'a> fmt::Display for CompilerError<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CompilerError::LexicalError(le) => write!(f, "LexicalError({:?})", le),
+            CompilerError::FileUnpackError(ue) => write!(f, "FileUnpackError({:?})", ue),
+            CompilerError::ParserError(pe) => write!(f, "ParserError({:?})", pe),
+            CompilerError::PathBufRead(os_str) => write!(f, "PathBufRead({:?})", os_str),
+            CompilerError::CodegenError(ce) => write!(f, "CodegenError({:?})", ce),
         }
     }
 }

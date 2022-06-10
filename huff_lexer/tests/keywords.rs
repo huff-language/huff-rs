@@ -297,7 +297,7 @@ fn parses_function_definition_with_keyword_name() {
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
         let ident_span = Span::new(17..end_span_s);
-        assert_eq!(unwrapped, Token::new(TokenKind::Ident(s), ident_span));
+        assert_eq!(unwrapped, Token::new(TokenKind::Ident(s.to_string()), ident_span));
         assert_eq!(lexer.span, ident_span);
 
         let _ = lexer.next(); // open parenthesis
@@ -356,7 +356,7 @@ fn parses_function_with_keyword_name_before_colon() {
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
         let fn_name_span = Span::new(0..s.len() + 1);
-        assert_eq!(unwrapped, Token::new(TokenKind::Label(s), fn_name_span));
+        assert_eq!(unwrapped, Token::new(TokenKind::Label(s.to_string()), fn_name_span));
         assert_eq!(lexer.span, fn_name_span);
 
         let _ = lexer.next(); // whitespace
@@ -364,7 +364,7 @@ fn parses_function_with_keyword_name_before_colon() {
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
         let fn_name_span = Span::new((s.len() + 14)..(s.len() * 2 + 14));
-        assert_eq!(unwrapped, Token::new(TokenKind::Ident(&s.to_uppercase()), fn_name_span));
+        assert_eq!(unwrapped, Token::new(TokenKind::Ident(s.to_uppercase()), fn_name_span));
         assert_eq!(lexer.span, fn_name_span);
 
         let _ = lexer.next(); // open parenthesis
@@ -408,7 +408,7 @@ fn parses_function_with_keyword_name() {
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
         let fn_name_span = Span::new(19..19 + s.len());
-        assert_eq!(unwrapped, Token::new(TokenKind::Ident(s), fn_name_span));
+        assert_eq!(unwrapped, Token::new(TokenKind::Ident(s.to_string()), fn_name_span));
         assert_eq!(lexer.span, fn_name_span);
 
         let _ = lexer.next(); // whitespace
@@ -501,7 +501,7 @@ fn parses_function_with_keyword_name_in_macro() {
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
         let fn_name_span = Span::new(84..84 + s.len());
-        assert_eq!(unwrapped, Token::new(TokenKind::Ident(s), fn_name_span));
+        assert_eq!(unwrapped, Token::new(TokenKind::Ident(s.to_string()), fn_name_span));
         assert_eq!(lexer.span, fn_name_span);
 
         let _ = lexer.next(); // whitespace

@@ -27,14 +27,17 @@ pub mod token;
 /// Lexing Error Module
 pub mod error;
 
+/// EVM Module
+pub mod evm;
+
+/// Files Module
+pub mod files;
+
 /// Lexical Reporting Module
 pub mod report;
 
 /// IO Module
 pub mod io;
-
-/// EVM Module
-pub mod evm;
 
 /// EVM Types Module
 pub mod types;
@@ -45,7 +48,7 @@ pub mod bytes_util;
 /// Prelude wraps common utilities.
 pub mod prelude {
     pub use crate::{
-        abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, io::*, report::*,
-        span::*, token::*,
+        abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, files::*, io::*,
+        report::*, span::*, token::*,
     };
 }

@@ -3,6 +3,7 @@
 //! The artifacts generated from codegen.
 
 use serde::{Deserialize, Serialize};
+use std::fs;
 
 pub use crate::abi::Abi;
 
@@ -15,4 +16,12 @@ pub struct Artifact {
     pub runtime: String,
     /// The abi
     pub abi: Option<Abi>,
+}
+
+impl Artifact {
+    /// Exports an artifact to a json file
+    pub fn export(&self, out: String) -> std::result::Result<(), std::io::Error> {
+        let serialized_artifact = serde_json::to_string(self).unwrap();
+        fs::write(out, serialized_artifact)
+    }
 }

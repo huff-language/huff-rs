@@ -1,12 +1,13 @@
 [workspace]
 members = [
+  "huff_core",
   "huff_codegen",
   "huff_lexer",
   "huff_utils",
   "huff_cli",
   "huff_parser"
 ]
-exclude = [ "assets", "huffup" ]
+exclude = [ "assets", "huffup", "huff-examples" ]
 
 [profile.release]
 opt-level = "z"

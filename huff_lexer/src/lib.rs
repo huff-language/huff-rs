@@ -1,73 +1,14 @@
-//! ## Huff Lexer
-//!
-//! Lexical analyzer for the huff language.
-//!
-//! The Huff Lexer is instantiable with a string representing the source code.
-//!
-//! Once instantiated, the lexer can be used to iterate over the tokens in the source code.
-//! It also exposes a number of practical methods for accessing information about the source code
-//! throughout lexing.
-//!
-//! #### Usage
-//!
-//! The following example steps through the lexing of a simple, single-line source code macro
-//! definition.
-//!
-//! ```rust
-//! use huff_utils::{token::*, span::*};
-//! use huff_lexer::{Lexer};
-//!
-//! // Instantiate a new lexer
-//! let source = "#define macro HELLO_WORLD()";
-//! let mut lexer = Lexer::new(source);
-//! assert_eq!(lexer.source, source);
-//!
-//! // This token should be a Define identifier
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Define, Span::new(0..7)));
-//! assert_eq!(lexer.span, Span::new(0..7));
-//!
-//! // The next token should be the whitespace
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Whitespace, Span::new(7..8)));
-//! assert_eq!(lexer.span, Span::new(7..8));
-//!
-//! // Then we should parse the macro keyword
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Macro, Span::new(8..13)));
-//! assert_eq!(lexer.span, Span::new(8..13));
-//!
-//! // The next token should be another whitespace
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Whitespace, Span::new(13..14)));
-//! assert_eq!(lexer.span, Span::new(13..14));
-//!
-//! // Then we should get the function name
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Ident("HELLO_WORLD"), Span::new(14..25)));
-//! assert_eq!(lexer.span, Span::new(14..25));
-//!
-//! // Then we should have an open paren
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::OpenParen, Span::new(25..26)));
-//! assert_eq!(lexer.span, Span::new(25..26));
-//!
-//! // Lastly, we should have a closing parenthesis
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::CloseParen, Span::new(26..27)));
-//! assert_eq!(lexer.span, Span::new(26..27));
-//!
-//! // We covered the whole source
-//! assert_eq!(lexer.span.end, source.len());
-//! assert!(lexer.eof);
-//! ```
-
-#![deny(missing_docs)]
+#![doc = include_str!("../README.md")]
 #![allow(dead_code)]
+#![warn(missing_docs)]
+#![warn(unused_extern_crates)]
+#![forbid(unsafe_code)]
+#![forbid(where_clauses_object_safety)]
 
 use huff_utils::{bytes_util::*, error::*, evm::*, span::*, token::*, types::*};
 use regex::Regex;
 use std::{iter::Peekable, str::Chars};
+
 /// Defines a context in which the lexing happens.
 /// Allows to differientate between EVM types and opcodes that can either
 /// be identical or the latter being a substring of the former (example : bytes32 and byte)
@@ -102,7 +43,7 @@ pub struct Lexer<'a> {
     pub span: Span,
     /// The previous lexed Token.
     /// Cannot be a whitespace.
-    pub lookback: Option<Token<'a>>,
+    pub lookback: Option<Token>,
     /// If the lexer has reached the end of file.
     pub eof: bool,
     /// EOF Token has been returned.
@@ -126,6 +67,57 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    // TODO: This does not account for commented out imports for example:
+    // `// #include "./Utils.huff"`
+    /// Lex all imports
+    pub fn lex_imports(source: &str) -> Vec<String> {
+        let mut imports = vec![];
+        let mut peekable_source = source.chars().peekable();
+        let mut include_chars_iterator = "#include".chars().peekable();
+        while peekable_source.peek().is_some() {
+            while let Some(nc) = peekable_source.next() {
+                if include_chars_iterator.peek().is_none() {
+                    // Reset the include chars iterator
+                    include_chars_iterator = "#include".chars().peekable();
+
+                    // Skip over whitespace
+                    while peekable_source.peek().is_some() {
+                        if !peekable_source.peek().unwrap().is_whitespace() {
+                            break
+                        } else {
+                            peekable_source.next();
+                        }
+                    }
+
+                    // Then we should have an import path between quotes
+                    match peekable_source.peek() {
+                        Some(char) => match char {
+                            '"' | '\'' => {
+                                peekable_source.next();
+                                let mut import = String::new();
+                                while peekable_source.peek().is_some() {
+                                    match peekable_source.next().unwrap() {
+                                        '"' | '\'' => {
+                                            imports.push(import);
+                                            break
+                                        }
+                                        c => import.push(c),
+                                    }
+                                }
+                            }
+                            _ => { /* Ignore non-include tokens */ }
+                        },
+                        None => { /* EOF */ }
+                    }
+                } else if nc != include_chars_iterator.next().unwrap() {
+                    include_chars_iterator = "#include".chars().peekable();
+                    break
+                }
+            }
+        }
+        imports
+    }
+
     /// Public associated function that returns the current lexing span.
     pub fn current_span(&self) -> Span {
         if self.eof {
@@ -137,7 +129,7 @@ impl<'a> Lexer<'a> {
 
     /// Get the length of the previous lexing span.
     pub fn lookback_len(&self) -> usize {
-        if let Some(lookback) = self.lookback {
+        if let Some(lookback) = &self.lookback {
             return lookback.span.end - lookback.span.start
         }
         0
@@ -145,7 +137,7 @@ impl<'a> Lexer<'a> {
 
     /// Checks the previous token kind against the input.
     pub fn checked_lookback(&self, kind: TokenKind) -> bool {
-        self.lookback.and_then(|t| if t.kind == kind { Some(true) } else { None }).is_some()
+        self.lookback.clone().and_then(|t| if t.kind == kind { Some(true) } else { None }).is_some()
     }
 
     /// Try to peek at the next character from the source
@@ -280,7 +272,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token<'a>, LexicalError<'a>>;
+    type Item = Result<Token, LexicalError<'a>>;
 
     /// Iterates over the source code
     fn next(&mut self) -> Option<Self::Item> {
@@ -295,13 +287,13 @@ impl<'a> Iterator for Lexer<'a> {
                                 self.consume();
                                 // Consume until newline
                                 self.dyn_consume(|c| *c != '\n');
-                                TokenKind::Comment(self.slice())
+                                TokenKind::Comment(self.slice().to_string())
                             }
                             '*' => {
                                 self.consume();
                                 // Consume until next '*/' occurance
                                 self.seq_consume("*/");
-                                TokenKind::Comment(self.slice())
+                                TokenKind::Comment(self.slice().to_string())
                             }
                             _ => TokenKind::Div,
                         }
@@ -321,7 +313,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                         if *key == peeked {
                             self.nconsume(token_length);
-                            found_kind = Some(*kind);
+                            found_kind = Some(kind.clone());
                             break
                         }
                     }
@@ -363,7 +355,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                         if *key == peeked {
                             self.nconsume(token_length);
-                            found_kind = Some(*kind);
+                            found_kind = Some(kind.clone());
                             break
                         }
                     }
@@ -375,7 +367,7 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = None;
                     }
 
-                    if let Some(tokind) = found_kind {
+                    if let Some(tokind) = &found_kind {
                         match tokind {
                             TokenKind::Macro => self.context = Context::MacroDefinition,
                             TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
@@ -408,7 +400,7 @@ impl<'a> Iterator for Lexer<'a> {
                         self.dyn_consume(|c| c.is_alphanumeric() || c == &'_' || c == &':');
                         let label = self.slice();
                         if let Some(l) = label.get(0..label.len() - 1) {
-                            found_kind = Some(TokenKind::Label(l));
+                            found_kind = Some(TokenKind::Label(l.to_string()));
                         } else {
                             tracing::error!("[huff_lexer] Fatal Label Colon Truncation!");
                         }
@@ -484,11 +476,11 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
-                    if let Some(kind) = found_kind {
-                        kind
+                    if let Some(kind) = &found_kind {
+                        kind.clone()
                     } else {
                         self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
-                        TokenKind::Ident(self.slice())
+                        TokenKind::Ident(self.slice().to_string())
                     }
                 }
                 // If it's the start of a hex literal
@@ -554,7 +546,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('"') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str(&str[1..str.len() - 1])
+                            break TokenKind::Str((&str[1..str.len() - 1]).to_string())
                         }
                         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('"')) => {
                             self.consume();
@@ -576,7 +568,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('\'') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str(&str[1..str.len() - 1])
+                            break TokenKind::Str((&str[1..str.len() - 1]).to_string())
                         }
                         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('\'')) => {
                             self.consume();
@@ -607,7 +599,7 @@ impl<'a> Iterator for Lexer<'a> {
 
             let token = Token { kind, span: self.span };
             if token.kind != TokenKind::Whitespace {
-                self.lookback = Some(token);
+                self.lookback = Some(token.clone());
             }
 
             return Some(Ok(token))
@@ -621,7 +613,7 @@ impl<'a> Iterator for Lexer<'a> {
             self.eof_returned = true;
             let token = Token { kind: TokenKind::Eof, span: self.span };
             if token.kind != TokenKind::Whitespace {
-                self.lookback = Some(token);
+                self.lookback = Some(token.clone());
             }
             return Some(Ok(token))
         }
