@@ -207,7 +207,7 @@ pub enum TokenKind {
     Error,
 }
 
-impl<'a> fmt::Display for TokenKind {
+impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let x = match self {
             TokenKind::Comment(s) => return write!(f, "Comment({})", s),
