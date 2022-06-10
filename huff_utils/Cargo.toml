@@ -1,8 +1,8 @@
 [package]
 name = "huff_utils"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2021"
-authors = ["Andreas Bigger"]
+authors = ["Andreas Bigger", "ex-table", "clabby"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
 description = """
