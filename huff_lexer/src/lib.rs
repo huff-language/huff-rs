@@ -57,9 +57,7 @@
 
 #![deny(missing_docs)]
 #![allow(dead_code)]
-
-use huff_utils::span::Span;
-use huff_utils::token::*;
+use huff_utils::{span::*, token::*};
 use logos::Logos;
 
 /// Lexer
