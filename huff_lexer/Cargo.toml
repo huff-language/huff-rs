@@ -2,7 +2,7 @@
 name = "huff_lexer"
 version = "0.3.0"
 edition = "2021"
-authors = ["Andreas Bigger"]
+authors = ["Andreas Bigger", "Naveen"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
 description = """
@@ -12,6 +12,7 @@ keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
 exclude = [ "huffs" ]
 
 [dependencies]
+logos = "0.12.0"
 proptest = "1.0.0"
 huff_utils = { path = "../huff_utils" }
 bytes = "1"
