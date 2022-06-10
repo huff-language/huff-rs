@@ -9,7 +9,6 @@ description = """
 Parser Crate for the Huff-Language
 """
 keywords = ["huff", "lang", "rust", "evm", "bytecode", "compiler"]
-exclude = [ "examples" ]
 
 [dependencies]
 huff_utils = { path = "../huff_utils" }

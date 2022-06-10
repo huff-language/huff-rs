@@ -3,7 +3,7 @@ use huff_utils::prelude::*;
 
 #[test]
 fn single_lex_imports() {
-    let import_str = "./huffs/Ownable.huff";
+    let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!("#include \"{}\"", import_str);
     println!("Source: {}", source);
     let lexed_imports = Lexer::lex_imports(&source);
@@ -13,7 +13,7 @@ fn single_lex_imports() {
 
 #[test]
 fn multiple_lex_imports() {
-    let import_str = "./huffs/Ownable.huff";
+    let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!(
         r#"
     #include "{}"
@@ -34,7 +34,7 @@ fn multiple_lex_imports() {
 
 #[test]
 fn multiple_lex_imports_single_quotes() {
-    let import_str = "./huffs/Ownable.huff";
+    let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!(
         r#"
     #include '{}'
@@ -52,7 +52,7 @@ fn multiple_lex_imports_single_quotes() {
 
 #[test]
 fn lex_imports_no_ending_quote() {
-    let import_str = "./huffs/Ownable.huff";
+    let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!("#include '{}", import_str);
     let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 0);
@@ -60,7 +60,7 @@ fn lex_imports_no_ending_quote() {
 
 #[test]
 fn lex_imports_no_starting_quote() {
-    let import_str = "./huffs/Ownable.huff";
+    let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!("#include {}'", import_str);
     let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 0);
@@ -68,7 +68,7 @@ fn lex_imports_no_starting_quote() {
 
 #[test]
 fn lex_imports_empty_quotes() {
-    // let import_str = "./huffs/Ownable.huff";
+    // let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = "#include ''";
     let lexed_imports = Lexer::lex_imports(source);
     assert_eq!(lexed_imports.len(), 1);
@@ -91,7 +91,7 @@ fn include_no_quotes() {
 
 #[test]
 fn include_with_string() {
-    let source = "#include \"./huffs/Ownable.huff\"";
+    let source = "#include \"../huff-examples/erc20/contracts/utils/Ownable.huff\"";
     let mut lexer = Lexer::new(source);
     assert_eq!(lexer.source, source);
 
@@ -111,8 +111,14 @@ fn include_with_string() {
     // Then we should parse the string literal
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    let literal_span = Span::new(9..31);
-    assert_eq!(unwrapped, Token::new(TokenKind::Str("./huffs/Ownable.huff"), literal_span));
+    let literal_span = Span::new(9..62);
+    assert_eq!(
+        unwrapped,
+        Token::new(
+            TokenKind::Str("../huff-examples/erc20/contracts/utils/Ownable.huff"),
+            literal_span
+        )
+    );
     assert_eq!(lexer.span, literal_span);
 
     // We should have reached EOF now
@@ -122,7 +128,7 @@ fn include_with_string() {
 
 #[test]
 fn include_with_string_single_quote() {
-    let source = "#include './huffs/Ownable.huff'";
+    let source = "#include '../huff-examples/erc20/contracts/utils/Ownable.huff'";
     let mut lexer = Lexer::new(source);
     assert_eq!(lexer.source, source);
 
@@ -142,8 +148,14 @@ fn include_with_string_single_quote() {
     // Then we should parse the string literal
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    let literal_span = Span::new(9..31);
-    assert_eq!(unwrapped, Token::new(TokenKind::Str("./huffs/Ownable.huff"), literal_span));
+    let literal_span = Span::new(9..62);
+    assert_eq!(
+        unwrapped,
+        Token::new(
+            TokenKind::Str("../huff-examples/erc20/contracts/utils/Ownable.huff"),
+            literal_span
+        )
+    );
     assert_eq!(lexer.span, literal_span);
 
     // We should have reached EOF now

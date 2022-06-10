@@ -8,7 +8,7 @@ repository = "https://github.com/huff-language/huff-rs/"
 description = """
 Lexical Analysis Crate for the Huff-Language
 """
-keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
+keywords = ["huff", "lang", "rust", "evm", "bytecode", "compiler"]
 
 [dependencies]
 serde = { version = "1.0.137", features = [ "derive" ] }

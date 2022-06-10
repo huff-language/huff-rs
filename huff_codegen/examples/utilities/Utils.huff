@@ -1,5 +1,0 @@
-/* Macros */
-
-#define macro UTILS__NOT_PAYABLE(error_location) = takes(0) returns(0) {
-	callvalue <error_location> jumpi
-}

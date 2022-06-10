@@ -64,10 +64,10 @@ fn compiles_runtime_bytecode() {
     let mut parser = Parser::new(tokens);
 
     // Grab the first macro
-    let contract = parser.parse().unwrap();
+    let _contract = parser.parse().unwrap();
 
     // Instantiate Codegen
-    let mut cg = Codegen::new();
+    let cg = Codegen::new();
 
     // The codegen instance should have no artifact
     assert!(cg.artifact.is_none());

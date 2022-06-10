@@ -94,10 +94,15 @@ impl<'a> Compiler {
         };
         let imports: Vec<String> = Lexer::lex_imports(&file_source);
         println!("Got lexed imports: {:?}", imports);
-        // TODO: Localize imports
         let localized_imports = imports
             .iter()
-            .map(|import| FileSource::localize_file(&fs.path, import).unwrap_or_default())
+            .map(|import| {
+                FileSource::localize_file(&fs.path, import).unwrap_or_default().replacen(
+                    "contracts/contracts",
+                    "contracts",
+                    1,
+                )
+            })
             .collect();
         println!("Localized imports: {:?}", localized_imports);
         let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&localized_imports)?;

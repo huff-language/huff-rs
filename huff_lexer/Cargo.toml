@@ -9,7 +9,6 @@ description = """
 Lexical Analysis Crate for the Huff-Language
 """
 keywords = ["huff", "lang", "rust", "evm", "bytecode", "compiler"]
-exclude = [ "examples" ]
 
 [dependencies]
 proptest = "1.0.0"

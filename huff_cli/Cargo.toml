@@ -9,7 +9,6 @@ description = """
 Efficient Huff compiler written in rust.
 """
 keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
-exclude = [ "huffs" ]
 
 [dependencies]
 clap = { version = "3.1.18", features = ["derive"] }
