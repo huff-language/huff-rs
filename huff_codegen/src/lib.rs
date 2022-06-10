@@ -5,7 +5,12 @@
 #![forbid(where_clauses_object_safety)]
 
 use huff_utils::{
-    abi::*, artifact::*, ast::*, bytecode::*, error::CodegenError, prelude::CodegenErrorKind,
+    abi::*,
+    artifact::*,
+    ast::*,
+    bytecode::*,
+    error::CodegenError,
+    prelude::{bytes32_to_string, pad_n_bytes, CodegenErrorKind},
 };
 use std::fs;
 
@@ -22,6 +27,19 @@ pub struct Codegen {
     pub main_bytecode: Option<String>,
     /// Intermediate constructor bytecode store
     pub constructor_bytecode: Option<String>,
+}
+
+/// Result type for `recurse_bytecode`
+/// TODO: This doesn't belong here probs
+pub struct BytecodeRes {
+    /// Resulting bytes
+    pub bytes: Vec<Byte>,
+    /// Jump Tables
+    pub jump_tables: Vec<JumpTable>,
+    /// Jump Indices
+    pub jump_indices: JumpIndices,
+    /// Unmatched Jumps
+    pub unmatched_jumps: Jumps,
 }
 
 impl Codegen {
@@ -114,10 +132,10 @@ impl Codegen {
         tracing::info!("Codegen found constructor macro: {:?}", c_macro);
 
         // For each MacroInvocation Statement, recurse into bytecode
-        let recursed_bytecode: Vec<Byte> =
-            Codegen::recurse_bytecode(c_macro.clone(), ast, &mut vec![c_macro])?;
-        println!("Got recursed bytecode {:?}", recursed_bytecode);
-        let bytecode = recursed_bytecode.iter().map(|byte| byte.0.to_string()).collect();
+        let bytecode_res: BytecodeRes =
+            Codegen::recurse_bytecode(c_macro.clone(), ast, &mut vec![c_macro], 0, Vec::default())?;
+        println!("Got recursed bytecode {:?}", bytecode_res.bytes);
+        let bytecode = bytecode_res.bytes.iter().map(|byte| byte.0.to_string()).collect();
         println!("Final bytecode: {}", bytecode);
 
         // Return
@@ -129,7 +147,9 @@ impl Codegen {
         macro_def: MacroDefinition,
         ast: Option<Contract>,
         scope: &mut Vec<MacroDefinition>,
-    ) -> Result<Vec<Byte>, CodegenError> {
+        mut offset: usize,
+        jump_tables: Vec<JumpTable>,
+    ) -> Result<BytecodeRes, CodegenError> {
         let mut final_bytes: Vec<Byte> = vec![];
 
         println!("Recursing... {}", macro_def.name);
@@ -152,8 +172,11 @@ impl Codegen {
         println!("Got IRBytecode: {:?}", irb);
         let irbz = irb.0;
 
-        for irbyte in irbz.iter() {
-            match irbyte.clone() {
+        let mut jump_table = JumpTable::new();
+        let mut jump_indices = JumpIndices::new();
+
+        for (index, ir_byte) in irbz.iter().enumerate() {
+            match ir_byte.clone() {
                 IRByte::Byte(b) => final_bytes.push(b.clone()),
                 IRByte::Constant(name) => {
                     let constant = if let Some(m) = contract
@@ -180,17 +203,23 @@ impl Codegen {
 
                     let push_bytes = match constant.value {
                         ConstVal::Literal(l) => {
-                            let hex_literal: String = hex::encode(l);
+                            let hex_literal: String = bytes32_to_string(&l, false);
                             format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
                         }
                         ConstVal::FreeStoragePointer(_fsp) => {
-                            // TODO: we need to grab the using the offset?
-                            let offset: u8 = 0;
-                            let hex_literal: String = hex::encode([offset]);
-                            format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
+                            // If this is reached in codegen stage, the `derive_storage_pointers`
+                            // method was not called on the AST.
+                            tracing::error!("Storage pointers were not derived for the AST.");
+                            return Err(CodegenError {
+                                kind: CodegenErrorKind::StoragePointersNotDerived,
+                                span: None,
+                                token: None,
+                            })
                         }
                     };
                     println!("Push bytes: {}", push_bytes);
+
+                    offset += push_bytes.len() / 2;
 
                     final_bytes.push(Byte(push_bytes))
                 }
@@ -220,10 +249,15 @@ impl Codegen {
 
                             // Recurse
                             scope.push(ir_macro.clone());
-                            let recursed_bytecode: Vec<Byte> = if let Ok(bytes) =
-                                Codegen::recurse_bytecode(ir_macro.clone(), ast.clone(), scope)
-                            {
-                                bytes
+                            let recursed_bytecode: BytecodeRes = if let Ok(res) =
+                                Codegen::recurse_bytecode(
+                                    ir_macro.clone(),
+                                    ast.clone(),
+                                    scope,
+                                    offset,
+                                    jump_tables.clone(),
+                                ) {
+                                res
                             } else {
                                 tracing::error!(
                                     "Codegen failed to recurse into macro {}",
@@ -235,10 +269,27 @@ impl Codegen {
                                     token: None,
                                 })
                             };
+
+                            // Set jump table values
+                            jump_table.insert(index, recursed_bytecode.unmatched_jumps);
+                            jump_indices = jump_indices
+                                .into_iter()
+                                .chain(recursed_bytecode.jump_indices)
+                                .collect::<JumpIndices>();
+
+                            // Increase offset
+                            offset += recursed_bytecode
+                                .bytes
+                                .iter()
+                                .map(|b| b.0.clone())
+                                .collect::<String>()
+                                .len() /
+                                2;
+
                             final_bytes = final_bytes
                                 .iter()
                                 .cloned()
-                                .chain(recursed_bytecode.iter().cloned())
+                                .chain(recursed_bytecode.bytes.iter().cloned())
                                 .collect();
                         }
                         _ => {
@@ -259,7 +310,54 @@ impl Codegen {
             }
         }
 
-        Ok(final_bytes)
+        let mut cur_index = offset;
+        let mut indices = vec![cur_index]; // first index is the current offset
+        indices.append(
+            &mut final_bytes
+                .iter()
+                .map(|b| {
+                    cur_index += b.0.len() / 2;
+                    cur_index
+                })
+                .collect::<Vec<usize>>(),
+        );
+
+        let mut unmatched_jumps = Jumps::default();
+        let formatted_bytecode: Vec<Byte> =
+            final_bytes.iter().enumerate().fold(Vec::default(), |mut acc, (index, mut b)| {
+                let mut formatted_bytes = b.clone();
+
+                if let Some(jt) = jump_table.get(&index) {
+                    for jump in jt {
+                        if let Some(jump_index) = jump_indices.get(&jump) {
+                            let jump_value = pad_n_bytes(&hex::encode(jump_index.to_string()), 2);
+
+                            println!("Jump value: {}", jump_value);
+
+                            let before = &formatted_bytes.0[0..jump.bytecode_index + 2];
+                            let after = &formatted_bytes.0[jump.bytecode_index + 6..];
+
+                            println!("Pre-formatted Bytes: {:?}", formatted_bytes);
+                            formatted_bytes = Byte(format!("{}{}{}", before, jump_value, after));
+                            println!("Formatted Bytes: {:?}", formatted_bytes);
+                        } else {
+                            let jump_offset = (indices[index] - offset) * 2;
+
+                            println!("Jump offset: {}", jump_offset);
+
+                            unmatched_jumps.push(Jump {
+                                label: jump.label.clone(),
+                                bytecode_index: jump_offset + jump.bytecode_index,
+                            })
+                        }
+                    }
+                }
+
+                acc.push(formatted_bytes);
+                acc
+            });
+
+        Ok(BytecodeRes { bytes: formatted_bytecode, jump_tables, jump_indices, unmatched_jumps })
     }
 
     /// Generate a codegen artifact

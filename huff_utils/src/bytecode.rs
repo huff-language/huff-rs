@@ -3,6 +3,7 @@
 //! Abstract translating state into bytecode.
 
 use crate::prelude::Statement;
+use std::collections::BTreeMap;
 
 /// A Single Byte
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -44,3 +45,22 @@ pub trait ToBytecode<'a, E> {
     /// Translates `self` to a bytecode string
     fn to_bytecode(&self) -> Result<Bytecode, E>;
 }
+
+// TODO: Move these?
+/// A Jump
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Jump {
+    /// Jump's Label
+    pub label: String,
+    /// Index of jump within bytecode
+    pub bytecode_index: usize,
+}
+
+/// Type for a vec of `Jump`s
+pub type Jumps = Vec<Jump>;
+
+/// Type to map `Jump`s to
+pub type JumpIndices = BTreeMap<Jump, usize>;
+
+/// Type for a map of bytecode indexes to `Jumps`. Represents a Jump Table.
+pub type JumpTable = BTreeMap<usize, Jumps>;

@@ -22,11 +22,21 @@ pub fn str_to_bytes32(s: &str) -> [u8; 32] {
 }
 
 /// Convert a `[u8; 32]` to a bytes string.
-pub fn bytes32_to_string(bytes: &[u8; 32]) -> String {
+pub fn bytes32_to_string(bytes: &[u8; 32], prefixed: bool) -> String {
     let mut s = String::default();
     let start = bytes.iter().position(|b| *b != 0).unwrap_or(bytes.len() - 1);
     for b in &bytes[start..bytes.len()] {
         s = format!("{}{:02x}", s, *b);
     }
-    format!("0x{}", s)
+    format!("{}{}", if prefixed { "0x" } else { "" }, s)
+}
+
+/// Pad a hex string with n 0 bytes to the left. Will not pad a hex string that has a length
+/// greater than or equal to `num_bytes * 2`
+pub fn pad_n_bytes(hex: &String, num_bytes: usize) -> String {
+    let mut hex = hex.clone();
+    while hex.len() < num_bytes * 2 {
+        hex = format!("0{}", hex);
+    }
+    hex
 }

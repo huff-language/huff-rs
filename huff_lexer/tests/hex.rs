@@ -48,6 +48,6 @@ fn converts_literal_to_hex_string() {
     ];
 
     for source in sources {
-        assert_eq!(format!("0x{}", source), bytes32_to_string(&str_to_bytes32(source)));
+        assert_eq!(format!("0x{}", source), bytes32_to_string(&str_to_bytes32(source), true));
     }
 }

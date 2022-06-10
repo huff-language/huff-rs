@@ -109,6 +109,8 @@ pub enum CodegenErrorKind {
     MissingAst,
     /// AST is missing constructor
     MissingConstructor,
+    /// Storage Pointers Not Derived
+    StoragePointersNotDerived,
     /// Invalid Macro Body Statement
     InvalidMacroStatement,
     /// The Macro Definition is Missing
@@ -131,6 +133,9 @@ impl<W: Write> Report<W> for CodegenError {
             CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator!"),
             CodegenErrorKind::MissingAst => write!(f.out, "Codegen is missing an AST!"),
             CodegenErrorKind::MissingConstructor => write!(f.out, "AST missing constructor macro!"),
+            CodegenErrorKind::StoragePointersNotDerived => {
+                write!(f.out, "Storage pointers not derived for AST!")
+            }
             CodegenErrorKind::InvalidMacroStatement => write!(f.out, "Invalid Macro Statement!"),
             CodegenErrorKind::MissingMacroDefinition => write!(f.out, "Missing Macro Definition!"),
             CodegenErrorKind::FailedMacroRecursion => write!(f.out, "Failed Macro Recursion!"),
