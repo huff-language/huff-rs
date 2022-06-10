@@ -5,10 +5,11 @@ edition = "2021"
 authors = ["Andreas Bigger", "exp.table", "clabby"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
+license = "MIT OR Apache-2.0"
 description = """
 Lexical Analysis Crate for the Huff-Language
 """
-keywords = ["huff", "lang", "rust", "evm", "bytecode", "compiler"]
+keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
 
 [dependencies]
 proptest = "1.0.0"
