@@ -17,8 +17,8 @@ fn parses_single_hex() {
     assert_eq!(lexer.source, source);
 
     // The first and only token should be lexed as Hex(0x1234)
-    let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::Literal(str_to_array(source)), Span::new(0..6)));
+    let tok = lexer.next().unwrap();
+    assert_eq!(tok, Token::new(TokenKind::Hex(source.to_string()), Span::new(0..6)));
     assert_eq!(lexer.span, Span::new(0..6));
 
     // We covered the whole source

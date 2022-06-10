@@ -9,7 +9,7 @@ fn free_storage_pointer() {
     assert_eq!(lexer.source, source);
 
     // The first token should be the fsp
-    let tok = lexer.next().unwrap().unwrap();
+    let tok = lexer.next().unwrap();
     assert_eq!(tok, Token::new(TokenKind::FreeStoragePointer, Span::new(0..22)));
     assert_eq!(lexer.span, Span::new(0..22));
 

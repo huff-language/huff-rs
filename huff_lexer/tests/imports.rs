@@ -7,11 +7,13 @@ fn include_no_quotes() {
     let mut lexer = Lexer::new(source);
     assert_eq!(lexer.source, source);
 
-    // The first token should be a single line comment
+    // The first token should be #include keyword
     let tok = lexer.next();
-    let unwrapped = tok.unwrap().unwrap();
+    let unwrapped = tok.unwrap();
     assert_eq!(unwrapped, Token::new(TokenKind::Include, Span::new(0..8)));
     assert_eq!(lexer.span, Span::new(0..8));
+
+    lexer.next();
     assert!(lexer.eof);
 }
 
@@ -21,27 +23,24 @@ fn include_with_string() {
     let mut lexer = Lexer::new(source);
     assert_eq!(lexer.source, source);
 
-    // The first token should be a single line comment
+    // The first token should be #include keyword
     let tok = lexer.next();
-    let unwrapped = tok.unwrap().unwrap();
+    let unwrapped = tok.unwrap();
     assert_eq!(unwrapped, Token::new(TokenKind::Include, Span::new(0..8)));
     assert_eq!(lexer.span, Span::new(0..8));
 
-    // Lex the whitespace char
-    let tok = lexer.next();
-    let unwrapped = tok.unwrap().unwrap();
-    let literal_span = Span::new(8..9);
-    assert_eq!(unwrapped, Token::new(TokenKind::Whitespace, literal_span));
-    assert_eq!(lexer.span, literal_span);
-
     // Then we should parse the string literal
     let tok = lexer.next();
-    let unwrapped = tok.unwrap().unwrap();
+    let unwrapped = tok.unwrap();
     let literal_span = Span::new(9..31);
-    assert_eq!(unwrapped, Token::new(TokenKind::Str("./huffs/Ownable.huff"), literal_span));
+    assert_eq!(
+        unwrapped,
+        Token::new(TokenKind::Str("./huffs/Ownable.huff".to_string()), literal_span)
+    );
     assert_eq!(lexer.span, literal_span);
 
     // We should have reached EOF now
+    lexer.next();
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
 }
@@ -52,26 +51,22 @@ fn include_with_string_single_quote() {
     let mut lexer = Lexer::new(source);
     assert_eq!(lexer.source, source);
 
-    // The first token should be a single line comment
+    // The first token should be #include keyword
     let tok = lexer.next();
-    let unwrapped = tok.unwrap().unwrap();
+    let unwrapped = tok.unwrap();
     assert_eq!(unwrapped, Token::new(TokenKind::Include, Span::new(0..8)));
     assert_eq!(lexer.span, Span::new(0..8));
 
-    // Lex the whitespace char
-    let tok = lexer.next();
-    let unwrapped = tok.unwrap().unwrap();
-    let literal_span = Span::new(8..9);
-    assert_eq!(unwrapped, Token::new(TokenKind::Whitespace, literal_span));
-    assert_eq!(lexer.span, literal_span);
-
     // Then we should parse the string literal
     let tok = lexer.next();
-    let unwrapped = tok.unwrap().unwrap();
+    let unwrapped = tok.unwrap();
     let literal_span = Span::new(9..31);
-    assert_eq!(unwrapped, Token::new(TokenKind::Str("./huffs/Ownable.huff"), literal_span));
+    assert_eq!(
+        unwrapped,
+        Token::new(TokenKind::Str("./huffs/Ownable.huff".to_string()), literal_span)
+    );
     assert_eq!(lexer.span, literal_span);
-
+    lexer.next();
     // We should have reached EOF now
     assert_eq!(lexer.span.end, source.len());
     assert!(lexer.eof);
