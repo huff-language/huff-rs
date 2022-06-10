@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Andreas Bigger", "ex-table", "clabby"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
-license-file = "../LICENSE"
+license = "MIT OR Apache-2.0"
 description = """
 Lexical Analysis Crate for the Huff-Language
 """
