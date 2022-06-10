@@ -18,7 +18,7 @@ fn parses_valid_function_definition() {
         (
             0,
             Function {
-                name: "test",
+                name: "test".to_string(),
                 inputs: vec![
                     Argument {
                         name: None,
@@ -43,7 +43,7 @@ fn parses_valid_function_definition() {
         (
             1,
             Function {
-                name: "test",
+                name: "test".to_string(),
                 inputs: vec![Argument {
                     name: None,
                     arg_type: Some(String::from("uint256")),
@@ -61,7 +61,7 @@ fn parses_valid_function_definition() {
         (
             2,
             Function {
-                name: "test",
+                name: "test".to_string(),
                 inputs: vec![Argument {
                     name: None,
                     arg_type: Some(String::from("uint256")),
@@ -79,7 +79,7 @@ fn parses_valid_function_definition() {
         (
             3,
             Function {
-                name: "test",
+                name: "test".to_string(),
                 inputs: vec![Argument {
                     name: None,
                     arg_type: Some(String::from("uint256")),
@@ -97,7 +97,7 @@ fn parses_valid_function_definition() {
         (
             4,
             Function {
-                name: "test",
+                name: "test".to_string(),
                 inputs: vec![Argument {
                     name: None,
                     arg_type: Some(String::from("uint256[], bool[5]")),

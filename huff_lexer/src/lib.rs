@@ -43,7 +43,7 @@ pub struct Lexer<'a> {
     pub span: Span,
     /// The previous lexed Token.
     /// Cannot be a whitespace.
-    pub lookback: Option<Token<'a>>,
+    pub lookback: Option<Token>,
     /// If the lexer has reached the end of file.
     pub eof: bool,
     /// EOF Token has been returned.
@@ -129,7 +129,7 @@ impl<'a> Lexer<'a> {
 
     /// Get the length of the previous lexing span.
     pub fn lookback_len(&self) -> usize {
-        if let Some(lookback) = self.lookback {
+        if let Some(lookback) = &self.lookback {
             return lookback.span.end - lookback.span.start
         }
         0
@@ -137,7 +137,7 @@ impl<'a> Lexer<'a> {
 
     /// Checks the previous token kind against the input.
     pub fn checked_lookback(&self, kind: TokenKind) -> bool {
-        self.lookback.and_then(|t| if t.kind == kind { Some(true) } else { None }).is_some()
+        self.lookback.clone().and_then(|t| if t.kind == kind { Some(true) } else { None }).is_some()
     }
 
     /// Try to peek at the next character from the source
@@ -272,7 +272,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token<'a>, LexicalError<'a>>;
+    type Item = Result<Token, LexicalError<'a>>;
 
     /// Iterates over the source code
     fn next(&mut self) -> Option<Self::Item> {
@@ -287,13 +287,13 @@ impl<'a> Iterator for Lexer<'a> {
                                 self.consume();
                                 // Consume until newline
                                 self.dyn_consume(|c| *c != '\n');
-                                TokenKind::Comment(self.slice())
+                                TokenKind::Comment(self.slice().to_string())
                             }
                             '*' => {
                                 self.consume();
                                 // Consume until next '*/' occurance
                                 self.seq_consume("*/");
-                                TokenKind::Comment(self.slice())
+                                TokenKind::Comment(self.slice().to_string())
                             }
                             _ => TokenKind::Div,
                         }
@@ -313,7 +313,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                         if *key == peeked {
                             self.nconsume(token_length);
-                            found_kind = Some(*kind);
+                            found_kind = Some(kind.clone());
                             break
                         }
                     }
@@ -355,7 +355,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                         if *key == peeked {
                             self.nconsume(token_length);
-                            found_kind = Some(*kind);
+                            found_kind = Some(kind.clone());
                             break
                         }
                     }
@@ -367,7 +367,7 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = None;
                     }
 
-                    if let Some(tokind) = found_kind {
+                    if let Some(tokind) = &found_kind {
                         match tokind {
                             TokenKind::Macro => self.context = Context::MacroDefinition,
                             TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
@@ -400,7 +400,7 @@ impl<'a> Iterator for Lexer<'a> {
                         self.dyn_consume(|c| c.is_alphanumeric() || c == &'_' || c == &':');
                         let label = self.slice();
                         if let Some(l) = label.get(0..label.len() - 1) {
-                            found_kind = Some(TokenKind::Label(l));
+                            found_kind = Some(TokenKind::Label(l.to_string()));
                         } else {
                             tracing::error!("[huff_lexer] Fatal Label Colon Truncation!");
                         }
@@ -476,11 +476,11 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
-                    if let Some(kind) = found_kind {
-                        kind
+                    if let Some(kind) = &found_kind {
+                        kind.clone()
                     } else {
                         self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
-                        TokenKind::Ident(self.slice())
+                        TokenKind::Ident(self.slice().to_string())
                     }
                 }
                 // If it's the start of a hex literal
@@ -546,7 +546,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('"') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str(&str[1..str.len() - 1])
+                            break TokenKind::Str((&str[1..str.len() - 1]).to_string())
                         }
                         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('"')) => {
                             self.consume();
@@ -568,7 +568,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('\'') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str(&str[1..str.len() - 1])
+                            break TokenKind::Str((&str[1..str.len() - 1]).to_string())
                         }
                         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('\'')) => {
                             self.consume();
@@ -599,7 +599,7 @@ impl<'a> Iterator for Lexer<'a> {
 
             let token = Token { kind, span: self.span };
             if token.kind != TokenKind::Whitespace {
-                self.lookback = Some(token);
+                self.lookback = Some(token.clone());
             }
 
             return Some(Ok(token))
@@ -613,7 +613,7 @@ impl<'a> Iterator for Lexer<'a> {
             self.eof_returned = true;
             let token = Token { kind: TokenKind::Eof, span: self.span };
             if token.kind != TokenKind::Whitespace {
-                self.lookback = Some(token);
+                self.lookback = Some(token.clone());
             }
             return Some(Ok(token))
         }

@@ -9,6 +9,8 @@ The following example steps through compiling source code in the [examples](./ex
 ```rust
 use huff_core::Compiler;
 use huff_utils::error::CompilerError;
+use huff_utils::artifact::Artifact;
+
 
 // Read in the ERC20 example
 // let sources: Vec<FileSource> = Compiler::fetch_sources(vec![PathBuf::from("./examples/ERC20.huff")]);
@@ -18,6 +20,6 @@ use huff_utils::error::CompilerError;
 let mut compiler = Compiler::new(vec!["../examples/ERC20.huff".to_string()], None);
 
 // Execute the compiler
-let res: Result<(), CompilerError<'_>> = compiler.execute();
+let res: Result<Vec<Result<Artifact, CompilerError<'_>>>, CompilerError<'_>> = compiler.execute();
 assert!(res.is_ok());
 ```

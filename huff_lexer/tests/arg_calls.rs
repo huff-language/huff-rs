@@ -69,7 +69,7 @@ fn lexes_arg_calls() {
 
     // The we should have an Ident
     let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::Ident("error"), Span::new(185..190)));
+    assert_eq!(tok, Token::new(TokenKind::Ident("error".to_string()), Span::new(185..190)));
     assert_eq!(lexer.span, Span::new(185..190));
 
     // Then should find a right angle

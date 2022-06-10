@@ -95,7 +95,7 @@ fn macro_with_arg_calls() {
             }],
             statements: vec![
                 Statement::Opcode(Opcode::Dup2),
-                Statement::Constant("BALANCE_LOCATION"),
+                Statement::Constant("BALANCE_LOCATION".to_string()),
                 Statement::MacroInvocation(MacroInvocation {
                     macro_name: "LOAD_ELEMENT_FROM_KEYS".to_string(),
                     args: vec![MacroArg::Literal(str_to_bytes32("00"))]
@@ -103,13 +103,13 @@ fn macro_with_arg_calls() {
                 Statement::Opcode(Opcode::Dup1),
                 Statement::Opcode(Opcode::Dup3),
                 Statement::Opcode(Opcode::Gt),
-                Statement::ArgCall("error"),
+                Statement::ArgCall("error".to_string()),
                 Statement::Opcode(Opcode::Jumpi),
                 Statement::Opcode(Opcode::Dup2),
                 Statement::Opcode(Opcode::Swap1),
                 Statement::Opcode(Opcode::Sub),
                 Statement::Opcode(Opcode::Dup3),
-                Statement::Constant("BALANCE_LOCATION"),
+                Statement::Constant("BALANCE_LOCATION".to_string()),
                 Statement::MacroInvocation(MacroInvocation {
                     macro_name: "STORE_ELEMENT_FROM_KEYS".to_string(),
                     args: vec![MacroArg::Literal(str_to_bytes32("00"))]

@@ -4,28 +4,28 @@ use std::{fmt, fmt::Write};
 type Literal = [u8; 32];
 
 /// A single Token
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Token<'a> {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Token {
     /// The kind of token
-    pub kind: TokenKind<'a>,
+    pub kind: TokenKind,
     /// An associated Span
     pub span: Span,
 }
 
-impl<'a> Token<'a> {
+impl Token {
     /// Public associated function that instantiates a Token.
-    pub fn new(kind: TokenKind<'a>, span: Span) -> Self {
+    pub fn new(kind: TokenKind, span: Span) -> Self {
         Self { kind, span }
     }
 }
 
 /// The kind of token
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum TokenKind<'a> {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum TokenKind {
     /// EOF Token
     Eof,
     /// A Comment
-    Comment(&'a str),
+    Comment(String),
     /// Division
     /// Lexing done at the comment level due to clash
     Div,
@@ -58,7 +58,7 @@ pub enum TokenKind<'a> {
     /// "FREE_STORAGE_POINTER()" keyword
     FreeStoragePointer,
     /// An Identifier
-    Ident(&'a str),
+    Ident(String),
     /// Equal Sign
     Assign,
     /// An open parenthesis
@@ -92,17 +92,16 @@ pub enum TokenKind<'a> {
     /// A Space
     Whitespace,
     /// A string literal
-    Str(&'a str),
-    // TODO below aren't lexed
+    Str(String),
     /// Hex
     Literal(Literal),
     /// Opcode
     Opcode(Opcode),
     /// Huff label (aka PC)
-    Label(&'a str),
+    Label(String),
     // TODO: recursive dependency resolution at the lexing level?
     // Import path
-    // Path(&'a str),
+    // Path(String),
     /// EVM Type
     PrimitiveType(PrimitiveEVMType),
     /// Array of EVM Types
@@ -110,9 +109,9 @@ pub enum TokenKind<'a> {
     ArrayType(PrimitiveEVMType, usize),
 }
 
-impl<'a> fmt::Display for TokenKind<'a> {
+impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let x = match *self {
+        let x = match &*self {
             TokenKind::Eof => "EOF",
             TokenKind::Comment(s) => return write!(f, "Comment({})", s),
             TokenKind::Div => "/",
@@ -159,7 +158,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Label(s) => return write!(f, "{}", s),
             TokenKind::PrimitiveType(pt) => return write!(f, "{}", pt),
             TokenKind::ArrayType(pt, num) => {
-                if num > 0 {
+                if num > &0 {
                     return write!(f, "{}[{}]", pt, num)
                 } else {
                     return write!(f, "{}[]", pt)

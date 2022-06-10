@@ -19,7 +19,7 @@
 //!     imports: vec![],
 //!     constants: vec![],
 //!     functions: vec![Function {
-//!         name: "CONSTRUCTOR",
+//!         name: "CONSTRUCTOR".to_string(),
 //!         signature: [0u8, 0u8, 0u8, 0u8],
 //!         inputs: vec![],
 //!         fn_type: FunctionType::NonPayable,
@@ -64,8 +64,8 @@ impl Abi {
 }
 
 // Allows for simple ABI Generation by directly translating the AST
-impl<'a> From<ast::Contract<'a>> for Abi {
-    fn from(contract: ast::Contract<'a>) -> Self {
+impl From<ast::Contract> for Abi {
+    fn from(contract: ast::Contract) -> Self {
         let constructors: Vec<ast::Function> = contract
             .functions
             .iter()

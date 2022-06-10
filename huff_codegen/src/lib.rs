@@ -13,9 +13,9 @@ use std::fs;
 ///
 /// Code Generation Manager responsible for generating the code for the Huff Language.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
-pub struct Codegen<'a> {
+pub struct Codegen {
     /// The Input AST
-    pub ast: Option<Contract<'a>>,
+    pub ast: Option<Contract>,
     /// A cached codegen output artifact
     pub artifact: Option<Artifact>,
     /// Intermediate main bytecode store
@@ -24,7 +24,7 @@ pub struct Codegen<'a> {
     pub constructor_bytecode: Option<String>,
 }
 
-impl<'a> Codegen<'a> {
+impl Codegen {
     /// Public associated function to instantiate a new Codegen instance.
     pub fn new() -> Self {
         Self { ast: None, artifact: None, main_bytecode: None, constructor_bytecode: None }
@@ -35,39 +35,35 @@ impl<'a> Codegen<'a> {
     /// # Arguments
     ///
     /// * `ast` - Optional Contract Abstract Syntax Tree
-    pub fn roll(&mut self, ast: Option<Contract<'a>>) -> Result<String, CodegenError> {
+    pub fn roll(ast: Option<Contract>) -> Result<String, CodegenError> {
         let bytecode: String = String::default();
 
         // Grab the AST
-        let _contract: &Contract<'a> = match &ast {
+        let _contract: &Contract = match &ast {
             Some(a) => a,
-            None => match &self.ast {
-                Some(a) => a,
-                None => {
-                    tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::roll()!");
-                    return Err(CodegenError {
-                        kind: CodegenErrorKind::MissingAst,
-                        span: None,
-                        token: None,
-                    })
-                }
-            },
+            None => {
+                tracing::error!(
+                    "Neither Codegen AST was set nor passed in as a parameter to Codegen::roll()!"
+                );
+                return Err(CodegenError {
+                    kind: CodegenErrorKind::MissingAst,
+                    span: None,
+                    token: None,
+                })
+            }
         };
 
         // TODO: main logic to create the main contract bytecode
 
         // Set bytecode and return
-        if self.main_bytecode.is_none() {
-            self.main_bytecode = Some(bytecode.clone());
-        }
+        // if self.main_bytecode.is_none() {
+        //     self.main_bytecode = Some(bytecode.clone());
+        // }
         Ok(bytecode)
     }
 
     /// Gracefully get the Contract AST
-    pub fn graceful_ast_grab(
-        &self,
-        ast: Option<Contract<'a>>,
-    ) -> Result<Contract<'a>, CodegenError> {
+    pub fn graceful_ast_grab(&self, ast: Option<Contract>) -> Result<Contract, CodegenError> {
         match ast {
             Some(a) => Ok(a),
             None => match &self.ast {
@@ -89,28 +85,37 @@ impl<'a> Codegen<'a> {
     /// # Arguments
     ///
     /// * `ast` - Optional Contract Abstract Syntax Tree
-    pub fn construct(&mut self, ast: Option<Contract<'a>>) -> Result<String, CodegenError> {
+    pub fn construct(ast: Option<Contract>) -> Result<String, CodegenError> {
         // Grab the AST
-        let contract: Contract<'a> = self.graceful_ast_grab(ast.clone())?;
-
-        // Find the constructor macro
-        let c_macro: MacroDefinition<'a> =
-            if let Some(m) = contract.find_macro_by_name("CONSTRUCTOR") {
-                m
-            } else {
-                tracing::error!("CONSTRUCTOR Macro definition missing in AST!");
+        let contract = match &ast {
+            Some(a) => a,
+            None => {
+                tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
                 return Err(CodegenError {
-                    kind: CodegenErrorKind::MissingConstructor,
+                    kind: CodegenErrorKind::MissingAst,
                     span: None,
                     token: None,
                 })
-            };
+            }
+        };
+
+        // Find the constructor macro
+        let c_macro: MacroDefinition = if let Some(m) = contract.find_macro_by_name("CONSTRUCTOR") {
+            m
+        } else {
+            tracing::error!("CONSTRUCTOR Macro definition missing in AST!");
+            return Err(CodegenError {
+                kind: CodegenErrorKind::MissingConstructor,
+                span: None,
+                token: None,
+            })
+        };
 
         tracing::info!("Codegen found constructor macro: {:?}", c_macro);
 
         // For each MacroInvocation Statement, recurse into bytecode
         let recursed_bytecode: Vec<Byte> =
-            self.recurse_bytecode(c_macro.clone(), ast, &mut vec![c_macro])?;
+            Codegen::recurse_bytecode(c_macro.clone(), ast, &mut vec![c_macro])?;
         println!("Got recursed bytecode {:?}", recursed_bytecode);
         let bytecode = recursed_bytecode.iter().map(|byte| byte.0.to_string()).collect();
         println!("Final bytecode: {}", bytecode);
@@ -121,17 +126,26 @@ impl<'a> Codegen<'a> {
 
     /// Recurses a MacroDefinition to generate Bytecode
     pub fn recurse_bytecode(
-        &self,
-        macro_def: MacroDefinition<'a>,
-        ast: Option<Contract<'a>>,
-        scope: &mut Vec<MacroDefinition<'a>>,
+        macro_def: MacroDefinition,
+        ast: Option<Contract>,
+        scope: &mut Vec<MacroDefinition>,
     ) -> Result<Vec<Byte>, CodegenError> {
         let mut final_bytes: Vec<Byte> = vec![];
 
         println!("Recursing... {}", macro_def.name);
 
         // Grab the AST
-        let contract: Contract<'a> = self.graceful_ast_grab(ast.clone())?;
+        let contract = match &ast {
+            Some(a) => a,
+            None => {
+                tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
+                return Err(CodegenError {
+                    kind: CodegenErrorKind::MissingAst,
+                    span: None,
+                    token: None,
+                })
+            }
+        };
 
         // Generate the macro bytecode
         let irb = macro_def.to_irbytecode()?;
@@ -207,7 +221,7 @@ impl<'a> Codegen<'a> {
                             // Recurse
                             scope.push(ir_macro.clone());
                             let recursed_bytecode: Vec<Byte> = if let Ok(bytes) =
-                                self.recurse_bytecode(ir_macro.clone(), ast.clone(), scope)
+                                Codegen::recurse_bytecode(ir_macro.clone(), ast.clone(), scope)
                             {
                                 bytes
                             } else {
@@ -260,7 +274,7 @@ impl<'a> Codegen<'a> {
         args: Vec<ethers::abi::token::Token>,
         main_bytecode: &str,
         constructor_bytecode: &str,
-    ) -> Result<Artifact, CodegenError<'a>> {
+    ) -> Result<Artifact, CodegenError> {
         let mut artifact: &mut Artifact = if let Some(art) = &mut self.artifact {
             art
         } else {
@@ -320,11 +334,7 @@ impl<'a> Codegen<'a> {
     ///
     /// * `ast` - The Contract Abstract Syntax Tree
     /// * `output` - An optional output path
-    pub fn abigen(
-        &mut self,
-        ast: Contract<'a>,
-        output: Option<String>,
-    ) -> Result<Abi, CodegenError> {
+    pub fn abigen(&mut self, ast: Contract, output: Option<String>) -> Result<Abi, CodegenError> {
         let abi: Abi = ast.into();
 
         // Set the abi on self

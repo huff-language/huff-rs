@@ -12,7 +12,7 @@ fn parses_import() {
     let contract = parser.parse().unwrap();
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 
-    let import_path = contract.imports[0];
+    let import_path = contract.imports[0].clone();
     assert_eq!(import_path.to_str().unwrap(), "../huff-examples/erc20/contracts/ERC20.huff");
 }
 
@@ -27,6 +27,6 @@ fn fails_to_parse_invalid_import() {
     let contract = parser.parse().unwrap();
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 
-    let import_path = contract.imports[0];
+    let import_path = contract.imports[0].clone();
     assert_eq!(import_path.to_str().unwrap(), "../huff-examples/erc20/contracts/ERC1155.huff");
 }

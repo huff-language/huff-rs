@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{bytecode::*, bytes_util::*, error::CodegenError, evm::Opcode};
-use std::path::Path;
+use std::path::PathBuf;
 
 /// A contained literal
 pub type Literal = [u8; 32];
@@ -9,7 +9,7 @@ pub type Literal = [u8; 32];
 /// A File Path
 ///
 /// Used for parsing the huff imports.
-pub type FilePath<'a> = &'a Path;
+pub type FilePath = PathBuf;
 
 /// A Huff Contract Representation
 ///
@@ -18,26 +18,26 @@ pub type FilePath<'a> = &'a Path;
 ///
 /// For examples of Huff contracts, see the [huff-examples repository](https://github.com/huff-language/huff-examples).
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Contract<'a> {
+pub struct Contract {
     /// Macro definitions
-    pub macros: Vec<MacroDefinition<'a>>,
+    pub macros: Vec<MacroDefinition>,
     /// Invocations of macros
-    pub invocations: Vec<MacroInvocation<'a>>,
+    pub invocations: Vec<MacroInvocation>,
     /// File Imports
-    pub imports: Vec<FilePath<'a>>,
+    pub imports: Vec<FilePath>,
     /// Constants
-    pub constants: Vec<ConstantDefinition<'a>>,
+    pub constants: Vec<ConstantDefinition>,
     /// Functions
-    pub functions: Vec<Function<'a>>,
+    pub functions: Vec<Function>,
     /// Events
-    pub events: Vec<Event<'a>>,
+    pub events: Vec<Event>,
     /// Tables
-    pub tables: Vec<Table<'a>>,
+    pub tables: Vec<Table>,
 }
 
-impl<'a> Contract<'a> {
+impl Contract {
     /// Returns the first macro that matches the provided name
-    pub fn find_macro_by_name(&self, name: &str) -> Option<MacroDefinition<'a>> {
+    pub fn find_macro_by_name(&self, name: &str) -> Option<MacroDefinition> {
         if let Some(m) = self
             .macros
             .iter()
@@ -92,9 +92,9 @@ pub struct Argument {
 
 /// A Function Signature
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Function<'a> {
+pub struct Function {
     /// The name of the function
-    pub name: &'a str,
+    pub name: String,
     /// The function signature
     pub signature: [u8; 4],
     /// The parameters of the function
@@ -120,38 +120,38 @@ pub enum FunctionType {
 
 /// An Event Signature
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Event<'a> {
+pub struct Event {
     /// The name of the event
-    pub name: &'a str,
+    pub name: String,
     /// The parameters of the event
     pub parameters: Vec<Argument>,
 }
 
 /// A Table Definition
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Table<'a> {
+pub struct Table {
     /// The name of the table
-    pub name: &'a str,
+    pub name: String,
     // TODO:::
 }
 
 /// A Macro Definition
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct MacroDefinition<'a> {
+pub struct MacroDefinition {
     /// The Macro Name
     pub name: String,
     /// A list of Macro parameters
     pub parameters: Vec<Argument>,
     /// A list of Statements contained in the Macro
-    pub statements: Vec<Statement<'a>>,
+    pub statements: Vec<Statement>,
     /// The take size
     pub takes: usize,
     /// The return size
     pub returns: usize,
 }
 
-impl<'a> ToIRBytecode<'a, CodegenError<'a>> for MacroDefinition<'a> {
-    fn to_irbytecode(&self) -> Result<IRBytecode<'a>, CodegenError<'a>> {
+impl ToIRBytecode<CodegenError> for MacroDefinition {
+    fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError> {
         let mut inner_irbytes: Vec<IRByte> = vec![];
 
         // Iterate and translate each statement to bytecode
@@ -175,11 +175,11 @@ impl<'a> ToIRBytecode<'a, CodegenError<'a>> for MacroDefinition<'a> {
                 }
                 Statement::Constant(name) => {
                     // Constant needs to be evaluated at the top-level
-                    inner_irbytes.push(IRByte::Constant(name));
+                    inner_irbytes.push(IRByte::Constant(name.to_string()));
                 }
                 Statement::ArgCall(arg_name) => {
                     // Arg call needs to use a destination defined in the calling macro context
-                    inner_irbytes.push(IRByte::ArgCall(arg_name));
+                    inner_irbytes.push(IRByte::ArgCall(arg_name.to_string()));
                 }
             }
         });
@@ -187,12 +187,12 @@ impl<'a> ToIRBytecode<'a, CodegenError<'a>> for MacroDefinition<'a> {
     }
 }
 
-impl<'a> MacroDefinition<'a> {
+impl MacroDefinition {
     /// Public associated function that instantiates a MacroDefinition.
     pub fn new(
         name: String,
         parameters: Vec<Argument>,
-        statements: Vec<Statement<'a>>,
+        statements: Vec<Statement>,
         takes: usize,
         returns: usize,
     ) -> Self {
@@ -202,20 +202,20 @@ impl<'a> MacroDefinition<'a> {
 
 /// A Macro Invocation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct MacroInvocation<'a> {
+pub struct MacroInvocation {
     /// The Macro Name
     pub macro_name: String,
     /// A list of Macro arguments
-    pub args: Vec<MacroArg<'a>>,
+    pub args: Vec<MacroArg>,
 }
 
 /// An argument passed when invoking a maco
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum MacroArg<'a> {
+pub enum MacroArg {
     /// Macro Literal Argument
     Literal(Literal),
     /// Macro Iden String Argument
-    Ident(&'a str),
+    Ident(String),
 }
 
 /// Free Storage Pointer Unit Struct
@@ -233,24 +233,24 @@ pub enum ConstVal {
 
 /// A Constant Definition
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ConstantDefinition<'a> {
+pub struct ConstantDefinition {
     /// The Constant name
-    pub name: &'a str,
+    pub name: String,
     /// The Constant value
     pub value: ConstVal,
 }
 
 /// A Statement
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Statement<'a> {
+pub enum Statement {
     /// A Literal Statement
     Literal(Literal),
     /// An Opcode Statement
     Opcode(Opcode),
     /// A Macro Invocation Statement
-    MacroInvocation(MacroInvocation<'a>),
+    MacroInvocation(MacroInvocation),
     /// A Constant Push
-    Constant(&'a str),
+    Constant(String),
     /// An Arg Call
-    ArgCall(&'a str),
+    ArgCall(String),
 }

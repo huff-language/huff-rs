@@ -115,7 +115,7 @@ fn include_with_string() {
     assert_eq!(
         unwrapped,
         Token::new(
-            TokenKind::Str("../huff-examples/erc20/contracts/utils/Ownable.huff"),
+            TokenKind::Str("../huff-examples/erc20/contracts/utils/Ownable.huff".to_string()),
             literal_span
         )
     );
@@ -152,7 +152,7 @@ fn include_with_string_single_quote() {
     assert_eq!(
         unwrapped,
         Token::new(
-            TokenKind::Str("../huff-examples/erc20/contracts/utils/Ownable.huff"),
+            TokenKind::Str("../huff-examples/erc20/contracts/utils/Ownable.huff".to_string()),
             literal_span
         )
     );

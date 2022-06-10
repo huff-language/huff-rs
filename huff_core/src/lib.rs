@@ -127,7 +127,7 @@ impl<'a> Compiler {
     }
 
     /// Executes the main compilation process
-    pub fn execute(&self) -> Result<(), CompilerError<'a>> {
+    pub fn execute(&self) -> Result<Vec<Result<Artifact, CompilerError<'a>>>, CompilerError<'a>> {
         // Grab the input files
         let file_paths: Vec<PathBuf> = Compiler::transform_paths(&self.sources)?;
 
@@ -146,57 +146,69 @@ impl<'a> Compiler {
             .collect();
 
         // Parallel compilation
-        files.into_par_iter().for_each(|file| {
-            // Fully Flatten a file into a source string containing source code of file and all its
-            // dependencies
-            let full_source = file.fully_flatten();
+        let artifacts: Vec<Result<Artifact, CompilerError<'a>>> = files
+            .into_par_iter()
+            .map(|file| {
+                // Fully Flatten a file into a source string containing source code of file and all
+                // its dependencies
+                let full_source = file.fully_flatten();
 
-            // Perform Lexical Analysis
-            // Create a new lexer from the FileSource, flattening dependencies
-            let lexer: Lexer = Lexer::new(&full_source);
+                // Perform Lexical Analysis
+                // Create a new lexer from the FileSource, flattening dependencies
+                let lexer: Lexer = Lexer::new(&full_source);
 
-            // Grab the tokens from the lexer
-            let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+                // Grab the tokens from the lexer
+                let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
-            // Parser incantation
-            let mut parser = Parser::new(tokens);
+                // Parser incantation
+                let mut parser = Parser::new(tokens);
 
-            // Parse into an AST
-            let parse_res = parser.parse().map_err(CompilerError::ParserError);
-            let contract = parse_res.unwrap();
+                // Parse into an AST
+                let parse_res = parser.parse().map_err(CompilerError::ParserError);
+                let contract = parse_res.unwrap();
 
-            // Run code generation
-            let mut cg = Codegen::new();
+                // Run code generation
+                let mut cg = Codegen::new();
+                // cg.ast = Some(contract);
 
-            // Gracefully derive the output from the cli
-            let output: OutputLocation = self.get_outputs();
+                // Gracefully derive the output from the cli
+                let output: OutputLocation = self.get_outputs();
 
-            // TODO: actually generate the bytecode
-            // TODO: see huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
-            let main_bytecode = "";
-            let constructor_bytecode = "";
-            let inputs = vec![];
-            let churn_res = cg.churn(inputs, main_bytecode, constructor_bytecode);
-            match churn_res {
-                Ok(_) => {
-                    println!("Successfully compiled {:?}!", file);
-                    // Then we can have the code gen output the artifact
-                    let abiout = cg.abigen(
-                        contract,
-                        Some(format!("./{}/{}.json", output.0, file.path.to_uppercase())),
-                    );
-                    if let Err(e) = abiout {
-                        tracing::error!("Failed to generate artifact!\nError: {:?}", e);
+                // Codegen. See huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
+                let main_bytecode = match Codegen::roll(Some(contract.clone())) {
+                    Ok(mb) => mb,
+                    Err(e) => return Err(CompilerError::CodegenError(e)),
+                };
+                let constructor_bytecode = match Codegen::construct(Some(contract.clone())) {
+                    Ok(mb) => mb,
+                    Err(e) => return Err(CompilerError::CodegenError(e)),
+                };
+                // TODO: Get inputs from cli
+                let inputs = vec![];
+                let churn_res = cg.churn(inputs, &main_bytecode, &constructor_bytecode);
+                match churn_res {
+                    Ok(artifact) => {
+                        println!("Successfully compiled {:?}!", file);
+                        // Then we can have the code gen output the artifact
+                        let abiout = cg.abigen(
+                            contract,
+                            Some(format!("./{}/{}.json", output.0, file.path.to_uppercase())),
+                        );
+                        if let Err(e) = abiout {
+                            tracing::error!("Failed to generate artifact!\nError: {:?}", e);
+                        }
+                        Ok(artifact)
+                    }
+                    Err(e) => {
+                        println!("Failed to compile!\nError: {:?}", e);
+                        tracing::error!("Failed to compile!\nError: {:?}", e);
+                        Err(CompilerError::CodegenError(e))
                     }
                 }
-                Err(e) => {
-                    println!("Failed to compile!\nError: {:?}", e);
-                    tracing::error!("Failed to compile!\nError: {:?}", e);
-                }
-            }
-        });
+            })
+            .collect();
 
-        Ok(())
+        Ok(artifacts)
     }
 
     /// Transforms File Strings into PathBufs

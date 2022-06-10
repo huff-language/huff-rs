@@ -18,7 +18,7 @@ fn derives_storage_pointers() {
     assert_eq!(
         fsp_constant,
         ConstantDefinition {
-            name: "FSP_LOCATION",
+            name: "FSP_LOCATION".to_string(),
             value: ConstVal::FreeStoragePointer(FreeStoragePointer {})
         }
     );
@@ -27,7 +27,7 @@ fn derives_storage_pointers() {
     assert_eq!(
         fsp_constant,
         ConstantDefinition {
-            name: "FSP_LOCATION_2",
+            name: "FSP_LOCATION_2".to_string(),
             value: ConstVal::FreeStoragePointer(FreeStoragePointer {})
         }
     );
@@ -35,7 +35,10 @@ fn derives_storage_pointers() {
     let num_constant = contract.constants[2].clone();
     assert_eq!(
         num_constant,
-        ConstantDefinition { name: "NUM", value: ConstVal::Literal(str_to_bytes32("a57B")) }
+        ConstantDefinition {
+            name: "NUM".to_string(),
+            value: ConstVal::Literal(str_to_bytes32("a57B"))
+        }
     );
     // Derive the AST's free storage pointers
     contract.derive_storage_pointers();

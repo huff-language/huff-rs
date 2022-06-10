@@ -16,7 +16,7 @@ fn parses_free_storage_pointer_constant() {
     assert_eq!(
         fsp_constant,
         ConstantDefinition {
-            name: "FSP_LOCATION",
+            name: "FSP_LOCATION".to_string(),
             value: ConstVal::FreeStoragePointer(FreeStoragePointer {})
         }
     );
@@ -38,5 +38,8 @@ fn parses_literal_constant() {
 
     // Check Literal
     let fsp_constant = contract.constants[0].clone();
-    assert_eq!(fsp_constant, ConstantDefinition { name: "LITERAL", value: ConstVal::Literal(arr) });
+    assert_eq!(
+        fsp_constant,
+        ConstantDefinition { name: "LITERAL".to_string(), value: ConstVal::Literal(arr) }
+    );
 }

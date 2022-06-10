@@ -45,13 +45,13 @@ fn compiles_constructor_bytecode() {
     let contract = parser.parse().unwrap();
 
     // Instantiate Codegen
-    let mut cg = Codegen::new();
+    let cg = Codegen::new();
 
     // The codegen instance should have no artifact
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = cg.construct(Some(contract)).unwrap();
+    let cbytes = Codegen::construct(Some(contract)).unwrap();
     println!("Constructor Bytecode Result: {:?}", cbytes);
     assert_eq!(cbytes, String::from("33600055"));
 }

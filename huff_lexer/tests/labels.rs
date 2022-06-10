@@ -12,5 +12,8 @@ fn parse_label() {
         .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
         .collect::<Vec<Token>>();
 
-    assert_eq!(tokens.get(tokens.len() - 4).unwrap().kind, TokenKind::Label("cool_label"));
+    assert_eq!(
+        tokens.get(tokens.len() - 4).unwrap().kind,
+        TokenKind::Label("cool_label".to_string())
+    );
 }
