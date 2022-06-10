@@ -10,6 +10,9 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
+      - name: Checkout submodules
+        run: git submodule update --init
+
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
