@@ -1,4 +1,7 @@
-use crate::{evm::Opcode, evm::OPCODES_MAP, span::Span};
+use crate::{
+    evm::{Opcode, OPCODES_MAP},
+    span::Span,
+};
 use logos::{Lexer, Logos};
 use std::fmt;
 
