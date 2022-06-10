@@ -23,6 +23,7 @@ fn main() {
             Some(o) => Some(o.clone()),
             None => Some(cli.outputdir.clone()),
         },
+        inputs: cli.inputs,
         optimize: cli.optimize,
         bytecode: cli.bytecode,
     };
@@ -49,6 +50,10 @@ pub struct Huff {
     /// The output directory (default: "./artifacts").
     #[clap(short = 'd', long = "output-directory", default_value = "./artifacts")]
     outputdir: String,
+
+    /// The input constructor arguments
+    #[clap(short = 'i', long = "inputs")]
+    inputs: Option<Vec<String>>,
 
     /// Optimize compilation.
     #[clap(short = 'z', long = "optimize")]

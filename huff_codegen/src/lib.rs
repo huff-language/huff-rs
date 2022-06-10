@@ -288,10 +288,6 @@ impl Codegen {
         let contract_size = format!("{:04x}", contract_length);
         let contract_code_offset = format!("{:04x}", 13 + constructor_length);
 
-        println!("Contract Size: {}", contract_size);
-        println!("Contract Code Offset: {}", contract_code_offset);
-
-        // Encode tokens as hex strings using ethers-abi and hex crates
         let encoded: Vec<Vec<u8>> =
             args.iter().map(|tok| ethers::abi::encode(&[tok.clone()])).collect();
         let hex_args: Vec<String> = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
@@ -303,6 +299,18 @@ impl Codegen {
         artifact.bytecode = format!("{}{}{}", constructor_code, main_bytecode, constructor_args);
         artifact.runtime = main_bytecode.to_string();
         Ok(artifact.clone())
+    }
+
+    /// Encode constructor arguments as ethers::abi::token::Token
+    pub fn encode_constructor_args(_args: Vec<String>) -> Vec<ethers::abi::token::Token> {
+        let encoded = vec![];
+
+        // TODO: Encode tokens as hex strings using ethers-abi and hex crates
+        // let tokens: Vec<ethers::abi::token::Token> =
+        //     args.iter().map(|tok|
+        // ethers::abi::token::Token::try_from(tok.clone()).unwrap()).collect();
+
+        encoded
     }
 
     /// Export

@@ -22,6 +22,8 @@ pub struct Compiler {
     pub sources: Vec<String>,
     /// The output location
     pub output: Option<String>,
+    /// Constructor Input Arguments
+    pub inputs: Option<Vec<String>>,
     /// Whether to optimize compilation or not.
     pub optimize: bool,
     /// Generate and log bytecode
@@ -38,11 +40,11 @@ pub fn init_tracing_subscriber() {
 
 impl<'a> Compiler {
     /// Public associated function to instantiate a new compiler.
-    pub fn new(sources: Vec<String>, output: Option<String>) -> Self {
+    pub fn new(sources: Vec<String>, output: Option<String>, inputs: Option<Vec<String>>) -> Self {
         if cfg!(feature = "verbose") {
             init_tracing_subscriber();
         }
-        Self { sources, output, optimize: false, bytecode: false }
+        Self { sources, output, inputs, optimize: false, bytecode: false }
     }
 
     /// Get the file sources for a vec of PathBufs
@@ -134,7 +136,7 @@ impl<'a> Compiler {
         // Parallel file fetching
         let mut files: Vec<FileSource> = Compiler::fetch_sources(&file_paths);
 
-        // Parallelized Dependency Fetching
+        // Parallel Dependency Resolution
         files = files
             .into_par_iter()
             .map(|f| match Compiler::recurse_deps(f) {
@@ -145,7 +147,7 @@ impl<'a> Compiler {
             .map(|fs| fs.unwrap())
             .collect();
 
-        // Parallel compilation
+        // Parallel Compilation
         let artifacts: Vec<Result<Artifact, CompilerError<'a>>> = files
             .into_par_iter()
             .map(|file| {
@@ -183,24 +185,27 @@ impl<'a> Compiler {
                     Ok(mb) => mb,
                     Err(e) => return Err(CompilerError::CodegenError(e)),
                 };
-                // TODO: Get inputs from cli
-                let inputs = vec![];
-                let churn_res = cg.churn(inputs, &main_bytecode, &constructor_bytecode);
+                let inputs = self.get_inputs();
+                let encoded_inputs = Codegen::encode_constructor_args(inputs);
+                let churn_res = cg.churn(encoded_inputs, &main_bytecode, &constructor_bytecode);
                 match churn_res {
-                    Ok(artifact) => {
+                    Ok(mut artifact) => {
                         println!("Successfully compiled {:?}!", file);
                         // Then we can have the code gen output the artifact
-                        let abiout = cg.abigen(
-                            contract,
-                            Some(format!("./{}/{}.json", output.0, file.path.to_uppercase())),
-                        );
-                        if let Err(e) = abiout {
-                            tracing::error!("Failed to generate artifact!\nError: {:?}", e);
+                        let abiout = cg.abigen(contract, None);
+                        match abiout {
+                            Ok(abi) => artifact.abi = Some(abi),
+                            Err(e) => {
+                                tracing::error!("Failed to generate artifact!\nError: {:?}", e)
+                            }
+                        }
+                        let json_out = format!("./{}/{}.json", output.0, file.path.to_uppercase());
+                        if let Err(e) = artifact.export(json_out) {
+                            tracing::error!("Exporting artifact failed with error: {:?}", e);
                         }
                         Ok(artifact)
                     }
                     Err(e) => {
-                        println!("Failed to compile!\nError: {:?}", e);
                         tracing::error!("Failed to compile!\nError: {:?}", e);
                         Err(CompilerError::CodegenError(e))
                     }
@@ -230,6 +235,14 @@ impl<'a> Compiler {
             }
         }
         Ok(paths)
+    }
+
+    /// Derives Constructor Input Arguments
+    pub fn get_inputs(&self) -> Vec<String> {
+        match &self.inputs {
+            Some(inputs) => inputs.clone(),
+            None => vec![],
+        }
     }
 
     /// Derives an output location
