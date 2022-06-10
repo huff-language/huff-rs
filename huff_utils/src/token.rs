@@ -111,7 +111,7 @@ pub enum TokenKind {
 
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let x = match &*self {
+        let x = match self {
             TokenKind::Eof => "EOF",
             TokenKind::Comment(s) => return write!(f, "Comment({})", s),
             TokenKind::Div => "/",
