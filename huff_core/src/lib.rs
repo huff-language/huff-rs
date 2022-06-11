@@ -192,7 +192,7 @@ impl<'a> Compiler {
                     Ok(mut artifact) => {
                         println!("Successfully compiled {:?}!", file);
                         // Then we can have the code gen output the artifact
-                        let abiout = cg.abigen(contract, None);
+                        let abiout = cg.abi_gen(contract, None);
                         match abiout {
                             Ok(abi) => artifact.abi = Some(abi),
                             Err(e) => {

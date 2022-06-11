@@ -119,6 +119,8 @@ pub enum CodegenErrorKind {
     FailedMacroRecursion,
     /// Missing Constant Definition
     MissingConstantDefinition,
+    /// Abi Generation Failure
+    AbiGenerationFailure,
 }
 
 impl Spanned for CodegenError {
@@ -142,6 +144,7 @@ impl<W: Write> Report<W> for CodegenError {
             CodegenErrorKind::MissingConstantDefinition => {
                 write!(f.out, "Missing Constant Definition!")
             }
+            CodegenErrorKind::AbiGenerationFailure => write!(f.out, "Abi generation failure!"),
         }
     }
 }

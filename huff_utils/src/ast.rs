@@ -38,14 +38,7 @@ pub struct Contract {
 impl Contract {
     /// Returns the first macro that matches the provided name
     pub fn find_macro_by_name(&self, name: &str) -> Option<MacroDefinition> {
-        if let Some(m) = self
-            .macros
-            .iter()
-            .filter(|m| m.name == name)
-            .cloned()
-            .collect::<Vec<MacroDefinition>>()
-            .get(0)
-        {
+        if let Some(m) = self.macros.iter().find(|m| m.name == name) {
             Some(m.clone())
         } else {
             tracing::warn!("Failed to find macro \"{}\" in contract", name);

@@ -179,7 +179,6 @@ impl Codegen {
             match ir_byte.clone() {
                 IRByte::Bytes(b) => {
                     offset += 1;
-
                     final_bytes.push(b)
                 }
                 IRByte::Constant(name) => {
@@ -193,7 +192,7 @@ impl Codegen {
                     {
                         m.clone()
                     } else {
-                        tracing::warn!("Failed to find macro \"{}\" in contract", name);
+                        tracing::error!("Failed to find macro \"{}\" in contract", name);
 
                         // TODO we should try and find the constant defined in other files here
                         return Err(CodegenError {
@@ -237,7 +236,7 @@ impl Codegen {
                                 } else {
                                     // TODO: this is where the file imports must be resolved .. in
                                     // case macro definition is external
-                                    tracing::warn!(
+                                    tracing::error!(
                                         "Invoked Macro \"{}\" not found in Contract",
                                         mi.macro_name
                                     );
@@ -253,14 +252,13 @@ impl Codegen {
 
                             // Recurse
                             scope.push(ir_macro.clone());
-                            let recursed_bytecode: BytecodeRes = if let Ok(res) =
-                                Codegen::recurse_bytecode(
-                                    ir_macro.clone(),
-                                    ast.clone(),
-                                    scope,
-                                    offset,
-                                    jump_tables.clone(),
-                                ) {
+                            let res: BytecodeRes = if let Ok(res) = Codegen::recurse_bytecode(
+                                ir_macro.clone(),
+                                ast.clone(),
+                                scope,
+                                offset,
+                                jump_tables.clone(),
+                            ) {
                                 res
                             } else {
                                 tracing::error!(
@@ -275,25 +273,20 @@ impl Codegen {
                             };
 
                             // Set jump table values
-                            jump_table.insert(index, recursed_bytecode.unmatched_jumps);
+                            jump_table.insert(index, res.unmatched_jumps);
                             jump_indices = jump_indices
                                 .into_iter()
-                                .chain(recursed_bytecode.jump_indices)
+                                .chain(res.jump_indices)
                                 .collect::<JumpIndices>();
 
-                            // Increase offset
-                            offset += recursed_bytecode
-                                .bytes
-                                .iter()
-                                .map(|b| b.0.clone())
-                                .collect::<String>()
-                                .len() /
-                                2;
+                            // // Increase offset by byte length of recursed macro
+                            offset +=
+                                res.bytes.iter().map(|b| b.0.clone()).collect::<String>().len() / 2;
 
                             final_bytes = final_bytes
                                 .iter()
                                 .cloned()
-                                .chain(recursed_bytecode.bytes.iter().cloned())
+                                .chain(res.bytes.iter().cloned())
                                 .collect();
                         }
                         _ => {
@@ -307,8 +300,54 @@ impl Codegen {
                     }
                 }
                 IRByte::ArgCall(arg_name) => {
-                    // TODO: Check our scope, loop through all macros, all statements, to see if out
-                    // arg is defined as a jumpdest match
+                    // Try to find macro with same name as arg_name
+                    let macro_with_arg_name =
+                        if let Some(m) = contract.find_macro_by_name(&arg_name) {
+                            m
+                        } else {
+                            tracing::error!("Invoked Macro \"{}\" not found in Contract", arg_name);
+                            return Err(CodegenError {
+                                kind: CodegenErrorKind::MissingMacroDefinition,
+                                span: None,
+                                token: None,
+                            })
+                        };
+
+                    // Lower scope and recurse into the found macro
+                    scope.push(macro_with_arg_name.clone());
+                    // TODO: Add proper parameters to the found macro definition
+                    // https://github.com/huff-language/huffc/blob/master/src/compiler/processor.ts#L91-L98
+                    let res = Codegen::recurse_bytecode(
+                        macro_with_arg_name.clone(),
+                        ast.clone(),
+                        scope,
+                        offset,
+                        jump_tables.clone(),
+                    );
+
+                    if let Ok(res) = res {
+                        // Set jump table values
+                        jump_table.insert(index, res.unmatched_jumps);
+
+                        // Increase offset by byte length of recursed macro
+                        offset +=
+                            res.bytes.iter().map(|b| b.0.clone()).collect::<String>().len() / 2;
+
+                        // Add bytecode from arg call macro
+                        final_bytes =
+                            final_bytes.iter().cloned().chain(res.bytes.iter().cloned()).collect();
+                    } else {
+                        tracing::error!(
+                            "Codegen failed to recurse into macro {}",
+                            macro_with_arg_name.name
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::FailedMacroRecursion,
+                            span: None,
+                            token: None,
+                        })
+                    }
+
                     println!("Codegen found Arg Call: {}", arg_name);
                 }
             }
@@ -405,14 +444,9 @@ impl Codegen {
 
     /// Encode constructor arguments as ethers::abi::token::Token
     pub fn encode_constructor_args(_args: Vec<String>) -> Vec<ethers::abi::token::Token> {
-        let encoded = vec![];
-
-        // TODO: Encode tokens as hex strings using ethers-abi and hex crates
-        // let tokens: Vec<ethers::abi::token::Token> =
-        //     args.iter().map(|tok|
-        // ethers::abi::token::Token::try_from(tok.clone()).unwrap()).collect();
-
-        encoded
+        // args.iter().map(|tok|
+        // ethers::abi::token::Token::try_from(tok.clone()).unwrap()).collect()
+        vec![]
     }
 
     /// Export
@@ -427,10 +461,15 @@ impl Codegen {
             let serialized_artifact = serde_json::to_string(art).unwrap();
             fs::write(output, serialized_artifact).expect("Unable to write file");
         } else {
-            tracing::warn!(
+            tracing::error!(
                 "Failed to export the compile artifact to the specified output location {}!",
                 output
             );
+            return Err(CodegenError {
+                kind: CodegenErrorKind::AbiGenerationFailure,
+                span: None,
+                token: None,
+            })
         }
         Ok(())
     }
@@ -444,7 +483,7 @@ impl Codegen {
     ///
     /// * `ast` - The Contract Abstract Syntax Tree
     /// * `output` - An optional output path
-    pub fn abigen(&mut self, ast: Contract, output: Option<String>) -> Result<Abi, CodegenError> {
+    pub fn abi_gen(&mut self, ast: Contract, output: Option<String>) -> Result<Abi, CodegenError> {
         let abi: Abi = ast.into();
 
         // Set the abi on self
@@ -459,8 +498,9 @@ impl Codegen {
 
         // If an output's specified, write the artifact out
         if let Some(o) = output {
-            if self.export(o).is_err() {
-                // !! We should never get here since we set the artifact above !! //
+            if let Err(e) = self.export(o) {
+                // Error message is sent to tracing in `export` if an error occurs
+                return Err(e)
             }
         }
 
