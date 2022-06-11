@@ -160,10 +160,10 @@ impl fmt::Display for TokenKind {
             TokenKind::ArrayType(pt, size_vec) => {
                 let mut s = String::new();
                 for size in size_vec {
-                    let brackets = if size > &0 { format!("[{}]", size) } else { "[]".to_string() }; 
+                    let brackets = if size > &0 { format!("[{}]", size) } else { "[]".to_string() };
                     s.push_str(&brackets);
                 }
-                return write!(f, "{}{}", pt, s);
+                return write!(f, "{}{}", pt, s)
             }
         };
 

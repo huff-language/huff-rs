@@ -449,16 +449,18 @@ impl<'a> Iterator for Lexer<'a> {
                                         true => size_vec.push(0),
                                         false => {
                                             let arr_size: usize = size
-                                            .parse::<usize>()
-                                            .map_err(|_| {
-                                                let err = LexicalError {
-                                                    kind: LexicalErrorKind::InvalidArraySize(&words[1]),
-                                                    span: self.span,
-                                                };
-                                                tracing::error!("{}", format!("{:?}", err));
-                                                err
-                                            })
-                                            .unwrap();
+                                                .parse::<usize>()
+                                                .map_err(|_| {
+                                                    let err = LexicalError {
+                                                        kind: LexicalErrorKind::InvalidArraySize(
+                                                            &words[1],
+                                                        ),
+                                                        span: self.span,
+                                                    };
+                                                    tracing::error!("{}", format!("{:?}", err));
+                                                    err
+                                                })
+                                                .unwrap();
                                             size_vec.push(arr_size);
                                         }
                                     }
