@@ -171,7 +171,7 @@ impl Parser {
     }
 
     /// Parses a function.
-    /// Adheres to https://github.com/huff-language/huffc/blob/master/src/parser/high-level.ts#L87-L111
+    /// Adheres to <https://github.com/huff-language/huffc/blob/master/src/parser/high-level.ts#L87-L111>
     pub fn parse_function(&mut self) -> Result<Function, ParserError> {
         // the first token should be of `TokenKind::Function`
         self.match_kind(TokenKind::Function)?;
