@@ -6,11 +6,10 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
-use std::path::Path;
-
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
 use huff_utils::prelude::unpack_files;
+use std::path::Path;
 
 fn main() {
     // Parse the command line arguments
@@ -39,7 +38,7 @@ fn main() {
 pub struct Huff {
     path: Option<String>,
 
-    /// The source path to the contracts (default: "./src").
+    /// The contracts source path.
     #[clap(short = 's', long = "source-path", default_value = "./src")]
     source: String,
 
@@ -47,11 +46,11 @@ pub struct Huff {
     #[clap(short = 'o', long = "output")]
     output: Option<String>,
 
-    /// The output directory (default: "./artifacts").
+    /// The output directory.
     #[clap(short = 'd', long = "output-directory", default_value = "./artifacts")]
     outputdir: String,
 
-    /// The input constructor arguments
+    /// Constructor arguments.
     #[clap(short = 'i', long = "inputs")]
     inputs: Option<Vec<String>>,
 
@@ -59,13 +58,17 @@ pub struct Huff {
     #[clap(short = 'z', long = "optimize")]
     optimize: bool,
 
-    /// Generate and log bytecode (default: false).
+    /// Generate and log bytecode.
     #[clap(short = 'b', long = "bytecode")]
     bytecode: bool,
 
-    /// Print the output to the terminal.
+    /// Prints out to the terminal.
     #[clap(short = 'p', long = "print")]
     print: bool,
+
+    /// Verbose output.
+    #[clap(short = 'v', long = "verbose")]
+    verbose: bool,
 }
 
 impl Huff {
