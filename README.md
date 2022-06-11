@@ -2,7 +2,7 @@
 
 # huff-rs • [![tests](https://github.com/huff-language/huff-rs/actions/workflows/tests.yaml/badge.svg)](https://github.com/huff-language/huff-rs/actions/workflows/tests.yaml) ![GitHub](https://img.shields.io/github/license/huff-language/huff-rs) ![Crates.io](https://img.shields.io/crates/v/huff-rs) ![Discord](https://img.shields.io/discord/980519274600882306)
 
-> `huff-rs` is a [huff](https://github.com/huff-language) compiler written in pure rust.
+> `huff-rs` is a [Huff](https://github.com/huff-language) compiler built in rust.
 
 
 ## What is a Huff?
@@ -14,6 +14,8 @@ Rather than having functions, Huff has macros - individual blocks of bytecode th
 [Huff](https://github.com/AztecProtocol/huff) was originally developed by the Aztec Protocol team to write [Weierstrudel](https://github.com/aztecprotocol/weierstrudel). Weierstrudel is an on-chain elliptical curve arithmetic library that requires incredibly optimized code that neither [Solidity](https://docs.soliditylang.org/en/v0.8.14/) nor [Yul](https://docs.soliditylang.org/en/v0.8.9/yul.html) could provide.
 
 While EVM experts can use Huff to write highly-efficient smart contracts for use in production, it can also serve as a way for beginners to learn more about the EVM.
+
+To dive deeper into [Huff](https://github.com/huff-language), visit the [Official Huff Docs](https://huff.sh)(also available on [github](https://github.com/huff-language/huff-docs)).
 
 
 ## Installation
