@@ -5,10 +5,11 @@ edition = "2021"
 authors = ["Andreas Bigger"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
+license = "MIT OR Apache-2.0"
 description = """
 Core Compiler Crate for the Huff-Language
 """
-keywords = ["huff", "lang", "rust", "evm", "bytecode", "compiler"]
+keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
 
 [dependencies]
 serde_json = "1.0.81"

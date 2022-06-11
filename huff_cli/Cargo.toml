@@ -5,10 +5,11 @@ edition = "2021"
 authors = ["Andreas Bigger"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
+license = "MIT OR Apache-2.0"
 description = """
 Efficient Huff compiler written in rust.
 """
-keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
+keywords = ["huff", "rust", "ethereum", "assembly", "compiler"]
 
 [dependencies]
 clap = { version = "3.1.18", features = ["derive"] }
