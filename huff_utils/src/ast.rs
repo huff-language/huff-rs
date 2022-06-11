@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{bytecode::*, bytes_util::*, error::CodegenError, evm::Opcode};
+use crate::{bytecode::*, bytes_util::*, error::CodegenError, evm::Opcode, prelude::TokenKind};
 use std::path::PathBuf;
 
 /// A contained literal
@@ -32,7 +32,7 @@ pub struct Contract {
     /// Events
     pub events: Vec<Event>,
     /// Tables
-    pub tables: Vec<Table>,
+    pub tables: Vec<TableDefinition>,
 }
 
 impl Contract {
@@ -122,10 +122,45 @@ pub struct Event {
 
 /// A Table Definition
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Table {
+pub struct TableDefinition {
     /// The name of the table
     pub name: String,
-    // TODO:::
+    /// The table kind
+    pub kind: TableKind,
+    /// The table's statements
+    pub statements: Vec<Statement>,
+    /// Size of table
+    pub size: Literal,
+}
+
+impl TableDefinition {
+    /// Public associated function that instantiates a TableDefinition from a string
+    pub fn new(name: String, kind: TableKind, statements: Vec<Statement>, size: Literal) -> Self {
+        TableDefinition { name, kind, statements, size }
+    }
+}
+
+/// A Table Kind
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TableKind {
+    /// A regular jump table
+    JumpTable,
+    /// A packed jump table
+    JumpTablePacked,
+    /// A code table
+    CodeTable,
+}
+
+impl From<TokenKind> for TableKind {
+    /// Public associated function that converts a TokenKind to a TableKind
+    fn from(token_kind: TokenKind) -> Self {
+        match token_kind {
+            TokenKind::JumpTable => TableKind::JumpTable,
+            TokenKind::JumpTablePacked => TableKind::JumpTablePacked,
+            TokenKind::CodeTable => TableKind::CodeTable,
+            _ => panic!("Invalid Token Kind"), // TODO: Better error handling
+        }
+    }
 }
 
 /// A Macro Definition

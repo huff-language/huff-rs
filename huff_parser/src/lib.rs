@@ -7,6 +7,7 @@
 use huff_utils::{
     ast::*,
     error::ParserError,
+    prelude::str_to_bytes32,
     token::{Token, TokenKind},
     types::*,
 };
@@ -74,6 +75,9 @@ impl Parser {
                 }
                 TokenKind::Macro => {
                     contract.macros.push(self.parse_macro()?);
+                }
+                TokenKind::JumpTable | TokenKind::JumpTablePacked | TokenKind::CodeTable => {
+                    contract.tables.push(self.parse_table()?);
                 }
                 _ => {
                     tracing::error!(
@@ -380,12 +384,9 @@ impl Parser {
             let mut arg = Argument::default();
 
             // type comes first
-            // TODO: match against TokenKind dedicated to EVM Types (uint256, bytes, ...)
             if select_type {
                 arg.arg_type = Some(self.parse_arg_type()?.to_string());
                 // Check if the argument is indexed
-                // TODO: Ensure this can only be done for events- this function is used for
-                // TODO: events, functions, and macro arguments.
                 if has_indexed && self.check(TokenKind::Indexed) {
                     arg.indexed = true;
                     self.consume(); // consume "indexed" keyword
@@ -459,6 +460,60 @@ impl Parser {
         // consume close parenthesis
         self.consume();
         Ok(args)
+    }
+
+    /// Parses a table (JumpTable, JumpTablePacked, or CodeTable).
+    ///
+    /// It should parse the following : (jumptable|jumptable__packed|table) NAME() {...}
+    pub fn parse_table(&mut self) -> Result<TableDefinition, ParserError> {
+        let kind = TableKind::from(self.match_kind(self.current_token.kind.clone())?);
+        let table_name: String =
+            self.match_kind(TokenKind::Ident("TABLE_NAME".to_string()))?.to_string();
+
+        self.match_kind(TokenKind::OpenParen)?;
+        self.match_kind(TokenKind::CloseParen)?;
+        self.match_kind(TokenKind::Assign)?;
+        let table_statements: Vec<Statement> = self.parse_table_body()?;
+
+        let size: usize = table_statements.len() *
+            if matches!(kind, TableKind::JumpTablePacked) { 0x02 } else { 0x20 };
+
+        Ok(TableDefinition::new(
+            table_name,
+            kind,
+            table_statements,
+            str_to_bytes32(size.to_string().as_str()),
+        ))
+    }
+
+    /// Parse the body of a table.
+    ///
+    /// Only MACRO calls and JumpLabels should be authorized.
+    pub fn parse_table_body(&mut self) -> Result<Vec<Statement>, ParserError> {
+        let mut statements: Vec<Statement> = Vec::new();
+        self.match_kind(TokenKind::OpenBrace)?;
+        while !self.check(TokenKind::CloseBrace) {
+            match self.current_token.kind.clone() {
+                TokenKind::Ident(ident_str) => {
+                    // TODO: Not sure if this statement should be a macro invocation?
+                    statements.push(Statement::MacroInvocation(MacroInvocation {
+                        macro_name: ident_str.to_string(),
+                        args: vec![],
+                    }));
+                    self.consume();
+                }
+                _ => {
+                    tracing::error!("Invalid Table Body Token: {:?}", self.current_token);
+                    return Err(ParserError::SyntaxError(format!(
+                        "Invalid token in table: {:?}. Must be of kind Macro or JumpLabel.",
+                        self.current_token
+                    )))
+                }
+            };
+        }
+        // consume close brace
+        self.match_kind(TokenKind::CloseBrace)?;
+        Ok(statements)
     }
 
     /// Parses a constant push.
