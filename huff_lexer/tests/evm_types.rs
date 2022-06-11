@@ -74,3 +74,28 @@ fn unbounded_array_parsing() {
         assert_eq!(tokens.get(4).unwrap().kind, evm_type_enum);
     }
 }
+
+#[test]
+fn multidim_array_parsing() {
+    let evm_types = [
+        ("address[3][2]", TokenKind::ArrayType(PrimitiveEVMType::Address, vec![3, 2])),
+        ("string[1][]", TokenKind::ArrayType(PrimitiveEVMType::String, vec![1, 0])),
+        ("uint192[][][]", TokenKind::ArrayType(PrimitiveEVMType::Uint(192), vec![0,0,0])),
+        ("bytes32[][11]", TokenKind::ArrayType(PrimitiveEVMType::Bytes(32),vec![0, 11])),
+        ("bool[2][4]", TokenKind::ArrayType(PrimitiveEVMType::Bool, vec![2, 4])),
+        ("int8[3][4]", TokenKind::ArrayType(PrimitiveEVMType::Int(8), vec![3, 4])),
+        ("bytes[6][4]", TokenKind::ArrayType(PrimitiveEVMType::DynBytes, vec![6, 4])),
+    ];
+
+    for (evm_type, evm_type_enum) in evm_types {
+        let source = format!("#define function test({}) view returns (uint256)", evm_type);
+        let lexer = Lexer::new(source.as_str());
+        let tokens = lexer
+            .into_iter()
+            .map(|x| x.unwrap())
+            .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
+            .collect::<Vec<Token>>();
+
+        assert_eq!(tokens.get(4).unwrap().kind, evm_type_enum);
+    }
+}
