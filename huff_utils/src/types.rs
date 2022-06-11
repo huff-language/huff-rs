@@ -1,6 +1,8 @@
+use crate::bytes_util::*;
+use ethers::abi::{ethereum_types::*, token::Token};
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::fmt;
+use std::{fmt, str::FromStr};
 /// Primitive EVM types
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PrimitiveEVMType {
@@ -75,4 +77,43 @@ impl fmt::Display for PrimitiveEVMType {
 lazy_static! {
     /// Array of regex to matching fancier EVM types
     pub static ref EVM_TYPE_ARRAY_REGEX: Regex = Regex::new(r"((u|)int[0-9]*|address|bool|bytes|string|bytes[0-9]*)\[[0-9]*\]").unwrap();
+}
+
+/// Wrap ether-rs Token to allow to derive the TryFrom trait
+pub struct EToken(pub Token);
+
+impl TryFrom<String> for EToken {
+    type Error = String;
+
+    fn try_from(input: String) -> Result<Self, Self::Error> {
+        if input.starts_with("0x") {
+            // remove 0x prefix
+            let cleaned_input = input.get(2..input.len()).unwrap();
+            // either address or fixed bytes
+            if cleaned_input.len() <= 64 {
+                // could be either address or fixed bytes
+                // if length is 42, assume it's an address
+                match input.len() {
+                    42 => return Ok(EToken(Token::Address(H160::from_str(cleaned_input).unwrap()))),
+                    _ => {
+                        return Ok(EToken(Token::FixedBytes(str_to_bytes32(cleaned_input).to_vec())))
+                    }
+                }
+            } else {
+                // dyn bytes array
+                return Ok(EToken(Token::Bytes(str_to_vec(cleaned_input))))
+            }
+        }
+        if input == "true" || input == "false" {
+            return Ok(EToken(Token::Bool(input == "true")))
+        }
+        if input.chars().all(|x| x.is_ascii_digit()) {
+            return Ok(EToken(Token::Uint(U256::from_str_radix(input.as_str(), 10).unwrap())))
+        }
+        if input.chars().all(|x| x.is_alphanumeric()) {
+            Ok(EToken(Token::String(input)))
+        } else {
+            Err(format!("Invalid input: {}", input))
+        }
+    }
 }
