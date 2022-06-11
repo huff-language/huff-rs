@@ -6,10 +6,10 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
-use std::path::Path;
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
 use huff_utils::prelude::unpack_files;
+use std::path::Path;
 
 fn main() {
     // Parse the command line arguments

@@ -40,7 +40,12 @@ pub fn init_tracing_subscriber() {
 
 impl<'a> Compiler {
     /// Public associated function to instantiate a new compiler.
-    pub fn new(sources: Vec<String>, output: Option<String>, inputs: Option<Vec<String>>, verbose: bool) -> Self {
+    pub fn new(
+        sources: Vec<String>,
+        output: Option<String>,
+        inputs: Option<Vec<String>>,
+        verbose: bool,
+    ) -> Self {
         if cfg!(feature = "verbose") || verbose {
             init_tracing_subscriber();
         }
