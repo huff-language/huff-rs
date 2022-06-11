@@ -105,8 +105,8 @@ pub enum TokenKind {
     /// EVM Type
     PrimitiveType(PrimitiveEVMType),
     /// Array of EVM Types
-    /// if unbounded ; size of 0
-    ArrayType(PrimitiveEVMType, usize),
+    /// uint256[5][2][3] => ArrayType(PrimitiveEVMType::Uint(256), [5, 2, 3])
+    ArrayType(PrimitiveEVMType, Vec<usize>),
 }
 
 impl fmt::Display for TokenKind {
@@ -157,12 +157,13 @@ impl fmt::Display for TokenKind {
             TokenKind::Opcode(o) => return write!(f, "{}", o),
             TokenKind::Label(s) => return write!(f, "{}", s),
             TokenKind::PrimitiveType(pt) => return write!(f, "{}", pt),
-            TokenKind::ArrayType(pt, num) => {
-                if num > &0 {
-                    return write!(f, "{}[{}]", pt, num)
-                } else {
-                    return write!(f, "{}[]", pt)
+            TokenKind::ArrayType(pt, size_vec) => {
+                let mut s = String::new();
+                for size in size_vec {
+                    let brackets = if size > &0 { format!("[{}]", size) } else { "[]".to_string() };
+                    s.push_str(&brackets);
                 }
+                return write!(f, "{}{}", pt, s)
             }
         };
 
