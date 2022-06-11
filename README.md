@@ -28,7 +28,7 @@ First run the command below to get `huffup`, the Huff installer:
 curl -L https://huff.nascent.xyz | bash
 ```
 
-To avoid redirecting the script directly into bash, download and run the [huffup installation script](https://raw.githubusercontent.com/huff-language/huff-rs/main/huffup/huffup).
+To avoid redirecting the script directly into bash, download and run the [huffup installation script](https://raw.githubusercontent.com/huff-language/huff-rs/main/huffup/install).
 
 To install the Huff compiler, simply run `huffup`.
 
