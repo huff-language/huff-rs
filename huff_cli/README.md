@@ -25,6 +25,7 @@ OPTIONS:
     -b, --bytecode                        Generate and log bytecode (default: false).
     -d, --output-directory <OUTPUTDIR>    The output directory (default: "./").
     -h, --help                            Print help information
+    -i, --inputs <INPUTS>                 The input constructor arguments
     -o, --output <OUTPUT>                 The output file path.
     -p, --print                           Print the output to the terminal.
     -s, --source-path <SOURCE>            The source path to the contracts (default: "./").
