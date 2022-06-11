@@ -435,29 +435,39 @@ impl<'a> Iterator for Lexer<'a> {
                             if EVM_TYPE_ARRAY_REGEX.is_match(raw_type) {
                                 // split to get array size and type
                                 // TODO: support multi-dimensional arrays
-                                let mut words: Vec<String> = Regex::new(r"\[")
+                                let words: Vec<String> = Regex::new(r"\[")
                                     .unwrap()
                                     .split(raw_type)
                                     .map(|x| x.replace(']', ""))
                                     .collect();
-                                // unbounded array == array with a size of 0
-                                if words[1].is_empty() {
-                                    words[1] = String::from("0");
+
+                                let mut size_vec: Vec<usize> = Vec::new();
+                                // go over all array sizes
+                                let sizes = words.get(1..words.len()).unwrap();
+                                for size in sizes.iter() {
+                                    match size.is_empty() {
+                                        true => size_vec.push(0),
+                                        false => {
+                                            let arr_size: usize = size
+                                                .parse::<usize>()
+                                                .map_err(|_| {
+                                                    let err = LexicalError {
+                                                        kind: LexicalErrorKind::InvalidArraySize(
+                                                            &words[1],
+                                                        ),
+                                                        span: self.span,
+                                                    };
+                                                    tracing::error!("{}", format!("{:?}", err));
+                                                    err
+                                                })
+                                                .unwrap();
+                                            size_vec.push(arr_size);
+                                        }
+                                    }
                                 }
-                                let arr_size: usize = words[1]
-                                    .parse::<usize>()
-                                    .map_err(|_| {
-                                        let err = LexicalError {
-                                            kind: LexicalErrorKind::InvalidArraySize(&words[1]),
-                                            span: self.span,
-                                        };
-                                        tracing::error!("{}", format!("{:?}", err));
-                                        err
-                                    })
-                                    .unwrap();
                                 let primitive = PrimitiveEVMType::try_from(words[0].clone());
                                 if let Ok(primitive) = primitive {
-                                    found_kind = Some(TokenKind::ArrayType(primitive, arr_size));
+                                    found_kind = Some(TokenKind::ArrayType(primitive, size_vec));
                                 } else {
                                     let err = LexicalError {
                                         kind: LexicalErrorKind::InvalidPrimitiveType(&words[0]),
