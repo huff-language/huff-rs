@@ -40,7 +40,6 @@ jobs:
         run: cargo +nightly clippy --all --all-features -- -D warnings
 
   tests:
-    name: Tests (Stable)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
