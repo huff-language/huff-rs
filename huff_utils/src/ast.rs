@@ -160,7 +160,7 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                 Statement::Literal(l) => {
                     let combined = l
                         .iter()
-                        .map(|b| IRByte::Byte(Byte(format!("{:04x}", b))))
+                        .map(|b| IRByte::Bytes(Bytes(format!("{:04x}", b))))
                         .collect::<Vec<IRByte>>();
                     println!("Combined IRBytes: {:?}", combined);
                     combined.iter().for_each(|irb| inner_irbytes.push(irb.clone()));
@@ -168,7 +168,7 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                 Statement::Opcode(o) => {
                     let opcode_str = o.string();
                     tracing::info!("Got opcode hex string: {}", opcode_str);
-                    inner_irbytes.push(IRByte::Byte(Byte(opcode_str)))
+                    inner_irbytes.push(IRByte::Bytes(Bytes(opcode_str)))
                 }
                 Statement::MacroInvocation(mi) => {
                     inner_irbytes.push(IRByte::Statement(Statement::MacroInvocation(mi.clone())));

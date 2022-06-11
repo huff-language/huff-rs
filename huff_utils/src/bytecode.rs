@@ -5,15 +5,15 @@
 use crate::prelude::Statement;
 use std::collections::BTreeMap;
 
-/// A Single Byte
+/// A string of Bytes
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Byte(pub String);
+pub struct Bytes(pub String);
 
 /// Intermediate Bytecode Representation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum IRByte {
     /// Bytes
-    Byte(Byte),
+    Bytes(Bytes),
     /// Macro Statement to be expanded
     Statement(Statement),
     /// A Constant to be referenced

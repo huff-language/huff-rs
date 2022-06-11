@@ -33,8 +33,8 @@ pub fn bytes32_to_string(bytes: &[u8; 32], prefixed: bool) -> String {
 
 /// Pad a hex string with n 0 bytes to the left. Will not pad a hex string that has a length
 /// greater than or equal to `num_bytes * 2`
-pub fn pad_n_bytes(hex: &String, num_bytes: usize) -> String {
-    let mut hex = hex.clone();
+pub fn pad_n_bytes(hex: &str, num_bytes: usize) -> String {
+    let mut hex = hex.to_owned();
     while hex.len() < num_bytes * 2 {
         hex = format!("0{}", hex);
     }

@@ -33,7 +33,7 @@ pub struct Codegen {
 /// TODO: This doesn't belong here probs
 pub struct BytecodeRes {
     /// Resulting bytes
-    pub bytes: Vec<Byte>,
+    pub bytes: Vec<Bytes>,
     /// Jump Tables
     pub jump_tables: Vec<JumpTable>,
     /// Jump Indices
@@ -150,7 +150,7 @@ impl Codegen {
         mut offset: usize,
         jump_tables: Vec<JumpTable>,
     ) -> Result<BytecodeRes, CodegenError> {
-        let mut final_bytes: Vec<Byte> = vec![];
+        let mut final_bytes: Vec<Bytes> = vec![];
 
         println!("Recursing... {}", macro_def.name);
 
@@ -177,7 +177,11 @@ impl Codegen {
 
         for (index, ir_byte) in irbz.iter().enumerate() {
             match ir_byte.clone() {
-                IRByte::Byte(b) => final_bytes.push(b.clone()),
+                IRByte::Bytes(b) => {
+                    offset += 1;
+
+                    final_bytes.push(b)
+                }
                 IRByte::Constant(name) => {
                     let constant = if let Some(m) = contract
                         .constants
@@ -221,7 +225,7 @@ impl Codegen {
 
                     offset += push_bytes.len() / 2;
 
-                    final_bytes.push(Byte(push_bytes))
+                    final_bytes.push(Bytes(push_bytes))
                 }
                 IRByte::Statement(s) => {
                     match s {
@@ -323,13 +327,13 @@ impl Codegen {
         );
 
         let mut unmatched_jumps = Jumps::default();
-        let formatted_bytecode: Vec<Byte> =
-            final_bytes.iter().enumerate().fold(Vec::default(), |mut acc, (index, mut b)| {
+        let final_bytes =
+            final_bytes.iter().enumerate().fold(Vec::default(), |mut acc, (index, b)| {
                 let mut formatted_bytes = b.clone();
 
                 if let Some(jt) = jump_table.get(&index) {
                     for jump in jt {
-                        if let Some(jump_index) = jump_indices.get(&jump) {
+                        if let Some(jump_index) = jump_indices.get(jump) {
                             let jump_value = pad_n_bytes(&hex::encode(jump_index.to_string()), 2);
 
                             println!("Jump value: {}", jump_value);
@@ -338,7 +342,7 @@ impl Codegen {
                             let after = &formatted_bytes.0[jump.bytecode_index + 6..];
 
                             println!("Pre-formatted Bytes: {:?}", formatted_bytes);
-                            formatted_bytes = Byte(format!("{}{}{}", before, jump_value, after));
+                            formatted_bytes = Bytes(format!("{}{}{}", before, jump_value, after));
                             println!("Formatted Bytes: {:?}", formatted_bytes);
                         } else {
                             let jump_offset = (indices[index] - offset) * 2;
@@ -357,7 +361,7 @@ impl Codegen {
                 acc
             });
 
-        Ok(BytecodeRes { bytes: formatted_bytecode, jump_tables, jump_indices, unmatched_jumps })
+        Ok(BytecodeRes { bytes: final_bytes, jump_tables, jump_indices, unmatched_jumps })
     }
 
     /// Generate a codegen artifact
