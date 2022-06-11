@@ -228,8 +228,8 @@ impl<'a> Lexer<'a> {
     /// `TokenKind::Ident`.
     ///
     /// Rules:
-    /// - The `macro`, `function`, `constant`, `event` keywords must be preceded by a `#define`
-    ///   keyword.
+    /// - The `macro`, `function`, `constant`, `event`, `jumptable`, `jumptable__packed`, and
+    ///   `table` keywords must be preceded by a `#define` keyword.
     /// - The `takes` keyword must be preceded by an assignment operator: `=`.
     /// - The `nonpayable`, `payable`, `view`, and `pure` keywords must be preceeded by one of these
     ///   keywords or a close paren.
@@ -240,7 +240,10 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Macro) |
             Some(TokenKind::Function) |
             Some(TokenKind::Constant) |
-            Some(TokenKind::Event) => self.checked_lookback(TokenKind::Define),
+            Some(TokenKind::Event) |
+            Some(TokenKind::JumpTable) |
+            Some(TokenKind::JumpTablePacked) |
+            Some(TokenKind::CodeTable) => self.checked_lookback(TokenKind::Define),
             Some(TokenKind::NonPayable) |
             Some(TokenKind::Payable) |
             Some(TokenKind::View) |
@@ -344,6 +347,10 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Indexed,
                         TokenKind::View,
                         TokenKind::Pure,
+                        TokenKind::JumpTablePacked, /* Check for packed jump table first, would
+                                                     * match with jump table if not */
+                        TokenKind::JumpTable,
+                        TokenKind::CodeTable,
                     ];
                     for kind in &keys {
                         if self.context == Context::MacroBody {

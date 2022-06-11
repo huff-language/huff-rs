@@ -279,6 +279,9 @@ fn parses_function_definition_with_keyword_name() {
         "payable",
         "view",
         "pure",
+        "jumptable",
+        "jumptable__packed",
+        "table",
     ];
 
     for s in key_words {
@@ -325,7 +328,7 @@ fn parses_function_definition_with_keyword_name() {
 }
 
 #[test]
-fn parses_function_with_keyword_name_before_colon() {
+fn parses_label_with_keyword_name() {
     let key_words = [
         "macro",
         "function",
@@ -338,6 +341,9 @@ fn parses_function_with_keyword_name_before_colon() {
         "payable",
         "view",
         "pure",
+        "jumptable",
+        "jumptable__packed",
+        "table",
     ];
 
     for s in key_words {
@@ -390,6 +396,9 @@ fn parses_function_with_keyword_name() {
         "payable",
         "view",
         "pure",
+        "jumptable",
+        "jumptable__packed",
+        "table",
     ];
 
     for s in key_words {
@@ -434,6 +443,9 @@ fn parses_function_with_keyword_name_in_macro() {
         "payable",
         "view",
         "pure",
+        "jumptable",
+        "jumptable__packed",
+        "table",
     ];
 
     for s in key_words {

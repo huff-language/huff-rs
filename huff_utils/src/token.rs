@@ -107,6 +107,12 @@ pub enum TokenKind {
     /// Array of EVM Types
     /// uint256[5][2][3] => ArrayType(PrimitiveEVMType::Uint(256), [5, 2, 3])
     ArrayType(PrimitiveEVMType, Vec<usize>),
+    /// A Jump Table
+    JumpTable,
+    /// A Packed Jump Table
+    JumpTablePacked,
+    /// A Code Table
+    CodeTable,
 }
 
 impl fmt::Display for TokenKind {
@@ -165,6 +171,9 @@ impl fmt::Display for TokenKind {
                 }
                 return write!(f, "{}{}", pt, s)
             }
+            TokenKind::JumpTable => "jumptable",
+            TokenKind::JumpTablePacked => "jumptable__packed",
+            TokenKind::CodeTable => "table",
         };
 
         write!(f, "{}", x)
