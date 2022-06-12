@@ -32,8 +32,8 @@ pub fn bytes32_to_string(bytes: &[u8; 32]) -> String {
 }
 
 /// Convert string slice to Vec<u8>, size not capped
-pub fn str_to_vec(s: &str) -> Vec<u8> {
-    let bytes: Vec<u8> =
-        (0..s.len()).step_by(2).map(|c| u8::from_str_radix(&s[c..c + 2], 16).unwrap()).collect();
+pub fn str_to_vec(s: &str) -> Result<Vec<u8>, std::num::ParseIntError> {
+    let bytes: Result<Vec<u8>, _> =
+        (0..s.len()).step_by(2).map(|c| u8::from_str_radix(&s[c..c + 2], 16)).collect();
     bytes
 }

@@ -8,7 +8,7 @@ fn encode_simple_constructor_args() {
         100, 109, 184, 255, 194, 30, 125, 220, 43, 99, 39, 68, 141, 217, 250, 86, 13, 244, 16, 135,
     ];
     let expected_bytes32: Vec<u8> =
-        str_to_vec("87674fa174add091f082eab424cc60625118fa4c553592a4e54a76fb9e8512f6");
+        str_to_vec("87674fa174add091f082eab424cc60625118fa4c553592a4e54a76fb9e8512f6").unwrap();
     // Bogus constructors args
     let args: Vec<String> = vec![
         "Hello",

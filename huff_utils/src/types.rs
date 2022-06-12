@@ -94,21 +94,29 @@ impl TryFrom<String> for EToken {
                 // could be either address or fixed bytes
                 // if length is 42, assume it's an address
                 match input.len() {
-                    42 => return Ok(EToken(Token::Address(H160::from_str(cleaned_input).unwrap()))),
+                    42 => {
+                        return Ok(EToken(Token::Address(
+                            H160::from_str(cleaned_input).map_err(|e| e.to_string())?,
+                        )))
+                    }
                     _ => {
                         return Ok(EToken(Token::FixedBytes(str_to_bytes32(cleaned_input).to_vec())))
                     }
                 }
             } else {
                 // dyn bytes array
-                return Ok(EToken(Token::Bytes(str_to_vec(cleaned_input))))
+                return Ok(EToken(Token::Bytes(
+                    str_to_vec(cleaned_input).map_err(|e| e.to_string())?,
+                )))
             }
         }
         if input == "true" || input == "false" {
             return Ok(EToken(Token::Bool(input == "true")))
         }
         if input.chars().all(|x| x.is_ascii_digit()) {
-            return Ok(EToken(Token::Uint(U256::from_str_radix(input.as_str(), 10).unwrap())))
+            return Ok(EToken(Token::Uint(
+                U256::from_str_radix(input.as_str(), 10).map_err(|e| e.to_string())?,
+            )))
         }
         if input.chars().all(|x| x.is_alphanumeric()) {
             Ok(EToken(Token::String(input)))
