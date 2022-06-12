@@ -80,6 +80,7 @@ lazy_static! {
 }
 
 /// Wrap ether-rs Token to allow to derive the TryFrom trait
+#[derive(Clone)]
 pub struct EToken(pub Token);
 
 impl TryFrom<String> for EToken {
@@ -109,6 +110,15 @@ impl TryFrom<String> for EToken {
                     str_to_vec(cleaned_input).map_err(|e| e.to_string())?,
                 )))
             }
+        }
+        // array
+        if input.starts_with('[') {
+            let trimmed_input = input.trim_start_matches('[').trim_end_matches(']');
+            let v: Vec<String> = trimmed_input.split(',').map(|x| x.replace(' ', "")).collect();
+            let etokens: Result<Vec<EToken>, _> =
+                v.iter().map(|x| EToken::try_from(x.to_owned())).collect();
+            let tokens: Vec<Token> = etokens?.iter().map(move |x| x.clone().0).collect();
+            return Ok(EToken(Token::Array(tokens)))
         }
         if input == "true" || input == "false" {
             return Ok(EToken(Token::Bool(input == "true")))

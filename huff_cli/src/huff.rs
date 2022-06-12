@@ -15,6 +15,7 @@ use huff_utils::prelude::unpack_files;
 fn main() {
     // Parse the command line arguments
     let cli = Huff::parse();
+    println!("{:?}", cli.inputs);
 
     // Create compiler from the Huff Args
     let compiler: Compiler = Compiler {
@@ -52,7 +53,7 @@ pub struct Huff {
     outputdir: String,
 
     /// The input constructor arguments
-    #[clap(short = 'i', long = "inputs")]
+    #[clap(short = 'i', long = "inputs", multiple_values = true)]
     inputs: Option<Vec<String>>,
 
     /// Optimize compilation.
