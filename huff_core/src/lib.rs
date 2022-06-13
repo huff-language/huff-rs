@@ -9,11 +9,11 @@ use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
-use tracing_subscriber::{EnvFilter, filter::Directive};
 use std::{
     path::{Path, PathBuf},
     time::SystemTime,
 };
+use tracing_subscriber::{filter::Directive, EnvFilter};
 use uuid::Uuid;
 
 /// The core compiler
@@ -41,7 +41,7 @@ pub fn init_tracing_subscriber(directives: Option<Vec<Directive>>) {
         }
     }
     if let Err(e) = subscriber_builder.with_env_filter(env_filter).try_init() {
-        panic!("Failed to initialize tracing!\nError: {:?}", e)
+        println!("Failed to initialize tracing!\nError: {:?}", e)
     }
 }
 
@@ -169,6 +169,7 @@ impl<'a> Compiler {
                 // Fully Flatten a file into a source string containing source code of file and all
                 // its dependencies
                 let full_source = file.fully_flatten();
+                tracing::info!(target: "core", "FLATTENED SOURCE FILE [{}]", file.path);
 
                 // Perform Lexical Analysis
                 // Create a new lexer from the FileSource, flattening dependencies
@@ -176,17 +177,18 @@ impl<'a> Compiler {
 
                 // Grab the tokens from the lexer
                 let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+                tracing::info!(target: "core", "LEXICAL ANALYSIS COMPLETE [{}]", file.path);
 
                 // Parser incantation
                 let mut parser = Parser::new(tokens);
 
                 // Parse into an AST
                 let parse_res = parser.parse().map_err(CompilerError::ParserError);
-                let contract = parse_res.unwrap();
+                let contract = parse_res?;
+                tracing::info!(target: "core", "PARSED CONTRACT [{}]", file.path);
 
                 // Run code generation
                 let mut cg = Codegen::new();
-                // cg.ast = Some(contract);
 
                 // Gracefully derive the output from the cli
                 let output: OutputLocation = self.get_outputs();
@@ -196,37 +198,40 @@ impl<'a> Compiler {
                     Ok(mb) => mb,
                     Err(e) => return Err(CompilerError::CodegenError(e)),
                 };
+                tracing::info!(target: "core", "MAIN BYTECODE GENERATED [{}]", main_bytecode);
                 let constructor_bytecode = match Codegen::construct(Some(contract.clone())) {
                     Ok(mb) => mb,
                     Err(e) => return Err(CompilerError::CodegenError(e)),
                 };
+                tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
                 let inputs = self.get_inputs();
                 let encoded_inputs = Codegen::encode_constructor_args(inputs);
                 let churn_res = cg.churn(encoded_inputs, &main_bytecode, &constructor_bytecode);
                 match churn_res {
                     Ok(mut artifact) => {
-                        println!("Successfully compiled {:?}!", file);
                         // Then we can have the code gen output the artifact
                         let abiout = cg.abigen(contract, None);
                         match abiout {
                             Ok(abi) => artifact.abi = Some(abi),
                             Err(e) => {
-                                tracing::error!("Failed to generate artifact!\nError: {:?}", e)
+                                tracing::error!(target: "core", "ARTIFACT GENERATION FAILED!\nError: {:?}", e)
                             }
                         }
                         let json_out = format!("./{}/{}.json", output.0, file.path.to_uppercase());
                         if let Err(e) = artifact.export(json_out) {
-                            tracing::error!("Exporting artifact failed with error: {:?}", e);
+                            tracing::error!(target: "core", "ARTIFACT EXPORT FAILED!\nError: {:?}", e);
                         }
                         Ok(artifact)
                     }
                     Err(e) => {
-                        tracing::error!("Failed to compile!\nError: {:?}", e);
+                        tracing::error!(target: "core", "CODEGEN ERRORED!\nError: {:?}", e);
                         Err(CompilerError::CodegenError(e))
                     }
                 }
             })
             .collect();
+
+        tracing::info!(target: "core", "ALL FILES COMPILED SUCCESSFULLY");
 
         Ok(artifacts)
     }
@@ -246,7 +251,7 @@ impl<'a> Compiler {
                         files.iter().for_each(|fil| paths.push(Path::new(&fil).to_path_buf()))
                     }
                     Err(e) => {
-                        tracing::error!("ERROR UNPACKING FILE: {:?}", e);
+                        tracing::error!(target: "core", "ERROR UNPACKING FILE: {:?}", e);
                         return Err(CompilerError::FileUnpackError(e))
                     }
                 }

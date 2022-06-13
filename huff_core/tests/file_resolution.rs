@@ -2,22 +2,23 @@ use std::path::PathBuf;
 
 use huff_core::Compiler;
 use huff_utils::prelude::{CompilerError, OutputLocation, UnpackError};
+use tracing_test::traced_test;
 
-#[test]
+#[traced_test]
 fn test_get_outputs_no_output() {
     let compiler: Compiler = Compiler::new(vec![], None, None, false);
     let ol: OutputLocation = compiler.get_outputs();
     assert_eq!(ol, OutputLocation::default());
 }
 
-#[test]
+#[traced_test]
 fn test_get_outputs_with_output() {
     let compiler: Compiler = Compiler::new(vec![], Some("./test_out/".to_string()), None, false);
     let ol: OutputLocation = compiler.get_outputs();
     assert_eq!(ol, OutputLocation("./test_out/".to_string()));
 }
 
-#[test]
+#[traced_test]
 fn test_transform_paths() {
     let _compiler: Compiler = Compiler::new(vec![], Some("./test_out/".to_string()), None, false);
     let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> = Compiler::transform_paths(&vec![
@@ -50,7 +51,7 @@ fn test_transform_paths() {
     }
 }
 
-#[test]
+#[traced_test]
 fn test_transform_paths_non_huff() {
     let _compiler: Compiler = Compiler::new(vec![], Some("./test_out/".to_string()), None, false);
     let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> =
@@ -66,7 +67,7 @@ fn test_transform_paths_non_huff() {
     }
 }
 
-#[test]
+#[traced_test]
 fn test_transform_paths_no_dir() {
     let _compiler: Compiler = Compiler::new(vec![], Some("./test_out/".to_string()), None, false);
     let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> =
