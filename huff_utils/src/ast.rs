@@ -162,7 +162,7 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                         .iter()
                         .map(|b| IRByte::Byte(Byte(format!("{:04x}", b))))
                         .collect::<Vec<IRByte>>();
-                    println!("Combined IRBytes: {:?}", combined);
+                    tracing::info!(target: "codegen", "COMBINED IRBytes: {:?}", combined);
                     combined.iter().for_each(|irb| inner_irbytes.push(irb.clone()));
                 }
                 Statement::Opcode(o) => {

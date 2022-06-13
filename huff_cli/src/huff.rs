@@ -5,39 +5,19 @@
 #![warn(unused_extern_crates)]
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
+#![allow(deprecated)]
 
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
 use huff_utils::prelude::unpack_files;
 use std::path::Path;
 
-fn main() {
-    // Parse the command line arguments
-    let cli = Huff::parse();
-    println!("{:?}", cli.inputs);
-
-    // Create compiler from the Huff Args
-    let compiler: Compiler = Compiler {
-        sources: cli.get_inputs().unwrap_or_default(),
-        output: match &cli.output {
-            Some(o) => Some(o.clone()),
-            None => Some(cli.outputdir.clone()),
-        },
-        inputs: cli.inputs,
-        optimize: cli.optimize,
-        bytecode: cli.bytecode,
-    };
-    let compile_res = compiler.execute();
-    if compile_res.is_err() {
-        tracing::error!("Compiling Errored!");
-    }
-}
-
 /// The Huff CLI Args
 #[derive(ClapParser, Debug, Clone)]
 #[clap(version, about, long_about = None)]
-pub struct Huff {
-    path: Option<String>,
+struct Huff {
+    /// The main path
+    pub path: Option<String>,
 
     /// The contracts source path.
     #[clap(short = 's', long = "source-path", default_value = "./src")]
@@ -72,11 +52,40 @@ pub struct Huff {
     verbose: bool,
 }
 
+fn main() {
+    // Parse the command line arguments
+    let cli = Huff::parse();
+
+    // Initiate Tracing if Verbose
+    if cli.verbose {
+        huff_core::init_tracing_subscriber(Some(vec![tracing::Level::DEBUG.into()]));
+    }
+
+    // Create compiler from the Huff Args
+    let compiler: Compiler = Compiler {
+        sources: cli.get_inputs().unwrap_or_default(),
+        output: match &cli.output {
+            Some(o) => Some(o.clone()),
+            None => Some(cli.outputdir.clone()),
+        },
+        inputs: cli.inputs,
+        optimize: cli.optimize,
+        bytecode: cli.bytecode,
+    };
+    tracing::info!(target: "core", "COMPILER INCANTATION COMPLETE");
+    tracing::info!(target: "core", "EXECUTING COMPILATION...");
+    let compile_res = compiler.execute();
+    if let Err(e) = compile_res {
+        tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
+    }
+}
+
 impl Huff {
     /// Preprocesses input files for compiling
     pub fn get_inputs(&self) -> Option<Vec<String>> {
         match &self.path {
             Some(path) => {
+                tracing::info!(target: "io", "FETCHING INPUT: {}", path);
                 // If the file is huff, we can use it
                 let ext = Path::new(&path).extension().unwrap_or_default();
                 if ext.eq("huff") {
@@ -87,6 +96,7 @@ impl Huff {
                 }
             }
             None => {
+                tracing::info!(target: "io", "FETCHING SOURCE FILES: {}", self.source);
                 // If there's no path, unpack source files
                 let source: String = self.source.clone();
                 unpack_files(&source).ok()
