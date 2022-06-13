@@ -355,7 +355,7 @@ impl<'a> Iterator for Lexer<'a> {
                     }
                 }
                 // Alphabetical characters
-                ch if ch.is_alphabetic() => {
+                ch if ch.is_alphabetic() || ch.eq(&'_') => {
                     let mut found_kind: Option<TokenKind> = None;
 
                     let keys = [
@@ -427,9 +427,9 @@ impl<'a> Iterator for Lexer<'a> {
                     let potential_label: String =
                         self.dyn_peek(|c| c.is_alphanumeric() || c == &'_' || c == &':');
                     if let true = potential_label.ends_with(':') {
-                        self.dyn_consume(|c| c.is_alphanumeric() || c == &'_' || c == &':');
+                        self.dyn_consume(|c| c.is_alphanumeric() || c == &'_');
                         let label = self.slice();
-                        if let Some(l) = label.get(0..label.len() - 1) {
+                        if let Some(l) = label.get(0..label.len()) {
                             found_kind = Some(TokenKind::Label(l.to_string()));
                         } else {
                             tracing::error!("[huff_lexer] Fatal Label Colon Truncation!");

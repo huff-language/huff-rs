@@ -121,3 +121,112 @@ fn macro_with_arg_calls() {
     );
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
+
+#[test]
+fn maco_labels() {
+    let source = r#"
+    #define macro LABEL_FILLED() = takes(0) returns(0) {
+        __label__:
+            TRANSFER_GIVE_TO()
+            0x00 0x00 revert
+        error:
+            TRANSFER_GIVE_TO()
+            0x00 0x00 revert
+    }
+    "#;
+
+    // Parse tokens
+    let lexer = Lexer::new(source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    assert_eq!(
+        macro_definition,
+        MacroDefinition {
+            name: "LABEL_FILLED".to_string(),
+            parameters: vec![],
+            statements: vec![
+                Statement::Label(Label {
+                    name: "__label__".to_string(),
+                    inner: vec![
+                        Statement::MacroInvocation(MacroInvocation {
+                            macro_name: "TRANSFER_GIVE_TO".to_string(),
+                            args: vec![]
+                        }),
+                        Statement::Literal(str_to_bytes32("00")),
+                        Statement::Literal(str_to_bytes32("00")),
+                        Statement::Opcode(Opcode::Revert),
+                    ]
+                }),
+                Statement::Label(Label {
+                    name: "error".to_string(),
+                    inner: vec![
+                        Statement::MacroInvocation(MacroInvocation {
+                            macro_name: "TRANSFER_GIVE_TO".to_string(),
+                            args: vec![]
+                        }),
+                        Statement::Literal(str_to_bytes32("00")),
+                        Statement::Literal(str_to_bytes32("00")),
+                        Statement::Opcode(Opcode::Revert),
+                    ]
+                })
+            ],
+            takes: 0,
+            returns: 0
+        }
+    );
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
+
+#[test]
+fn macro_invocation_with_arg_call() {
+    let source = r#"
+    #define macro ARG_CALL(error) = takes(0) returns(0) {
+        TRANSFER_TAKE_FROM(<error>)
+        TRANSFER_GIVE_TO(<error>)
+
+        0x01 0x00 mstore
+        0x20 0x00 return
+    }
+    "#;
+
+    // Parse tokens
+    let lexer = Lexer::new(source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    assert_eq!(
+        macro_definition,
+        MacroDefinition {
+            name: "ARG_CALL".to_string(),
+            parameters: vec![Argument {
+                arg_type: None,
+                name: Some("error".to_string()),
+                indexed: false
+            }],
+            statements: vec![
+                Statement::MacroInvocation(MacroInvocation {
+                    macro_name: "TRANSFER_TAKE_FROM".to_string(),
+                    args: vec![MacroArg::ArgCall("error".to_string())]
+                }),
+                Statement::MacroInvocation(MacroInvocation {
+                    macro_name: "TRANSFER_GIVE_TO".to_string(),
+                    args: vec![MacroArg::ArgCall("error".to_string())]
+                }),
+                Statement::Literal(str_to_bytes32("01")),
+                Statement::Literal(str_to_bytes32("00")),
+                Statement::Opcode(Opcode::Mstore),
+                Statement::Literal(str_to_bytes32("20")),
+                Statement::Literal(str_to_bytes32("00")),
+                Statement::Opcode(Opcode::Return),
+            ],
+            takes: 0,
+            returns: 0
+        }
+    );
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}

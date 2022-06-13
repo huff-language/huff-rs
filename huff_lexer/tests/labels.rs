@@ -13,7 +13,8 @@ fn parse_label() {
         .collect::<Vec<Token>>();
 
     assert_eq!(
-        tokens.get(tokens.len() - 4).unwrap().kind,
+        tokens.get(tokens.len() - 5).unwrap().kind,
         TokenKind::Label("cool_label".to_string())
     );
+    assert_eq!(tokens.get(tokens.len() - 4).unwrap().kind, TokenKind::Colon);
 }

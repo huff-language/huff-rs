@@ -348,22 +348,8 @@ impl Parser {
                 TokenKind::Ident(ident_str) => {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [IDENT: {}]", ident_str);
                     self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
-                    // Can be a macro call or jumpdest
+                    // Can be a macro call or label call
                     match self.current_token.kind.clone() {
-                        TokenKind::Colon => {
-                            // Parse jumpdest
-                            // TODO: Can jump dests have more than macro invocations contained?
-                            let mi_name =
-                                self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
-                            let mi_args = self.parse_macro_call()?;
-                            statements.push(Statement::JumpDest(JumpDest {
-                                name: ident_str.to_string(),
-                                inner: vec![Statement::MacroInvocation(MacroInvocation {
-                                    macro_name: mi_name.to_string(),
-                                    args: mi_args,
-                                })],
-                            }));
-                        }
                         TokenKind::OpenParen => {
                             // Parse Macro Call
                             let lit_args = self.parse_macro_call()?;
@@ -373,14 +359,16 @@ impl Parser {
                             }));
                         }
                         _ => {
-                            tracing::info!(target: "parser", "JUMP CALL TO: {}", ident_str);
-                            statements.push(Statement::JumpTo(ident_str));
+                            tracing::info!(target: "parser", "LABEL CALL TO: {}", ident_str);
+                            statements.push(Statement::LabelCall(ident_str));
                         }
                     }
                 }
                 TokenKind::Label(l) => {
-                    tracing::info!(target: "parser", "PARSING MACRO BODY: [LABEL: {}]", l);
                     self.consume();
+                    let mut inner_statements: Vec<Statement> = self.parse_label()?;
+                    tracing::info!(target: "parser", "PARSED LABEL \"{}\" INSIDE MACRO WITH {} STATEMENTS.", l, inner_statements.len());
+                    statements.append(&mut inner_statements);
                 }
                 TokenKind::OpenBracket => {
                     let constant = self.parse_constant_push()?;
@@ -403,6 +391,76 @@ impl Parser {
         }
         // consume close brace
         self.match_kind(TokenKind::CloseBrace)?;
+        Ok(statements)
+    }
+
+    // TODO: Better label scoping
+    /// Parse the body of a label.
+    ///
+    /// ## Examples
+    ///
+    /// Below is an example of a label that contains a Macro Invocation, Literals, and Opcodes.
+    ///
+    /// ```huff
+    /// error:
+    ///     TRANSFER()
+    ///     0x20 0x00 return
+    /// ```
+    pub fn parse_label(&mut self) -> Result<Vec<Statement>, ParserError> {
+        let mut statements: Vec<Statement> = Vec::new();
+        self.match_kind(TokenKind::Colon)?;
+        while !self.check(TokenKind::Label("NEXT_LABEL".to_string())) &&
+            !self.check(TokenKind::CloseBrace)
+        {
+            match self.current_token.kind.clone() {
+                TokenKind::Literal(val) => {
+                    tracing::info!(target: "parser", "PARSING LABEL BODY: [LITERAL: {}]", hex::encode(val));
+                    self.consume();
+                    statements.push(Statement::Literal(val));
+                }
+                TokenKind::Opcode(o) => {
+                    tracing::info!(target: "parser", "PARSING LABEL BODY: [OPCODE: {}]", o);
+                    self.consume();
+                    statements.push(Statement::Opcode(o));
+                }
+                TokenKind::Ident(ident_str) => {
+                    tracing::info!(target: "parser", "PARSING LABEL BODY: [IDENT: {}]", ident_str);
+                    self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
+                    // Can be a macro call or label call
+                    match self.current_token.kind.clone() {
+                        TokenKind::OpenParen => {
+                            // Parse Macro Call
+                            let lit_args = self.parse_macro_call()?;
+                            statements.push(Statement::MacroInvocation(MacroInvocation {
+                                macro_name: ident_str.to_string(),
+                                args: lit_args,
+                            }));
+                        }
+                        _ => {
+                            tracing::info!(target: "parser", "LABEL CALL TO: {}", ident_str);
+                            statements.push(Statement::LabelCall(ident_str));
+                        }
+                    }
+                }
+                TokenKind::OpenBracket => {
+                    let constant = self.parse_constant_push()?;
+                    tracing::info!(target: "parser", "PARSING LABEL BODY: [CONSTANT: {}]", constant);
+                    statements.push(Statement::Constant(constant));
+                }
+                TokenKind::LeftAngle => {
+                    let arg_call = self.parse_arg_call()?;
+                    tracing::info!(target: "parser", "PARSING LABEL BODY: [ARG CALL: {}]", arg_call);
+                    statements.push(Statement::ArgCall(arg_call));
+                }
+                kind => {
+                    tracing::error!(target: "parser", "TOKEN MISMATCH - LABEL BODY: {}", kind);
+                    return Err(ParserError::SyntaxError(format!(
+                        "TOKEN MISMATCH - LABEL BODY: {}",
+                        kind
+                    )))
+                }
+            };
+        }
         Ok(statements)
     }
 

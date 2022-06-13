@@ -361,10 +361,11 @@ fn parses_label_with_keyword_name() {
 
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let fn_name_span = Span::new(0..s.len() + 1);
+        let fn_name_span = Span::new(0..s.len());
         assert_eq!(unwrapped, Token::new(TokenKind::Label(s.to_string()), fn_name_span));
         assert_eq!(lexer.span, fn_name_span);
 
+        let _ = lexer.next(); // colon
         let _ = lexer.next(); // whitespace
 
         let tok = lexer.next();
