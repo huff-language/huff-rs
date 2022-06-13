@@ -12,7 +12,7 @@ Efficient Huff compiler written in rust.
 keywords = ["huff", "rust", "ethereum", "assembly", "compiler"]
 
 [dependencies]
-clap = { version = "3.1.18", features = ["derive"] }
+clap = { version = "3.2.1", features = ["derive"] }
 huff_core = { path = "../huff_core", version = "0.1.0" }
 huff_utils = { path = "../huff_utils", version = "0.1.0" }
 tracing = "0.1.34"
