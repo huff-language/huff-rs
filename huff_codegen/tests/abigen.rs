@@ -25,7 +25,6 @@ fn constructs_valid_abi() {
     // Generate the abi from the contract
     let mut cg = Codegen::new();
     let abi = cg.abi_gen(contract, None).unwrap();
-    println!("Abi: {:?}", abi);
     assert_eq!(
         abi,
         Abi {

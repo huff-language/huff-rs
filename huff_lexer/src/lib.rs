@@ -67,7 +67,6 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    // TODO: This does not account for commented out imports for example:
     // `// #include "./Utils.huff"`
     /// Lex all imports
     pub fn lex_imports(source: &str) -> Vec<String> {
@@ -76,6 +75,29 @@ impl<'a> Lexer<'a> {
         let mut include_chars_iterator = "#include".chars().peekable();
         while peekable_source.peek().is_some() {
             while let Some(nc) = peekable_source.next() {
+                if nc.eq(&'/') {
+                    if let Some(nnc) = peekable_source.peek() {
+                        if nnc.eq(&'/') {
+                            // Iterate until newline
+                            while let Some(lc) = &peekable_source.next() {
+                                if lc.eq(&'\n') {
+                                    break
+                                }
+                            }
+                        } else if nnc.eq(&'*') {
+                            // Iterate until '*/'
+                            while let Some(lc) = peekable_source.next() {
+                                if lc.eq(&'*') {
+                                    if let Some(llc) = peekable_source.peek() {
+                                        if *llc == '/' {
+                                            break
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 if include_chars_iterator.peek().is_none() {
                     // Reset the include chars iterator
                     include_chars_iterator = "#include".chars().peekable();
@@ -109,7 +131,7 @@ impl<'a> Lexer<'a> {
                         },
                         None => { /* EOF */ }
                     }
-                } else if nc != include_chars_iterator.next().unwrap() {
+                } else if nc.ne(&include_chars_iterator.next().unwrap()) {
                     include_chars_iterator = "#include".chars().peekable();
                     break
                 }
@@ -325,6 +347,7 @@ impl<'a> Iterator for Lexer<'a> {
                         kind
                     } else {
                         // Otherwise we don't support # prefixed indentifiers
+                        tracing::error!(target: "lexer", "INVALID '#' CHARACTER USAGE IN SPAN {:?}", self.current_span());
                         return Some(Err(LexicalError::new(
                             LexicalErrorKind::InvalidCharacter('#'),
                             self.current_span(),
@@ -571,6 +594,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some(_) => {}
                         None => {
                             self.eof = true;
+                            tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN {:?}", self.current_span());
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
                                 self.span,
@@ -593,6 +617,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some(_) => {}
                         None => {
                             self.eof = true;
+                            tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN {:?}", self.current_span());
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
                                 self.span,
@@ -603,6 +628,7 @@ impl<'a> Iterator for Lexer<'a> {
                 },
                 // At this point, the source code has an invalid or unsupported token
                 ch => {
+                    tracing::error!(target: "lexer", "UNSUPPORTED TOKEN '{}' AT {:?}", ch, self.current_span());
                     return Some(Err(LexicalError::new(
                         LexicalErrorKind::InvalidCharacter(ch),
                         self.span,

@@ -30,19 +30,6 @@ pub struct Codegen {
     pub constructor_bytecode: Option<String>,
 }
 
-/// Result type for `recurse_bytecode`
-/// TODO: This doesn't belong here probs
-pub struct BytecodeRes {
-    /// Resulting bytes
-    pub bytes: Vec<Bytes>,
-    /// Jump Tables
-    pub jump_tables: Vec<JumpTable>,
-    /// Jump Indices
-    pub jump_indices: JumpIndices,
-    /// Unmatched Jumps
-    pub unmatched_jumps: Jumps,
-}
-
 impl Codegen {
     /// Public associated function to instantiate a new Codegen instance.
     pub fn new() -> Self {
@@ -109,7 +96,7 @@ impl Codegen {
         let contract = match &ast {
             Some(a) => a,
             None => {
-                tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
+                tracing::error!(target: "codegen", "Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
                 return Err(CodegenError {
                     kind: CodegenErrorKind::MissingAst,
                     span: None,
@@ -122,7 +109,7 @@ impl Codegen {
         let c_macro: MacroDefinition = if let Some(m) = contract.find_macro_by_name("CONSTRUCTOR") {
             m
         } else {
-            tracing::error!("CONSTRUCTOR Macro definition missing in AST!");
+            tracing::error!(target: "codegen", "'CONSTRUCTOR' Macro definition missing in AST!");
             return Err(CodegenError {
                 kind: CodegenErrorKind::MissingConstructor,
                 span: None,
@@ -130,14 +117,14 @@ impl Codegen {
             })
         };
 
-        tracing::info!("Codegen found constructor macro: {:?}", c_macro);
+        tracing::info!(target: "codegen", "CONSTRUCTOR MACRO FOUND: {:?}", c_macro);
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes =
             Codegen::recurse_bytecode(c_macro.clone(), ast, &mut vec![c_macro], 0, Vec::default())?;
-        println!("Got recursed bytecode {:?}", bytecode_res.bytes);
+        tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
         let bytecode = bytecode_res.bytes.iter().map(|byte| byte.0.to_string()).collect();
-        println!("Final bytecode: {}", bytecode);
+        tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
 
         // Return
         Ok(bytecode)
@@ -153,13 +140,13 @@ impl Codegen {
     ) -> Result<BytecodeRes, CodegenError> {
         let mut final_bytes: Vec<Bytes> = vec![];
 
-        println!("Recursing... {}", macro_def.name);
+        tracing::info!(target: "codegen", "RECURSING MACRO DEFINITION");
 
         // Grab the AST
         let contract = match &ast {
             Some(a) => a,
             None => {
-                tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
+                tracing::error!(target: "codegen", "Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
                 return Err(CodegenError {
                     kind: CodegenErrorKind::MissingAst,
                     span: None,
@@ -170,7 +157,7 @@ impl Codegen {
 
         // Generate the macro bytecode
         let irb = macro_def.to_irbytecode()?;
-        println!("Got IRBytecode: {:?}", irb);
+        tracing::info!(target: "codegen", "GENERATED IRBYTECODE: {:?}", irb);
         let irbz = irb.0;
 
         let mut jump_table = JumpTable::new();
@@ -193,7 +180,7 @@ impl Codegen {
                     {
                         m.clone()
                     } else {
-                        tracing::error!("Failed to find macro \"{}\" in contract", name);
+                        tracing::error!(target: "codegen", "MISSING CONTRACT MACRO \"{}\"", name);
 
                         // TODO we should try and find the constant defined in other files here
                         return Err(CodegenError {
@@ -203,7 +190,7 @@ impl Codegen {
                         })
                     };
 
-                    println!("Found constant definition: {:?}", constant);
+                    tracing::info!(target: "codegen", "FOUND CONSTANT DEFINITION: {:?}", constant);
 
                     let push_bytes = match constant.value {
                         ConstVal::Literal(l) => {
@@ -221,10 +208,9 @@ impl Codegen {
                             })
                         }
                     };
-                    println!("Push bytes: {}", push_bytes);
 
                     offset += push_bytes.len() / 2;
-
+                    tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                     final_bytes.push(Bytes(push_bytes))
                 }
                 IRByte::Statement(s) => {
@@ -248,8 +234,7 @@ impl Codegen {
                                     })
                                 };
 
-                            println!("Found inner macro: {}", ir_macro.name);
-                            println!("{:?}", ir_macro);
+                            tracing::info!(target: "codegen", "FOUND INNER MACRO: {:?}", ir_macro);
 
                             // Recurse
                             scope.push(ir_macro.clone());
@@ -290,8 +275,8 @@ impl Codegen {
                                 .chain(res.bytes.iter().cloned())
                                 .collect();
                         }
-                        _ => {
-                            tracing::error!("Codegen received unexpected Statement during Bytecode Construction!");
+                        s => {
+                            tracing::error!(target: "codegen", "UNEXPECTED STATEMENT: {:?}", s);
                             return Err(CodegenError {
                                 kind: CodegenErrorKind::InvalidMacroStatement,
                                 span: None,
@@ -349,7 +334,7 @@ impl Codegen {
                         })
                     }
 
-                    println!("Codegen found Arg Call: {}", arg_name);
+                    tracing::info!(target: "codegen", "FOUND ARG CALL TO \"{}\"", arg_name);
                 }
             }
         }
@@ -463,6 +448,7 @@ impl Codegen {
             fs::write(output, serialized_artifact).expect("Unable to write file");
         } else {
             tracing::error!(
+                target: "codegen",
                 "Failed to export the compile artifact to the specified output location {}!",
                 output
             );

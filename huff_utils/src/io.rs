@@ -19,6 +19,7 @@ pub fn unpack_files(path: &str) -> Result<Vec<String>, UnpackError> {
     // If the path is a file, return a vec of the file
     match parse_extension(path) {
         Some(extension) => {
+            tracing::info!(target: "io", "FOUND HUFF FILE: {}", extension);
             if extension == "huff" {
                 return Ok(vec![path.to_string()])
             }
@@ -26,18 +27,25 @@ pub fn unpack_files(path: &str) -> Result<Vec<String>, UnpackError> {
         }
         None => {
             // We have a directory, try to extract huff files and parse
+            tracing::info!(target: "io", "READING HUFF FILES IN: {}", path);
             match std::fs::read_dir(path) {
                 Ok(files) => {
+                    tracing::info!(target: "io", "FOUND FILES: {:?}", files);
                     let input_files: Vec<String> =
                         files.map(|x| x.unwrap().path().to_str().unwrap().to_string()).collect();
+                    tracing::info!(target: "io", "COLLECTED INPUT FILES: {:?}", input_files);
                     let filtered: Vec<String> = input_files
                         .iter()
-                        .filter(|&f| Path::new(&f).extension().unwrap().eq("huff"))
+                        .filter(|&f| Path::new(&f).extension().unwrap_or_default().eq("huff"))
                         .cloned()
                         .collect();
+                    tracing::info!(target: "io", "FILTERED INPUT FILES: {:?}", filtered);
                     Ok(filtered)
                 }
-                Err(_) => Err(UnpackError::InvalidDirectory),
+                Err(e) => {
+                    tracing::error!(target: "io", "ERROR READING DIRECTORY {}: {:?}", path, e);
+                    Err(UnpackError::InvalidDirectory)
+                }
             }
         }
     }

@@ -46,9 +46,22 @@ pub trait ToBytecode<'a, E> {
     fn to_bytecode(&self) -> Result<Bytecode, E>;
 }
 
-// TODO: Move these?
+/// Result type for [huff_codegen](../../huff_codegen)'s
+/// [`recurse_bytecode`](../../huff_codegen/src/lib.rs#recurse_bytecode)
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct BytecodeRes {
+    /// Resulting bytes
+    pub bytes: Vec<Bytes>,
+    /// Jump Tables
+    pub jump_tables: Vec<JumpTable>,
+    /// Jump Indices
+    pub jump_indices: JumpIndices,
+    /// Unmatched Jumps
+    pub unmatched_jumps: Jumps,
+}
+
 /// A Jump
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Jump {
     /// Jump's Label
     pub label: String,
