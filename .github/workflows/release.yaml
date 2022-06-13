@@ -62,7 +62,7 @@ jobs:
 
   release-docker:
     name: Release Docker
-    uses: ./.github/workflows/docker-publish.yml
+    uses: ./.github/workflows/docker-publish.yaml
 
   release:
     name: ${{ matrix.job.target }} (${{ matrix.job.os }})

@@ -2,11 +2,13 @@
 
 Update or revert to a specific Huff branch with ease.
 
-Forked from [foundry](https://github.com/foundry-rs/foundry/tree/master/foundryup).
+_Forked from [foundry](https://github.com/foundry-rs/foundry/tree/master/foundryup)._
 
-### Installing
 
-`curl -L <huff-install-bin-url> | bash`
+## Installing
+
+`curl -L https://huff.nascent.xyz | bash`
+
 
 ## Usage
 

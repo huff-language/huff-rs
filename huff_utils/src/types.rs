@@ -114,7 +114,10 @@ impl TryFrom<String> for EToken {
         // array
         if input.starts_with('[') {
             let trimmed_input = input.trim_start_matches('[').trim_end_matches(']');
-            let v: Vec<String> = trimmed_input.split(',').map(|x| x.replace(' ', "")).collect();
+            let v: Vec<String> = trimmed_input
+                .split(',')
+                .map(|x| x.replace(' ', "").replace('"', "").replace('\'', ""))
+                .collect();
             let etokens: Result<Vec<EToken>, _> =
                 v.iter().map(|x| EToken::try_from(x.to_owned())).collect();
             let tokens: Vec<Token> = etokens?.iter().map(move |x| x.clone().0).collect();

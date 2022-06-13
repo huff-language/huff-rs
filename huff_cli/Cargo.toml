@@ -2,18 +2,19 @@
 name = "huff_cli"
 version = "0.1.0"
 edition = "2021"
-authors = ["Andreas Bigger"]
+authors = ["Andreas Bigger", "clabby", "exp.table"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
+license = "MIT OR Apache-2.0"
 description = """
 Efficient Huff compiler written in rust.
 """
-keywords = ["huff", "lang", "rust", "ethereum", "assembly", "compiler"]
+keywords = ["huff", "rust", "ethereum", "assembly", "compiler"]
 
 [dependencies]
 clap = { version = "3.1.18", features = ["derive"] }
-huff_core = { path = "../huff_core" }
-huff_utils = { path = "../huff_utils" }
+huff_core = { path = "../huff_core", version = "0.1.0" }
+huff_utils = { path = "../huff_utils", version = "0.1.0" }
 tracing = "0.1.34"
 ethers = "0.6.2"
 
