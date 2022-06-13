@@ -42,15 +42,11 @@ impl Codegen {
     ///
     /// * `ast` - Optional Contract Abstract Syntax Tree
     pub fn roll(ast: Option<Contract>) -> Result<String, CodegenError> {
-        let bytecode: String = String::default();
-
         // Grab the AST
-        let _contract: &Contract = match &ast {
+        let contract = match &ast {
             Some(a) => a,
             None => {
-                tracing::error!(
-                    "Neither Codegen AST was set nor passed in as a parameter to Codegen::roll()!"
-                );
+                tracing::error!(target: "codegen", "MISSING BOTH STATEFUL AND PARAMETER AST!");
                 return Err(CodegenError {
                     kind: CodegenErrorKind::MissingAst,
                     span: None,
@@ -59,12 +55,28 @@ impl Codegen {
             }
         };
 
-        // TODO: main logic to create the main contract bytecode
+        // Find the main macro
+        let m_macro: MacroDefinition = if let Some(m) = contract.find_macro_by_name("MAIN") {
+            m
+        } else {
+            tracing::error!(target: "codegen", "MISSING \"MAIN\" MACRO!");
+            return Err(CodegenError {
+                kind: CodegenErrorKind::MissingMacroDefinition("MAIN".to_string()),
+                span: None,
+                token: None,
+            })
+        };
 
-        // Set bytecode and return
-        // if self.main_bytecode.is_none() {
-        //     self.main_bytecode = Some(bytecode.clone());
-        // }
+        tracing::info!(target: "codegen", "MAIN MACRO FOUND: {:?}", m_macro);
+
+        // For each MacroInvocation Statement, recurse into bytecode
+        let bytecode_res: BytecodeRes =
+            Codegen::recurse_bytecode(m_macro.clone(), ast, &mut vec![m_macro], 0, Vec::default())?;
+        tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
+        let bytecode = bytecode_res.bytes.iter().map(|byte| byte.0.to_string()).collect();
+        tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
+
+        // Return
         Ok(bytecode)
     }
 
@@ -229,7 +241,9 @@ impl Codegen {
                                         mi.macro_name
                                     );
                                     return Err(CodegenError {
-                                        kind: CodegenErrorKind::MissingMacroDefinition,
+                                        kind: CodegenErrorKind::MissingMacroDefinition(
+                                            mi.macro_name.clone(),
+                                        ),
                                         span: None,
                                         token: None,
                                     })
@@ -295,7 +309,7 @@ impl Codegen {
                         } else {
                             tracing::error!("Invoked Macro \"{}\" not found in Contract", arg_name);
                             return Err(CodegenError {
-                                kind: CodegenErrorKind::MissingMacroDefinition,
+                                kind: CodegenErrorKind::MissingMacroDefinition(arg_name.clone()),
                                 span: None,
                                 token: None,
                             })

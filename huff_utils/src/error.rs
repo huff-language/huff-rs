@@ -101,7 +101,7 @@ impl CodegenError {
 }
 
 /// The Code Generation Error Kind
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum CodegenErrorKind {
     /// Invalid Operator
     InvalidOperator,
@@ -114,7 +114,7 @@ pub enum CodegenErrorKind {
     /// Invalid Macro Body Statement
     InvalidMacroStatement,
     /// The Macro Definition is Missing
-    MissingMacroDefinition,
+    MissingMacroDefinition(String),
     /// Failed to recurse macro
     FailedMacroRecursion,
     /// Missing Constant Definition
@@ -131,7 +131,7 @@ impl Spanned for CodegenError {
 
 impl<W: Write> Report<W> for CodegenError {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
-        match self.kind {
+        match &self.kind {
             CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator!"),
             CodegenErrorKind::MissingAst => write!(f.out, "Codegen is missing an AST!"),
             CodegenErrorKind::MissingConstructor => write!(f.out, "AST missing constructor macro!"),
@@ -139,7 +139,9 @@ impl<W: Write> Report<W> for CodegenError {
                 write!(f.out, "Storage pointers not derived for AST!")
             }
             CodegenErrorKind::InvalidMacroStatement => write!(f.out, "Invalid Macro Statement!"),
-            CodegenErrorKind::MissingMacroDefinition => write!(f.out, "Missing Macro Definition!"),
+            CodegenErrorKind::MissingMacroDefinition(str) => {
+                write!(f.out, "Missing Macro \"{}\" Definition!", str)
+            }
             CodegenErrorKind::FailedMacroRecursion => write!(f.out, "Failed Macro Recursion!"),
             CodegenErrorKind::MissingConstantDefinition => {
                 write!(f.out, "Missing Constant Definition!")
