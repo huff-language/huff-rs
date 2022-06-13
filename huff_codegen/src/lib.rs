@@ -6,6 +6,7 @@
 
 use huff_utils::{
     abi::*, artifact::*, ast::*, bytecode::*, error::CodegenError, prelude::CodegenErrorKind,
+    types::EToken,
 };
 use std::fs;
 
@@ -302,15 +303,10 @@ impl Codegen {
     }
 
     /// Encode constructor arguments as ethers::abi::token::Token
-    pub fn encode_constructor_args(_args: Vec<String>) -> Vec<ethers::abi::token::Token> {
-        let encoded = vec![];
-
-        // TODO: Encode tokens as hex strings using ethers-abi and hex crates
-        // let tokens: Vec<ethers::abi::token::Token> =
-        //     args.iter().map(|tok|
-        // ethers::abi::token::Token::try_from(tok.clone()).unwrap()).collect();
-
-        encoded
+    pub fn encode_constructor_args(args: Vec<String>) -> Vec<ethers::abi::token::Token> {
+        let tokens: Vec<ethers::abi::token::Token> =
+            args.iter().map(|tok| EToken::try_from(tok.clone()).unwrap().0).collect();
+        tokens
     }
 
     /// Export
