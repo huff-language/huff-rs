@@ -11,6 +11,7 @@ use huff_utils::{
     bytecode::*,
     error::CodegenError,
     prelude::{bytes32_to_string, pad_n_bytes, CodegenErrorKind},
+    types::EToken,
 };
 use std::fs;
 
@@ -443,10 +444,10 @@ impl Codegen {
     }
 
     /// Encode constructor arguments as ethers::abi::token::Token
-    pub fn encode_constructor_args(_args: Vec<String>) -> Vec<ethers::abi::token::Token> {
-        // args.iter().map(|tok|
-        // ethers::abi::token::Token::try_from(tok.clone()).unwrap()).collect()
-        vec![]
+    pub fn encode_constructor_args(args: Vec<String>) -> Vec<ethers::abi::token::Token> {
+        let tokens: Vec<ethers::abi::token::Token> =
+            args.iter().map(|tok| EToken::try_from(tok.clone()).unwrap().0).collect();
+        tokens
     }
 
     /// Export

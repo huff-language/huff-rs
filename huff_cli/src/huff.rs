@@ -14,6 +14,7 @@ use std::path::Path;
 fn main() {
     // Parse the command line arguments
     let cli = Huff::parse();
+    println!("{:?}", cli.inputs);
 
     // Create compiler from the Huff Args
     let compiler: Compiler = Compiler {
@@ -50,8 +51,8 @@ pub struct Huff {
     #[clap(short = 'd', long = "output-directory", default_value = "./artifacts")]
     outputdir: String,
 
-    /// Constructor arguments.
-    #[clap(short = 'i', long = "inputs")]
+    /// The input constructor arguments
+    #[clap(short = 'i', long = "inputs", multiple_values = true)]
     inputs: Option<Vec<String>>,
 
     /// Optimize compilation.
