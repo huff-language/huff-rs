@@ -73,12 +73,12 @@ impl<'a> Compiler {
                         dependencies: None,
                     }),
                     Err(_) => {
-                        tracing::error!("Failed to read file at \"{}\"!", file_loc);
+                        tracing::error!(target: "core", "FILE READ FAILED: \"{}\"!", file_loc);
                         None
                     }
                 },
-                Err(_) => {
-                    tracing::error!("Converting PathBuf \"{:?}\" Failed!", pb);
+                Err(e) => {
+                    tracing::error!(target: "core", "PATHBUF CONVERSION FAILED: {:?}", e);
                     None
                 }
             })
@@ -97,7 +97,7 @@ impl<'a> Compiler {
             let new_source = match std::fs::read_to_string(fs.path.clone()) {
                 Ok(source) => source,
                 Err(_) => {
-                    tracing::error!("Failed to read file at \"{}\"!", fs.path);
+                    tracing::error!(target: "core", "FILE READ FAILED: \"{}\"!", fs.path);
                     return Err(CompilerError::PathBufRead(fs.path.clone().into()))
                 }
             };
@@ -128,7 +128,7 @@ impl<'a> Compiler {
             .map(|inner_fs| match Compiler::recurse_deps(inner_fs.clone()) {
                 Ok(new_fs) => new_fs,
                 Err(e) => {
-                    tracing::error!("Failed to resolve nested dependencies with error \"{:?}\"", e);
+                    tracing::error!(target: "core", "NESTED DEPENDENCY RESOLUTION FAILED: \"{:?}\"", e);
                     inner_fs
                 }
             })

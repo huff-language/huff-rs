@@ -54,6 +54,7 @@ impl Parser {
         // First iterate over imports
         while !self.check(TokenKind::Eof) && !self.check(TokenKind::Define) {
             contract.imports.push(self.parse_imports()?);
+            tracing::info!(target: "parser", "SUCCESSFULLY PARSED IMPORTS {:?}", contract.imports);
         }
 
         // Iterate over tokens and construct the Contract aka AST
@@ -64,16 +65,24 @@ impl Parser {
             // match to fucntion, constant, macro, or event
             match self.current_token.kind {
                 TokenKind::Function => {
-                    contract.functions.push(self.parse_function()?);
+                    let func = self.parse_function()?;
+                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED FUNCTION {:?}", func);
+                    contract.functions.push(func);
                 }
                 TokenKind::Event => {
-                    contract.events.push(self.parse_event()?);
+                    let ev = self.parse_event()?;
+                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED EVENT {:?}", ev);
+                    contract.events.push(ev);
                 }
                 TokenKind::Constant => {
-                    contract.constants.push(self.parse_constant()?);
+                    let c = self.parse_constant()?;
+                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {:?}", c);
+                    contract.constants.push(c);
                 }
                 TokenKind::Macro => {
-                    contract.macros.push(self.parse_macro()?);
+                    let m = self.parse_macro()?;
+                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {:?}", m);
+                    contract.macros.push(m);
                 }
                 _ => {
                     tracing::error!(

@@ -167,7 +167,7 @@ impl Codegen {
                     {
                         m.clone()
                     } else {
-                        tracing::warn!(target: "core", "MISSING CONTRACT MACRO \"{}\"", name);
+                        tracing::error!(target: "codegen", "MISSING CONTRACT MACRO \"{}\"", name);
 
                         // TODO we should try and find the constant defined in other files here
                         return Err(CodegenError {
@@ -240,8 +240,8 @@ impl Codegen {
                                 .chain(recursed_bytecode.iter().cloned())
                                 .collect();
                         }
-                        _ => {
-                            tracing::error!("Codegen received unexpected Statement during Bytecode Construction!");
+                        s => {
+                            tracing::error!(target: "codegen", "UNEXPECTED STATEMENT: {:?}", s);
                             return Err(CodegenError {
                                 kind: CodegenErrorKind::InvalidMacroStatement,
                                 span: None,
@@ -320,6 +320,7 @@ impl Codegen {
             fs::write(output, serialized_artifact).expect("Unable to write file");
         } else {
             tracing::warn!(
+                target: "codegen",
                 "Failed to export the compile artifact to the specified output location {}!",
                 output
             );
