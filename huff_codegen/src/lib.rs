@@ -10,6 +10,7 @@ use huff_utils::{
     ast::*,
     bytecode::*,
     error::CodegenError,
+    evm::Opcode,
     prelude::{bytes32_to_string, pad_n_bytes, CodegenErrorKind},
     types::EToken,
 };
@@ -267,15 +268,28 @@ impl Codegen {
                                 .chain(res.jump_indices)
                                 .collect::<JumpIndices>();
 
-                            // // Increase offset by byte length of recursed macro
-                            offset +=
-                                res.bytes.iter().map(|b| b.0.clone()).collect::<String>().len() / 2;
+                            // Increase offset by byte length of recursed macro
+                            offset += res.bytes.iter().map(|b| b.0.len()).sum::<usize>() / 2;
 
                             final_bytes = final_bytes
                                 .iter()
                                 .cloned()
                                 .chain(res.bytes.iter().cloned())
                                 .collect();
+                        }
+                        Statement::Label(label) => {
+                            jump_indices.insert(label.name, index);
+
+                            offset += 1;
+
+                            final_bytes.push(Bytes(Opcode::Jumpdest.to_string()));
+                        }
+                        Statement::LabelCall(label) => {
+                            jump_table.insert(index, vec![Jump { label, bytecode_index: offset }]);
+
+                            offset += 3;
+
+                            final_bytes.push(Bytes(format!("{}xxxx", Opcode::Push2)));
                         }
                         s => {
                             tracing::error!(target: "codegen", "UNEXPECTED STATEMENT: {:?}", s);
@@ -360,13 +374,22 @@ impl Codegen {
 
                 if let Some(jt) = jump_table.get(&index) {
                     for jump in jt {
-                        if let Some(jump_index) = jump_indices.get(jump) {
+                        if let Some(jump_index) = jump_indices.get(&jump.label) {
                             let jump_value = pad_n_bytes(&hex::encode(jump_index.to_string()), 2);
 
                             println!("Jump value: {}", jump_value);
 
                             let before = &formatted_bytes.0[0..jump.bytecode_index + 2];
                             let after = &formatted_bytes.0[jump.bytecode_index + 6..];
+
+                            // Check if a jump dest placeholder is present
+                            if &formatted_bytes.0[jump.bytecode_index + 2..jump.bytecode_index + 6] != "xxxx" {
+                                tracing::error!(
+                                    target: "codegen",
+                                    "JUMP DESTINATION PLACEHOLDER NOT FOUND FOR JUMPLABEL {}",
+                                    jump.label
+                                );
+                            }
 
                             println!("Pre-formatted Bytes: {:?}", formatted_bytes);
                             formatted_bytes = Bytes(format!("{}{}{}", before, jump_value, after));
