@@ -209,6 +209,12 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                     // Arg call needs to use a destination defined in the calling macro context
                     inner_irbytes.push(IRByte::ArgCall(arg_name.to_string()));
                 }
+                Statement::JumpTo(_jump_to) => {
+                    /* Jump To doesn't translate directly to bytecode ? */
+                }
+                Statement::JumpDest(_) => {
+                    /* Jump Dests don't translate directly to bytecode ? */
+                }
             }
         });
         Ok(IRBytecode(inner_irbytes))
@@ -244,6 +250,8 @@ pub enum MacroArg {
     Literal(Literal),
     /// Macro Iden String Argument
     Ident(String),
+    /// An Arg Call
+    ArgCall(String),
 }
 
 /// Free Storage Pointer Unit Struct
@@ -268,6 +276,15 @@ pub struct ConstantDefinition {
     pub value: ConstVal,
 }
 
+/// A Jump Destination
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct JumpDest {
+    /// The JumpDest Name
+    pub name: String,
+    /// Statements Inside The JumpDest
+    pub inner: Vec<Statement>,
+}
+
 /// A Statement
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Statement {
@@ -281,4 +298,8 @@ pub enum Statement {
     Constant(String),
     /// An Arg Call
     ArgCall(String),
+    /// A Jump Destination
+    JumpDest(JumpDest),
+    /// A Destination to Jump to
+    JumpTo(String),
 }

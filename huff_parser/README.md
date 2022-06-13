@@ -30,7 +30,7 @@ let lexer = Lexer::new(source);
 let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
 // Parser incantation
-let mut parser = Parser::new(tokens);
+let mut parser = Parser::new(tokens, None);
 
 // Parse into an AST
 parser.parse();

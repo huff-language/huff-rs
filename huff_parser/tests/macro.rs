@@ -7,7 +7,7 @@ fn empty_macro() {
     let source = "#define macro HELLO_WORLD() = takes(0) returns(4) {}";
     let lexer = Lexer::new(source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, None);
 
     // Grab the first macro
     let macro_definition = parser.parse().unwrap().macros[0].clone();
@@ -30,7 +30,7 @@ fn macro_with_simple_body() {
         "#define macro HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
     let lexer = Lexer::new(source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, None);
 
     // Grab the first macro
     let macro_definition = parser.parse().unwrap().macros[0].clone();
@@ -80,7 +80,7 @@ fn macro_with_arg_calls() {
     // Parse tokens
     let lexer = Lexer::new(source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, None);
 
     // Grab the first macro
     let macro_definition = parser.parse().unwrap().macros[0].clone();

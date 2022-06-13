@@ -56,7 +56,7 @@ fn parse_event() {
             .map(|x| x.unwrap())
             .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
             .collect::<Vec<Token>>();
-        let mut parser = Parser::new(tokens);
+        let mut parser = Parser::new(tokens, None);
         let _ = parser.match_kind(TokenKind::Define);
         let event = parser.parse_event().unwrap();
 

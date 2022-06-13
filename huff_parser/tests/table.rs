@@ -11,7 +11,7 @@ fn table_with_no_body() {
         let lexer = Lexer::new(source.as_str());
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
-        let mut parser = Parser::new(tokens);
+        let mut parser = Parser::new(tokens, None);
 
         let table_definition = parser.parse().unwrap().tables[0].clone();
         assert_eq!(
@@ -45,7 +45,7 @@ fn table_with_body() {
         let lexer = Lexer::new(source.as_str());
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
-        let mut parser = Parser::new(tokens);
+        let mut parser = Parser::new(tokens, None);
 
         let table_definition = parser.parse().unwrap().tables[0].clone();
         assert_eq!(

@@ -197,10 +197,10 @@ impl Codegen {
                             let hex_literal: String = bytes32_to_string(&l, false);
                             format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
                         }
-                        ConstVal::FreeStoragePointer(_fsp) => {
+                        ConstVal::FreeStoragePointer(fsp) => {
                             // If this is reached in codegen stage, the `derive_storage_pointers`
                             // method was not called on the AST.
-                            tracing::error!("Storage pointers were not derived for the AST.");
+                            tracing::error!(target: "codegen", "STORAGE POINTERS INCORRECTLY DERIVED FOR \"{:?}\"", fsp);
                             return Err(CodegenError {
                                 kind: CodegenErrorKind::StoragePointersNotDerived,
                                 span: None,
@@ -224,7 +224,8 @@ impl Codegen {
                                     // TODO: this is where the file imports must be resolved .. in
                                     // case macro definition is external
                                     tracing::error!(
-                                        "Invoked Macro \"{}\" not found in Contract",
+                                        target: "codegen",
+                                        "MISSING MACRO INVOCATION \"{}\"",
                                         mi.macro_name
                                     );
                                     return Err(CodegenError {
@@ -248,7 +249,8 @@ impl Codegen {
                                 res
                             } else {
                                 tracing::error!(
-                                    "Codegen failed to recurse into macro {}",
+                                    target: "codegen",
+                                    "FAILED TO RECURSE INTO MACRO \"{}\"",
                                     ir_macro.name
                                 );
                                 return Err(CodegenError {

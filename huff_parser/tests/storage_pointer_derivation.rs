@@ -9,7 +9,7 @@ fn derives_storage_pointers() {
 
     let lexer = Lexer::new(c);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, None);
     let mut contract = parser.parse().unwrap();
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 

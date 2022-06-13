@@ -347,11 +347,36 @@ impl Parser {
                 }
                 TokenKind::Ident(ident_str) => {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [IDENT: {}]", ident_str);
-                    let lit_args = self.parse_macro_call()?;
-                    statements.push(Statement::MacroInvocation(MacroInvocation {
-                        macro_name: ident_str.to_string(),
-                        args: lit_args,
-                    }));
+                    self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
+                    // Can be a macro call or jumpdest
+                    match self.current_token.kind.clone() {
+                        TokenKind::Colon => {
+                            // Parse jumpdest
+                            // TODO: Can jump dests have more than macro invocations contained?
+                            let mi_name =
+                                self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
+                            let mi_args = self.parse_macro_call()?;
+                            statements.push(Statement::JumpDest(JumpDest {
+                                name: ident_str.to_string(),
+                                inner: vec![Statement::MacroInvocation(MacroInvocation {
+                                    macro_name: mi_name.to_string(),
+                                    args: mi_args,
+                                })],
+                            }));
+                        }
+                        TokenKind::OpenParen => {
+                            // Parse Macro Call
+                            let lit_args = self.parse_macro_call()?;
+                            statements.push(Statement::MacroInvocation(MacroInvocation {
+                                macro_name: ident_str.to_string(),
+                                args: lit_args,
+                            }));
+                        }
+                        _ => {
+                            tracing::info!(target: "parser", "JUMP CALL TO: {}", ident_str);
+                            statements.push(Statement::JumpTo(ident_str));
+                        }
+                    }
                 }
                 TokenKind::Label(l) => {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [LABEL: {}]", l);
@@ -451,7 +476,6 @@ impl Parser {
 
     /// Parse call to a macro.
     pub fn parse_macro_call(&mut self) -> Result<Vec<MacroArg>, ParserError> {
-        self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
         self.parse_macro_call_args()
     }
 
@@ -469,6 +493,15 @@ impl Parser {
                 TokenKind::Ident(ident) => {
                     args.push(MacroArg::Ident(ident));
                     self.consume();
+                }
+                TokenKind::LeftAngle => {
+                    // Passed into the Macro Call like:
+                    // GET_SLOT_FROM_KEY(<mem_ptr>)  // [slot]
+                    self.consume();
+                    let arg_name =
+                        self.match_kind(TokenKind::Ident("ARG_CALL".to_string()))?.to_string();
+                    args.push(MacroArg::ArgCall(arg_name));
+                    self.match_kind(TokenKind::RightAngle)?;
                 }
                 _ => {
                     tracing::error!(
