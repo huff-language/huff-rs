@@ -106,8 +106,10 @@ impl<'a> Compiler {
             new_source
         };
         let imports: Vec<String> = Lexer::lex_imports(&file_source);
-        tracing::info!(target: "core", "IMPORT LEXICAL ANALYSIS COMPLETE ON {:?}", imports);
-        let localized_imports = imports
+        if !imports.is_empty() {
+            tracing::info!(target: "core", "IMPORT LEXICAL ANALYSIS COMPLETE ON {:?}", imports);
+        }
+        let localized_imports: Vec<String> = imports
             .iter()
             .map(|import| {
                 FileSource::localize_file(&fs.path, import).unwrap_or_default().replacen(
@@ -117,10 +119,14 @@ impl<'a> Compiler {
                 )
             })
             .collect();
-        tracing::info!(target: "core", "LOCALIZED IMPORTS {:?}", localized_imports);
+        if !localized_imports.is_empty() {
+            tracing::info!(target: "core", "LOCALIZED IMPORTS {:?}", localized_imports);
+        }
         let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&localized_imports)?;
         let mut file_sources: Vec<FileSource> = Compiler::fetch_sources(&import_bufs);
-        tracing::info!(target: "core", "FETCHED {} FILE SOURCES", file_sources.len());
+        if !file_sources.is_empty() {
+            tracing::info!(target: "core", "FETCHED {} FILE SOURCES", file_sources.len());
+        }
 
         // Now that we have all the file sources, we have to recurse and get their source
         file_sources = file_sources
@@ -160,7 +166,10 @@ impl<'a> Compiler {
             .map(|fs| fs.unwrap())
             .collect();
 
-        tracing::info!(target: "core", "COMPILER RECURSED {} FILE DEPENDENCIES", files.len());
+        tracing::info!(target: "core", "COMPILER RECURSED FILE DEPENDENCIES:");
+        for f in &files {
+            tracing::info!(target: "core", "- \"{}\"", f.path);
+        }
 
         // Parallel Compilation
         let artifacts: Vec<Result<Artifact, CompilerError<'a>>> = files
@@ -169,7 +178,7 @@ impl<'a> Compiler {
                 // Fully Flatten a file into a source string containing source code of file and all
                 // its dependencies
                 let full_source = file.fully_flatten();
-                tracing::info!(target: "core", "FLATTENED SOURCE FILE [{}]", file.path);
+                tracing::info!(target: "core", "FLATTENED SOURCE FILE \"{}\"", file.path);
 
                 // Perform Lexical Analysis
                 // Create a new lexer from the FileSource, flattening dependencies
@@ -177,10 +186,11 @@ impl<'a> Compiler {
 
                 // Grab the tokens from the lexer
                 let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
-                tracing::info!(target: "core", "LEXICAL ANALYSIS COMPLETE [{}]", file.path);
+                tracing::info!(target: "core", "LEXICAL ANALYSIS COMPLETE FOR \"{}\"", file.path);
+                tracing::info!(target: "core", "└─ TOKEN COUNT: {}", tokens.len());
 
                 // Parser incantation
-                let mut parser = Parser::new(tokens);
+                let mut parser = Parser::new(tokens, Some(file.path.clone()));
 
                 // Parse into an AST
                 let parse_res = parser.parse().map_err(CompilerError::ParserError);

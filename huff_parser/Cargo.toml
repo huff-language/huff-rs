@@ -17,3 +17,4 @@ huff_lexer = { path = "../huff_lexer" }
 proptest = "1.0.0"
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }
 tracing = "0.1.34"
+hex = "0.4.3"

@@ -7,7 +7,7 @@
 use huff_utils::{
     ast::*,
     error::ParserError,
-    prelude::str_to_bytes32,
+    prelude::{str_to_bytes32, FileSource},
     token::{Token, TokenKind},
     types::*,
 };
@@ -23,13 +23,15 @@ pub struct Parser {
     pub cursor: usize,
     /// Current token
     pub current_token: Token,
+    /// Current base path for resolving imports
+    pub base: Option<String>,
 }
 
 impl Parser {
     /// Public associated function that instantiates a Parser.
-    pub fn new(tokens: Vec<Token>) -> Self {
+    pub fn new(tokens: Vec<Token>, base: Option<String>) -> Self {
         let initial_token = tokens.get(0).unwrap().clone();
-        Self { tokens, cursor: 0, current_token: initial_token }
+        Self { tokens, cursor: 0, current_token: initial_token, base }
     }
 
     /// Resets the current token and cursor to the first token in the parser's token vec
@@ -110,13 +112,25 @@ impl Parser {
         // Then let's grab and validate the file path
         self.match_kind(TokenKind::Str("x".to_string()))?;
         let tok = self.peek_behind().unwrap().kind;
-        let p = match tok {
+        let mut p = match tok {
             TokenKind::Str(file_path) => file_path,
             _ => {
                 tracing::error!(target: "parser", "INVALID IMPORT PATH: {}", tok);
                 return Err(ParserError::InvalidName)
             }
         };
+
+        // Localize import path using out base
+        p = match &self.base {
+            Some(b) => FileSource::localize_file(b, &p).unwrap_or_default().replacen(
+                "contracts/contracts",
+                "contracts",
+                1,
+            ),
+            None => p,
+        };
+        tracing::info!(target: "parser", "LOCALIZED IMPORT: {}", p);
+
         let path = Path::new(&p);
 
         // Validate that a file @ the path exists
@@ -293,6 +307,7 @@ impl Parser {
         self.match_kind(TokenKind::Macro)?;
         let macro_name: String =
             self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?.to_string();
+        tracing::info!(target: "parser", "PARSING MACRO: \"{}\"", macro_name);
 
         let macro_arguments: Vec<Argument> = self.parse_args(true, false, false)?;
         self.match_kind(TokenKind::Assign)?;
@@ -317,37 +332,43 @@ impl Parser {
     pub fn parse_body(&mut self) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
         self.match_kind(TokenKind::OpenBrace)?;
+        tracing::info!(target: "parser", "PARSING MACRO BODY [SPAN: {:?}]", self.current_token.span.clone());
         while !self.check(TokenKind::CloseBrace) {
             match self.current_token.kind.clone() {
                 TokenKind::Literal(val) => {
+                    tracing::info!(target: "parser", "PARSING MACRO BODY: [LITERAL: {}]", hex::encode(val));
                     self.consume();
                     statements.push(Statement::Literal(val));
                 }
                 TokenKind::Opcode(o) => {
+                    tracing::info!(target: "parser", "PARSING MACRO BODY: [OPCODE: {}]", o);
                     self.consume();
                     statements.push(Statement::Opcode(o));
                 }
                 TokenKind::Ident(ident_str) => {
-                    tracing::info!("Found iden string in macro: {}", ident_str);
+                    tracing::info!(target: "parser", "PARSING MACRO BODY: [IDENT: {}]", ident_str);
                     let lit_args = self.parse_macro_call()?;
                     statements.push(Statement::MacroInvocation(MacroInvocation {
                         macro_name: ident_str.to_string(),
                         args: lit_args,
                     }));
                 }
-                TokenKind::Label(_) => {
+                TokenKind::Label(l) => {
+                    tracing::info!(target: "parser", "PARSING MACRO BODY: [LABEL: {}]", l);
                     self.consume();
                 }
                 TokenKind::OpenBracket => {
                     let constant = self.parse_constant_push()?;
+                    tracing::info!(target: "parser", "PARSING MACRO BODY: [CONSTANT: {}]", constant);
                     statements.push(Statement::Constant(constant));
                 }
                 TokenKind::LeftAngle => {
                     let arg_call = self.parse_arg_call()?;
+                    tracing::info!(target: "parser", "PARSING MACRO BODY: [ARG CALL: {}]", arg_call);
                     statements.push(Statement::ArgCall(arg_call));
                 }
-                _ => {
-                    tracing::error!(target: "parser", "Invalid Macro Body Token: {:?}", self.current_token);
+                kind => {
+                    tracing::error!(target: "parser", "TOKEN MISMATCH - MACRO BODY: {}", kind);
                     return Err(ParserError::SyntaxError(format!(
                         "Invalid token in macro body: {:?}. Must be of kind Hex, Opcode, Macro, or Label.",
                         self.current_token

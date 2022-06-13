@@ -33,13 +33,19 @@ pub fn unpack_files(path: &str) -> Result<Vec<String>, UnpackError> {
                     tracing::info!(target: "io", "FOUND FILES: {:?}", files);
                     let input_files: Vec<String> =
                         files.map(|x| x.unwrap().path().to_str().unwrap().to_string()).collect();
-                    tracing::info!(target: "io", "COLLECTED INPUT FILES: {:?}", input_files);
+                    tracing::info!(target: "io", "COLLECTED INPUT FILES:");
+                    for f in &input_files {
+                        tracing::info!(target: "io", "- \"{}\"", f);
+                    }
                     let filtered: Vec<String> = input_files
                         .iter()
                         .filter(|&f| Path::new(&f).extension().unwrap_or_default().eq("huff"))
                         .cloned()
                         .collect();
-                    tracing::info!(target: "io", "FILTERED INPUT FILES: {:?}", filtered);
+                    tracing::info!(target: "io", "FILTERED INPUT FILES:");
+                    for f in &filtered {
+                        tracing::info!(target: "io", "- \"{}\"", f);
+                    }
                     Ok(filtered)
                 }
                 Err(e) => {
