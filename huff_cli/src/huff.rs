@@ -14,7 +14,11 @@ use std::path::Path;
 fn main() {
     // Parse the command line arguments
     let cli = Huff::parse();
-    println!("{:?}", cli.inputs);
+
+    // Initiate Tracing if Verbose
+    if cli.verbose {
+        huff_core::init_tracing_subscriber(Some(vec![tracing::Level::DEBUG.into()]));
+    }
 
     // Create compiler from the Huff Args
     let compiler: Compiler = Compiler {
@@ -27,9 +31,11 @@ fn main() {
         optimize: cli.optimize,
         bytecode: cli.bytecode,
     };
+    tracing::info!(target: "core", "COMPILER INCANTATION COMPLETE");
+    tracing::info!(target: "core", "EXECUTING COMPILATION...");
     let compile_res = compiler.execute();
-    if compile_res.is_err() {
-        tracing::error!("Compiling Errored!");
+    if let Err(e) = compile_res {
+        tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
     }
 }
 
@@ -77,6 +83,7 @@ impl Huff {
     pub fn get_inputs(&self) -> Option<Vec<String>> {
         match &self.path {
             Some(path) => {
+                tracing::info!(target: "io", "FETCHING INPUT: {}", path);
                 // If the file is huff, we can use it
                 let ext = Path::new(&path).extension().unwrap_or_default();
                 if ext.eq("huff") {
@@ -87,6 +94,7 @@ impl Huff {
                 }
             }
             None => {
+                tracing::info!(target: "io", "FETCHING SOURCE FILES: {}", self.source);
                 // If there's no path, unpack source files
                 let source: String = self.source.clone();
                 unpack_files(&source).ok()

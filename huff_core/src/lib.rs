@@ -9,6 +9,7 @@ use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
+use tracing_subscriber::{EnvFilter, filter::Directive};
 use std::{
     path::{Path, PathBuf},
     time::SystemTime,
@@ -31,11 +32,17 @@ pub struct Compiler {
 }
 
 /// Enables tracing
-pub fn init_tracing_subscriber() {
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .try_init()
-        .ok();
+pub fn init_tracing_subscriber(directives: Option<Vec<Directive>>) {
+    let subscriber_builder = tracing_subscriber::fmt();
+    let mut env_filter = EnvFilter::from_default_env();
+    if let Some(dv) = directives {
+        for d in dv.iter() {
+            env_filter = env_filter.add_directive(d.clone());
+        }
+    }
+    if let Err(e) = subscriber_builder.with_env_filter(env_filter).try_init() {
+        panic!("Failed to initialize tracing!\nError: {:?}", e)
+    }
 }
 
 impl<'a> Compiler {
@@ -47,7 +54,7 @@ impl<'a> Compiler {
         verbose: bool,
     ) -> Self {
         if cfg!(feature = "verbose") || verbose {
-            init_tracing_subscriber();
+            init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
         Self { sources, output, inputs, optimize: false, bytecode: false }
     }
@@ -82,7 +89,6 @@ impl<'a> Compiler {
 
     /// Recurses file dependencies
     pub fn recurse_deps(fs: FileSource) -> Result<FileSource, CompilerError<'a>> {
-        println!("Inside recurse deps with file source: {:?}", fs.path);
         let mut new_fs = fs.clone();
         let file_source = if let Some(s) = &fs.source {
             s.clone()
@@ -100,7 +106,7 @@ impl<'a> Compiler {
             new_source
         };
         let imports: Vec<String> = Lexer::lex_imports(&file_source);
-        println!("Got lexed imports: {:?}", imports);
+        tracing::info!(target: "core", "IMPORT LEXICAL ANALYSIS COMPLETE ON {:?}", imports);
         let localized_imports = imports
             .iter()
             .map(|import| {
@@ -111,9 +117,10 @@ impl<'a> Compiler {
                 )
             })
             .collect();
-        println!("Localized imports: {:?}", localized_imports);
+        tracing::info!(target: "core", "LOCALIZED IMPORTS {:?}", localized_imports);
         let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&localized_imports)?;
         let mut file_sources: Vec<FileSource> = Compiler::fetch_sources(&import_bufs);
+        tracing::info!(target: "core", "FETCHED {} FILE SOURCES", file_sources.len());
 
         // Now that we have all the file sources, we have to recurse and get their source
         file_sources = file_sources
@@ -140,6 +147,7 @@ impl<'a> Compiler {
 
         // Parallel file fetching
         let mut files: Vec<FileSource> = Compiler::fetch_sources(&file_paths);
+        tracing::info!(target: "core", "COMPILER FETCHED {} FILE SOURCES", files.len());
 
         // Parallel Dependency Resolution
         files = files
@@ -151,6 +159,8 @@ impl<'a> Compiler {
             .filter(|fs| fs.is_some())
             .map(|fs| fs.unwrap())
             .collect();
+
+        tracing::info!(target: "core", "COMPILER RECURSED {} FILE DEPENDENCIES", files.len());
 
         // Parallel Compilation
         let artifacts: Vec<Result<Artifact, CompilerError<'a>>> = files
@@ -235,7 +245,10 @@ impl<'a> Compiler {
                     Ok(files) => {
                         files.iter().for_each(|fil| paths.push(Path::new(&fil).to_path_buf()))
                     }
-                    Err(e) => return Err(CompilerError::FileUnpackError(e)),
+                    Err(e) => {
+                        tracing::error!("ERROR UNPACKING FILE: {:?}", e);
+                        return Err(CompilerError::FileUnpackError(e))
+                    }
                 }
             }
         }
