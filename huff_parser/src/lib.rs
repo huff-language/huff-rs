@@ -77,6 +77,7 @@ impl Parser {
                 }
                 _ => {
                     tracing::error!(
+                        target: "parser",
                         "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
                         self.current_token.kind
                     );
@@ -99,7 +100,7 @@ impl Parser {
         let p = match tok {
             TokenKind::Str(file_path) => file_path,
             _ => {
-                println!("Invalid import path string. Got: {}", tok);
+                tracing::error!(target: "parser", "INVALID IMPORT PATH: {}", tok);
                 return Err(ParserError::InvalidName)
             }
         };
@@ -107,7 +108,7 @@ impl Parser {
 
         // Validate that a file @ the path exists
         if !(path.exists() && path.is_file() && path.to_str().unwrap().ends_with(".huff")) {
-            println!("Invalid file path. Got: {}", path.to_str().unwrap());
+            tracing::error!(target: "parser", "INVALID IMPORT PATH: {:?}", path.to_str());
             return Err(ParserError::InvalidImportPath)
         }
 
@@ -121,10 +122,7 @@ impl Parser {
             self.consume();
             Ok(curr_kind)
         } else {
-            println!(
-                "Expected current token of kind {} to match {}",
-                self.current_token.kind, kind
-            );
+            tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED: {}, GOT: {}", self.current_token.kind, kind);
             Err(ParserError::UnexpectedType)
         }
     }
@@ -181,7 +179,7 @@ impl Parser {
         let name = match tok {
             TokenKind::Ident(fn_name) => fn_name,
             _ => {
-                println!("Function name should be of kind Ident. Got: {}", tok);
+                tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError::InvalidName)
             }
         };
@@ -226,7 +224,7 @@ impl Parser {
         let name = match tok {
             TokenKind::Ident(event_name) => event_name,
             _ => {
-                println!("Event name must be of kind Ident. Got: {}", tok);
+                tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError::InvalidName)
             }
         };
@@ -248,7 +246,7 @@ impl Parser {
         let name = match tok {
             TokenKind::Ident(event_name) => event_name,
             _ => {
-                println!("Event name must be of kind Ident. Got: {}", tok);
+                tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError::InvalidName)
             }
         };
@@ -266,10 +264,7 @@ impl Parser {
                 ConstVal::Literal(l)
             }
             _ => {
-                println!(
-                    "Constant value must be of kind FreeStoragePointer or Literal. Got: {}",
-                    self.current_token.kind
-                );
+                tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED FreeStoragePointer OR Literal, GOT: {}", self.current_token.kind);
                 return Err(ParserError::InvalidConstantValue)
             }
         };
@@ -339,7 +334,7 @@ impl Parser {
                     statements.push(Statement::ArgCall(arg_call));
                 }
                 _ => {
-                    tracing::error!("Invalid Macro Body Token: {:?}", self.current_token);
+                    tracing::error!(target: "parser", "Invalid Macro Body Token: {:?}", self.current_token);
                     return Err(ParserError::SyntaxError(format!(
                         "Invalid token in macro body: {:?}. Must be of kind Hex, Opcode, Macro, or Label.",
                         self.current_token
@@ -446,6 +441,7 @@ impl Parser {
                 }
                 _ => {
                     tracing::error!(
+                        target: "parser",
                         "Invalid macro call arguments. Must be of kind Ident or Literal. Got: {}",
                         self.current_token.kind
                     );

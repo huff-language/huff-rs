@@ -91,7 +91,7 @@ impl Codegen {
         let contract = match &ast {
             Some(a) => a,
             None => {
-                tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
+                tracing::error!(target: "codegen", "Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
                 return Err(CodegenError {
                     kind: CodegenErrorKind::MissingAst,
                     span: None,
@@ -104,7 +104,7 @@ impl Codegen {
         let c_macro: MacroDefinition = if let Some(m) = contract.find_macro_by_name("CONSTRUCTOR") {
             m
         } else {
-            tracing::error!("CONSTRUCTOR Macro definition missing in AST!");
+            tracing::error!(target: "codegen", "'CONSTRUCTOR' Macro definition missing in AST!");
             return Err(CodegenError {
                 kind: CodegenErrorKind::MissingConstructor,
                 span: None,
@@ -112,14 +112,15 @@ impl Codegen {
             })
         };
 
-        tracing::info!("Codegen found constructor macro: {:?}", c_macro);
+        tracing::info!(target: "codegen", "CONSTRUCTOR MACRO FOUND: {:?}", c_macro);
 
         // For each MacroInvocation Statement, recurse into bytecode
         let recursed_bytecode: Vec<Byte> =
             Codegen::recurse_bytecode(c_macro.clone(), ast, &mut vec![c_macro])?;
-        println!("Got recursed bytecode {:?}", recursed_bytecode);
+        tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", recursed_bytecode);
+
         let bytecode = recursed_bytecode.iter().map(|byte| byte.0.to_string()).collect();
-        println!("Final bytecode: {}", bytecode);
+        tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
 
         // Return
         Ok(bytecode)
@@ -132,14 +133,13 @@ impl Codegen {
         scope: &mut Vec<MacroDefinition>,
     ) -> Result<Vec<Byte>, CodegenError> {
         let mut final_bytes: Vec<Byte> = vec![];
-
-        println!("Recursing... {}", macro_def.name);
+        tracing::info!(target: "codegen", "RECURSING MACRO DEFINITION");
 
         // Grab the AST
         let contract = match &ast {
             Some(a) => a,
             None => {
-                tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
+                tracing::error!(target: "codegen", "Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
                 return Err(CodegenError {
                     kind: CodegenErrorKind::MissingAst,
                     span: None,
@@ -150,7 +150,7 @@ impl Codegen {
 
         // Generate the macro bytecode
         let irb = macro_def.to_irbytecode()?;
-        println!("Got IRBytecode: {:?}", irb);
+        tracing::info!(target: "codegen", "GENERATED IRBYTECODE: {:?}", irb);
         let irbz = irb.0;
 
         for irbyte in irbz.iter() {
@@ -167,7 +167,7 @@ impl Codegen {
                     {
                         m.clone()
                     } else {
-                        tracing::warn!("Failed to find macro \"{}\" in contract", name);
+                        tracing::warn!(target: "core", "MISSING CONTRACT MACRO \"{}\"", name);
 
                         // TODO we should try and find the constant defined in other files here
                         return Err(CodegenError {
@@ -177,7 +177,7 @@ impl Codegen {
                         })
                     };
 
-                    println!("Found constant definition: {:?}", constant);
+                    tracing::info!(target: "codegen", "FOUND CONSTANT DEFINITION: {:?}", constant);
 
                     let push_bytes = match constant.value {
                         ConstVal::Literal(l) => {
@@ -191,8 +191,7 @@ impl Codegen {
                             format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
                         }
                     };
-                    println!("Push bytes: {}", push_bytes);
-
+                    tracing::info!(target: "codegen", "PUSH BYTES: {:?}", push_bytes);
                     final_bytes.push(Byte(push_bytes))
                 }
                 IRByte::Statement(s) => {
@@ -216,8 +215,7 @@ impl Codegen {
                                     })
                                 };
 
-                            println!("Found inner macro: {}", ir_macro.name);
-                            println!("{:?}", ir_macro);
+                            tracing::info!(target: "codegen", "FOUND INNER MACRO: {:?}", ir_macro);
 
                             // Recurse
                             scope.push(ir_macro.clone());
@@ -255,7 +253,7 @@ impl Codegen {
                 IRByte::ArgCall(arg_name) => {
                     // TODO: Check our scope, loop through all macros, all statements, to see if out
                     // arg is defined as a jumpdest match
-                    println!("Codegen found Arg Call: {}", arg_name);
+                    tracing::info!(target: "codegen", "FOUND ARG CALL TO \"{}\"", arg_name);
                 }
             }
         }

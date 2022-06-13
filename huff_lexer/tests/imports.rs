@@ -5,7 +5,6 @@ use huff_utils::prelude::*;
 fn single_lex_imports() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!("#include \"{}\"", import_str);
-    println!("Source: {}", source);
     let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 1);
     assert_eq!(lexed_imports[0], import_str);
