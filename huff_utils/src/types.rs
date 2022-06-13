@@ -1,5 +1,5 @@
 use crate::bytes_util::*;
-use ethers::abi::{ethereum_types::*, token::Token};
+use ethers::abi::{ethereum_types::*, token::*, Tokenizable};
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{fmt, str::FromStr};
@@ -119,6 +119,9 @@ impl TryFrom<String> for EToken {
                 v.iter().map(|x| EToken::try_from(x.to_owned())).collect();
             let tokens: Vec<Token> = etokens?.iter().map(move |x| x.clone().0).collect();
             return Ok(EToken(Token::Array(tokens)))
+        }
+        if input.starts_with('-') || input.starts_with('+') {
+            return Ok(EToken(input.parse::<i128>().map_err(|e| e.to_string())?.into_token()))
         }
         if input == "true" || input == "false" {
             return Ok(EToken(Token::Bool(input == "true")))
