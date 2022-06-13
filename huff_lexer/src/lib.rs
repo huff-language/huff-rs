@@ -520,7 +520,16 @@ impl<'a> Iterator for Lexer<'a> {
                         kind.clone()
                     } else {
                         self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
-                        TokenKind::Ident(self.slice().to_string())
+
+                        let slice = self.slice();
+                        // Check for built-in function calls
+                        if self.context == Context::MacroBody &&
+                            matches!(slice, "__codesize" | "__tablesize" | "__tablestart")
+                        {
+                            TokenKind::BuiltinFunction(slice.to_string())
+                        } else {
+                            TokenKind::Ident(slice.to_string())
+                        }
                     }
                 }
                 // If it's the start of a hex literal
