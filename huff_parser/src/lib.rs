@@ -366,9 +366,9 @@ impl Parser {
                 }
                 TokenKind::Label(l) => {
                     self.consume();
-                    let mut inner_statements: Vec<Statement> = self.parse_label()?;
+                    let inner_statements: Vec<Statement> = self.parse_label()?;
                     tracing::info!(target: "parser", "PARSED LABEL \"{}\" INSIDE MACRO WITH {} STATEMENTS.", l, inner_statements.len());
-                    statements.append(&mut inner_statements);
+                    statements.push(Statement::Label(Label { name: l, inner: inner_statements }));
                 }
                 TokenKind::OpenBracket => {
                     let constant = self.parse_constant_push()?;
