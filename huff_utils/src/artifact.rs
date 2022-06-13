@@ -21,7 +21,7 @@ pub struct Artifact {
 impl Artifact {
     /// Exports an artifact to a json file
     pub fn export(&self, out: String) -> std::result::Result<(), std::io::Error> {
-        let serialized_artifact = serde_json::to_string(self).unwrap();
+        let serialized_artifact = serde_json::to_string(self)?;
         fs::write(out, serialized_artifact)
     }
 }

@@ -5,19 +5,19 @@ use huff_utils::{ast, prelude::*};
 
 #[test]
 fn constructs_valid_abi() {
-    let constructor = ast::Function {
+    let constructor = ast::MacroDefinition {
         name: "CONSTRUCTOR".to_string(),
-        signature: [0u8, 0u8, 0u8, 0u8],
-        inputs: vec![],
-        fn_type: FunctionType::NonPayable,
-        outputs: vec![],
+        parameters: vec![],
+        statements: vec![],
+        takes: 0,
+        returns: 0,
     };
     let contract = Contract {
-        macros: vec![],
+        macros: vec![constructor],
         invocations: vec![],
         imports: vec![],
         constants: vec![],
-        functions: vec![constructor.clone()],
+        functions: vec![],
         events: vec![],
         tables: vec![],
     };
@@ -38,14 +38,13 @@ fn constructs_valid_abi() {
 }
 
 #[test]
-#[should_panic]
 fn missing_constructor_fails() {
-    let _constructor = ast::Function {
+    let _constructor = ast::MacroDefinition {
         name: "CONSTRUCTOR".to_string(),
-        signature: [0u8, 0u8, 0u8, 0u8],
-        inputs: vec![],
-        fn_type: FunctionType::NonPayable,
-        outputs: vec![],
+        parameters: vec![],
+        statements: vec![],
+        takes: 0,
+        returns: 0,
     };
     let contract = Contract {
         macros: vec![],
@@ -61,5 +60,5 @@ fn missing_constructor_fails() {
     // This should fail since there's no constructor
     let mut cg = Codegen::new();
     let abi = cg.abi_gen(contract, None);
-    assert!(abi.is_ok())
+    assert!(abi.unwrap().constructor.is_none());
 }

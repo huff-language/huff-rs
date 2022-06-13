@@ -215,12 +215,16 @@ impl<'a> Compiler {
                 };
                 tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
                 let inputs = self.get_inputs();
+                tracing::info!(target: "core", "ENCODING {} INPUTS", inputs.len());
                 let encoded_inputs = Codegen::encode_constructor_args(inputs);
+                tracing::info!(target: "core", "ENCODED {} INPUTS", encoded_inputs.len());
                 let churn_res = cg.churn(encoded_inputs, &main_bytecode, &constructor_bytecode);
                 match churn_res {
                     Ok(mut artifact) => {
+                        tracing::info!(target: "core", "GENERATED CODEGEN ARTIFACT {:?}", artifact);
                         // Then we can have the code gen output the artifact
                         let abiout = cg.abi_gen(contract, None);
+                        tracing::info!(target: "core", "GENERATED CODEGEN ARTIFACT {:?}", artifact);
                         match abiout {
                             Ok(abi) => artifact.abi = Some(abi),
                             Err(e) => {
