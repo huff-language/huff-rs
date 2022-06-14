@@ -460,8 +460,8 @@ impl Codegen {
         let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
         artifact.bytecode =
-            format!("{}{}{}", constructor_code, main_bytecode, constructor_args).to_uppercase();
-        artifact.runtime = main_bytecode.to_string().to_uppercase();
+            format!("{}{}{}", constructor_code, main_bytecode, constructor_args).to_lowercase();
+        artifact.runtime = main_bytecode.to_string().to_lowercase();
         artifact.file = file;
         Ok(artifact.clone())
     }

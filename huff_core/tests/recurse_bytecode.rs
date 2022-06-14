@@ -175,5 +175,5 @@ fn recurse_macro_bytecode() {
     artifact.runtime = main_bytecode;
 
     // Check the bytecode
-    assert_eq!(artifact.bytecode.to_uppercase(), expected_bytecode.to_uppercase());
+    assert_eq!(artifact.bytecode.to_lowercase(), expected_bytecode.to_lowercase());
 }
