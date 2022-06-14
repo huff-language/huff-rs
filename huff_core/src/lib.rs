@@ -195,7 +195,8 @@ impl<'a> Compiler {
 
                 // Parse into an AST
                 let parse_res = parser.parse().map_err(CompilerError::ParserError);
-                let contract = parse_res?;
+                let mut contract = parse_res?;
+                contract.derive_storage_pointers();
                 tracing::info!(target: "core", "PARSED CONTRACT [{}]", file.path);
 
                 // Primary Bytecode Generation

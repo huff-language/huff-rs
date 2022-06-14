@@ -209,15 +209,19 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                 }
                 Statement::LabelCall(jump_to) => {
                     /* Jump To doesn't translate directly to bytecode ? */
+                    tracing::info!(target: "codegen", "PUSHING LABEL CALL IRBytes: {}", jump_to);
                     inner_irbytes
                         .push(IRByte::Statement(Statement::LabelCall(jump_to.to_string())));
                 }
                 Statement::Label(l) => {
                     /* Jump Dests don't translate directly to bytecode ? */
+                    tracing::info!(target: "codegen", "PUSHING LABEL IRBytes: {:?}", l);
                     inner_irbytes.push(IRByte::Statement(Statement::Label(l.clone())));
+                    l.inner.iter().for_each(|s| inner_irbytes.push(IRByte::Statement(s.clone())));
                 }
-                Statement::BuiltinFunctionCall(_builtin) => {
+                Statement::BuiltinFunctionCall(builtin) => {
                     // TODO
+                    tracing::info!(target: "codegen", "PUSHING BUILTIN FUNCTION CALL IRBytes: {:?}", builtin);
                 }
             }
         });

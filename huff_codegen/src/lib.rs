@@ -293,17 +293,15 @@ impl Codegen {
                                 .collect();
                         }
                         Statement::Label(label) => {
-                            jump_indices.insert(label.name, index);
-
+                            tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL: {:?}", label);
+                            jump_indices.insert(label.name, offset);
                             offset += 1;
-
                             final_bytes.push(Bytes(Opcode::Jumpdest.to_string()));
                         }
                         Statement::LabelCall(label) => {
-                            jump_table.insert(index, vec![Jump { label, bytecode_index: offset }]);
-
+                            tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL CALL: {}", label);
+                            jump_table.insert(index, vec![Jump { label, bytecode_index: 0 }]);
                             offset += 3;
-
                             final_bytes.push(Bytes(format!("{}xxxx", Opcode::Push2)));
                         }
                         s => {
@@ -393,9 +391,7 @@ impl Codegen {
                 if let Some(jt) = jump_table.get(&index) {
                     for jump in jt {
                         if let Some(jump_index) = jump_indices.get(&jump.label) {
-                            let jump_value = pad_n_bytes(&hex::encode(jump_index.to_string()), 2);
-
-                            println!("Jump value: {}", jump_value);
+                            let jump_value = pad_n_bytes(&format!("{:x}", jump_index), 2);
 
                             let before = &formatted_bytes.0[0..jump.bytecode_index + 2];
                             let after = &formatted_bytes.0[jump.bytecode_index + 6..];
@@ -409,13 +405,9 @@ impl Codegen {
                                 );
                             }
 
-                            println!("Pre-formatted Bytes: {:?}", formatted_bytes);
                             formatted_bytes = Bytes(format!("{}{}{}", before, jump_value, after));
-                            println!("Formatted Bytes: {:?}", formatted_bytes);
                         } else {
                             let jump_offset = (indices[index] - offset) * 2;
-
-                            println!("Jump offset: {}", jump_offset);
 
                             unmatched_jumps.push(Jump {
                                 label: jump.label.clone(),
@@ -467,8 +459,9 @@ impl Codegen {
         // Generate the final bytecode
         let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
-        artifact.bytecode = format!("{}{}{}", constructor_code, main_bytecode, constructor_args);
-        artifact.runtime = main_bytecode.to_string();
+        artifact.bytecode =
+            format!("{}{}{}", constructor_code, main_bytecode, constructor_args).to_uppercase();
+        artifact.runtime = main_bytecode.to_string().to_uppercase();
         artifact.file = file;
         Ok(artifact.clone())
     }
