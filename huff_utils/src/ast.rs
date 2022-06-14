@@ -209,11 +209,15 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                 }
                 Statement::LabelCall(jump_to) => {
                     /* Jump To doesn't translate directly to bytecode ? */
-                    inner_irbytes.push(IRByte::LabelCall(jump_to.to_string()));
+                    inner_irbytes
+                        .push(IRByte::Statement(Statement::LabelCall(jump_to.to_string())));
                 }
                 Statement::Label(l) => {
                     /* Jump Dests don't translate directly to bytecode ? */
-                    inner_irbytes.push(IRByte::Label(l.clone()));
+                    inner_irbytes.push(IRByte::Statement(Statement::Label(l.clone())));
+                }
+                Statement::BuiltinFunctionCall(_builtin) => {
+                    // TODO
                 }
             }
         });
@@ -285,6 +289,39 @@ pub struct Label {
     pub inner: Vec<Statement>,
 }
 
+/// A Builtin Function Call
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct BuiltinFunctionCall {
+    /// The Builtin Kind
+    pub kind: BuiltinFunctionKind,
+    /// Arguments for the builtin function call.
+    /// TODO: Maybe make a better type for this other than `Argument`? Would be nice if it pointed
+    /// directly to the macro/table.
+    pub args: Vec<Argument>,
+}
+
+/// A Builtin Function Kind
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum BuiltinFunctionKind {
+    /// Table size function
+    Tablesize,
+    /// Code size function
+    Codesize,
+    /// Table start function
+    Tablestart,
+}
+
+impl From<&str> for BuiltinFunctionKind {
+    fn from(s: &str) -> Self {
+        match s {
+            "__tablesize" => BuiltinFunctionKind::Tablesize,
+            "__codesize" => BuiltinFunctionKind::Codesize,
+            "__tablestart" => BuiltinFunctionKind::Tablestart,
+            _ => panic!("Invalid Builtin Function Kind"), // TODO: Better error handling
+        }
+    }
+}
+
 /// A Statement
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Statement {
@@ -302,4 +339,6 @@ pub enum Statement {
     Label(Label),
     /// A Label Reference/Call
     LabelCall(String),
+    /// A built-in function call
+    BuiltinFunctionCall(BuiltinFunctionCall),
 }

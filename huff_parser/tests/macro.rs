@@ -123,7 +123,7 @@ fn macro_with_arg_calls() {
 }
 
 #[test]
-fn maco_labels() {
+fn macro_labels() {
     let source = r#"
     #define macro LABEL_FILLED() = takes(0) returns(0) {
         __label__:
@@ -224,6 +224,42 @@ fn macro_invocation_with_arg_call() {
                 Statement::Literal(str_to_bytes32("00")),
                 Statement::Opcode(Opcode::Return),
             ],
+            takes: 0,
+            returns: 0
+        }
+    );
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
+
+#[test]
+fn macro_with_builtin_fn_call() {
+    // Not valid source, just for testing
+    let source = r#"
+    #define macro BUILTIN_TEST() = takes(0) returns(0) {
+        __codesize(TEST)
+    }
+    "#;
+
+    // Parse tokens
+    let lexer = Lexer::new(source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    assert_eq!(
+        macro_definition,
+        MacroDefinition {
+            name: "BUILTIN_TEST".to_string(),
+            parameters: vec![],
+            statements: vec![Statement::BuiltinFunctionCall(BuiltinFunctionCall {
+                kind: BuiltinFunctionKind::Codesize,
+                args: vec![Argument {
+                    arg_type: None,
+                    name: Some("TEST".to_string()),
+                    indexed: false,
+                }]
+            }),],
             takes: 0,
             returns: 0
         }

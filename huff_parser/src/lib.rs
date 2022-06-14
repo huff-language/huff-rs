@@ -380,6 +380,15 @@ impl Parser {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [ARG CALL: {}]", arg_call);
                     statements.push(Statement::ArgCall(arg_call));
                 }
+                TokenKind::BuiltinFunction(f) => {
+                    self.match_kind(TokenKind::BuiltinFunction(String::default()))?;
+                    let args = self.parse_args(true, false, false)?;
+                    tracing::info!(target: "parser", "PARSING MACRO BODY: [BUILTIN FN: {}({:?})]", f, args);
+                    statements.push(Statement::BuiltinFunctionCall(BuiltinFunctionCall {
+                        kind: BuiltinFunctionKind::from(f.as_str()),
+                        args,
+                    }));
+                }
                 kind => {
                     tracing::error!(target: "parser", "TOKEN MISMATCH - MACRO BODY: {}", kind);
                     return Err(ParserError::SyntaxError(format!(

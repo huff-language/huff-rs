@@ -2,7 +2,7 @@
 //!
 //! Abstract translating state into bytecode.
 
-use crate::prelude::{Label, Statement};
+use crate::prelude::Statement;
 use std::{
     collections::BTreeMap,
     fmt::{self, Display},
@@ -23,10 +23,6 @@ pub enum IRByte {
     Constant(String),
     /// An Arg Call needs to use the calling macro context
     ArgCall(String),
-    /// A label call needs the jump table for reference
-    LabelCall(String),
-    /// A Label needs jump table modification
-    Label(Label),
 }
 
 /// Full Intermediate Bytecode Representation
@@ -103,8 +99,8 @@ pub struct Jump {
 /// Type for a vec of `Jump`s
 pub type Jumps = Vec<Jump>;
 
-/// Type to map `Jump`s to
-pub type JumpIndices = BTreeMap<Jump, usize>;
+/// Type to map `Jump` labels to their bytecode indices
+pub type JumpIndices = BTreeMap<String, usize>;
 
 /// Type for a map of bytecode indexes to `Jumps`. Represents a Jump Table.
 pub type JumpTable = BTreeMap<usize, Jumps>;

@@ -113,6 +113,8 @@ pub enum TokenKind {
     JumpTablePacked,
     /// A Code Table
     CodeTable,
+    /// A builtin function (__codesize, __tablesize, __tablestart)
+    BuiltinFunction(String),
 }
 
 impl fmt::Display for TokenKind {
@@ -174,6 +176,7 @@ impl fmt::Display for TokenKind {
             TokenKind::JumpTable => "jumptable",
             TokenKind::JumpTablePacked => "jumptable__packed",
             TokenKind::CodeTable => "table",
+            TokenKind::BuiltinFunction(s) => return write!(f, "BuiltinFunction({})", s),
         };
 
         write!(f, "{}", x)
