@@ -182,16 +182,14 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
     fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError> {
         let mut inner_irbytes: Vec<IRByte> = vec![];
 
-        // Iterate and translate each statement to bytecode
+        // Iterate and translate each statement to bytecode if possible
         self.statements.iter().for_each(|statement| {
             match statement {
                 Statement::Literal(l) => {
-                    let combined = l
-                        .iter()
-                        .map(|b| IRByte::Bytes(Bytes(format!("{:04x}", b))))
-                        .collect::<Vec<IRByte>>();
-                    tracing::info!(target: "codegen", "COMBINED IRBytes: {:?}", combined);
-                    combined.iter().for_each(|irb| inner_irbytes.push(irb.clone()));
+                    let hex_literal: String = bytes32_to_string(l, false);
+                    let push_bytes = format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal);
+                    tracing::info!(target: "codegen", "PUSHING LITERAL IRBytes: {:?}", push_bytes);
+                    inner_irbytes.push(IRByte::Bytes(Bytes(push_bytes)));
                 }
                 Statement::Opcode(o) => {
                     let opcode_str = o.string();
@@ -209,12 +207,21 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                     // Arg call needs to use a destination defined in the calling macro context
                     inner_irbytes.push(IRByte::ArgCall(arg_name.to_string()));
                 }
-                Statement::LabelCall(_jump_to) => {
+                Statement::LabelCall(jump_to) => {
                     /* Jump To doesn't translate directly to bytecode ? */
+                    tracing::info!(target: "codegen", "PUSHING LABEL CALL IRBytes: {}", jump_to);
+                    inner_irbytes
+                        .push(IRByte::Statement(Statement::LabelCall(jump_to.to_string())));
                 }
-                Statement::Label(_) => { /* Jump Dests don't translate directly to bytecode ? */ }
-                Statement::BuiltinFunctionCall(_builtin) => {
+                Statement::Label(l) => {
+                    /* Jump Dests don't translate directly to bytecode ? */
+                    tracing::info!(target: "codegen", "PUSHING LABEL IRBytes: {:?}", l);
+                    inner_irbytes.push(IRByte::Statement(Statement::Label(l.clone())));
+                    l.inner.iter().for_each(|s| inner_irbytes.push(IRByte::Statement(s.clone())));
+                }
+                Statement::BuiltinFunctionCall(builtin) => {
                     // TODO
+                    tracing::info!(target: "codegen", "PUSHING BUILTIN FUNCTION CALL IRBytes: {:?}", builtin);
                 }
             }
         });

@@ -66,13 +66,13 @@ impl Abi {
 // Allows for simple ABI Generation by directly translating the AST
 impl From<ast::Contract> for Abi {
     fn from(contract: ast::Contract) -> Self {
-        let constructors: Vec<ast::Function> = contract
-            .functions
+        let constructors = contract
+            .macros
             .iter()
-            .filter(|function: &&ast::Function| function.name == "CONSTRUCTOR")
+            .filter(|m| m.name == "CONSTRUCTOR")
             .cloned()
-            .collect();
-        let constructor: ast::Function = constructors.get(0).unwrap().clone();
+            .collect::<Vec<ast::MacroDefinition>>();
+        let constructor: Option<&ast::MacroDefinition> = constructors.get(0);
 
         // Instantiate functions and events
         let mut functions = BTreeMap::new();
@@ -143,9 +143,9 @@ impl From<ast::Contract> for Abi {
             });
 
         Self {
-            constructor: Some(Constructor {
-                inputs: constructor
-                    .inputs
+            constructor: constructor.map(|c| Constructor {
+                inputs: c
+                    .parameters
                     .iter()
                     .map(|argument| FunctionParam {
                         name: argument.name.clone().unwrap_or_default(),

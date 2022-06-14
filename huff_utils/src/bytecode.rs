@@ -3,7 +3,10 @@
 //! Abstract translating state into bytecode.
 
 use crate::prelude::Statement;
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Display},
+};
 
 /// A string of Bytes
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -46,6 +49,12 @@ pub trait ToBytecode<'a, E> {
     fn to_bytecode(&self) -> Result<Bytecode, E>;
 }
 
+impl From<Vec<Bytes>> for Bytecode {
+    fn from(b: Vec<Bytes>) -> Self {
+        Bytecode(b.iter().fold("".to_string(), |acc, b| format!("{}{}", acc, b.0)))
+    }
+}
+
 /// Result type for [huff_codegen](../../huff_codegen)'s
 /// [`recurse_bytecode`](../../huff_codegen/src/lib.rs#recurse_bytecode)
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -58,6 +67,24 @@ pub struct BytecodeRes {
     pub jump_indices: JumpIndices,
     /// Unmatched Jumps
     pub unmatched_jumps: Jumps,
+}
+
+impl Display for BytecodeRes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            r#"BytecodeRes(
+            bytes: [{}],
+            jump_tables: {:?},
+            jump_indices: {:?},
+            unmatched_jumps: {:?}
+        )"#,
+            self.bytes.iter().fold("".to_string(), |acc, b| format!("{}{}", acc, b.0)),
+            self.jump_tables,
+            self.jump_indices,
+            self.unmatched_jumps
+        )
+    }
 }
 
 /// A Jump

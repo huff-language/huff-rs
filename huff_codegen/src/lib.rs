@@ -11,10 +11,10 @@ use huff_utils::{
     bytecode::*,
     error::CodegenError,
     evm::Opcode,
-    prelude::{bytes32_to_string, pad_n_bytes, CodegenErrorKind},
+    prelude::{bytes32_to_string, pad_n_bytes, CodegenErrorKind, FileSource},
     types::EToken,
 };
-use std::fs;
+use std::{fs, path::Path};
 
 /// ### Codegen
 ///
@@ -43,15 +43,11 @@ impl Codegen {
     ///
     /// * `ast` - Optional Contract Abstract Syntax Tree
     pub fn roll(ast: Option<Contract>) -> Result<String, CodegenError> {
-        let bytecode: String = String::default();
-
         // Grab the AST
-        let _contract: &Contract = match &ast {
+        let contract = match &ast {
             Some(a) => a,
             None => {
-                tracing::error!(
-                    "Neither Codegen AST was set nor passed in as a parameter to Codegen::roll()!"
-                );
+                tracing::error!(target: "codegen", "MISSING BOTH STATEFUL AND PARAMETER AST!");
                 return Err(CodegenError {
                     kind: CodegenErrorKind::MissingAst,
                     span: None,
@@ -60,12 +56,28 @@ impl Codegen {
             }
         };
 
-        // TODO: main logic to create the main contract bytecode
+        // Find the main macro
+        let m_macro: MacroDefinition = if let Some(m) = contract.find_macro_by_name("MAIN") {
+            m
+        } else {
+            tracing::error!(target: "codegen", "MISSING \"MAIN\" MACRO!");
+            return Err(CodegenError {
+                kind: CodegenErrorKind::MissingMacroDefinition("MAIN".to_string()),
+                span: None,
+                token: None,
+            })
+        };
 
-        // Set bytecode and return
-        // if self.main_bytecode.is_none() {
-        //     self.main_bytecode = Some(bytecode.clone());
-        // }
+        tracing::info!(target: "codegen", "MAIN MACRO FOUND: {:?}", m_macro);
+
+        // For each MacroInvocation Statement, recurse into bytecode
+        let bytecode_res: BytecodeRes =
+            Codegen::recurse_bytecode(m_macro.clone(), ast, &mut vec![m_macro], 0, Vec::default())?;
+        tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
+        let bytecode = bytecode_res.bytes.iter().map(|byte| byte.0.to_string()).collect();
+        tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
+
+        // Return
         Ok(bytecode)
     }
 
@@ -167,7 +179,8 @@ impl Codegen {
         for (index, ir_byte) in irbz.iter().enumerate() {
             match ir_byte.clone() {
                 IRByte::Bytes(b) => {
-                    offset += 1;
+                    offset += b.0.len() / 2;
+                    tracing::info!(target: "codegen", "RECURSE_BYTECODE FOUND BYTES: {:?}", b);
                     final_bytes.push(b)
                 }
                 IRByte::Constant(name) => {
@@ -181,7 +194,7 @@ impl Codegen {
                     {
                         m.clone()
                     } else {
-                        tracing::error!(target: "codegen", "MISSING CONTRACT MACRO \"{}\"", name);
+                        tracing::error!(target: "codegen", "MISSING CONSTANT DEFINITION \"{}\"", name);
 
                         // TODO we should try and find the constant defined in other files here
                         return Err(CodegenError {
@@ -230,7 +243,9 @@ impl Codegen {
                                         mi.macro_name
                                     );
                                     return Err(CodegenError {
-                                        kind: CodegenErrorKind::MissingMacroDefinition,
+                                        kind: CodegenErrorKind::MissingMacroDefinition(
+                                            mi.macro_name.clone(),
+                                        ),
                                         span: None,
                                         token: None,
                                     })
@@ -278,17 +293,15 @@ impl Codegen {
                                 .collect();
                         }
                         Statement::Label(label) => {
-                            jump_indices.insert(label.name, index);
-
+                            tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL: {:?}", label);
+                            jump_indices.insert(label.name, offset);
                             offset += 1;
-
                             final_bytes.push(Bytes(Opcode::Jumpdest.to_string()));
                         }
                         Statement::LabelCall(label) => {
-                            jump_table.insert(index, vec![Jump { label, bytecode_index: offset }]);
-
+                            tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL CALL: {}", label);
+                            jump_table.insert(index, vec![Jump { label, bytecode_index: 0 }]);
                             offset += 3;
-
                             final_bytes.push(Bytes(format!("{}xxxx", Opcode::Push2)));
                         }
                         s => {
@@ -309,7 +322,7 @@ impl Codegen {
                         } else {
                             tracing::error!("Invoked Macro \"{}\" not found in Contract", arg_name);
                             return Err(CodegenError {
-                                kind: CodegenErrorKind::MissingMacroDefinition,
+                                kind: CodegenErrorKind::MissingMacroDefinition(arg_name.clone()),
                                 span: None,
                                 token: None,
                             })
@@ -367,6 +380,9 @@ impl Codegen {
                 .collect::<Vec<usize>>(),
         );
 
+        let bytecode: String = final_bytes.iter().map(|byte| byte.0.to_string()).collect();
+        tracing::info!(target: "codegen", "GENERATED BYECODE EXCLUDING JUMPS: {}", hex::encode(bytecode));
+
         let mut unmatched_jumps = Jumps::default();
         let final_bytes =
             final_bytes.iter().enumerate().fold(Vec::default(), |mut acc, (index, b)| {
@@ -375,9 +391,7 @@ impl Codegen {
                 if let Some(jt) = jump_table.get(&index) {
                     for jump in jt {
                         if let Some(jump_index) = jump_indices.get(&jump.label) {
-                            let jump_value = pad_n_bytes(&hex::encode(jump_index.to_string()), 2);
-
-                            println!("Jump value: {}", jump_value);
+                            let jump_value = pad_n_bytes(&format!("{:x}", jump_index), 2);
 
                             let before = &formatted_bytes.0[0..jump.bytecode_index + 2];
                             let after = &formatted_bytes.0[jump.bytecode_index + 6..];
@@ -391,13 +405,9 @@ impl Codegen {
                                 );
                             }
 
-                            println!("Pre-formatted Bytes: {:?}", formatted_bytes);
                             formatted_bytes = Bytes(format!("{}{}{}", before, jump_value, after));
-                            println!("Formatted Bytes: {:?}", formatted_bytes);
                         } else {
                             let jump_offset = (indices[index] - offset) * 2;
-
-                            println!("Jump offset: {}", jump_offset);
 
                             unmatched_jumps.push(Jump {
                                 label: jump.label.clone(),
@@ -423,6 +433,7 @@ impl Codegen {
     /// * `constructor_bytecode` - The compiled `CONSTRUCTOR` Macro bytecode
     pub fn churn(
         &mut self,
+        file: FileSource,
         args: Vec<ethers::abi::token::Token>,
         main_bytecode: &str,
         constructor_bytecode: &str,
@@ -448,8 +459,10 @@ impl Codegen {
         // Generate the final bytecode
         let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
-        artifact.bytecode = format!("{}{}{}", constructor_code, main_bytecode, constructor_args);
-        artifact.runtime = main_bytecode.to_string();
+        artifact.bytecode =
+            format!("{}{}{}", constructor_code, main_bytecode, constructor_args).to_lowercase();
+        artifact.runtime = main_bytecode.to_string().to_lowercase();
+        artifact.file = file;
         Ok(artifact.clone())
     }
 
@@ -467,18 +480,22 @@ impl Codegen {
     /// # Arguments
     ///
     /// * `out` - Output location to write the serialized json artifact to.
-    pub fn export(&self, output: String) -> Result<(), CodegenError> {
-        if let Some(art) = &self.artifact {
-            let serialized_artifact = serde_json::to_string(art).unwrap();
-            fs::write(output, serialized_artifact).expect("Unable to write file");
-        } else {
-            tracing::error!(
-                target: "codegen",
-                "Failed to export the compile artifact to the specified output location {}!",
-                output
-            );
+    pub fn export(output: String, art: &Artifact) -> Result<(), CodegenError> {
+        let serialized_artifact = serde_json::to_string(art).unwrap();
+        // Try to create the parent directory
+        let file_path = Path::new(&output);
+        if let Some(p) = file_path.parent() {
+            if let Err(e) = fs::create_dir_all(p) {
+                return Err(CodegenError {
+                    kind: CodegenErrorKind::IOError(e.to_string()),
+                    span: None,
+                    token: None,
+                })
+            }
+        }
+        if let Err(e) = fs::write(file_path, serialized_artifact) {
             return Err(CodegenError {
-                kind: CodegenErrorKind::AbiGenerationFailure,
+                kind: CodegenErrorKind::IOError(e.to_string()),
                 span: None,
                 token: None,
             })
@@ -499,18 +516,20 @@ impl Codegen {
         let abi: Abi = ast.into();
 
         // Set the abi on self
-        match &mut self.artifact {
+        let art: &Artifact = match &mut self.artifact {
             Some(artifact) => {
                 artifact.abi = Some(abi.clone());
+                artifact
             }
             None => {
                 self.artifact = Some(Artifact { abi: Some(abi.clone()), ..Default::default() });
+                self.artifact.as_ref().unwrap()
             }
-        }
+        };
 
         // If an output's specified, write the artifact out
         if let Some(o) = output {
-            if let Err(e) = self.export(o) {
+            if let Err(e) = Codegen::export(o, art) {
                 // Error message is sent to tracing in `export` if an error occurs
                 return Err(e)
             }
