@@ -193,7 +193,7 @@ impl Codegen {
                     {
                         m.clone()
                     } else {
-                        tracing::error!(target: "codegen", "MISSING CONTRACT MACRO \"{}\"", name);
+                        tracing::error!(target: "codegen", "MISSING CONSTANT DEFINITION \"{}\"", name);
 
                         // TODO we should try and find the constant defined in other files here
                         return Err(CodegenError {
@@ -352,6 +352,12 @@ impl Codegen {
                     }
 
                     tracing::info!(target: "codegen", "FOUND ARG CALL TO \"{}\"", arg_name);
+                }
+                IRByte::Label(label) => {
+                    tracing::info!(target: "codegen", "IRBYTE::LABEL \"{:?}\"", label);
+                }
+                IRByte::LabelCall(label_call) => {
+                    tracing::info!(target: "codegen", "IRBYTE::LABELCALL \"{}\"", label_call);
                 }
             }
         }

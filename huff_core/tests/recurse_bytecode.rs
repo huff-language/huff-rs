@@ -190,6 +190,7 @@ fn recurse_macro_bytecode() {
 
     // huffc main bytecode output:
     let main_bytecode = "60003560E01c8063a9059cbb1461001c57806340c10f191461002e575b60043533602435600160005260206000f35b60043560006024358060005401600055".to_string();
+    let _main_bytecode_without_labels = "60003560e01c8063a9059cbb1457806340c10f191457";
 
     // We don't have any constructor args
     let constructor_args = "".to_string();

@@ -182,7 +182,7 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
     fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError> {
         let mut inner_irbytes: Vec<IRByte> = vec![];
 
-        // Iterate and translate each statement to bytecode
+        // Iterate and translate each statement to bytecode if possible
         self.statements.iter().for_each(|statement| {
             match statement {
                 Statement::Literal(l) => {
@@ -207,10 +207,14 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                     // Arg call needs to use a destination defined in the calling macro context
                     inner_irbytes.push(IRByte::ArgCall(arg_name.to_string()));
                 }
-                Statement::LabelCall(_jump_to) => {
+                Statement::LabelCall(jump_to) => {
                     /* Jump To doesn't translate directly to bytecode ? */
+                    inner_irbytes.push(IRByte::LabelCall(jump_to.to_string()));
                 }
-                Statement::Label(_) => { /* Jump Dests don't translate directly to bytecode ? */ }
+                Statement::Label(l) => {
+                    /* Jump Dests don't translate directly to bytecode ? */
+                    inner_irbytes.push(IRByte::Label(l.clone()));
+                }
             }
         });
         Ok(IRBytecode(inner_irbytes))
