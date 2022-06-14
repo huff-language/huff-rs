@@ -178,7 +178,8 @@ impl Codegen {
         for (index, ir_byte) in irbz.iter().enumerate() {
             match ir_byte.clone() {
                 IRByte::Bytes(b) => {
-                    offset += 1;
+                    offset += b.0.len() / 2;
+                    tracing::info!(target: "codegen", "RECURSE_BYTECODE FOUND BYTES: {:?}", b);
                     final_bytes.push(b)
                 }
                 IRByte::Constant(name) => {
