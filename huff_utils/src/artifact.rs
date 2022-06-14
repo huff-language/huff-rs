@@ -3,7 +3,7 @@
 //! The artifacts generated from codegen.
 
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::{fs, path::Path};
 
 pub use crate::abi::Abi;
 
@@ -22,6 +22,10 @@ impl Artifact {
     /// Exports an artifact to a json file
     pub fn export(&self, out: String) -> std::result::Result<(), std::io::Error> {
         let serialized_artifact = serde_json::to_string(self)?;
-        fs::write(out, serialized_artifact)
+        let file_path = Path::new(&out);
+        if let Some(p) = file_path.parent() {
+            fs::create_dir_all(p)?
+        }
+        fs::write(file_path, serialized_artifact)
     }
 }

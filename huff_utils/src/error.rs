@@ -121,6 +121,8 @@ pub enum CodegenErrorKind {
     MissingConstantDefinition,
     /// Abi Generation Failure
     AbiGenerationFailure,
+    /// An IO Error
+    IOError(String),
 }
 
 impl Spanned for CodegenError {
@@ -147,6 +149,7 @@ impl<W: Write> Report<W> for CodegenError {
                 write!(f.out, "Missing Constant Definition!")
             }
             CodegenErrorKind::AbiGenerationFailure => write!(f.out, "Abi generation failure!"),
+            CodegenErrorKind::IOError(ioe) => write!(f.out, "IO ERROR: {:?}", ioe),
         }
     }
 }

@@ -172,6 +172,7 @@ impl<'a> Compiler {
         }
 
         // Parallel Compilation
+        let file_len = files.len();
         let artifacts: Vec<Result<Artifact, CompilerError<'a>>> = files
             .into_par_iter()
             .map(|file| {
@@ -197,13 +198,9 @@ impl<'a> Compiler {
                 let contract = parse_res?;
                 tracing::info!(target: "core", "PARSED CONTRACT [{}]", file.path);
 
-                // Run code generation
+                // Primary Bytecode Generation
+                // See huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
                 let mut cg = Codegen::new();
-
-                // Gracefully derive the output from the cli
-                let output: OutputLocation = self.get_outputs();
-
-                // Codegen. See huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
                 let main_bytecode = match Codegen::roll(Some(contract.clone())) {
                     Ok(mb) => mb,
                     Err(e) => return Err(CompilerError::CodegenError(e)),
@@ -213,28 +210,36 @@ impl<'a> Compiler {
                     Ok(mb) => mb,
                     Err(e) => return Err(CompilerError::CodegenError(e)),
                 };
+
+                // Encode Constructor Arguments
                 tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
                 let inputs = self.get_inputs();
                 tracing::info!(target: "core", "ENCODING {} INPUTS", inputs.len());
                 let encoded_inputs = Codegen::encode_constructor_args(inputs);
                 tracing::info!(target: "core", "ENCODED {} INPUTS", encoded_inputs.len());
+
+                // Create and Eport Artifact with an ABI
+                let output: OutputLocation = self.get_outputs();
                 let churn_res = cg.churn(encoded_inputs, &main_bytecode, &constructor_bytecode);
                 match churn_res {
                     Ok(mut artifact) => {
-                        tracing::info!(target: "core", "GENERATED CODEGEN ARTIFACT {:?}", artifact);
+                        tracing::info!(target: "core", "GENERATED ARTIFACT {:?}", artifact);
                         // Then we can have the code gen output the artifact
                         let abiout = cg.abi_gen(contract, None);
-                        tracing::info!(target: "core", "GENERATED CODEGEN ARTIFACT {:?}", artifact);
                         match abiout {
-                            Ok(abi) => artifact.abi = Some(abi),
+                            Ok(abi) => {
+                                tracing::info!(target: "core", "GENERATED ABI {:?}", abi);
+                                artifact.abi = Some(abi)
+                            },
                             Err(e) => {
                                 tracing::error!(target: "core", "ARTIFACT GENERATION FAILED!\nError: {:?}", e)
                             }
                         }
-                        let json_out = format!("./{}/{}.json", output.0, file.path.to_uppercase());
-                        if let Err(e) = artifact.export(json_out) {
+                        let json_out = format!("{}/{}.json", output.0, file.path.to_uppercase().replacen("./", "", 1));
+                        if let Err(e) = artifact.export(json_out.clone()) {
                             tracing::error!(target: "core", "ARTIFACT EXPORT FAILED!\nError: {:?}", e);
                         }
+                        tracing::info!(target: "core", "EXPORTED ARTIFACT TO \"{}\"", json_out);
                         Ok(artifact)
                     }
                     Err(e) => {
@@ -245,7 +250,7 @@ impl<'a> Compiler {
             })
             .collect();
 
-        tracing::info!(target: "core", "ALL FILES COMPILED SUCCESSFULLY");
+        tracing::info!(target: "core", "{} FILES COMPILED SUCCESSFULLY", file_len);
 
         Ok(artifacts)
     }

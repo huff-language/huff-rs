@@ -13,7 +13,7 @@ use huff_utils::{
     prelude::{bytes32_to_string, pad_n_bytes, CodegenErrorKind},
     types::EToken,
 };
-use std::fs;
+use std::{fs, path::Path};
 
 /// ### Codegen
 ///
@@ -458,18 +458,22 @@ impl Codegen {
     /// # Arguments
     ///
     /// * `out` - Output location to write the serialized json artifact to.
-    pub fn export(&self, output: String) -> Result<(), CodegenError> {
-        if let Some(art) = &self.artifact {
-            let serialized_artifact = serde_json::to_string(art).unwrap();
-            fs::write(output, serialized_artifact).expect("Unable to write file");
-        } else {
-            tracing::error!(
-                target: "codegen",
-                "Failed to export the compile artifact to the specified output location {}!",
-                output
-            );
+    pub fn export(output: String, art: &Artifact) -> Result<(), CodegenError> {
+        let serialized_artifact = serde_json::to_string(art).unwrap();
+        // Try to create the parent directory
+        let file_path = Path::new(&output);
+        if let Some(p) = file_path.parent() {
+            if let Err(e) = fs::create_dir_all(p) {
+                return Err(CodegenError {
+                    kind: CodegenErrorKind::IOError(e.to_string()),
+                    span: None,
+                    token: None,
+                })
+            }
+        }
+        if let Err(e) = fs::write(file_path, serialized_artifact) {
             return Err(CodegenError {
-                kind: CodegenErrorKind::AbiGenerationFailure,
+                kind: CodegenErrorKind::IOError(e.to_string()),
                 span: None,
                 token: None,
             })
@@ -490,18 +494,20 @@ impl Codegen {
         let abi: Abi = ast.into();
 
         // Set the abi on self
-        match &mut self.artifact {
+        let art: &Artifact = match &mut self.artifact {
             Some(artifact) => {
                 artifact.abi = Some(abi.clone());
+                artifact
             }
             None => {
                 self.artifact = Some(Artifact { abi: Some(abi.clone()), ..Default::default() });
+                self.artifact.as_ref().unwrap()
             }
-        }
+        };
 
         // If an output's specified, write the artifact out
         if let Some(o) = output {
-            if let Err(e) = self.export(o) {
+            if let Err(e) = Codegen::export(o, art) {
                 // Error message is sent to tracing in `export` if an error occurs
                 return Err(e)
             }
