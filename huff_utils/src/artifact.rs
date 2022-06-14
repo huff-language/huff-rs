@@ -6,10 +6,13 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 
 pub use crate::abi::Abi;
+use crate::prelude::FileSource;
 
 /// A Codegen Artifact
 #[derive(Default, Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Artifact {
+    /// The file source
+    pub file: FileSource,
     /// The deployed bytecode
     pub bytecode: String,
     /// The runtime bytecode

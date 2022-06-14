@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, time::SystemTime};
 use uuid::Uuid;
 
@@ -12,9 +13,10 @@ impl Default for OutputLocation {
 }
 
 /// File Encapsulation
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct FileSource {
     /// File ID
+    #[serde(skip)]
     pub id: Uuid,
     /// File Path
     pub path: String,

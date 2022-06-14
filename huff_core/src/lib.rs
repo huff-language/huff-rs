@@ -220,7 +220,7 @@ impl<'a> Compiler {
 
                 // Create and Eport Artifact with an ABI
                 let output: OutputLocation = self.get_outputs();
-                let churn_res = cg.churn(encoded_inputs, &main_bytecode, &constructor_bytecode);
+                let churn_res = cg.churn(file.clone(), encoded_inputs, &main_bytecode, &constructor_bytecode);
                 match churn_res {
                     Ok(mut artifact) => {
                         tracing::info!(target: "core", "GENERATED ARTIFACT {:?}", artifact);

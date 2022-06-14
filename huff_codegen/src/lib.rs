@@ -10,7 +10,7 @@ use huff_utils::{
     ast::*,
     bytecode::*,
     error::CodegenError,
-    prelude::{bytes32_to_string, pad_n_bytes, CodegenErrorKind},
+    prelude::{bytes32_to_string, pad_n_bytes, CodegenErrorKind, FileSource},
     types::EToken,
 };
 use std::{fs, path::Path};
@@ -414,6 +414,7 @@ impl Codegen {
     /// * `constructor_bytecode` - The compiled `CONSTRUCTOR` Macro bytecode
     pub fn churn(
         &mut self,
+        file: FileSource,
         args: Vec<ethers::abi::token::Token>,
         main_bytecode: &str,
         constructor_bytecode: &str,
@@ -441,6 +442,7 @@ impl Codegen {
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
         artifact.bytecode = format!("{}{}{}", constructor_code, main_bytecode, constructor_args);
         artifact.runtime = main_bytecode.to_string();
+        artifact.file = file;
         Ok(artifact.clone())
     }
 

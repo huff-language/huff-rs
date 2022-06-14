@@ -62,8 +62,9 @@ fn main() {
     }
 
     // Create compiler from the Huff Args
+    let sources = cli.get_inputs().unwrap_or_default();
     let compiler: Compiler = Compiler {
-        sources: cli.get_inputs().unwrap_or_default(),
+        sources: sources.clone(),
         output: match &cli.output {
             Some(o) => Some(o.clone()),
             None => Some(cli.outputdir.clone()),
@@ -75,8 +76,26 @@ fn main() {
     tracing::info!(target: "core", "COMPILER INCANTATION COMPLETE");
     tracing::info!(target: "core", "EXECUTING COMPILATION...");
     let compile_res = compiler.execute();
-    if let Err(e) = compile_res {
-        tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
+    match compile_res {
+        Ok(artifacts) => {
+            if cli.bytecode {
+                match sources.len() {
+                    1 => {
+                        if let Ok(a) = &artifacts[0] {
+                            println!("{}", a.bytecode);
+                        }
+                    }
+                    _ => {
+                        for art in artifacts.into_iter().flatten() {
+                            println!("\"{}\" bytecode: {}", art.file.path, art.bytecode);
+                        }
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
+        }
     }
 }
 
