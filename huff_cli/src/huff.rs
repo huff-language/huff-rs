@@ -9,7 +9,7 @@
 
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
-use huff_utils::prelude::unpack_files;
+use huff_utils::prelude::{unpack_files, CompilerError};
 use std::path::Path;
 
 /// The Huff CLI Args
@@ -78,17 +78,27 @@ fn main() {
     let compile_res = compiler.execute();
     match compile_res {
         Ok(artifacts) => {
-            if cli.bytecode {
-                match sources.len() {
-                    1 => {
-                        if let Ok(a) = &artifacts[0] {
-                            println!("{}", a.bytecode);
+            let errored = artifacts.iter().filter_map(|a| a.as_ref().err()).collect::<Vec<&CompilerError>>();
+            match errored.len() {
+                0 => {
+                    if cli.bytecode {
+                        match sources.len() {
+                            1 => {
+                                if let Ok(a) = &artifacts[0] {
+                                    println!("{}", a.bytecode);
+                                }
+                            }
+                            _ => {
+                                for art in artifacts.into_iter().flatten() {
+                                    println!("\"{}\" bytecode: {}", art.file.path, art.bytecode);
+                                }
+                            }
                         }
                     }
-                    _ => {
-                        for art in artifacts.into_iter().flatten() {
-                            println!("\"{}\" bytecode: {}", art.file.path, art.bytecode);
-                        }
+                }
+                _ => {
+                    for err in errored.iter() {
+                        println!("COMPILER ERROR: {}", err);
                     }
                 }
             }

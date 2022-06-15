@@ -251,7 +251,17 @@ impl<'a> Compiler {
             })
             .collect();
 
-        tracing::info!(target: "core", "{} FILES COMPILED SUCCESSFULLY", file_len);
+        // Trace the artifacts
+        if let Ok(num) = artifacts.iter().try_fold::<usize, _, Result<usize, ()>>(0, |acc, a| { if a.is_err() { Ok(acc + 1) } else { Ok(acc) }}) {
+            if num > 0 {
+                tracing::error!(target: "core", "{} FILES FAILED TO COMPILE", num);
+            }
+        }
+        if let Ok(num) = artifacts.iter().try_fold::<usize, _, Result<usize, ()>>(0, |acc, a| { if a.is_ok() { Ok(acc + 1) } else { Ok(acc) }}) {
+            if num > 0 {
+                tracing::info!(target: "core", "{} FILES COMPILED SUCCESSFULLY", num);
+            }
+        }
 
         Ok(artifacts)
     }
