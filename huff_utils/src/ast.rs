@@ -180,10 +180,28 @@ pub struct MacroDefinition {
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
     fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError> {
+        let inner_irbytes: Vec<IRByte> = MacroDefinition::to_irbytes(&self.statements);
+        Ok(IRBytecode(inner_irbytes))
+    }
+}
+
+impl MacroDefinition {
+    /// Public associated function that instantiates a MacroDefinition.
+    pub fn new(
+        name: String,
+        parameters: Vec<Argument>,
+        statements: Vec<Statement>,
+        takes: usize,
+        returns: usize,
+    ) -> Self {
+        MacroDefinition { name, parameters, statements, takes, returns }
+    }
+
+    /// Translate statements into IRBytes
+    pub fn to_irbytes(statements: &[Statement]) -> Vec<IRByte> {
         let mut inner_irbytes: Vec<IRByte> = vec![];
 
-        // Iterate and translate each statement to bytecode if possible
-        self.statements.iter().for_each(|statement| {
+        statements.iter().for_each(|statement| {
             match statement {
                 Statement::Literal(l) => {
                     let hex_literal: String = bytes32_to_string(l, false);
@@ -217,7 +235,9 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                     /* Jump Dests don't translate directly to bytecode ? */
                     tracing::info!(target: "codegen", "PUSHING LABEL IRBytes: {:?}", l);
                     inner_irbytes.push(IRByte::Statement(Statement::Label(l.clone())));
-                    l.inner.iter().for_each(|s| inner_irbytes.push(IRByte::Statement(s.clone())));
+
+                    // Recurse label statements to IRBytes Bytes
+                    inner_irbytes.append(&mut MacroDefinition::to_irbytes(&l.inner));
                 }
                 Statement::BuiltinFunctionCall(builtin) => {
                     // TODO
@@ -225,20 +245,8 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                 }
             }
         });
-        Ok(IRBytecode(inner_irbytes))
-    }
-}
 
-impl MacroDefinition {
-    /// Public associated function that instantiates a MacroDefinition.
-    pub fn new(
-        name: String,
-        parameters: Vec<Argument>,
-        statements: Vec<Statement>,
-        takes: usize,
-        returns: usize,
-    ) -> Self {
-        MacroDefinition { name, parameters, statements, takes, returns }
+        inner_irbytes
     }
 }
 

@@ -241,6 +241,7 @@ impl Codegen {
                     final_bytes.push(Bytes(push_bytes))
                 }
                 IRByte::Statement(s) => {
+                    tracing::debug!(target: "codegen", "Got Statement: {:?}", s);
                     match s {
                         Statement::MacroInvocation(mi) => {
                             // Get the macro that matches this invocation and turn into bytecode
