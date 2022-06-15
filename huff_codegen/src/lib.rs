@@ -193,7 +193,7 @@ impl Codegen {
             match &ir_byte {
                 IRByte::Bytes(b) => {
                     offset += b.0.len() / 2;
-                    tracing::info!(target: "codegen", "RECURSE_BYTECODE FOUND BYTES: {:?}", b);
+                    tracing::debug!(target: "codegen", "RECURSE_BYTECODE FOUND BYTES: {:?}", b);
                     final_bytes.push(b.clone())
                 }
                 IRByte::Constant(name) => {
@@ -346,8 +346,17 @@ impl Codegen {
                     ) {
                         return Err(e)
                     }
+                    tracing::error!(target: "codegen", "^^ BUBBLING FINISHED ^^ LEFT OVER MACRO INVOCATIONS: {:?}", mis);
+                    // tracing::error!(target: "codegen", "^^ BUBBLING FINISHED ^^ LEFT OVER SCOPE:
+                    // {:?}", scope);
+                    tracing::error!(target: "codegen", "^^ BUBBLING FINISHED ^^ CURRENT MACRO DEF: {:?}", macro_def);
                 }
             }
+        }
+
+        // We're done, let's pop off the macro invocation
+        if let None = mis.pop() {
+            tracing::warn!(target: "codegen", "ATTEMPTED MACRO INVOCATION POP FAILED AT SCOPE: {}", scope.len());
         }
 
         let mut cur_index = offset;
@@ -425,6 +434,8 @@ impl Codegen {
         // !! (E.G. BOTH OPCODE AND LABEL ARE THE SAME STRING)
         // !! COMPILATION _WILL_ ERROR
 
+        tracing::warn!(target: "codegen", "**BUBBLING** \"{}\"", macro_def.name);
+
         // Check Constant Definitions
         if let Some(constant) = contract
             .constants
@@ -486,21 +497,43 @@ impl Codegen {
                         }
                         MacroArg::ArgCall(ac) => {
                             tracing::info!(target: "codegen", "GOT ARG CALL \"{}\" ARG FROM MACRO INVOCATION", ac);
-                            // TODO: Drill back up and get argcall from parent
-                            return Codegen::bubble_arg_call(
-                                arg_name,
-                                bytegen,
-                                scope.last().unwrap(),
-                                contract,
-                                &mut Vec::from(&scope[..scope.len().saturating_sub(1)]),
-                                offset,
-                                &Vec::from(&jump_tables[..jump_tables.len().saturating_sub(1)]),
-                                &mut Vec::from(&mis[..mis.len().saturating_sub(1)]),
-                                jump_table,
-                            )
+                            tracing::debug!(target: "codegen", "~~~ BUBBLING UP ARG CALL");
+                            let mut new_scope = Vec::from(&scope[..scope.len().saturating_sub(1)]);
+                            let bubbled_macro_invocation = new_scope.last().unwrap().clone();
+                            tracing::debug!(target: "codegen", "BUBBLING UP WITH MACRO DEF: {:?}", bubbled_macro_invocation);
+                            tracing::debug!(target: "codegen", "CURRENT MACRO DEF: {:?}", macro_def);
+
+                            // Only remove an invocation if not at bottom level, otherwise we'll
+                            // remove one too many
+                            if mis.last().unwrap().clone().1.macro_name.eq(&macro_def.name) {
+                                return Codegen::bubble_arg_call(
+                                    arg_name,
+                                    bytegen,
+                                    &bubbled_macro_invocation,
+                                    contract,
+                                    &mut new_scope,
+                                    offset,
+                                    &Vec::from(&jump_tables[..jump_tables.len().saturating_sub(1)]),
+                                    &mut Vec::from(&mis[..mis.len().saturating_sub(1)]),
+                                    jump_table,
+                                )
+                            } else {
+                                return Codegen::bubble_arg_call(
+                                    arg_name,
+                                    bytegen,
+                                    &bubbled_macro_invocation,
+                                    contract,
+                                    &mut new_scope,
+                                    offset,
+                                    &Vec::from(&jump_tables[..jump_tables.len().saturating_sub(1)]),
+                                    mis,
+                                    jump_table,
+                                )
+                            }
                         }
                         MacroArg::Ident(iden) => {
                             tracing::warn!(target: "codegen", "FOUND IDENT ARG IN \"{}\" MACRO INVOCATION: \"{}\"!", macro_invoc.1.macro_name, iden);
+                            // TODO ----------------------
                         }
                     }
                 } else {
