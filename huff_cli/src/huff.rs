@@ -78,7 +78,8 @@ fn main() {
     let compile_res = compiler.execute();
     match compile_res {
         Ok(artifacts) => {
-            let errored = artifacts.iter().filter_map(|a| a.as_ref().err()).collect::<Vec<&CompilerError>>();
+            let errored =
+                artifacts.iter().filter_map(|a| a.as_ref().err()).collect::<Vec<&CompilerError>>();
             match errored.len() {
                 0 => {
                     if cli.bytecode {

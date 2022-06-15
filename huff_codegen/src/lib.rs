@@ -14,7 +14,7 @@ use huff_utils::{
     prelude::{bytes32_to_string, pad_n_bytes, CodegenErrorKind, FileSource},
     types::EToken,
 };
-use std::{fs, path::Path};
+use std::{fs, path::Path, str::FromStr};
 
 /// ### Codegen
 ///
@@ -71,8 +71,14 @@ impl Codegen {
         tracing::info!(target: "codegen", "MAIN MACRO FOUND: {:?}", m_macro);
 
         // For each MacroInvocation Statement, recurse into bytecode
-        let bytecode_res: BytecodeRes =
-            Codegen::recurse_bytecode(m_macro.clone(), ast, &mut vec![m_macro], 0, Vec::default())?;
+        let bytecode_res: BytecodeRes = Codegen::recurse_bytecode(
+            m_macro.clone(),
+            ast,
+            &mut vec![m_macro],
+            0,
+            Vec::default(),
+            None,
+        )?;
         tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
         let bytecode = bytecode_res.bytes.iter().map(|byte| byte.0.to_string()).collect();
         tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
@@ -133,8 +139,14 @@ impl Codegen {
         tracing::info!(target: "codegen", "CONSTRUCTOR MACRO FOUND: {:?}", c_macro);
 
         // For each MacroInvocation Statement, recurse into bytecode
-        let bytecode_res: BytecodeRes =
-            Codegen::recurse_bytecode(c_macro.clone(), ast, &mut vec![c_macro], 0, Vec::default())?;
+        let bytecode_res: BytecodeRes = Codegen::recurse_bytecode(
+            c_macro.clone(),
+            ast,
+            &mut vec![c_macro],
+            0,
+            Vec::default(),
+            None,
+        )?;
         tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
         let bytecode = bytecode_res.bytes.iter().map(|byte| byte.0.to_string()).collect();
         tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
@@ -150,10 +162,11 @@ impl Codegen {
         scope: &mut Vec<MacroDefinition>,
         mut offset: usize,
         jump_tables: Vec<JumpTable>,
+        mi: Option<&MacroInvocation>,
     ) -> Result<BytecodeRes, CodegenError> {
         let mut final_bytes: Vec<Bytes> = vec![];
 
-        tracing::info!(target: "codegen", "RECURSING MACRO DEFINITION");
+        tracing::info!(target: "codegen", "RECURSING MACRO DEFINITION \"{}\" [SCOPE: {}]", macro_def.name, scope.len());
 
         // Grab the AST
         let contract = match &ast {
@@ -228,7 +241,7 @@ impl Codegen {
                     final_bytes.push(Bytes(push_bytes))
                 }
                 IRByte::Statement(s) => {
-                    match s {
+                    match &s {
                         Statement::MacroInvocation(mi) => {
                             // Get the macro that matches this invocation and turn into bytecode
                             let ir_macro =
@@ -261,6 +274,7 @@ impl Codegen {
                                 scope,
                                 offset,
                                 jump_tables.clone(),
+                                Some(mi),
                             ) {
                                 res
                             } else {
@@ -294,13 +308,16 @@ impl Codegen {
                         }
                         Statement::Label(label) => {
                             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL: {:?}", label);
-                            jump_indices.insert(label.name, offset);
+                            jump_indices.insert(label.name.clone(), offset);
                             offset += 1;
                             final_bytes.push(Bytes(Opcode::Jumpdest.to_string()));
                         }
                         Statement::LabelCall(label) => {
                             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL CALL: {}", label);
-                            jump_table.insert(index, vec![Jump { label, bytecode_index: 0 }]);
+                            jump_table.insert(
+                                index,
+                                vec![Jump { label: label.to_owned(), bytecode_index: 0 }],
+                            );
                             offset += 3;
                             final_bytes.push(Bytes(format!("{}xxxx", Opcode::Push2)));
                         }
@@ -315,55 +332,106 @@ impl Codegen {
                     }
                 }
                 IRByte::ArgCall(arg_name) => {
-                    // Try to find macro with same name as arg_name
-                    let macro_with_arg_name =
-                        if let Some(m) = contract.find_macro_by_name(&arg_name) {
-                            m
-                        } else {
-                            tracing::error!("Invoked Macro \"{}\" not found in Contract", arg_name);
-                            return Err(CodegenError {
-                                kind: CodegenErrorKind::MissingMacroDefinition(arg_name.clone()),
-                                span: None,
-                                token: None,
-                            })
+                    // Args can be literals, labels, opcodes, or constants
+                    // !! IF THERE IS AMBIGUOUS NOMENCLATURE (E.G. BOTH OPCODE AND LABEL ARE THE
+                    // SAME STRING), !! COMPILATION _WILL_ ERROR
+
+                    // Check Constant Definitions
+                    if let Some(constant) = contract
+                        .constants
+                        .iter()
+                        .filter(|const_def| const_def.name == arg_name)
+                        .cloned()
+                        .collect::<Vec<ConstantDefinition>>()
+                        .get(0)
+                    {
+                        tracing::info!(target: "codegen", "ARGCALL IS CONSTANT: {:?}", constant);
+                        let push_bytes = match &constant.value {
+                            ConstVal::Literal(l) => {
+                                let hex_literal: String = bytes32_to_string(l, false);
+                                format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
+                            }
+                            ConstVal::FreeStoragePointer(fsp) => {
+                                // If this is reached in codegen stage, the
+                                // `derive_storage_pointers`
+                                // method was not called on the AST.
+                                tracing::error!(target: "codegen", "STORAGE POINTERS INCORRECTLY DERIVED FOR \"{:?}\"", fsp);
+                                return Err(CodegenError {
+                                    kind: CodegenErrorKind::StoragePointersNotDerived,
+                                    span: None,
+                                    token: None,
+                                })
+                            }
                         };
-
-                    // Lower scope and recurse into the found macro
-                    scope.push(macro_with_arg_name.clone());
-                    // TODO: Add proper parameters to the found macro definition
-                    // https://github.com/huff-language/huffc/blob/master/src/compiler/processor.ts#L91-L98
-                    let res = Codegen::recurse_bytecode(
-                        macro_with_arg_name.clone(),
-                        ast.clone(),
-                        scope,
-                        offset,
-                        jump_tables.clone(),
-                    );
-
-                    if let Ok(res) = res {
-                        // Set jump table values
-                        jump_table.insert(index, res.unmatched_jumps);
-
-                        // Increase offset by byte length of recursed macro
-                        offset +=
-                            res.bytes.iter().map(|b| b.0.clone()).collect::<String>().len() / 2;
-
-                        // Add bytecode from arg call macro
-                        final_bytes =
-                            final_bytes.iter().cloned().chain(res.bytes.iter().cloned()).collect();
-                    } else {
-                        tracing::error!(
-                            "Codegen failed to recurse into macro {}",
-                            macro_with_arg_name.name
-                        );
-                        return Err(CodegenError {
-                            kind: CodegenErrorKind::FailedMacroRecursion,
-                            span: None,
-                            token: None,
-                        })
+                        offset += push_bytes.len() / 2;
+                        tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
+                        final_bytes.push(Bytes(push_bytes));
+                        continue
                     }
 
-                    tracing::info!(target: "codegen", "FOUND ARG CALL TO \"{}\"", arg_name);
+                    // Check Opcode Definition
+                    if let Ok(o) = Opcode::from_str(&arg_name) {
+                        let b = Bytes(o.to_string());
+                        offset += b.0.len() / 2;
+                        tracing::info!(target: "codegen", "RECURSE_BYTECODE ARG CALL FOUND OPCODE: {:?}", b);
+                        final_bytes.push(b);
+                        continue
+                    }
+
+                    // Literal Check
+                    if let Some(macro_invoc) = mi {
+                        // First get this arg_nam position in the current macro definition parameter
+                        // list
+                        if let Some(pos) = macro_def
+                            .parameters
+                            .iter()
+                            .position(|r| r.name.as_ref().map_or(false, |s| s.eq(&arg_name)))
+                        {
+                            tracing::info!(target: "codegen", "GOT \"{}\" POS IN ARG LIST: {}", arg_name, pos);
+
+                            if let Some(arg) = macro_invoc.args.get(pos) {
+                                tracing::info!(target: "codegen", "GOT \"{:?}\" ARG FROM MACRO INVOCATION", arg);
+                                if let MacroArg::Literal(l) = arg {
+                                    tracing::info!(target: "codegen", "GOT LITERAL {:?} ARG FROM MACRO INVOCATION", l);
+
+                                    let hex_literal: String = bytes32_to_string(l, false);
+                                    let push_bytes = format!(
+                                        "{:02x}{}",
+                                        95 + hex_literal.len() / 2,
+                                        hex_literal
+                                    );
+                                    let b = Bytes(push_bytes);
+                                    offset += b.0.len() / 2;
+                                    final_bytes.push(b);
+
+                                    continue
+                                } else {
+                                    tracing::warn!(target: "codegen", "\"{}\" FOUND IN MACRO INVOCATION BUT NOT LITERAL: {:?}!", arg_name, arg);
+                                }
+                            } else {
+                                tracing::warn!(target: "codegen", "\"{}\" FOUND IN MACRO DEF BUT NOT IN MACRO INVOCATION!", arg_name);
+                            }
+                        } else {
+                            tracing::warn!(target: "codegen", "\"{}\" NOT IN ARG LIST", arg_name);
+                        }
+                    }
+
+                    // Assume Label Call Otherwise
+                    tracing::info!(target: "codegen", "RECURSE_BYTECODE ARG CALL DEFAULTING TO LABEL CALL: \"{}\"", arg_name);
+                    jump_table.insert(index, vec![Jump { label: arg_name, bytecode_index: 0 }]);
+                    offset += 3;
+                    final_bytes.push(Bytes(format!("{}xxxx", Opcode::Push2)));
+
+                    // tracing::error!(
+                    //     target: "codegen",
+                    //     "UNKNOWN ARGCALL \"{}\" HAS UNKNOWN TYPE, MUST BE LABEL, CONSTANT, OR
+                    // OPCODE!",     arg_name
+                    // );
+                    // return Err(CodegenError {
+                    //     kind: CodegenErrorKind::UnkownArgcallType,
+                    //     span: None,
+                    //     token: None,
+                    // });
                 }
             }
         }

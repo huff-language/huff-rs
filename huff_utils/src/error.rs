@@ -123,6 +123,8 @@ pub enum CodegenErrorKind {
     AbiGenerationFailure,
     /// An IO Error
     IOError(String),
+    /// ArgCall has an unknown type
+    UnkownArgcallType,
 }
 
 impl Spanned for CodegenError {
@@ -150,6 +152,7 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::AbiGenerationFailure => write!(f.out, "Abi generation failure!"),
             CodegenErrorKind::IOError(ioe) => write!(f.out, "IO ERROR: {:?}", ioe),
+            CodegenErrorKind::UnkownArgcallType => write!(f.out, "Unknown Argcall Type!"),
         }
     }
 }
