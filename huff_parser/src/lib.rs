@@ -600,9 +600,29 @@ impl Parser {
         self.match_kind(TokenKind::CloseParen)?;
         self.match_kind(TokenKind::Assign)?;
         let table_statements: Vec<Statement> = self.parse_table_body()?;
-
-        let size: usize = table_statements.len() *
-            if matches!(kind, TableKind::JumpTablePacked) { 0x02 } else { 0x20 };
+        let size = match kind {
+            TableKind::JumpTablePacked => table_statements.len() * 0x02,
+            TableKind::JumpTable => table_statements.len() * 0x20,
+            TableKind::CodeTable => {
+                table_statements
+                    .iter()
+                    .map(|s| {
+                        if let Statement::LabelCall(l) = s {
+                            l.len()
+                        } else {
+                            // TODO: Throw an error here.
+                            tracing::error!(
+                                target: "parser",
+                                "Invalid table statement. Must be a label call. Got: {:?}",
+                                s
+                            );
+                            0_usize
+                        }
+                    })
+                    .sum::<usize>() /
+                    2
+            }
+        };
 
         Ok(TableDefinition::new(
             table_name,
@@ -614,18 +634,15 @@ impl Parser {
 
     /// Parse the body of a table.
     ///
-    /// Only MACRO calls and JumpLabels should be authorized.
+    /// Only `LabelCall`s should be authorized.
+    /// TODO: Code tables are not yet supported.
     pub fn parse_table_body(&mut self) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
         self.match_kind(TokenKind::OpenBrace)?;
         while !self.check(TokenKind::CloseBrace) {
             match self.current_token.kind.clone() {
                 TokenKind::Ident(ident_str) => {
-                    // TODO: Not sure if this statement should be a macro invocation?
-                    statements.push(Statement::MacroInvocation(MacroInvocation {
-                        macro_name: ident_str.to_string(),
-                        args: vec![],
-                    }));
+                    statements.push(Statement::LabelCall(ident_str));
                     self.consume();
                 }
                 _ => {

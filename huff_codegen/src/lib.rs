@@ -11,7 +11,7 @@ use huff_utils::{
     bytecode::*,
     error::CodegenError,
     evm::Opcode,
-    prelude::{bytes32_to_string, pad_n_bytes, CodegenErrorKind, FileSource},
+    prelude::{bytes32_to_string, format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource},
     types::EToken,
 };
 use std::{fs, path::Path};
@@ -235,8 +235,6 @@ impl Codegen {
                                 if let Some(m) = contract.find_macro_by_name(&mi.macro_name) {
                                     m
                                 } else {
-                                    // TODO: this is where the file imports must be resolved .. in
-                                    // case macro definition is external
                                     tracing::error!(
                                         target: "codegen",
                                         "MISSING MACRO INVOCATION \"{}\"",
@@ -303,6 +301,98 @@ impl Codegen {
                             jump_table.insert(index, vec![Jump { label, bytecode_index: 0 }]);
                             offset += 3;
                             final_bytes.push(Bytes(format!("{}xxxx", Opcode::Push2)));
+                        }
+                        Statement::BuiltinFunctionCall(bf) => {
+                            tracing::info!(target: "codegen", "RECURSE BYTECODE GOT BUILTIN FUNCTION CALL: {:?}", bf);
+                            match bf.kind {
+                                BuiltinFunctionKind::Codesize => {
+                                    let ir_macro = if let Some(m) = contract
+                                        .find_macro_by_name(bf.args[0].name.as_ref().unwrap())
+                                    {
+                                        m
+                                    } else {
+                                        tracing::error!(
+                                            target: "codegen",
+                                            "MISSING MACRO PASSED TO __codesize \"{}\"",
+                                            bf.args[0].name.as_ref().unwrap()
+                                        );
+                                        return Err(CodegenError {
+                                            kind: CodegenErrorKind::MissingMacroDefinition(
+                                                bf.args[0].name.as_ref().unwrap().to_string(), /* yuck */
+                                            ),
+                                            span: None,
+                                            token: None,
+                                        })
+                                    };
+
+                                    let res: BytecodeRes = if let Ok(res) =
+                                        Codegen::recurse_bytecode(
+                                            ir_macro.clone(),
+                                            ast.clone(),
+                                            scope,
+                                            offset,
+                                            jump_tables.clone(),
+                                        ) {
+                                        res
+                                    } else {
+                                        tracing::error!(
+                                            target: "codegen",
+                                            "FAILED TO RECURSE INTO MACRO \"{}\"",
+                                            ir_macro.name
+                                        );
+                                        return Err(CodegenError {
+                                            kind: CodegenErrorKind::FailedMacroRecursion,
+                                            span: None,
+                                            token: None,
+                                        })
+                                    };
+
+                                    let size = format_even_bytes(format!(
+                                        "{:x}",
+                                        (res.bytes.iter().map(|b| b.0.len()).sum::<usize>() / 2)
+                                    ));
+                                    let push_bytes = format!("{:02x}{}", 95 + size.len() / 2, size);
+
+                                    offset += push_bytes.len() / 2;
+
+                                    final_bytes.push(Bytes(push_bytes));
+                                }
+                                BuiltinFunctionKind::Tablesize => {
+                                    let ir_table = if let Some(t) = contract
+                                        .find_table_by_name(bf.args[0].name.as_ref().unwrap())
+                                    {
+                                        t
+                                    } else {
+                                        tracing::error!(
+                                            target: "codegen",
+                                            "MISSING TABLE PASSED TO __tablesize \"{}\"",
+                                            bf.args[0].name.as_ref().unwrap()
+                                        );
+                                        return Err(CodegenError {
+                                            kind: CodegenErrorKind::MissingMacroDefinition(
+                                                bf.args[0].name.as_ref().unwrap().to_string(), /* yuck */
+                                            ),
+                                            span: None,
+                                            token: None,
+                                        })
+                                    };
+
+                                    let size = bytes32_to_string(&ir_table.size, false);
+                                    let push_bytes = format!("{:02x}{}", 95 + size.len() / 2, size);
+
+                                    offset += push_bytes.len() / 2;
+
+                                    final_bytes.push(Bytes(push_bytes));
+                                }
+                                BuiltinFunctionKind::Tablestart => {
+                                    // TODO: Store table instances for filling out placeholder
+                                    // jumpdests
+
+                                    offset += 3;
+
+                                    final_bytes.push(Bytes(format!("{}xxxx", Opcode::Push2)));
+                                }
+                            }
                         }
                         s => {
                             tracing::error!(target: "codegen", "UNEXPECTED STATEMENT: {:?}", s);

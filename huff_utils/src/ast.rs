@@ -46,6 +46,16 @@ impl Contract {
         }
     }
 
+    /// Returns the first table that matches the provided name
+    pub fn find_table_by_name(&self, name: &str) -> Option<TableDefinition> {
+        if let Some(t) = self.tables.iter().find(|t| t.name == name) {
+            Some(t.clone())
+        } else {
+            tracing::warn!("Failed to find table \"{}\" in contract", name);
+            None
+        }
+    }
+
     /// Derives the FreeStoragePointers into their bytes32 representation
     pub fn derive_storage_pointers(&mut self) {
         let mut storage_pointers: Vec<[u8; 32]> = Vec::new();
@@ -220,8 +230,8 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                     l.inner.iter().for_each(|s| inner_irbytes.push(IRByte::Statement(s.clone())));
                 }
                 Statement::BuiltinFunctionCall(builtin) => {
-                    // TODO
                     tracing::info!(target: "codegen", "PUSHING BUILTIN FUNCTION CALL IRBytes: {:?}", builtin);
+                    inner_irbytes.push(IRByte::Statement(Statement::BuiltinFunctionCall(builtin.clone())));
                 }
             }
         });
