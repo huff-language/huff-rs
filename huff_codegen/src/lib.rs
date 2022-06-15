@@ -355,7 +355,7 @@ impl Codegen {
         }
 
         // We're done, let's pop off the macro invocation
-        if let None = mis.pop() {
+        if mis.pop().is_none() {
             tracing::warn!(target: "codegen", "ATTEMPTED MACRO INVOCATION POP FAILED AT SCOPE: {}", scope.len());
         }
 
