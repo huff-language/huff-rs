@@ -324,6 +324,8 @@ impl Codegen {
                             final_bytes.push(Bytes(format!("{}xxxx", Opcode::Push2)));
                         }
                         s => {
+                            tracing::error!(target: "codegen", "CURRENT MACRO DEF: {:?}", macro_def);
+                            tracing::error!(target: "codegen", "STATEMENTS LEFT: {:?}", s);
                             tracing::error!(target: "codegen", "UNEXPECTED STATEMENT: {:?}", s);
                             return Err(CodegenError {
                                 kind: CodegenErrorKind::InvalidMacroStatement,
