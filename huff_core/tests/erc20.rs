@@ -12,11 +12,13 @@ fn test_erc20_compile() {
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
     )]);
 
+    // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
-    let source = file_source.source.as_ref().unwrap();
+    let recursed_file_source = Compiler::recurse_deps(file_source.clone()).unwrap();
+    let full_source = recursed_file_source.fully_flatten();
 
     // Lex + Parse
-    let lexer = Lexer::new(source);
+    let lexer = Lexer::new(&full_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("../huff-examples/erc20/contracts".to_string()));
     let mut contract = parser.parse().unwrap();
