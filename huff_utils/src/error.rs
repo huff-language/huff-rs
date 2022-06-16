@@ -170,6 +170,8 @@ pub enum CompilerError<'a> {
     PathBufRead(OsString),
     /// Bytecode Generation Error
     CodegenError(CodegenError),
+    /// Multiple Failed Compiles
+    FailedCompiles(Vec<CompilerError<'a>>),
 }
 
 impl<'a> fmt::Display for CompilerError<'a> {
@@ -180,6 +182,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
             CompilerError::ParserError(pe) => write!(f, "ParserError({:?})", pe),
             CompilerError::PathBufRead(os_str) => write!(f, "PathBufRead({:?})", os_str),
             CompilerError::CodegenError(ce) => write!(f, "CodegenError({:?})", ce),
+            CompilerError::FailedCompiles(v) => write!(f, "FailedCompiles({})", v.len()),
         }
     }
 }

@@ -10,6 +10,7 @@ use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
 use std::{
+    fs,
     path::{Path, PathBuf},
     time::SystemTime,
 };
@@ -218,28 +219,21 @@ impl<'a> Compiler {
                 let encoded_inputs = Codegen::encode_constructor_args(inputs);
                 tracing::info!(target: "core", "ENCODED {} INPUTS", encoded_inputs.len());
 
-                // Create and Eport Artifact with an ABI
-                let output: OutputLocation = self.get_outputs();
-                let churn_res = cg.churn(file.clone(), encoded_inputs, &main_bytecode, &constructor_bytecode);
+                // Generate Artifact with ABI
+                let churn_res = cg.churn(file, encoded_inputs, &main_bytecode, &constructor_bytecode);
                 match churn_res {
                     Ok(mut artifact) => {
-                        tracing::info!(target: "core", "GENERATED ARTIFACT {:?}", artifact);
                         // Then we can have the code gen output the artifact
                         let abiout = cg.abi_gen(contract, None);
                         match abiout {
                             Ok(abi) => {
-                                tracing::info!(target: "core", "GENERATED ABI {:?}", abi);
+                                tracing::info!(target: "core", "GENERATED ABI");
                                 artifact.abi = Some(abi)
                             },
                             Err(e) => {
-                                tracing::error!(target: "core", "ARTIFACT GENERATION FAILED!\nError: {:?}", e)
+                                tracing::error!(target: "core", "ARTIFACT GENERATION FAILED: {:?}", e)
                             }
                         }
-                        let json_out = format!("{}/{}.json", output.0, file.path.to_uppercase().replacen("./", "", 1));
-                        if let Err(e) = artifact.export(json_out.clone()) {
-                            tracing::error!(target: "core", "ARTIFACT EXPORT FAILED!\nError: {:?}", e);
-                        }
-                        tracing::info!(target: "core", "EXPORTED ARTIFACT TO \"{}\"", json_out);
                         Ok(artifact)
                     }
                     Err(e) => {
@@ -250,7 +244,7 @@ impl<'a> Compiler {
             })
             .collect();
 
-        // Trace the artifacts
+        // Output failed compilation here + return
         if let Ok(num) = artifacts.iter().try_fold::<usize, _, Result<usize, ()>>(0, |acc, a| {
             if a.is_err() {
                 Ok(acc + 1)
@@ -260,8 +254,13 @@ impl<'a> Compiler {
         }) {
             if num > 0 {
                 tracing::error!(target: "core", "{} FILES FAILED TO COMPILE", num);
+                return Err(CompilerError::FailedCompiles(
+                    artifacts.iter().filter_map(|a| a.clone().err()).collect(),
+                ))
             }
         }
+
+        // Otherwise, pretty-print successful compiles
         if let Ok(num) = artifacts.iter().try_fold::<usize, _, Result<usize, ()>>(0, |acc, a| {
             if a.is_ok() {
                 Ok(acc + 1)
@@ -273,6 +272,25 @@ impl<'a> Compiler {
                 tracing::info!(target: "core", "{} FILES COMPILED SUCCESSFULLY", num);
             }
         }
+
+        // Clean output directory
+        let output: OutputLocation = self.get_outputs();
+        tracing::warn!(target: "core", "REMOVING DIRECTORY: \"{}\"", output.0);
+        if fs::remove_dir_all(output.0.clone()).is_ok() {
+            tracing::info!(target: "core", "OUTPUT DIRECTORY DELETED!");
+        }
+
+        // EXPORT
+        artifacts.iter().filter_map(|a| a.as_ref().ok()).for_each(|a| {
+            let json_out =
+                format!("{}/{}.json", output.0, a.file.path.to_uppercase().replacen("./", "", 1));
+            tracing::debug!(target: "core", "JSON OUTPUT: {:?}", json_out);
+
+            if let Err(e) = a.export(json_out.clone()) {
+                tracing::error!(target: "core", "ARTIFACT EXPORT FAILED!\nError: {:?}", e);
+            }
+            tracing::info!(target: "core", "EXPORTED ARTIFACT TO \"{}\"", json_out);
+        });
 
         Ok(artifacts)
     }
