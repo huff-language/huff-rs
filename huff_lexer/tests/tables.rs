@@ -1,10 +1,11 @@
 use huff_lexer::Lexer;
-use huff_utils::prelude::{Token, TokenKind};
+use huff_utils::prelude::*;
 
 #[test]
 fn parses_jump_table() {
     let source = "#define jumptable JUMP_TABLE()";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())
@@ -21,7 +22,8 @@ fn parses_jump_table() {
 #[test]
 fn parses_packed_jump_table() {
     let source = "#define jumptable__packed JUMP_TABLE_PACKED()";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())
@@ -38,7 +40,8 @@ fn parses_packed_jump_table() {
 #[test]
 fn parses_code_table() {
     let source = "#define table CODE_TABLE()";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())

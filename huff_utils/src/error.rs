@@ -1,7 +1,7 @@
 use crate::{
+    files::{Span, Spanned},
     io::UnpackError,
     report::{Report, Reporter},
-    span::{Span, Spanned},
     token::TokenKind,
 };
 use std::{ffi::OsString, fmt, io::Write};
@@ -32,7 +32,7 @@ pub enum ParserError {
 }
 
 /// A Lexing Error
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LexicalError<'a> {
     /// The kind of error
     pub kind: LexicalErrorKind<'a>,
@@ -63,7 +63,7 @@ pub enum LexicalErrorKind<'a> {
 
 impl<'a> Spanned for LexicalError<'a> {
     fn span(&self) -> Span {
-        self.span
+        self.span.clone()
     }
 }
 
@@ -125,11 +125,13 @@ pub enum CodegenErrorKind {
     IOError(String),
     /// ArgCall has an unknown type
     UnkownArgcallType,
+    /// Missing Macro Invocation
+    MissingMacroInvocation(String),
 }
 
 impl Spanned for CodegenError {
     fn span(&self) -> Span {
-        self.span.unwrap()
+        self.span.clone().unwrap()
     }
 }
 
@@ -153,6 +155,9 @@ impl<W: Write> Report<W> for CodegenError {
             CodegenErrorKind::AbiGenerationFailure => write!(f.out, "Abi generation failure!"),
             CodegenErrorKind::IOError(ioe) => write!(f.out, "IO ERROR: {:?}", ioe),
             CodegenErrorKind::UnkownArgcallType => write!(f.out, "Unknown Argcall Type!"),
+            CodegenErrorKind::MissingMacroInvocation(str) => {
+                write!(f.out, "Missing Macro \"{}\" Invocation!", str)
+            }
         }
     }
 }

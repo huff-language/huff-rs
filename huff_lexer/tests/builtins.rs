@@ -1,12 +1,12 @@
 use huff_lexer::Lexer;
-use huff_utils::prelude::{Span, Token, TokenKind};
+use huff_utils::prelude::{FullFileSource, Span, Token, TokenKind};
 
 #[test]
 fn parses_builtin_function_in_macro_body() {
     let builtin_funcs = ["__codesize", "__tablesize", "__tablestart"];
 
     for builtin in builtin_funcs {
-        let source = format!(
+        let source = &format!(
             r#"
             #define macro TEST() = takes(0) returns(0) {}
                 {}(MAIN)
@@ -14,8 +14,9 @@ fn parses_builtin_function_in_macro_body() {
             "#,
             "{", builtin, "}",
         );
-        let mut lexer = Lexer::new(source.as_str());
-        assert_eq!(lexer.source, source);
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let mut lexer = Lexer::new(flattened_source.clone());
+        assert_eq!(lexer.source, flattened_source);
 
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // #define
@@ -44,10 +45,10 @@ fn parses_builtin_function_in_macro_body() {
         // The builtin fn should be parsed as a `TokenKind::BuiltinFunction` here.
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let builtin_span = Span::new(74..74 + builtin.len());
+        let builtin_span = Span::new(74..74 + builtin.len(), None);
         assert_eq!(
             unwrapped,
-            Token::new(TokenKind::BuiltinFunction(builtin.to_string()), builtin_span)
+            Token::new(TokenKind::BuiltinFunction(builtin.to_string()), builtin_span.clone())
         );
         assert_eq!(lexer.span, builtin_span);
 
@@ -70,16 +71,17 @@ fn fails_to_parse_builtin_outside_macro_body() {
     let builtin_funcs = ["__codesize", "__tablesize", "__tablestart"];
 
     for builtin in builtin_funcs {
-        let source = format!("{}(MAIN)", builtin);
-        let mut lexer = Lexer::new(source.as_str());
-        assert_eq!(lexer.source, source);
+        let source = &format!("{}(MAIN)", builtin);
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let mut lexer = Lexer::new(flattened_source.clone());
+        assert_eq!(lexer.source, flattened_source);
 
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let fn_name_span = Span::new(0..builtin.len());
+        let fn_name_span = Span::new(0..builtin.len(), None);
         assert_eq!(
             unwrapped,
-            Token::new(TokenKind::BuiltinFunction(builtin.to_string()), fn_name_span)
+            Token::new(TokenKind::BuiltinFunction(builtin.to_string()), fn_name_span.clone())
         );
         assert_eq!(lexer.span, fn_name_span);
 

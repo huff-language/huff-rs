@@ -5,7 +5,7 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
-use huff_utils::{bytes_util::*, error::*, evm::*, span::*, token::*, types::*};
+use huff_utils::prelude::*;
 use regex::Regex;
 use std::{iter::Peekable, str::Chars};
 
@@ -38,7 +38,7 @@ pub struct Lexer<'a> {
     /// The source code as peekable chars.
     pub chars: Peekable<Chars<'a>>,
     /// The raw source code.
-    pub source: &'a str,
+    pub source: FullFileSource<'a>,
     /// The current lexing span.
     pub span: Span,
     /// The previous lexed Token.
@@ -54,10 +54,10 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
-    pub fn new(source: &'a str) -> Self {
+    pub fn new(source: FullFileSource<'a>) -> Self {
         Self {
-            reference_chars: source.chars().peekable(),
-            chars: source.chars().peekable(),
+            reference_chars: source.source.chars().peekable(),
+            chars: source.source.chars().peekable(),
             source,
             span: Span::default(),
             lookback: None,
@@ -145,7 +145,7 @@ impl<'a> Lexer<'a> {
         if self.eof {
             Span::EOF
         } else {
-            self.span
+            self.span.clone()
         }
     }
 
@@ -185,23 +185,23 @@ impl<'a> Lexer<'a> {
 
     /// Try to peek at next n characters from the source
     pub fn peek_n_chars(&mut self, n: usize) -> String {
-        let mut newspan: Span = self.span;
+        let mut newspan: Span = self.span.clone();
         newspan.end += n;
         // Break with an empty string if the bounds are exceeded
-        if newspan.end > self.source.len() {
+        if newspan.end > self.source.source.len() {
             return String::default()
         }
-        self.source[newspan.range().unwrap()].to_string()
+        self.source.source[newspan.range().unwrap()].to_string()
     }
 
     /// Peek n chars from a given start point in the source
     pub fn peek_n_chars_from(&mut self, n: usize, from: usize) -> String {
-        self.source[Span::new(from..(from + n)).range().unwrap()].to_string()
+        self.source.source[Span::new(from..(from + n), None).range().unwrap()].to_string()
     }
 
     /// Gets the current slice of the source code covered by span
-    pub fn slice(&self) -> &'a str {
-        &self.source[self.span.range().unwrap()]
+    pub fn slice(&self) -> String {
+        self.source.source[self.span.range().unwrap()].to_string()
     }
 
     /// Consumes the characters
@@ -460,14 +460,14 @@ impl<'a> Iterator for Lexer<'a> {
                         if !['(', ')'].contains(&curr_char) {
                             self.dyn_consume(|c| c.is_alphanumeric() || *c == '[' || *c == ']');
                             // got a type at this point, we have to know which
-                            let raw_type: &str = self.slice();
+                            let raw_type: String = self.slice();
                             // check for arrays first
-                            if EVM_TYPE_ARRAY_REGEX.is_match(raw_type) {
+                            if EVM_TYPE_ARRAY_REGEX.is_match(&raw_type) {
                                 // split to get array size and type
                                 // TODO: support multi-dimensional arrays
                                 let words: Vec<String> = Regex::new(r"\[")
                                     .unwrap()
-                                    .split(raw_type)
+                                    .split(&raw_type)
                                     .map(|x| x.replace(']', ""))
                                     .collect();
 
@@ -485,7 +485,7 @@ impl<'a> Iterator for Lexer<'a> {
                                                         kind: LexicalErrorKind::InvalidArraySize(
                                                             &words[1],
                                                         ),
-                                                        span: self.span,
+                                                        span: self.span.clone(),
                                                     };
                                                     tracing::error!("{}", format!("{:?}", err));
                                                     err
@@ -501,7 +501,7 @@ impl<'a> Iterator for Lexer<'a> {
                                 } else {
                                     let err = LexicalError {
                                         kind: LexicalErrorKind::InvalidPrimitiveType(&words[0]),
-                                        span: self.span,
+                                        span: self.span.clone(),
                                     };
                                     tracing::error!("{}", format!("{:?}", err));
                                 }
@@ -524,7 +524,10 @@ impl<'a> Iterator for Lexer<'a> {
                         let slice = self.slice();
                         // Check for built-in function calls
                         if self.context == Context::MacroBody &&
-                            matches!(slice, "__codesize" | "__tablesize" | "__tablestart")
+                            matches!(
+                                slice.as_ref(),
+                                "__codesize" | "__tablesize" | "__tablestart"
+                            )
                         {
                             TokenKind::BuiltinFunction(slice.to_string())
                         } else {
@@ -542,7 +545,7 @@ impl<'a> Iterator for Lexer<'a> {
                             matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
                     });
                     self.span.start += 2; // Ignore the "0x"
-                    TokenKind::Literal(str_to_bytes32(self.slice()))
+                    TokenKind::Literal(str_to_bytes32(self.slice().as_ref()))
                 }
                 '=' => TokenKind::Assign,
                 '(' => {
@@ -606,7 +609,7 @@ impl<'a> Iterator for Lexer<'a> {
                             tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN {:?}", self.current_span());
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
-                                self.span,
+                                self.span.clone(),
                             )))
                         }
                     }
@@ -629,7 +632,7 @@ impl<'a> Iterator for Lexer<'a> {
                             tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN {:?}", self.current_span());
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
-                                self.span,
+                                self.span.clone(),
                             )))
                         }
                     }
@@ -640,7 +643,7 @@ impl<'a> Iterator for Lexer<'a> {
                     tracing::error!(target: "lexer", "UNSUPPORTED TOKEN '{}' AT {:?}", ch, self.current_span());
                     return Some(Err(LexicalError::new(
                         LexicalErrorKind::InvalidCharacter(ch),
-                        self.span,
+                        self.span.clone(),
                     )))
                 }
             };
@@ -649,7 +652,15 @@ impl<'a> Iterator for Lexer<'a> {
                 self.eof = true;
             }
 
-            let token = Token { kind, span: self.span };
+            // Produce a relative span
+            let new_span = match self.source.relative_span(self.span.clone()) {
+                Some(s) => s,
+                None => {
+                    tracing::warn!(target: "lexer", "UNABLE TO RELATIVIZE SPAN FOR \"{}\"@{:?}", kind, self.span);
+                    self.span.clone()
+                }
+            };
+            let token = Token { kind, span: new_span };
             if token.kind != TokenKind::Whitespace {
                 self.lookback = Some(token.clone());
             }
@@ -663,7 +674,7 @@ impl<'a> Iterator for Lexer<'a> {
         // If we haven't returned an eof token, return one
         if !self.eof_returned {
             self.eof_returned = true;
-            let token = Token { kind: TokenKind::Eof, span: self.span };
+            let token = Token { kind: TokenKind::Eof, span: self.span.clone() };
             if token.kind != TokenKind::Whitespace {
                 self.lookback = Some(token.clone());
             }

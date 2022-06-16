@@ -11,9 +11,10 @@ fn parses_function_type() {
     ];
 
     for (fn_type, fn_type_kind) in fn_types {
-        let source = format!("#define function test() {} returns (uint256)", fn_type);
-        let mut lexer = Lexer::new(source.as_str());
-        assert_eq!(lexer.source, source);
+        let source = &format!("#define function test() {} returns (uint256)", fn_type);
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let mut lexer = Lexer::new(flattened_source.clone());
+        assert_eq!(lexer.source, flattened_source);
 
         let _ = lexer.next(); // #define
         let _ = lexer.next(); // whitespace
@@ -26,8 +27,8 @@ fn parses_function_type() {
 
         // Lex view first
         let tok = lexer.next().unwrap().unwrap();
-        let type_span = Span::new(24..24 + fn_type.len());
-        assert_eq!(tok, Token::new(fn_type_kind, type_span));
+        let type_span = Span::new(24..24 + fn_type.len(), None);
+        assert_eq!(tok, Token::new(fn_type_kind, type_span.clone()));
         assert_eq!(lexer.span, type_span);
 
         let _ = lexer.next(); // whitespace

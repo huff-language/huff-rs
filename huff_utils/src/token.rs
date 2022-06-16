@@ -1,4 +1,4 @@
-use crate::{evm::Opcode, span::Span, types::PrimitiveEVMType};
+use crate::{evm::Opcode, files::Span, types::PrimitiveEVMType};
 use std::{fmt, fmt::Write};
 
 type Literal = [u8; 32];
