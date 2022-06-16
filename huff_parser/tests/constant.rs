@@ -4,9 +4,9 @@ use huff_utils::prelude::*;
 
 #[test]
 fn parses_free_storage_pointer_constant() {
-    let c = "#define constant FSP_LOCATION = FREE_STORAGE_POINTER()";
-
-    let lexer = Lexer::new(c);
+    let source = "#define constant FSP_LOCATION = FREE_STORAGE_POINTER()";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let contract = parser.parse().unwrap();
@@ -24,9 +24,9 @@ fn parses_free_storage_pointer_constant() {
 
 #[test]
 fn parses_literal_constant() {
-    let c = "#define constant LITERAL = 0x8C5BE1E5EBEC7D5BD14F71427D1E84F3DD0314C0F7B2291E5B200AC8C7C3B925";
-
-    let lexer = Lexer::new(c);
+    let source = "#define constant LITERAL = 0x8C5BE1E5EBEC7D5BD14F71427D1E84F3DD0314C0F7B2291E5B200AC8C7C3B925";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let contract = parser.parse().unwrap();

@@ -16,15 +16,14 @@ The following example steps through the lexing of a simple, single-line source c
 definition.
 
 ```rust
-use huff_utils::{token::*, span::*};
+use huff_utils::prelude::*;
 use huff_lexer::{Lexer};
 use huff_parser::{Parser};
 
-// Mock source code as a string
+// Create a Lexer from the source code
 let source = "#define macro HELLO_WORLD() = takes(0) returns(0) {}";
-
-// Create a lexer from the source code
-let lexer = Lexer::new(source);
+let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+let mut lexer = Lexer::new(flattened_source);
 
 // Grab the tokens from the lexer
 let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();

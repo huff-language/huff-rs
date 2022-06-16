@@ -574,7 +574,7 @@ fn parses_keyword_arbitrary_whitespace() {
 
 #[test]
 fn parses_takes_keyword_arbitrary_whitespace() {
-    let source = "#define macro TEST() = takes (0) returns (0)";
+    let source = "#define macro TEST() =      takes (0) returns (0)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let mut lexer = Lexer::new(flattened_source);
 

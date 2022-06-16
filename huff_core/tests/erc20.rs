@@ -6,6 +6,7 @@ use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
 
+#[ignore]
 #[test]
 fn test_erc20_compile() {
     let file_sources: Vec<FileSource> = Compiler::fetch_sources(&vec![PathBuf::from(
@@ -15,10 +16,13 @@ fn test_erc20_compile() {
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
     let recursed_file_source = Compiler::recurse_deps(file_source.clone()).unwrap();
-    let full_source = recursed_file_source.fully_flatten();
-
-    // Lex + Parse
-    let lexer = Lexer::new(&full_source);
+    let flattened = recursed_file_source.fully_flatten();
+    let full_source = FullFileSource {
+        source: &flattened.0,
+        file: Some(file_source.clone()),
+        spans: flattened.1,
+    };
+    let lexer = Lexer::new(full_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("../huff-examples/erc20/contracts".to_string()));
     let mut contract = parser.parse().unwrap();

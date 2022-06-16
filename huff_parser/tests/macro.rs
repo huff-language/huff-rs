@@ -5,7 +5,8 @@ use huff_utils::{evm::Opcode, prelude::*};
 #[test]
 fn empty_macro() {
     let source = "#define macro HELLO_WORLD() = takes(0) returns(4) {}";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -28,7 +29,8 @@ fn empty_macro() {
 fn macro_with_simple_body() {
     let source =
         "#define macro HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -78,7 +80,8 @@ fn macro_with_arg_calls() {
     "#;
 
     // Parse tokens
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -136,7 +139,8 @@ fn macro_labels() {
     "#;
 
     // Parse tokens
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -193,7 +197,8 @@ fn macro_invocation_with_arg_call() {
     "#;
 
     // Parse tokens
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -241,7 +246,8 @@ fn macro_with_builtin_fn_call() {
     "#;
 
     // Parse tokens
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 

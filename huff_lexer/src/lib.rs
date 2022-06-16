@@ -312,13 +312,13 @@ impl<'a> Iterator for Lexer<'a> {
                                 self.consume();
                                 // Consume until newline
                                 self.dyn_consume(|c| *c != '\n');
-                                TokenKind::Comment(self.slice().to_string())
+                                TokenKind::Comment(self.slice())
                             }
                             '*' => {
                                 self.consume();
                                 // Consume until next '*/' occurance
                                 self.seq_consume("*/");
-                                TokenKind::Comment(self.slice().to_string())
+                                TokenKind::Comment(self.slice())
                             }
                             _ => TokenKind::Div,
                         }
@@ -508,7 +508,7 @@ impl<'a> Iterator for Lexer<'a> {
                             } else {
                                 // We don't want to consider any argument names or the "indexed"
                                 // keyword here.
-                                let primitive = PrimitiveEVMType::try_from(raw_type.to_string());
+                                let primitive = PrimitiveEVMType::try_from(raw_type);
                                 if let Ok(primitive) = primitive {
                                     found_kind = Some(TokenKind::PrimitiveType(primitive));
                                 }
@@ -529,9 +529,9 @@ impl<'a> Iterator for Lexer<'a> {
                                 "__codesize" | "__tablesize" | "__tablestart"
                             )
                         {
-                            TokenKind::BuiltinFunction(slice.to_string())
+                            TokenKind::BuiltinFunction(slice)
                         } else {
-                            TokenKind::Ident(slice.to_string())
+                            TokenKind::Ident(slice)
                         }
                     }
                 }

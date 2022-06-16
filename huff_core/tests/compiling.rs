@@ -37,7 +37,8 @@ const SOURCE: &str = r#"
 #[test]
 fn compiles_constructor_bytecode() {
     // Lex and Parse the source code
-    let lexer = Lexer::new(SOURCE);
+    let flattened_source = FullFileSource { source: SOURCE, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -61,7 +62,8 @@ fn compiles_constructor_bytecode() {
 #[test]
 fn compiles_runtime_bytecode() {
     // Lex and Parse the source code
-    let lexer = Lexer::new(SOURCE);
+    let flattened_source = FullFileSource { source: SOURCE, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 

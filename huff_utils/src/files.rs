@@ -63,22 +63,28 @@ impl FileSource {
     /// Let's say you have a file, `a.txt` with two dependencies, `b.txt` and `c.txt`,
     /// `fully_flatten()` will generate a source code string with the contents of `b.txt` and
     /// `c.txt` appended to the end of the contents of `a.txt`.
-    pub fn fully_flatten(&self) -> String {
+    pub fn fully_flatten(&self) -> (String, Vec<(FileSource, Span)>) {
         // First grab the parent file source
         let mut full_source = if let Some(s) = &self.source { s.clone() } else { "".to_string() };
+        let mut relative_positions = vec![];
 
         // Then recursively grab source code for dependencies
         match &self.dependencies {
             Some(vfs) => {
                 for fs in vfs {
-                    full_source.push_str(&fs.fully_flatten())
+                    let mut flattened = fs.fully_flatten();
+                    let span =
+                        Span::new(full_source.len()..(full_source.len() + flattened.0.len()), None);
+                    full_source.push_str(&flattened.0);
+                    relative_positions.append(&mut flattened.1);
+                    relative_positions.push((fs.clone(), span))
                 }
             }
             None => {}
         }
 
         // Return the full source
-        full_source
+        (full_source, relative_positions)
     }
 
     /// Derives a File Path's directory

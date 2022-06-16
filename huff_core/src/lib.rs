@@ -178,12 +178,18 @@ impl<'a> Compiler {
             .map(|file| {
                 // Fully Flatten a file into a source string containing source code of file and all
                 // its dependencies
-                let full_source = file.fully_flatten();
+                let flattened = file.fully_flatten();
                 tracing::info!(target: "core", "FLATTENED SOURCE FILE \"{}\"", file.path);
+                let full_source = FullFileSource {
+                    source: &flattened.0,
+                    file: Some(file.clone()),
+                    spans: flattened.1
+                };
+                tracing::debug!(target: "core", "GOT FULL SOURCE: \"{:?}\"", full_source);
 
                 // Perform Lexical Analysis
                 // Create a new lexer from the FileSource, flattening dependencies
-                let lexer: Lexer = Lexer::new(&full_source);
+                let lexer: Lexer = Lexer::new(full_source);
 
                 // Grab the tokens from the lexer
                 let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();

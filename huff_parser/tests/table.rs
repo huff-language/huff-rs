@@ -7,8 +7,9 @@ fn table_with_no_body() {
     let table_kinds = [TokenKind::JumpTable, TokenKind::JumpTablePacked, TokenKind::CodeTable];
 
     for kind in table_kinds {
-        let source = format!("#define {} TEST_TABLE() = {}{}", kind.to_string(), "{", "}");
-        let lexer = Lexer::new(source.as_str());
+        let source = &format!("#define {} TEST_TABLE() = {}{}", kind.to_string(), "{", "}");
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(flattened_source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
         let mut parser = Parser::new(tokens, None);
@@ -36,13 +37,12 @@ fn table_with_body() {
     ];
 
     for (kind, expected_size) in table_kinds {
-        let source = format!(
+        let source = &format!(
             "#define {} TEST_TABLE() = {}\nmacro_call_1 macro_call_2 macro_call_3\n{}",
-            kind.to_string(),
-            "{",
-            "}"
+            kind, "{", "}"
         );
-        let lexer = Lexer::new(source.as_str());
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(flattened_source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
         let mut parser = Parser::new(tokens, None);

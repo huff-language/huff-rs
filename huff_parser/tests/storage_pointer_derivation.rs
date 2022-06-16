@@ -4,10 +4,11 @@ use huff_utils::prelude::*;
 
 #[test]
 fn derives_storage_pointers() {
-    let c =
+    let source =
         "#define constant FSP_LOCATION = FREE_STORAGE_POINTER()\n#define constant FSP_LOCATION_2 = FREE_STORAGE_POINTER()\n#define constant NUM = 0xa57B";
 
-    let lexer = Lexer::new(c);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let mut contract = parser.parse().unwrap();

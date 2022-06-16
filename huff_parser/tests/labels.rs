@@ -13,7 +13,8 @@ fn multiline_labels() {
         0x00 0x00 revert
     }
     "#;
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
