@@ -69,7 +69,7 @@ pub struct Lexer<'a> {
     pub span: Span,
     /// End of file
     pub eof: bool,
-    inner: logos::Lexer<'a, TokenKind>,
+    inner: logos::Lexer<'a, TokenKind<'a>>,
 }
 
 impl<'a> Lexer<'a> {
@@ -80,17 +80,28 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Token;
+    type Item = Token<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let kind_opt = self.inner.next();
         let span = self.inner.span();
         self.span = Span { start: span.start, end: span.end };
-        if let Some(kind) = kind_opt {
-            Some(Token { kind, span: Span { start: span.start, end: span.end } })
-        } else {
-            self.eof = true;
-            None
+
+        match kind_opt {
+            Some(TokenKind::Opcode(op)) => {
+                if self.inner.extras.in_scope {
+                    // Lex as opcodes token if inside a scope
+                    Some(Token { kind: TokenKind::Opcode(op), span: self.span })
+                } else {
+                    // Lex as identifier otherwise
+                    Some(Token { kind: TokenKind::Ident(op), span: self.span })
+                }
+            }
+            Some(kind) => Some(Token::new(kind, self.span)),
+            None => {
+                self.eof = true;
+                None
+            }
         }
     }
 }
