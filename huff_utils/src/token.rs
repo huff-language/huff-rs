@@ -18,6 +18,7 @@ impl<'a> Token<'a> {
     }
 }
 
+/// Extra data
 #[derive(Clone, Default)]
 pub struct TokenExtras {
     /// Whether the current context is a scope i.e. lexing b/w `{` and `}`
