@@ -33,10 +33,7 @@ fn include_with_string() {
     let tok = lexer.next();
     let unwrapped = tok.unwrap();
     let literal_span = Span::new(9..31);
-    assert_eq!(
-        unwrapped,
-        Token::new(TokenKind::Str("./huffs/Ownable.huff".to_string()), literal_span)
-    );
+    assert_eq!(unwrapped, Token::new(TokenKind::Str("./huffs/Ownable.huff"), literal_span));
     assert_eq!(lexer.span, literal_span);
 
     // We should have reached EOF now
@@ -61,10 +58,7 @@ fn include_with_string_single_quote() {
     let tok = lexer.next();
     let unwrapped = tok.unwrap();
     let literal_span = Span::new(9..31);
-    assert_eq!(
-        unwrapped,
-        Token::new(TokenKind::Str("./huffs/Ownable.huff".to_string()), literal_span)
-    );
+    assert_eq!(unwrapped, Token::new(TokenKind::Str("./huffs/Ownable.huff"), literal_span));
     assert_eq!(lexer.span, literal_span);
     lexer.next();
     // We should have reached EOF now

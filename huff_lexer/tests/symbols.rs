@@ -26,10 +26,7 @@ fn lexes_assign_op() {
     let tok = lexer.next();
     let unwrapped = tok.unwrap();
     let function_span = Span::new(17..41);
-    assert_eq!(
-        unwrapped,
-        Token::new(TokenKind::Ident("TRANSFER_EVENT_SIGNATURE".to_string()), function_span)
-    );
+    assert_eq!(unwrapped, Token::new(TokenKind::Ident("TRANSFER_EVENT_SIGNATURE"), function_span));
     assert_eq!(lexer.span, function_span);
 
     // Finally, we have our assign operator
@@ -62,10 +59,7 @@ fn lexes_brackets() {
     let tok = lexer.next();
     let unwrapped = tok.unwrap();
     let loc_span = Span::new(1..22);
-    assert_eq!(
-        unwrapped,
-        Token::new(TokenKind::Ident("TOTAL_SUPPLY_LOCATION".to_string()), loc_span)
-    );
+    assert_eq!(unwrapped, Token::new(TokenKind::Ident("TOTAL_SUPPLY_LOCATION"), loc_span));
     assert_eq!(lexer.span, loc_span);
 
     // Then we should parse the closing bracket
