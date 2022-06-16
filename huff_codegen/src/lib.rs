@@ -77,7 +77,7 @@ impl Codegen {
             &mut vec![m_macro],
             0,
             Vec::default(),
-            &mut vec![],
+            &mut Vec::default(),
         )?;
         tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
         let bytecode = bytecode_res.bytes.iter().map(|byte| byte.0.to_string()).collect();
@@ -145,7 +145,7 @@ impl Codegen {
             &mut vec![c_macro],
             0,
             Vec::default(),
-            &mut vec![],
+            &mut Vec::default(),
         )?;
         tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
         let bytecode = bytecode_res.bytes.iter().map(|byte| byte.0.to_string()).collect();
