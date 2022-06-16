@@ -1,6 +1,7 @@
 use crate::{
     files::{Span, Spanned},
     io::UnpackError,
+    prelude::parse_extension,
     report::{Report, Reporter},
     token::TokenKind,
 };
@@ -182,8 +183,56 @@ pub enum CompilerError<'a> {
 impl<'a> fmt::Display for CompilerError<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            CompilerError::LexicalError(le) => write!(f, "LexicalError({:?})", le),
-            CompilerError::FileUnpackError(ue) => write!(f, "FileUnpackError({:?})", ue),
+            CompilerError::LexicalError(le) => match le.kind {
+                LexicalErrorKind::UnexpectedEof => {
+                    write!(
+                        f,
+                        "\nError: Unexpected End Of File {}{}\n",
+                        le.span.identifier(),
+                        le.span.source_seg()
+                    )
+                }
+                LexicalErrorKind::InvalidCharacter(c) => {
+                    write!(
+                        f,
+                        "\nError: Invalid Character: \"{}\" {}{}\n",
+                        c,
+                        le.span.identifier(),
+                        le.span.source_seg()
+                    )
+                }
+                LexicalErrorKind::InvalidArraySize(a) => {
+                    write!(
+                        f,
+                        "\nError: Invalid Array Size: \"{}\" {}{}\n",
+                        a,
+                        le.span.identifier(),
+                        le.span.source_seg()
+                    )
+                }
+                LexicalErrorKind::InvalidPrimitiveType(ty) => {
+                    write!(
+                        f,
+                        "\nError: Invalid Primitive Type: \"{}\" {}{}\n",
+                        ty,
+                        le.span.identifier(),
+                        le.span.source_seg()
+                    )
+                }
+            },
+            CompilerError::FileUnpackError(ue) => match ue {
+                UnpackError::InvalidDirectory(id) => {
+                    write!(f, "\nError: Invalid File Directory {}\n", id)
+                }
+                UnpackError::UnsupportedExtension(unsupported) => {
+                    write!(
+                        f,
+                        "\nError: Unsupported File Extension \"{}\"\n--> {}\n",
+                        parse_extension(unsupported).unwrap_or(""),
+                        unsupported
+                    )
+                }
+            },
             CompilerError::ParserError(pe) => write!(f, "ParserError({:?})", pe),
             CompilerError::PathBufRead(os_str) => write!(f, "PathBufRead({:?})", os_str),
             CompilerError::CodegenError(ce) => write!(f, "CodegenError({:?})", ce),

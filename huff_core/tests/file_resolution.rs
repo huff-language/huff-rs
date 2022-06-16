@@ -59,7 +59,7 @@ fn test_transform_paths_non_huff() {
     assert!(path_bufs.is_err());
     match path_bufs {
         Err(CompilerError::FileUnpackError(e)) => {
-            assert_eq!(e, UnpackError::UnsupportedExtension)
+            assert_eq!(e, UnpackError::UnsupportedExtension("./ERC20.txt".to_string()))
         }
         _ => {
             panic!("moose")
@@ -75,7 +75,7 @@ fn test_transform_paths_no_dir() {
     assert!(path_bufs.is_err());
     match path_bufs {
         Err(CompilerError::FileUnpackError(e)) => {
-            assert_eq!(e, UnpackError::InvalidDirectory)
+            assert_eq!(e, UnpackError::InvalidDirectory("./examples/random_dir/".to_string()))
         }
         _ => {
             panic!("moose")

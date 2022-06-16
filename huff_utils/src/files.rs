@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, time::SystemTime};
 use uuid::Uuid;
 
+#[allow(clippy::to_string_in_format_args)]
+
 /// An aliased output location to derive from the cli arguments.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct OutputLocation(pub String);
@@ -173,6 +175,27 @@ impl Span {
     /// Converts a span to a range.
     pub fn range(&self) -> Option<Range<usize>> {
         (*self != Self::EOF).then(|| self.start..self.end)
+    }
+
+    /// Produces a file identifier string for errors
+    pub fn identifier(&self) -> String {
+        self.file
+            .as_ref()
+            .map(|f| format!("\n-> {}:{}-{}", f.path, self.start, self.end))
+            .unwrap_or_default()
+    }
+
+    /// Produces a source segment string
+    pub fn source_seg(&self) -> String {
+        self.file
+            .as_ref()
+            .map(|f| {
+                f.source
+                    .as_ref()
+                    .map(|s| format!("\n | {}", &s[self.start..self.end]))
+                    .unwrap_or_default()
+            })
+            .unwrap_or_default()
     }
 }
 

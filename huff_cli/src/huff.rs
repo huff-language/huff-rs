@@ -11,6 +11,7 @@ use clap::Parser as ClapParser;
 use huff_core::Compiler;
 use huff_utils::prelude::{unpack_files, CompilerError};
 use std::path::Path;
+use yansi::Paint;
 
 /// The Huff CLI Args
 #[derive(ClapParser, Debug, Clone)]
@@ -62,7 +63,13 @@ fn main() {
     }
 
     // Create compiler from the Huff Args
-    let sources = cli.get_inputs().unwrap_or_default();
+    let sources = match cli.get_inputs() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("{}", Paint::red(format!("{}", e)));
+            std::process::exit(1);
+        }
+    };
     let compiler: Compiler = Compiler {
         sources: sources.clone(),
         output: match &cli.output {
@@ -99,8 +106,9 @@ fn main() {
                 }
                 _ => {
                     for err in errored.iter() {
-                        println!("COMPILER ERROR: {}", err);
+                        eprintln!("{}", Paint::red(format!("{}", err)));
                     }
+                    std::process::exit(1);
                 }
             }
         }
@@ -112,24 +120,24 @@ fn main() {
 
 impl Huff {
     /// Preprocesses input files for compiling
-    pub fn get_inputs(&self) -> Option<Vec<String>> {
+    pub fn get_inputs(&self) -> Result<Vec<String>, CompilerError> {
         match &self.path {
             Some(path) => {
                 tracing::debug!(target: "io", "FETCHING INPUT: {}", path);
                 // If the file is huff, we can use it
                 let ext = Path::new(&path).extension().unwrap_or_default();
                 if ext.eq("huff") {
-                    Some(vec![path.clone()])
+                    Ok(vec![path.clone()])
                 } else {
                     // Otherwise, override the source files and use all files in the provided dir
-                    unpack_files(path).ok()
+                    unpack_files(path.to_string()).map_err(CompilerError::FileUnpackError)
                 }
             }
             None => {
                 tracing::debug!(target: "io", "FETCHING SOURCE FILES: {}", self.source);
                 // If there's no path, unpack source files
                 let source: String = self.source.clone();
-                unpack_files(&source).ok()
+                unpack_files(source).map_err(CompilerError::FileUnpackError)
             }
         }
     }

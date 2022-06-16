@@ -1,6 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{bytecode::*, bytes_util::*, error::CodegenError, evm::Opcode, prelude::TokenKind};
+use crate::{
+    bytecode::*,
+    bytes_util::*,
+    error::CodegenError,
+    evm::Opcode,
+    prelude::{Span, TokenKind},
+};
 use std::path::PathBuf;
 
 /// A contained literal
@@ -10,6 +16,10 @@ pub type Literal = [u8; 32];
 ///
 /// Used for parsing the huff imports.
 pub type FilePath = PathBuf;
+
+/// An AST-level Span
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct AstSpan(pub Vec<Span>);
 
 /// A Huff Contract Representation
 ///

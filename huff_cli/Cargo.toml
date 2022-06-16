@@ -17,6 +17,7 @@ huff_core = { path = "../huff_core", version = "0.1.0" }
 huff_utils = { path = "../huff_utils", version = "0.1.0" }
 tracing = "0.1.34"
 ethers = "0.6.2"
+yansi = "0.5.1"
 
 [[bin]]
 name = "huff"

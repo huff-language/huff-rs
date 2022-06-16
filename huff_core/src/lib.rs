@@ -311,7 +311,7 @@ impl<'a> Compiler {
                 paths.push(Path::new(&f).to_path_buf())
             } else {
                 // Otherwise, override the source files and use all files in the provided dir
-                match unpack_files(f) {
+                match unpack_files(f.clone()) {
                     Ok(files) => {
                         files.iter().for_each(|fil| paths.push(Path::new(&fil).to_path_buf()))
                     }
