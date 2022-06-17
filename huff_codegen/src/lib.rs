@@ -352,9 +352,14 @@ impl Codegen {
                             tracing::debug!(target: "codegen", "Setting Unmatched Jumps to new index: {}", index);
                             tracing::debug!(target: "codegen", "Unmatched jumps: {:?}", res.unmatched_jumps);
                             for j in res.unmatched_jumps.iter_mut() {
-                                let new_index = index + j.bytecode_index;
+                                let new_index = j.bytecode_index;
                                 j.bytecode_index = 0;
-                                let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index) { jumps.clone() } else { vec![] };
+                                let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index)
+                                {
+                                    jumps.clone()
+                                } else {
+                                    vec![]
+                                };
                                 new_jumps.push(j.clone());
                                 jump_table.insert(new_index, new_jumps);
                             }
@@ -568,6 +573,8 @@ impl Codegen {
                         } else {
                             let jump_offset = (indices[index] - original_offset) * 2;
                             // let jump_offset = indices[index];
+                            tracing::debug!(target: "codegen", "indices[index]: {}", indices[index]);
+                            tracing::debug!(target: "codegen", "original_offset: {}", original_offset);
                             tracing::debug!(target: "codegen", "Created Jump Offset For Jump: {}: {}", jump.label, jump_offset);
                             tracing::debug!(target: "codegen", "New bytecode index: {}", jump_offset + jump.bytecode_index);
 

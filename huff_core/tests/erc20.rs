@@ -6,6 +6,7 @@ use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
 
+#[ignore]
 #[test]
 fn test_erc20_compile() {
     let file_sources: Vec<FileSource> = Compiler::fetch_sources(&vec![PathBuf::from(

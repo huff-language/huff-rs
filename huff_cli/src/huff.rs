@@ -9,7 +9,7 @@
 
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
-use huff_utils::prelude::{unpack_files, CompilerError, CodegenError, CodegenErrorKind};
+use huff_utils::prelude::{unpack_files, CodegenError, CodegenErrorKind, CompilerError};
 use std::path::Path;
 use yansi::Paint;
 
