@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -7,7 +8,7 @@ use crate::{
     evm::Opcode,
     prelude::{Span, TokenKind},
 };
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 
 /// A contained literal
 pub type Literal = [u8; 32];
@@ -20,6 +21,36 @@ pub type FilePath = PathBuf;
 /// An AST-level Span
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AstSpan(pub Vec<Span>);
+
+impl AstSpan {
+    /// Coalesce Multiple Spans Into an error string
+    pub fn error(&self) -> String {
+        let file_to_source_map =
+            self.0.iter().fold(BTreeMap::<String, Vec<&Span>>::new(), |mut m, s| {
+                let file_name =
+                    s.file.as_ref().map(|f2| f2.path.clone()).unwrap_or_else(|| "".to_string());
+                let mut new_vec: Vec<&Span> = m.get(&file_name).cloned().unwrap_or_default();
+                new_vec.push(s);
+                m.insert(file_name, new_vec);
+                m
+            });
+        file_to_source_map.iter().fold("".to_string(), |s, fs| {
+            format!(
+                "{}\n-> {}:{}-{}\n      |{}\n      |",
+                s,
+                fs.0,
+                fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0),
+                fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0),
+                fs.1.iter()
+                    .map(|sp| sp.source_seg())
+                    .collect::<Vec<String>>()
+                    .into_iter()
+                    .unique()
+                    .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
+            )
+        })
+    }
+}
 
 /// A Huff Contract Representation
 ///

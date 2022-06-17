@@ -68,7 +68,8 @@ impl FileSource {
     pub fn fully_flatten(&self) -> (String, Vec<(FileSource, Span)>) {
         // First grab the parent file source
         let mut full_source = if let Some(s) = &self.source { s.clone() } else { "".to_string() };
-        let mut relative_positions = vec![];
+        let span = Span::new(0..full_source.len(), None);
+        let mut relative_positions = vec![(self.clone(), span)];
 
         // Then recursively grab source code for dependencies
         match &self.dependencies {
@@ -192,7 +193,18 @@ impl Span {
             .map(|f| {
                 f.source
                     .as_ref()
-                    .map(|s| format!("\n | {}", &s[self.start..self.end]))
+                    .map(|s| {
+                        let line_num =
+                            &s[0..self.start].as_bytes().iter().filter(|&&c| c == b'\n').count();
+                        let line_start = &s[0..self.start].rfind('\n').unwrap_or(0);
+                        let line_end = self.end +
+                            s[self.end..s.len()].find('\n').unwrap_or(s.len()).to_owned();
+                        format!(
+                            "\n  > {} | {}",
+                            line_num,
+                            &s[line_start.to_owned()..line_end].replace('\n', "")
+                        )
+                    })
                     .unwrap_or_default()
             })
             .unwrap_or_default()

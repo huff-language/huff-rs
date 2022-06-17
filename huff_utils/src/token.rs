@@ -20,7 +20,7 @@ impl Token {
 }
 
 /// The kind of token
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum TokenKind {
     /// EOF Token
     Eof,

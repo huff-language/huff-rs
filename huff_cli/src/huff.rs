@@ -114,6 +114,8 @@ fn main() {
         }
         Err(e) => {
             tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
+            eprintln!("{}", Paint::red(format!("{}", e)));
+            std::process::exit(1);
         }
     }
 }
