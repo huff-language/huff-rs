@@ -349,8 +349,139 @@ impl<'a> fmt::Display for CompilerError<'a> {
                     write!(f, "\nError: Invalid Import Path: \"{}\" \n{}\n", ip, pe.spans.error())
                 }
             },
-            CompilerError::PathBufRead(os_str) => write!(f, "PathBufRead({:?})", os_str),
-            CompilerError::CodegenError(ce) => write!(f, "CodegenError({:?})", ce),
+            CompilerError::PathBufRead(os_str) => {
+                tracing::debug!(target: "error", "Returning a PathBufRead Compiler Error...");
+                write!(
+                    f,
+                    "\nError: Invalid Import Path: \"{}\"",
+                    os_str.as_os_str().to_str().unwrap_or("<unknown import>")
+                )
+            }
+            CompilerError::CodegenError(ce) => match &ce.kind {
+                CodegenErrorKind::InvalidOperator => {
+                    write!(
+                        f,
+                        "\nError: Invalid Operator\n{}\n",
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::MissingAst => {
+                    write!(
+                        f,
+                        "\nError: Missing Generated Ast From Parser\n{}\n",
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::MissingConstructor => {
+                    write!(
+                        f,
+                        "\nError: Missing Constructor Macro\n{}\n",
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::StoragePointersNotDerived => {
+                    write!(
+                        f,
+                        "\nError: Storage Pointers Not Derived\n{}\n",
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::InvalidMacroStatement => {
+                    write!(
+                        f,
+                        "\nError: Invalid Macro Statement\n{}\n",
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::MissingMacroDefinition(md) => {
+                    write!(
+                        f,
+                        "\nError: Missing Macro Definition For \"{}\"\n{}\n",
+                        md,
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::FailedMacroRecursion => {
+                    write!(
+                        f,
+                        "\nError: Failed Macro Recursion\n{}\n",
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::MissingConstantDefinition => {
+                    write!(
+                        f,
+                        "\nError: Missing Constant Definition\n{}\n",
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::AbiGenerationFailure => {
+                    write!(
+                        f,
+                        "\nError: ABI Generation Failed\n{}\n",
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::IOError(ioe) => {
+                    write!(
+                        f,
+                        "\nError: IO Error: {}\n{}\n",
+                        ioe,
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::UnkownArgcallType => {
+                    write!(
+                        f,
+                        "\nError: Unknown Arg Call Type\n{}\n",
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::MissingMacroInvocation(mmi) => {
+                    write!(
+                        f,
+                        "\nError: Missing Macro Invocation: \"{}\"\n{}\n",
+                        mmi,
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+            },
             CompilerError::FailedCompiles(v) => {
                 v.iter().for_each(|ce| {
                     let _ = write!(f, "{}", ce);

@@ -157,15 +157,23 @@ impl<'a> Compiler {
         tracing::info!(target: "core", "COMPILER FETCHED {} FILE SOURCES", files.len());
 
         // Parallel Dependency Resolution
-        files = files
-            .into_par_iter()
-            .map(|f| match Compiler::recurse_deps(f) {
-                Ok(fs) => Some(fs),
-                Err(_) => None,
-            })
-            .filter(|fs| fs.is_some())
-            .map(|fs| fs.unwrap())
-            .collect();
+        let recursed_file_sources: Vec<Result<FileSource, CompilerError<'a>>> =
+            files.into_par_iter().map(Compiler::recurse_deps).collect();
+
+        // Collect Recurse Deps errors and try to resolve to the first one
+        let errors = recursed_file_sources
+            .iter()
+            .filter_map(|rfs| rfs.as_ref().err())
+            .collect::<Vec<&CompilerError>>();
+        if let Some(&e) = errors.get(0) {
+            return Err(e.clone())
+        }
+
+        files = recursed_file_sources
+            .iter()
+            .filter_map(|fs| fs.as_ref().ok())
+            .cloned()
+            .collect::<Vec<FileSource>>();
 
         tracing::info!(target: "core", "COMPILER RECURSED FILE DEPENDENCIES:");
         for f in &files {
@@ -210,12 +218,38 @@ impl<'a> Compiler {
                 let mut cg = Codegen::new();
                 let main_bytecode = match Codegen::roll(Some(contract.clone())) {
                     Ok(mb) => mb,
-                    Err(e) => return Err(CompilerError::CodegenError(e)),
+                    Err(mut e) => {
+                        e.span = Some(e.span.unwrap_or(Span {
+                            start: 0,
+                            end: 0,
+                            file: None,
+                        }));
+                        // Add File Source to Span
+                        e.span = e.span.map(|mut s| {
+                            s.file = Some(file);
+                            s
+                        });
+                        tracing::error!(target: "codegen", "Roll Failed with CodegenError: {:?}", e);
+                        return Err(CompilerError::CodegenError(e))
+                    }
                 };
                 tracing::info!(target: "core", "MAIN BYTECODE GENERATED [{}]", main_bytecode);
                 let constructor_bytecode = match Codegen::construct(Some(contract.clone())) {
                     Ok(mb) => mb,
-                    Err(e) => return Err(CompilerError::CodegenError(e)),
+                    Err(mut e) => {
+                        e.span = Some(e.span.unwrap_or(Span {
+                            start: 0,
+                            end: 0,
+                            file: None,
+                        }));
+                        // Add File Source to Span
+                        e.span = e.span.map(|mut s| {
+                            s.file = Some(file);
+                            s
+                        });
+                        tracing::error!(target: "codegen", "Construct Failed with CodegenError: {:?}", e);
+                        return Err(CompilerError::CodegenError(e))
+                    }
                 };
 
                 // Encode Constructor Arguments

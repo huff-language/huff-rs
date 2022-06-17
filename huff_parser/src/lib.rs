@@ -377,6 +377,7 @@ impl Parser {
             macro_statements,
             macro_takes,
             macro_returns,
+            self.spans.clone(),
         ))
     }
 

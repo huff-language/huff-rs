@@ -34,20 +34,27 @@ impl AstSpan {
                 m.insert(file_name, new_vec);
                 m
             });
-        file_to_source_map.iter().fold("".to_string(), |s, fs| {
-            format!(
-                "{}\n-> {}:{}-{}\n      |{}\n      |",
-                s,
-                fs.0,
-                fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0),
-                fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0),
-                fs.1.iter()
-                    .map(|sp| sp.source_seg())
-                    .collect::<Vec<String>>()
-                    .into_iter()
-                    .unique()
-                    .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
-            )
+        file_to_source_map.iter().filter(|fs| !fs.0.is_empty()).fold("".to_string(), |s, fs| {
+            let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
+            let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
+            if start.eq(&0) && end.eq(&0) {
+                format!("{}\n-> {}:{}\n   > 0|", s, fs.0, start,)
+            } else {
+                format!(
+                    "{}\n-> {}:{}-{}\n      |{}\n      |",
+                    s,
+                    fs.0,
+                    start,
+                    end,
+                    fs.1.iter()
+                        .map(|sp| sp.source_seg())
+                        .filter(|ss| !ss.is_empty())
+                        .collect::<Vec<String>>()
+                        .into_iter()
+                        .unique()
+                        .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
+                )
+            }
         })
     }
 }
@@ -217,6 +224,8 @@ pub struct MacroDefinition {
     pub takes: usize,
     /// The return size
     pub returns: usize,
+    /// The Span of the Macro Definition
+    pub span: AstSpan,
 }
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
@@ -234,8 +243,9 @@ impl MacroDefinition {
         statements: Vec<Statement>,
         takes: usize,
         returns: usize,
+        spans: Vec<Span>,
     ) -> Self {
-        MacroDefinition { name, parameters, statements, takes, returns }
+        MacroDefinition { name, parameters, statements, takes, returns, span: AstSpan(spans) }
     }
 
     /// Translate statements into IRBytes
