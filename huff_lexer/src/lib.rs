@@ -36,7 +36,7 @@
 //!
 //! // Then we should get the function name
 //! let tok = lexer.next().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Ident("HELLO_WORLD".to_string()), Span::new(14..25)));
+//! assert_eq!(tok, Token::new(TokenKind::Ident("HELLO_WORLD"), Span::new(14..25)));
 //! assert_eq!(lexer.span, Span::new(14..25));
 //!
 //! // Then we should have an open paren
