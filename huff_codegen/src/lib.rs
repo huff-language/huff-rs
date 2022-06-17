@@ -231,7 +231,7 @@ impl Codegen {
         macro_def: MacroDefinition,
         contract: &Contract,
         scope: &mut Vec<MacroDefinition>,
-        mut offset: usize,
+        original_offset: usize,
         mis: &mut Vec<(usize, MacroInvocation)>,
     ) -> Result<BytecodeRes, CodegenError> {
         let mut final_bytes: Vec<Bytes> = vec![];
@@ -242,6 +242,7 @@ impl Codegen {
         let irb = macro_def.to_irbytecode()?;
         tracing::info!(target: "codegen", "GENERATED IRBYTECODE: {:?}", irb);
         let irbz: Vec<IRByte> = irb.0;
+        let mut offset = original_offset;
 
         let mut jump_table = JumpTable::new();
         let mut jump_indices = JumpIndices::new();
@@ -326,7 +327,7 @@ impl Codegen {
                             // Recurse
                             scope.push(ir_macro.clone());
                             mis.push((index, mi.clone()));
-                            let res: BytecodeRes = if let Ok(res) = Codegen::recurse_bytecode(
+                            let mut res: BytecodeRes = if let Ok(res) = Codegen::recurse_bytecode(
                                 ir_macro.clone(),
                                 contract,
                                 scope,
@@ -350,7 +351,13 @@ impl Codegen {
                             // Set jump table values
                             tracing::debug!(target: "codegen", "Setting Unmatched Jumps to new index: {}", index);
                             tracing::debug!(target: "codegen", "Unmatched jumps: {:?}", res.unmatched_jumps);
-                            jump_table.insert(index, res.unmatched_jumps);
+                            for j in res.unmatched_jumps.iter_mut() {
+                                let new_index = index + j.bytecode_index;
+                                j.bytecode_index = 0;
+                                let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index) { jumps.clone() } else { vec![] };
+                                new_jumps.push(j.clone());
+                                jump_table.insert(new_index, new_jumps);
+                            }
                             table_instances = table_instances
                                 .into_iter()
                                 .chain(res.table_instances)
@@ -514,7 +521,7 @@ impl Codegen {
             tracing::warn!(target: "codegen", "ATTEMPTED MACRO INVOCATION POP FAILED AT SCOPE: {}", scope.len());
         }
 
-        let mut cur_index = offset;
+        let mut cur_index = original_offset;
         let mut indices = vec![cur_index]; // first index is the current offset
         indices.append(
             &mut final_bytes
@@ -533,11 +540,11 @@ impl Codegen {
         let final_bytes =
             final_bytes.iter().enumerate().fold(Vec::default(), |mut acc, (index, b)| {
                 let mut formatted_bytes = b.clone();
-                tracing::debug!(target: "codegen", "Formatted bytes: {:#?}", formatted_bytes);
-                tracing::debug!(target: "codegen", "Getting Jump For Index: {}", index);
+                // tracing::debug!(target: "codegen", "Formatted bytes: {:#?}", formatted_bytes);
 
                 if let Some(jt) = jump_table.get(&index) {
                     for jump in jt {
+                        tracing::debug!(target: "codegen", "Getting Jump For Index: {}", index);
                         tracing::debug!(target: "codegen", "Found Jump: {:?}", jump);
                         tracing::debug!(target: "codegen", "Filling Label Call: {}", jump.label);
                         if let Some(jump_index) = jump_indices.get(jump.label.as_str()) {
@@ -559,7 +566,8 @@ impl Codegen {
 
                             formatted_bytes = Bytes(format!("{}{}{}", before, jump_value, after));
                         } else {
-                            let jump_offset = (indices[index] - offset) * 2;
+                            let jump_offset = (indices[index] - original_offset) * 2;
+                            // let jump_offset = indices[index];
                             tracing::debug!(target: "codegen", "Created Jump Offset For Jump: {}: {}", jump.label, jump_offset);
                             tracing::debug!(target: "codegen", "New bytecode index: {}", jump_offset + jump.bytecode_index);
 
@@ -683,7 +691,7 @@ impl Codegen {
                             if last_mi.1.macro_name.eq(&macro_def.name) {
                                 return Codegen::bubble_arg_call(
                                     arg_name,
-                                    last_mi.0 + index,
+                                    index,
                                     bytegen,
                                     &bubbled_macro_invocation,
                                     contract,
@@ -708,10 +716,11 @@ impl Codegen {
                         }
                         MacroArg::Ident(iden) => {
                             tracing::debug!(target: "codegen", "FOUND IDENT ARG IN \"{}\" MACRO INVOCATION: \"{}\"!", macro_invoc.1.macro_name, iden);
-                            tracing::debug!(target: "codegen", "At index: {}", macro_invoc.0 + index);
+                            tracing::debug!(target: "codegen", "Macro invocation index: {}", macro_invoc.0);
+                            tracing::debug!(target: "codegen", "At index: {}", index);
                             // This should be equivalent to a label call.
                             jump_table.insert(
-                                macro_invoc.0 + index,
+                                index,
                                 vec![Jump { label: iden.to_owned(), bytecode_index: 0 }],
                             );
                             *offset += 3;

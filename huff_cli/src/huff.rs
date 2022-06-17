@@ -9,7 +9,7 @@
 
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
-use huff_utils::prelude::{unpack_files, CompilerError};
+use huff_utils::prelude::{unpack_files, CompilerError, CodegenError, CodegenErrorKind};
 use std::path::Path;
 use yansi::Paint;
 
@@ -85,8 +85,15 @@ fn main() {
     let compile_res = compiler.execute();
     match compile_res {
         Ok(artifacts) => {
-            let errored =
+            let mut errored =
                 artifacts.iter().filter_map(|a| a.as_ref().err()).collect::<Vec<&CompilerError>>();
+            if artifacts.is_empty() {
+                errored.push(&CompilerError::CodegenError(CodegenError {
+                    kind: CodegenErrorKind::AbiGenerationFailure,
+                    span: None,
+                    token: None,
+                }));
+            }
             match errored.len() {
                 0 => {
                     if cli.bytecode {

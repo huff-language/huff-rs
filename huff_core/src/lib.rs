@@ -316,7 +316,8 @@ impl<'a> Compiler {
         // Clean output directory
         let output: OutputLocation = self.get_outputs();
         tracing::warn!(target: "core", "REMOVING DIRECTORY: \"{}\"", output.0);
-        if fs::remove_dir_all(output.0.clone()).is_ok() {
+        let p = output.0.clone();
+        if !p.is_empty() && fs::remove_dir_all(p).is_ok() {
             tracing::info!(target: "core", "OUTPUT DIRECTORY DELETED!");
         }
 
@@ -331,6 +332,8 @@ impl<'a> Compiler {
             }
             tracing::info!(target: "core", "EXPORTED ARTIFACT TO \"{}\"", json_out);
         });
+
+        tracing::debug!(target: "core", "CREATED ARTIFACTS");
 
         Ok(artifacts)
     }
