@@ -121,6 +121,8 @@ pub enum CodegenErrorKind {
     MissingConstantDefinition,
     /// Abi Generation Failure
     AbiGenerationFailure,
+    /// Unmatched Jump
+    UnmatchedJumpLabel,
     /// An IO Error
     IOError(String),
 }
@@ -149,6 +151,7 @@ impl<W: Write> Report<W> for CodegenError {
                 write!(f.out, "Missing Constant Definition!")
             }
             CodegenErrorKind::AbiGenerationFailure => write!(f.out, "Abi generation failure!"),
+            CodegenErrorKind::UnmatchedJumpLabel => write!(f.out, "Unmatched jump label!"),
             CodegenErrorKind::IOError(ioe) => write!(f.out, "IO ERROR: {:?}", ioe),
         }
     }
