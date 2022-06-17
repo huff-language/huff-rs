@@ -147,6 +147,8 @@ pub enum CodegenErrorKind {
     MissingConstantDefinition,
     /// Abi Generation Failure
     AbiGenerationFailure,
+    /// Unmatched Jump
+    UnmatchedJumpLabel,
     /// An IO Error
     IOError(String),
     /// ArgCall has an unknown type
@@ -179,6 +181,7 @@ impl<W: Write> Report<W> for CodegenError {
                 write!(f.out, "Missing Constant Definition!")
             }
             CodegenErrorKind::AbiGenerationFailure => write!(f.out, "Abi generation failure!"),
+            CodegenErrorKind::UnmatchedJumpLabel => write!(f.out, "Unmatched jump label!"),
             CodegenErrorKind::IOError(ioe) => write!(f.out, "IO ERROR: {:?}", ioe),
             CodegenErrorKind::UnkownArgcallType => write!(f.out, "Unknown Argcall Type!"),
             CodegenErrorKind::MissingMacroInvocation(str) => {
@@ -475,6 +478,16 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Missing Macro Invocation: \"{}\"\n{}\n",
                         mmi,
+                        ce.span
+                            .as_ref()
+                            .map(|s| AstSpan(vec![s.clone()]).error())
+                            .unwrap_or_else(|| "".to_string())
+                    )
+                }
+                CodegenErrorKind::UnmatchedJumpLabel => {
+                    write!(
+                        f,
+                        "\nError: Unmatched Jump Label\n{}\n",
                         ce.span
                             .as_ref()
                             .map(|s| AstSpan(vec![s.clone()]).error())

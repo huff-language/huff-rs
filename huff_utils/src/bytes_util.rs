@@ -3,11 +3,7 @@
 /// i.e. 0xa57b becomes `[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 /// 0, 0, 0, 0, 0, 165, 123]`
 pub fn str_to_bytes32(s: &str) -> [u8; 32] {
-    let mut s = String::from(s);
-    // Pad odd-length byte string with a leading 0
-    if s.len() % 2 != 0 {
-        s = format!("0{}", s);
-    }
+    let s = format_even_bytes(String::from(s));
 
     let bytes: Vec<u8> =
         (0..s.len()).step_by(2).map(|c| u8::from_str_radix(&s[c..c + 2], 16).unwrap()).collect();
@@ -39,6 +35,15 @@ pub fn pad_n_bytes(hex: &str, num_bytes: usize) -> String {
         hex = format!("0{}", hex);
     }
     hex
+}
+
+/// Pad odd-length byte string with a leading 0
+pub fn format_even_bytes(hex: String) -> String {
+    if hex.len() % 2 == 1 {
+        format!("0{}", hex)
+    } else {
+        hex
+    }
 }
 
 /// Convert string slice to Vec<u8>, size not capped

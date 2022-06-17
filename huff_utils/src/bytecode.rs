@@ -61,12 +61,12 @@ impl From<Vec<Bytes>> for Bytecode {
 pub struct BytecodeRes {
     /// Resulting bytes
     pub bytes: Vec<Bytes>,
-    /// Jump Tables
-    pub jump_tables: Vec<JumpTable>,
     /// Jump Indices
     pub jump_indices: JumpIndices,
     /// Unmatched Jumps
     pub unmatched_jumps: Jumps,
+    /// Table Instances
+    pub table_instances: Jumps,
 }
 
 impl Display for BytecodeRes {
@@ -75,14 +75,14 @@ impl Display for BytecodeRes {
             f,
             r#"BytecodeRes(
             bytes: [{}],
-            jump_tables: {:?},
             jump_indices: {:?},
             unmatched_jumps: {:?}
+            table_instances: {:?}
         )"#,
             self.bytes.iter().fold("".to_string(), |acc, b| format!("{}{}", acc, b.0)),
-            self.jump_tables,
             self.jump_indices,
-            self.unmatched_jumps
+            self.unmatched_jumps,
+            self.table_instances
         )
     }
 }
