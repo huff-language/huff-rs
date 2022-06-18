@@ -60,9 +60,9 @@ impl From<Vec<Bytes>> for Bytecode {
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BytecodeRes {
     /// Resulting bytes
-    pub bytes: Vec<Bytes>,
+    pub bytes: Vec<(usize, Bytes)>,
     /// Jump Indices
-    pub jump_indices: JumpIndices,
+    pub label_indices: LabelIndices,
     /// Unmatched Jumps
     pub unmatched_jumps: Jumps,
     /// Table Instances
@@ -75,12 +75,12 @@ impl Display for BytecodeRes {
             f,
             r#"BytecodeRes(
             bytes: [{}],
-            jump_indices: {:?},
+            label_indices: {:?},
             unmatched_jumps: {:?}
             table_instances: {:?}
         )"#,
             self.bytes.iter().fold("".to_string(), |acc, b| format!("{}{}", acc, b.0)),
-            self.jump_indices,
+            self.label_indices,
             self.unmatched_jumps,
             self.table_instances
         )
@@ -100,7 +100,7 @@ pub struct Jump {
 pub type Jumps = Vec<Jump>;
 
 /// Type to map `Jump` labels to their bytecode indices
-pub type JumpIndices = BTreeMap<String, usize>;
+pub type LabelIndices = BTreeMap<String, usize>;
 
 /// Type for a map of bytecode indexes to `Jumps`. Represents a Jump Table.
 pub type JumpTable = BTreeMap<usize, Jumps>;

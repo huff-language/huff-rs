@@ -20,32 +20,21 @@ pub fn unpack_files(path: String) -> Result<Vec<String>, UnpackError> {
     match parse_extension(&path) {
         Some(extension) => {
             if extension == "huff" {
-                tracing::debug!(target: "io", "FOUND HUFF FILE: {}", extension);
                 return Ok(vec![path.to_string()])
             }
             Err(UnpackError::UnsupportedExtension(path))
         }
         None => {
             // We have a directory, try to extract huff files and parse
-            tracing::debug!(target: "io", "READING HUFF FILES IN: {}", path);
             match std::fs::read_dir(&path) {
                 Ok(files) => {
-                    tracing::debug!(target: "io", "FOUND FILES: {:?}", files);
                     let input_files: Vec<String> =
                         files.map(|x| x.unwrap().path().to_str().unwrap().to_string()).collect();
-                    tracing::debug!(target: "io", "COLLECTED INPUT FILES:");
-                    for f in &input_files {
-                        tracing::debug!(target: "io", "- \"{}\"", f);
-                    }
                     let filtered: Vec<String> = input_files
                         .iter()
                         .filter(|&f| Path::new(&f).extension().unwrap_or_default().eq("huff"))
                         .cloned()
                         .collect();
-                    tracing::debug!(target: "io", "FILTERED INPUT FILES:");
-                    for f in &filtered {
-                        tracing::debug!(target: "io", "- \"{}\"", f);
-                    }
                     Ok(filtered)
                 }
                 Err(e) => {

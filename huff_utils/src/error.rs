@@ -353,7 +353,6 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
             },
             CompilerError::PathBufRead(os_str) => {
-                tracing::debug!(target: "error", "Returning a PathBufRead Compiler Error...");
                 write!(
                     f,
                     "\nError: Invalid Import Path: \"{}\"",
