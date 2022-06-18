@@ -71,7 +71,7 @@ impl Codegen {
         tracing::info!(target: "codegen", "MAIN MACRO FOUND: {}", m_macro.name);
 
         // For each MacroInvocation Statement, recurse into bytecode
-        let bytecode_res: BytecodeRes = Codegen::recurse_bytecode(
+        let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
             m_macro.clone(),
             contract,
             &mut vec![m_macro],
@@ -138,7 +138,7 @@ impl Codegen {
         tracing::debug!(target: "codegen", "FOUND CONSTRUCTOR MACRO: {}", c_macro.name);
 
         // For each MacroInvocation Statement, recurse into bytecode
-        let bytecode_res: BytecodeRes = Codegen::recurse_bytecode(
+        let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
             c_macro.clone(),
             contract,
             &mut vec![c_macro],
@@ -146,7 +146,7 @@ impl Codegen {
             &mut Vec::default(),
         )?;
         tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
-        let bytecode = bytecode_res.bytes.iter().map(|byte| byte.0.to_string()).collect();
+        let bytecode = bytecode_res.bytes.iter().map(|(_, b)| b.0.to_string()).collect();
         tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
 
         // Return
@@ -174,7 +174,7 @@ impl Codegen {
 
         tracing::info!(target: "codegen", "GENERATING JUMPTABLE BYTECODE");
 
-        let mut bytecode = res.bytes.into_iter().map(|b| b.0).collect::<String>();
+        let mut bytecode = res.bytes.into_iter().map(|(_, b)| b.0).collect::<String>();
         let mut table_offsets: HashMap<String, usize> = HashMap::new(); // table name -> bytecode offset
         let mut table_offset = bytecode.len() / 2;
 
@@ -190,7 +190,7 @@ impl Codegen {
                 .iter()
                 .map(|s| {
                     if let Statement::LabelCall(label) = s {
-                        let offset = res.jump_indices.get(label).unwrap(); // TODO: Error handling
+                        let offset = res.label_indices.get(label).unwrap(); // TODO: Error handling
                         let hex = format_even_bytes(format!("{:x}", offset));
 
                         pad_n_bytes(
@@ -227,44 +227,41 @@ impl Codegen {
     }
 
     /// Recurses a MacroDefinition to generate Bytecode
-    pub fn recurse_bytecode(
+    /// TODO: Separate all bytecode generation into separate functions
+    pub fn macro_to_bytecode(
         macro_def: MacroDefinition,
         contract: &Contract,
         scope: &mut Vec<MacroDefinition>,
         original_offset: usize,
         mis: &mut Vec<(usize, MacroInvocation)>,
     ) -> Result<BytecodeRes, CodegenError> {
-        let mut final_bytes: Vec<Bytes> = vec![];
-
+        // Get intermediate bytecode representation of the AST
+        let mut bytes: Vec<(usize, Bytes)> = Vec::default();
         tracing::info!(target: "codegen", "RECURSING MACRO DEFINITION \"{}\" [SCOPE: {}]", macro_def.name, scope.len());
+        let ir_bytes = macro_def.to_irbytecode()?.0;
+        tracing::info!(target: "codegen", "MACRO DEFINITION \"{}\" IR BYTECODE: {:?} [SCOPE: {:?}]", macro_def.name, ir_bytes, scope);
 
-        // Generate the macro bytecode
-        let irb = macro_def.to_irbytecode()?;
-        tracing::info!(target: "codegen", "GENERATED IRBYTECODE: {:?}", irb);
-        let irbz: Vec<IRByte> = irb.0;
+        // Define outer loop variables
         let mut offset = original_offset;
-
         let mut jump_table = JumpTable::new();
-        let mut jump_indices = JumpIndices::new();
+        let mut label_indices = LabelIndices::new();
         let mut table_instances = Jumps::new();
 
-        for (index, ir_byte) in irbz.iter().enumerate() {
-            match &ir_byte {
+        // Loop through all intermediate bytecode representations generated from the AST
+        for (ir_bytes_index, ir_byte) in ir_bytes.into_iter().enumerate() {
+            let starting_offset = offset.clone();
+            match ir_byte {
                 IRByte::Bytes(b) => {
                     offset += b.0.len() / 2;
                     tracing::debug!(target: "codegen", "RECURSE_BYTECODE FOUND BYTES: {:?}", b);
-                    final_bytes.push(b.clone())
+                    bytes.push((starting_offset, b));
                 }
                 IRByte::Constant(name) => {
-                    let constant = if let Some(m) = contract
-                        .constants
-                        .iter()
-                        .filter(|const_def| const_def.name.eq(name))
-                        .cloned()
-                        .collect::<Vec<ConstantDefinition>>()
-                        .get(0)
+                    // Get the first `ConstantDefinition` that matches the constant's name
+                    let constant = if let Some(m) =
+                        contract.constants.iter().find(|const_def| const_def.name.eq(&name))
                     {
-                        m.clone()
+                        m
                     } else {
                         tracing::error!(target: "codegen", "MISSING CONSTANT DEFINITION \"{}\"", name);
 
@@ -276,9 +273,11 @@ impl Codegen {
                         })
                     };
 
+                    // Generate bytecode for the constant
+                    // Should always be a `Literal` if storage pointers were derived in the AST
+                    // prior to generating the IR bytes.
                     tracing::info!(target: "codegen", "FOUND CONSTANT DEFINITION: {}", constant.name);
-
-                    let push_bytes = match constant.value {
+                    let push_bytes = match &constant.value {
                         ConstVal::Literal(l) => {
                             let hex_literal: String = bytes32_to_string(&l, false);
                             format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
@@ -297,7 +296,7 @@ impl Codegen {
 
                     offset += push_bytes.len() / 2;
                     tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
-                    final_bytes.push(Bytes(push_bytes))
+                    bytes.push((starting_offset, Bytes(push_bytes)));
                 }
                 IRByte::Statement(s) => {
                     tracing::debug!(target: "codegen", "Got Statement: {:?}", s);
@@ -324,10 +323,10 @@ impl Codegen {
 
                             tracing::info!(target: "codegen", "FOUND INNER MACRO: {}", ir_macro.name);
 
-                            // Recurse
+                            // Recurse into macro invocation
                             scope.push(ir_macro.clone());
-                            mis.push((index, mi.clone()));
-                            let mut res: BytecodeRes = if let Ok(res) = Codegen::recurse_bytecode(
+                            mis.push((offset, mi.clone()));
+                            let mut res: BytecodeRes = if let Ok(res) = Codegen::macro_to_bytecode(
                                 ir_macro.clone(),
                                 contract,
                                 scope,
@@ -349,54 +348,55 @@ impl Codegen {
                             };
 
                             // Set jump table values
-                            tracing::debug!(target: "codegen", "Setting Unmatched Jumps to new index: {}", index);
+                            tracing::debug!(target: "codegen", "Setting Unmatched Jumps to new index: {}", ir_bytes_index);
                             tracing::debug!(target: "codegen", "Unmatched jumps: {:?}", res.unmatched_jumps);
-                            for j in res.unmatched_jumps.iter_mut() {
-                                let new_index = j.bytecode_index;
-                                j.bytecode_index = 0;
-                                let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index)
-                                {
-                                    jumps.clone()
+                            jump_table.insert(
+                                offset,
+                                if let Some(jumps) = jump_table.get(&offset) {
+                                    [
+                                        jumps.clone(),
+                                        res.unmatched_jumps
+                                            .into_iter()
+                                            .filter(|j| !jumps.contains(j))
+                                            .collect(),
+                                    ]
+                                    .concat()
                                 } else {
                                     vec![]
-                                };
-                                new_jumps.push(j.clone());
-                                jump_table.insert(new_index, new_jumps);
-                            }
-                            table_instances = table_instances
-                                .into_iter()
-                                .chain(res.table_instances)
-                                .collect::<Jumps>();
-                            jump_indices = jump_indices
-                                .into_iter()
-                                .chain(res.jump_indices)
-                                .collect::<JumpIndices>();
+                                },
+                            );
+                            table_instances.extend(res.table_instances);
+                            label_indices.extend(res.label_indices);
 
                             // Increase offset by byte length of recursed macro
-                            offset += res.bytes.iter().map(|b| b.0.len()).sum::<usize>() / 2;
+                            offset += res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
 
-                            final_bytes = final_bytes
-                                .iter()
-                                .cloned()
-                                .chain(res.bytes.iter().cloned())
-                                .collect();
+                            bytes = [bytes, res.bytes].concat()
                         }
                         Statement::Label(label) => {
+                            // Gen single byte jumpdest and add to label_indices
                             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL: {:?}", label);
-                            jump_indices.insert(label.name.clone(), offset);
+                            label_indices.insert(label.name, offset);
+                            bytes.push((offset, Bytes(Opcode::Jumpdest.to_string())));
                             offset += 1;
-                            final_bytes.push(Bytes(Opcode::Jumpdest.to_string()));
                         }
                         Statement::LabelCall(label) => {
+                            // Generate code for a `LabelCall`
+                            // PUSH2 + 2 byte destination (placeholder for now, filled at the bottom
+                            // of this function)
                             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL CALL: {}", label);
                             jump_table.insert(
-                                index,
-                                vec![Jump { label: label.to_owned(), bytecode_index: 0 }],
+                                offset,
+                                vec![Jump { label, bytecode_index: 0 }], /* Insert label with a
+                                                                          * placeholder bytecode
+                                                                          * index */
                             );
+                            bytes.push((offset, Bytes(format!("{}xxxx", Opcode::Push2))));
                             offset += 3;
-                            final_bytes.push(Bytes(format!("{}xxxx", Opcode::Push2)));
                         }
                         Statement::BuiltinFunctionCall(bf) => {
+                            // Generate code for a `BuiltinFunctionCall`
+                            // __codesize, __tablesize, or __tablestart
                             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT BUILTIN FUNCTION CALL: {:?}", bf);
                             match bf.kind {
                                 BuiltinFunctionKind::Codesize => {
@@ -420,7 +420,7 @@ impl Codegen {
                                     };
 
                                     let res: BytecodeRes = if let Ok(res) =
-                                        Codegen::recurse_bytecode(
+                                        Codegen::macro_to_bytecode(
                                             ir_macro.clone(),
                                             contract,
                                             scope,
@@ -443,13 +443,12 @@ impl Codegen {
 
                                     let size = format_even_bytes(format!(
                                         "{:x}",
-                                        (res.bytes.iter().map(|b| b.0.len()).sum::<usize>() / 2)
+                                        (res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2)
                                     ));
                                     let push_bytes = format!("{:02x}{}", 95 + size.len() / 2, size);
 
                                     offset += push_bytes.len() / 2;
-
-                                    final_bytes.push(Bytes(push_bytes));
+                                    bytes.push((starting_offset, Bytes(push_bytes)));
                                 }
                                 BuiltinFunctionKind::Tablesize => {
                                     let ir_table = if let Some(t) = contract
@@ -475,8 +474,7 @@ impl Codegen {
                                     let push_bytes = format!("{:02x}{}", 95 + size.len() / 2, size);
 
                                     offset += push_bytes.len() / 2;
-
-                                    final_bytes.push(Bytes(push_bytes));
+                                    bytes.push((starting_offset, Bytes(push_bytes)));
                                 }
                                 BuiltinFunctionKind::Tablestart => {
                                     table_instances.push(Jump {
@@ -484,9 +482,8 @@ impl Codegen {
                                         bytecode_index: offset,
                                     });
 
+                                    bytes.push((offset, Bytes(format!("{}xxxx", Opcode::Push2))));
                                     offset += 3;
-
-                                    final_bytes.push(Bytes(format!("{}xxxx", Opcode::Push2)));
                                 }
                             }
                         }
@@ -502,10 +499,12 @@ impl Codegen {
                     }
                 }
                 IRByte::ArgCall(arg_name) => {
+                    // Bubble up arg call by looking through the previous scopes. Once the arg
+                    // value is found, add it to `bytes`
                     if let Err(e) = Codegen::bubble_arg_call(
-                        arg_name,
-                        index,
-                        &mut final_bytes,
+                        &arg_name,
+                        ir_bytes_index,
+                        &mut bytes,
                         &macro_def,
                         contract,
                         scope,
@@ -526,34 +525,24 @@ impl Codegen {
             tracing::warn!(target: "codegen", "ATTEMPTED MACRO INVOCATION POP FAILED AT SCOPE: {}", scope.len());
         }
 
-        let mut cur_index = original_offset;
-        let mut indices = vec![cur_index]; // first index is the current offset
-        indices.append(
-            &mut final_bytes
-                .iter()
-                .map(|b| {
-                    cur_index += b.0.len() / 2;
-                    cur_index
-                })
-                .collect::<Vec<usize>>(),
-        );
-
-        let bytecode: String = final_bytes.iter().map(|byte| byte.0.to_string()).collect();
+        let bytecode: String = bytes.iter().map(|byte| byte.0.to_string()).collect();
         tracing::info!(target: "codegen", "MACRO \"{}\" GENERATED BYTECODE EXCLUDING JUMPS: {}", macro_def.name, bytecode);
 
         let mut unmatched_jumps = Jumps::default();
-        let final_bytes =
-            final_bytes.iter().enumerate().fold(Vec::default(), |mut acc, (index, b)| {
+
+        let bytes =
+            bytes.into_iter().fold(Vec::default(), |mut acc, (code_index, b)| {
                 let mut formatted_bytes = b.clone();
                 // tracing::debug!(target: "codegen", "Formatted bytes: {:#?}", formatted_bytes);
 
-                if let Some(jt) = jump_table.get(&index) {
+                if let Some(jt) = jump_table.get(&code_index) {
                     for jump in jt {
-                        tracing::debug!(target: "codegen", "Getting Jump For Index: {}", index);
+                        tracing::debug!(target: "codegen", "Getting Jump For Index: {}", code_index);
                         tracing::debug!(target: "codegen", "Found Jump: {:?}", jump);
                         tracing::debug!(target: "codegen", "Filling Label Call: {}", jump.label);
-                        if let Some(jump_index) = jump_indices.get(jump.label.as_str()) {
-                            let jump_value = pad_n_bytes(&format!("{:x}", jump_index), 2);
+
+                        if let Some(jump_index) = label_indices.get(jump.label.as_str()) {
+                            let jump_value = pad_n_bytes(&format!("{:02x}", jump_index), 2);
                             tracing::debug!(target: "codegen", "Got Jump Value: {}", jump_value);
                             tracing::debug!(target: "codegen", "Jump Bytecode index: {}", jump.bytecode_index);
 
@@ -561,7 +550,7 @@ impl Codegen {
                             let after = &formatted_bytes.0[jump.bytecode_index + 6..];
 
                             // Check if a jump dest placeholder is present
-                            if &formatted_bytes.0[jump.bytecode_index + 2..jump.bytecode_index + 6] != "xxxx" {
+                            if !&formatted_bytes.0[jump.bytecode_index + 2..jump.bytecode_index + 6].eq("xxxx") {
                                 tracing::error!(
                                     target: "codegen",
                                     "JUMP DESTINATION PLACEHOLDER NOT FOUND FOR JUMPLABEL {}",
@@ -571,26 +560,26 @@ impl Codegen {
 
                             formatted_bytes = Bytes(format!("{}{}{}", before, jump_value, after));
                         } else {
-                            let jump_offset = (indices[index] - original_offset) * 2;
+                            let jump_offset = (code_index - original_offset) * 2;
                             // let jump_offset = indices[index];
-                            tracing::debug!(target: "codegen", "indices[index]: {}", indices[index]);
+                            tracing::debug!(target: "codegen", "indices[index]: {}", code_index);
                             tracing::debug!(target: "codegen", "original_offset: {}", original_offset);
                             tracing::debug!(target: "codegen", "Created Jump Offset For Jump: {}: {}", jump.label, jump_offset);
                             tracing::debug!(target: "codegen", "New bytecode index: {}", jump_offset + jump.bytecode_index);
 
                             unmatched_jumps.push(Jump {
                                 label: jump.label.clone(),
-                                bytecode_index: jump_offset + jump.bytecode_index,
+                                bytecode_index: jump.bytecode_index,
                             })
                         }
                     }
                 }
 
-                acc.push(formatted_bytes);
+                acc.push((code_index, formatted_bytes));
                 acc
             });
 
-        Ok(BytecodeRes { bytes: final_bytes, jump_indices, unmatched_jumps, table_instances })
+        Ok(BytecodeRes { bytes, label_indices, unmatched_jumps, table_instances })
     }
 
     /// Arg Call Bubbling
@@ -598,7 +587,7 @@ impl Codegen {
     pub fn bubble_arg_call(
         arg_name: &str,
         index: usize,
-        bytegen: &mut Vec<Bytes>,
+        bytegen: &mut Vec<(usize, Bytes)>,
         macro_def: &MacroDefinition,
         contract: &Contract,
         scope: &mut Vec<MacroDefinition>,
@@ -614,14 +603,10 @@ impl Codegen {
 
         tracing::warn!(target: "codegen", "**BUBBLING** \"{}\"", macro_def.name);
 
+        let starting_offset = *offset;
         // Check Constant Definitions
-        if let Some(constant) = contract
-            .constants
-            .iter()
-            .filter(|const_def| const_def.name.eq(arg_name))
-            .cloned()
-            .collect::<Vec<ConstantDefinition>>()
-            .get(0)
+        if let Some(constant) =
+            contract.constants.iter().find(|const_def| const_def.name.eq(arg_name))
         {
             tracing::info!(target: "codegen", "ARGCALL IS CONSTANT: {:?}", constant);
             let push_bytes = match &constant.value {
@@ -643,13 +628,13 @@ impl Codegen {
             };
             *offset += push_bytes.len() / 2;
             tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
-            bytegen.push(Bytes(push_bytes));
+            bytegen.push((starting_offset, Bytes(push_bytes)));
         } else if let Ok(o) = Opcode::from_str(arg_name) {
             // Check Opcode Definition
             let b = Bytes(o.to_string());
             *offset += b.0.len() / 2;
             tracing::info!(target: "codegen", "RECURSE_BYTECODE ARG CALL FOUND OPCODE: {:?}", b);
-            bytegen.push(b);
+            bytegen.push((starting_offset, b));
         } else if let Some(macro_invoc) = mis.last() {
             // Literal & Arg Call Check
             // First get this arg_nam position in the macro definition params
@@ -671,7 +656,7 @@ impl Codegen {
                                 format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal);
                             let b = Bytes(push_bytes);
                             *offset += b.0.len() / 2;
-                            bytegen.push(b);
+                            bytegen.push((starting_offset, b));
                         }
                         MacroArg::ArgCall(ac) => {
                             tracing::info!(target: "codegen", "GOT ARG CALL \"{}\" ARG FROM MACRO INVOCATION", ac);
@@ -695,8 +680,8 @@ impl Codegen {
                                     })
                                 }
                             };
-                            if last_mi.1.macro_name.eq(&macro_def.name) {
-                                return Codegen::bubble_arg_call(
+                            return if last_mi.1.macro_name.eq(&macro_def.name) {
+                                Codegen::bubble_arg_call(
                                     arg_name,
                                     index,
                                     bytegen,
@@ -708,7 +693,7 @@ impl Codegen {
                                     jump_table,
                                 )
                             } else {
-                                return Codegen::bubble_arg_call(
+                                Codegen::bubble_arg_call(
                                     arg_name,
                                     index,
                                     bytegen,
@@ -727,11 +712,11 @@ impl Codegen {
                             tracing::debug!(target: "codegen", "At index: {}", index);
                             // This should be equivalent to a label call.
                             jump_table.insert(
-                                index,
+                                *offset,
                                 vec![Jump { label: iden.to_owned(), bytecode_index: 0 }],
                             );
+                            bytegen.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
                             *offset += 3;
-                            bytegen.push(Bytes(format!("{}xxxx", Opcode::Push2)));
                         }
                     }
                 } else {
@@ -748,8 +733,8 @@ impl Codegen {
                 mis.last().map(|mi| mi.0).unwrap_or_else(|| 0),
                 vec![Jump { label: arg_name.to_owned(), bytecode_index: 0 }],
             );
+            bytegen.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
             *offset += 3;
-            bytegen.push(Bytes(format!("{}xxxx", Opcode::Push2)));
         }
 
         Ok(())
