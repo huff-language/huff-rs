@@ -59,7 +59,7 @@ impl Parser {
         // First iterate over imports
         while !self.check(TokenKind::Eof) && !self.check(TokenKind::Define) {
             contract.imports.push(self.parse_imports()?);
-            tracing::info!(target: "parser", "SUCCESSFULLY PARSED IMPORTS {:?}", contract.imports);
+            tracing::info!(target: "parser", "SUCCESSFULLY PARSED IMPORTS");
         }
 
         // Iterate over tokens and construct the Contract aka AST
@@ -72,25 +72,25 @@ impl Parser {
                 TokenKind::Function => {
                     self.spans = vec![];
                     let func = self.parse_function()?;
-                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED FUNCTION {:?}", func);
+                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED FUNCTION {}", func.name);
                     contract.functions.push(func);
                 }
                 TokenKind::Event => {
                     self.spans = vec![];
                     let ev = self.parse_event()?;
-                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED EVENT {:?}", ev);
+                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED EVENT {}", ev.name);
                     contract.events.push(ev);
                 }
                 TokenKind::Constant => {
                     self.spans = vec![];
                     let c = self.parse_constant()?;
-                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {:?}", c);
+                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {}", c.name);
                     contract.constants.push(c);
                 }
                 TokenKind::Macro => {
                     self.spans = vec![];
                     let m = self.parse_macro()?;
-                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {:?}", m);
+                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
                     contract.macros.push(m);
                 }
                 TokenKind::JumpTable | TokenKind::JumpTablePacked | TokenKind::CodeTable => {
@@ -387,7 +387,7 @@ impl Parser {
     pub fn parse_body(&mut self) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
         self.match_kind(TokenKind::OpenBrace)?;
-        tracing::info!(target: "parser", "PARSING MACRO BODY [SPAN: {:?}]", self.current_token.span.clone());
+        tracing::info!(target: "parser", "PARSING MACRO BODY");
         while !self.check(TokenKind::CloseBrace) {
             match self.current_token.kind.clone() {
                 TokenKind::Literal(val) => {
@@ -715,7 +715,7 @@ impl Parser {
                     self.consume();
                 }
                 kind => {
-                    tracing::error!("Invalid Table Body Token: {:?}", self.current_token);
+                    tracing::error!("Invalid Table Body Token: {:?}", self.current_token.kind);
                     let new_spans = self.spans.clone();
                     self.spans = vec![];
                     return Err(ParserError {

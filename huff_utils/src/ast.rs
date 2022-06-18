@@ -267,12 +267,10 @@ impl MacroDefinition {
                 Statement::Literal(l) => {
                     let hex_literal: String = bytes32_to_string(l, false);
                     let push_bytes = format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal);
-                    tracing::info!(target: "codegen", "PUSHING LITERAL IRBytes: {:?}", push_bytes);
                     inner_irbytes.push(IRByte::Bytes(Bytes(push_bytes)));
                 }
                 Statement::Opcode(o) => {
                     let opcode_str = o.string();
-                    tracing::info!("Got opcode hex string: {}", opcode_str);
                     inner_irbytes.push(IRByte::Bytes(Bytes(opcode_str)))
                 }
                 Statement::MacroInvocation(mi) => {
@@ -288,20 +286,17 @@ impl MacroDefinition {
                 }
                 Statement::LabelCall(jump_to) => {
                     /* Jump To doesn't translate directly to bytecode ? */
-                    tracing::info!(target: "codegen", "PUSHING LABEL CALL IRBytes: {}", jump_to);
                     inner_irbytes
                         .push(IRByte::Statement(Statement::LabelCall(jump_to.to_string())));
                 }
                 Statement::Label(l) => {
                     /* Jump Dests don't translate directly to bytecode ? */
-                    tracing::info!(target: "codegen", "PUSHING LABEL IRBytes: {:?}", l);
                     inner_irbytes.push(IRByte::Statement(Statement::Label(l.clone())));
 
                     // Recurse label statements to IRBytes Bytes
                     inner_irbytes.append(&mut MacroDefinition::to_irbytes(&l.inner));
                 }
                 Statement::BuiltinFunctionCall(builtin) => {
-                    tracing::info!(target: "codegen", "PUSHING BUILTIN FUNCTION CALL IRBytes: {:?}", builtin);
                     inner_irbytes.push(IRByte::Statement(Statement::BuiltinFunctionCall(builtin.clone())));
                 }
             }

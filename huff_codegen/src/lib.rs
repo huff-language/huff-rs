@@ -239,7 +239,7 @@ impl Codegen {
         let mut bytes: Vec<(usize, Bytes)> = Vec::default();
         tracing::info!(target: "codegen", "RECURSING MACRO DEFINITION \"{}\" [SCOPE: {}]", macro_def.name, scope.len());
         let ir_bytes = macro_def.to_irbytecode()?.0;
-        tracing::info!(target: "codegen", "MACRO DEFINITION \"{}\" IR BYTECODE: {:?} [SCOPE: {:?}]", macro_def.name, ir_bytes, scope);
+        tracing::info!(target: "codegen", "MACRO DEFINITION \"{}\"", macro_def.name);
 
         // Define outer loop variables
         let mut offset = original_offset;
@@ -443,7 +443,8 @@ impl Codegen {
 
                                     let size = format_even_bytes(format!(
                                         "{:x}",
-                                        (res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2)
+                                        (res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() /
+                                            2)
                                     ));
                                     let push_bytes = format!("{:02x}{}", 95 + size.len() / 2, size);
 
@@ -710,6 +711,7 @@ impl Codegen {
                             tracing::debug!(target: "codegen", "FOUND IDENT ARG IN \"{}\" MACRO INVOCATION: \"{}\"!", macro_invoc.1.macro_name, iden);
                             tracing::debug!(target: "codegen", "Macro invocation index: {}", macro_invoc.0);
                             tracing::debug!(target: "codegen", "At index: {}", index);
+                            tracing::debug!(target: "codegen", "At offset: {}", *offset);
                             // This should be equivalent to a label call.
                             jump_table.insert(
                                 *offset,

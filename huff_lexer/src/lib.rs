@@ -347,7 +347,7 @@ impl<'a> Iterator for Lexer<'a> {
                         kind
                     } else {
                         // Otherwise we don't support # prefixed indentifiers
-                        tracing::error!(target: "lexer", "INVALID '#' CHARACTER USAGE IN SPAN {:?}", self.current_span());
+                        tracing::error!(target: "lexer", "INVALID '#' CHARACTER USAGE");
                         return Some(Err(LexicalError::new(
                             LexicalErrorKind::InvalidCharacter('#'),
                             self.current_span(),
@@ -432,7 +432,7 @@ impl<'a> Iterator for Lexer<'a> {
                         if let Some(l) = label.get(0..label.len()) {
                             found_kind = Some(TokenKind::Label(l.to_string()));
                         } else {
-                            tracing::error!("[huff_lexer] Fatal Label Colon Truncation!");
+                            tracing::error!(target: "lexer", "[huff_lexer] Fatal Label Colon Truncation!");
                         }
                     }
 
@@ -447,7 +447,7 @@ impl<'a> Iterator for Lexer<'a> {
                             if let Some(o) = OPCODES_MAP.get(opcode) {
                                 found_kind = Some(TokenKind::Opcode(o.to_owned()));
                             } else {
-                                tracing::error!("[huff_lexer] Fatal Opcode Mapping!");
+                                tracing::error!(target: "lexer", "[huff_lexer] Fatal Opcode Mapping!");
                             }
                             break
                         }
@@ -487,7 +487,7 @@ impl<'a> Iterator for Lexer<'a> {
                                                         ),
                                                         span: self.span.clone(),
                                                     };
-                                                    tracing::error!("{}", format!("{:?}", err));
+                                                    tracing::error!(target: "lexer", "{}", format!("{:?}", err));
                                                     err
                                                 })
                                                 .unwrap();
@@ -503,7 +503,7 @@ impl<'a> Iterator for Lexer<'a> {
                                         kind: LexicalErrorKind::InvalidPrimitiveType(&words[0]),
                                         span: self.span.clone(),
                                     };
-                                    tracing::error!("{}", format!("{:?}", err));
+                                    tracing::error!(target: "lexer", "{}", format!("{:?}", err));
                                 }
                             } else {
                                 // We don't want to consider any argument names or the "indexed"
@@ -606,7 +606,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some(_) => {}
                         None => {
                             self.eof = true;
-                            tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN {:?}", self.current_span());
+                            tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN");
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
                                 self.span.clone(),
@@ -629,7 +629,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some(_) => {}
                         None => {
                             self.eof = true;
-                            tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN {:?}", self.current_span());
+                            tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN");
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
                                 self.span.clone(),
@@ -640,7 +640,7 @@ impl<'a> Iterator for Lexer<'a> {
                 },
                 // At this point, the source code has an invalid or unsupported token
                 ch => {
-                    tracing::error!(target: "lexer", "UNSUPPORTED TOKEN '{}' AT {:?}", ch, self.current_span());
+                    tracing::error!(target: "lexer", "UNSUPPORTED TOKEN '{}'", ch);
                     return Some(Err(LexicalError::new(
                         LexicalErrorKind::InvalidCharacter(ch),
                         self.span.clone(),
@@ -656,7 +656,7 @@ impl<'a> Iterator for Lexer<'a> {
             let new_span = match self.source.relative_span(self.span.clone()) {
                 Some(s) => s,
                 None => {
-                    tracing::warn!(target: "lexer", "UNABLE TO RELATIVIZE SPAN FOR \"{}\"@{:?}", kind, self.span);
+                    tracing::warn!(target: "lexer", "UNABLE TO RELATIVIZE SPAN FOR \"{}\"", kind);
                     self.span.clone()
                 }
             };
