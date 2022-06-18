@@ -18,7 +18,18 @@ use std::{collections::HashMap, fs, path::Path, str::FromStr};
 
 /// ### Codegen
 ///
-/// Code Generation Manager responsible for generating the code for the Huff Language.
+/// Code Generation Manager responsible for generating bytecode from a [Contract]() Abstract Syntax Tree.
+///
+/// #### Usage
+///
+/// The canonical way to instantiate a Codegen instance is using the public associated
+/// [new](Codegen::new) function.
+///
+///
+/// ```rust
+/// use huff_codegen::Codegen;
+/// let cg = Codegen::new();
+/// ```
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Codegen {
     /// The Input AST
@@ -37,38 +48,24 @@ impl Codegen {
         Self { ast: None, artifact: None, main_bytecode: None, constructor_bytecode: None }
     }
 
-    /// Generates main bytecode from a Contract AST
-    ///
-    /// # Arguments
-    ///
-    /// * `ast` - Optional Contract Abstract Syntax Tree
-    pub fn roll(ast: Option<Contract>) -> Result<String, CodegenError> {
-        // Grab the AST
-        let contract = match &ast {
-            Some(a) => a,
-            None => {
-                tracing::error!(target: "codegen", "MISSING BOTH STATEFUL AND PARAMETER AST!");
-                return Err(CodegenError {
-                    kind: CodegenErrorKind::MissingAst,
-                    span: None,
-                    token: None,
-                })
-            }
-        };
-
-        // Find the main macro
-        let m_macro: MacroDefinition = if let Some(m) = contract.find_macro_by_name("MAIN") {
-            m
+    /// Helper function to find a macro or generate a CodegenError
+    pub(crate) fn get_macro_by_name(name: &str, contract: &Contract) -> Result<MacroDefinition, CodegenError> {
+        if let Some(m) = contract.find_macro_by_name(name) {
+            Ok(m)
         } else {
-            tracing::error!(target: "codegen", "MISSING \"MAIN\" MACRO!");
-            return Err(CodegenError {
-                kind: CodegenErrorKind::MissingMacroDefinition("MAIN".to_string()),
+            tracing::error!(target: "codegen", "MISSING \"{}\" MACRO!". name);
+            Err(CodegenError {
+                kind: CodegenErrorKind::MissingMacroDefinition(name.to_string()),
                 span: None,
                 token: None,
             })
-        };
+        }
+    }
 
-        tracing::info!(target: "codegen", "MAIN MACRO FOUND: {}", m_macro.name);
+    /// Generates main bytecode from a Contract AST
+    pub fn generate_main_bytecode(contract: &Contract) -> Result<String, CodegenError> {
+        // Find the main macro
+        let m_macro = Codegen::get_macro_by_name("MAIN", contract)?;
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
@@ -78,64 +75,15 @@ impl Codegen {
             0,
             &mut Vec::default(),
         )?;
-        tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
-        let bytecode = Codegen::gen_table_bytecode(bytecode_res, contract)?;
-        tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
 
-        // Return
-        Ok(bytecode)
-    }
-
-    /// Gracefully get the Contract AST
-    pub fn graceful_ast_grab(&self, ast: Option<Contract>) -> Result<Contract, CodegenError> {
-        match ast {
-            Some(a) => Ok(a),
-            None => match &self.ast {
-                Some(a) => Ok(a.clone()),
-                None => {
-                    tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
-                    Err(CodegenError {
-                        kind: CodegenErrorKind::MissingAst,
-                        span: None,
-                        token: None,
-                    })
-                }
-            },
-        }
+        // Generate the fully baked bytecode
+        Codegen::gen_table_bytecode(bytecode_res, contract)
     }
 
     /// Generates constructor bytecode from a Contract AST
-    ///
-    /// # Arguments
-    ///
-    /// * `ast` - Optional Contract Abstract Syntax Tree
-    pub fn construct(ast: Option<Contract>) -> Result<String, CodegenError> {
-        // Grab the AST
-        let contract = match &ast {
-            Some(a) => a,
-            None => {
-                tracing::error!(target: "codegen", "Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
-                return Err(CodegenError {
-                    kind: CodegenErrorKind::MissingAst,
-                    span: None,
-                    token: None,
-                })
-            }
-        };
-
+    pub fn generate_constructor_bytecode(contract: &Contract) -> Result<String, CodegenError> {
         // Find the constructor macro
-        let c_macro: MacroDefinition = if let Some(m) = contract.find_macro_by_name("CONSTRUCTOR") {
-            m
-        } else {
-            tracing::error!(target: "codegen", "'CONSTRUCTOR' Macro definition missing in AST!");
-            return Err(CodegenError {
-                kind: CodegenErrorKind::MissingConstructor,
-                span: None,
-                token: None,
-            })
-        };
-
-        tracing::debug!(target: "codegen", "FOUND CONSTRUCTOR MACRO: {}", c_macro.name);
+        let c_macro =Codegen::get_macro_by_name("CONSTRUCTOR", contract)?;
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
@@ -145,11 +93,9 @@ impl Codegen {
             0,
             &mut Vec::default(),
         )?;
-        tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
-        let bytecode = bytecode_res.bytes.iter().map(|(_, b)| b.0.to_string()).collect();
-        tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
 
-        // Return
+        // Generate the bytecode return string
+        let bytecode = bytecode_res.bytes.iter().map(|(_, b)| b.0.to_string()).collect();
         Ok(bytecode)
     }
 
