@@ -59,7 +59,7 @@ fn main() {
 
     // Initiate Tracing if Verbose
     if cli.verbose {
-        huff_core::init_tracing_subscriber(Some(vec![tracing::Level::DEBUG.into()]));
+        Compiler::init_tracing_subscriber(Some(vec![tracing::Level::DEBUG.into()]));
     }
 
     // Create compiler from the Huff Args
@@ -76,7 +76,7 @@ fn main() {
             Some(o) => Some(o.clone()),
             None => Some(cli.outputdir.clone()),
         },
-        inputs: cli.inputs,
+        construct_args: cli.inputs,
         optimize: cli.optimize,
         bytecode: cli.bytecode,
     };
@@ -85,37 +85,22 @@ fn main() {
     let compile_res = compiler.execute();
     match compile_res {
         Ok(artifacts) => {
-            let mut errored =
-                artifacts.iter().filter_map(|a| a.as_ref().err()).collect::<Vec<&CompilerError>>();
             if artifacts.is_empty() {
-                errored.push(&CompilerError::CodegenError(CodegenError {
+                let e = CompilerError::CodegenError(CodegenError {
                     kind: CodegenErrorKind::AbiGenerationFailure,
                     span: None,
                     token: None,
-                }));
+                });
+                tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
+                eprintln!("{}", Paint::red(format!("{}", e)));
+                std::process::exit(1);
             }
-            match errored.len() {
-                0 => {
-                    if cli.bytecode {
-                        match sources.len() {
-                            1 => {
-                                if let Ok(a) = &artifacts[0] {
-                                    println!("{}", a.bytecode);
-                                }
-                            }
-                            _ => {
-                                for art in artifacts.into_iter().flatten() {
-                                    println!("\"{}\" bytecode: {}", art.file.path, art.bytecode);
-                                }
-                            }
-                        }
-                    }
-                }
-                _ => {
-                    for err in errored.iter() {
-                        eprintln!("{}", Paint::red(format!("{}", err)));
-                    }
-                    std::process::exit(1);
+            if cli.bytecode {
+                match sources.len() {
+                    1 => println!("{}", artifacts[0].bytecode),
+                    _ => artifacts
+                        .iter()
+                        .for_each(|a| println!("\"{}\" bytecode: {}", a.file.path, a.bytecode)),
                 }
             }
         }

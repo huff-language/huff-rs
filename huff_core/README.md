@@ -20,6 +20,6 @@ use huff_utils::artifact::Artifact;
 let mut compiler = Compiler::new(vec!["../examples/ERC20.huff".to_string()], None, None, false);
 
 // Execute the compiler
-let res: Result<Vec<Result<Artifact, CompilerError<'_>>>, CompilerError<'_>> = compiler.execute();
+let res: Result<Vec<Artifact>, CompilerError<'_>> = compiler.execute();
 assert!(res.is_ok());
 ```
