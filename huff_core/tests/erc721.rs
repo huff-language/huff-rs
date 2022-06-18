@@ -45,5 +45,5 @@ fn test_erc721_compile() {
     println!("Current bytecode: {}", artifact.bytecode.to_lowercase());
 
     // TODO: Check the bytecode
-    // assert_eq!(artifact.bytecode.to_lowercase(), expected_bytecode.to_lowercase());
+    assert_eq!(artifact.bytecode.to_lowercase(), expected_bytecode.to_lowercase());
 }

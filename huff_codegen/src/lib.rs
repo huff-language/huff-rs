@@ -373,7 +373,6 @@ impl Codegen {
                         Statement::Label(label) => {
                             // Gen single byte jumpdest and add to label_indices
                             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL: {:?}", label);
-                            dbg!("Adding Label", label.name.clone(), offset);
                             label_indices.insert(label.name, offset);
                             bytes.push((offset, Bytes(Opcode::Jumpdest.to_string())));
                             offset += 1;
@@ -509,8 +508,7 @@ impl Codegen {
                         scope,
                         &mut offset,
                         mis,
-                        &mut jump_table,
-                        &mut label_indices,
+                        &mut jump_table
                     ) {
                         return Err(e)
                     }
@@ -542,16 +540,10 @@ impl Codegen {
                         tracing::debug!(target: "codegen", "Found Jump: {:?}", jump);
                         tracing::debug!(target: "codegen", "Filling Label Call: {}", jump.label);
 
-                        dbg!(jump.label.clone(), jt, &b, &code_index);
-
                         if let Some(jump_index) = label_indices.get(jump.label.as_str()) {
                             let jump_value = pad_n_bytes(&format!("{:02x}", jump_index), 2);
                             tracing::debug!(target: "codegen", "Got Jump Value: {}", jump_value);
                             tracing::debug!(target: "codegen", "Jump Bytecode index: {}", jump.bytecode_index);
-
-                            dbg!(&code_index, &jump_value, &formatted_bytes, jump.label.clone());
-
-                            // 61xxxx
 
                             let before = &formatted_bytes.0[0..jump.bytecode_index + 2];
                             let after = &formatted_bytes.0[jump.bytecode_index + 6..];
@@ -567,14 +559,11 @@ impl Codegen {
 
                             formatted_bytes = Bytes(format!("{}{}{}", before, jump_value, after));
                         } else {
-                            let jump_offset = (code_index - original_offset) * 2;
                             tracing::debug!(target: "codegen", "Inserting unmatched jump: {:?}", jump);
-
-                            dbg!("Inserting unmatched jump:", &jump);
 
                             unmatched_jumps.push(Jump {
                                 label: jump.label.clone(),
-                                bytecode_index: jump_offset + jump.bytecode_index
+                                bytecode_index: code_index
                             });
                         }
                     }
@@ -598,8 +587,7 @@ impl Codegen {
         offset: &mut usize,
         // mis: Parent macro invocations and their indices
         mis: &mut Vec<(usize, MacroInvocation)>,
-        jump_table: &mut JumpTable,
-        label_indices: &mut LabelIndices,
+        jump_table: &mut JumpTable
     ) -> Result<(), CodegenError> {
         // Args can be literals, labels, opcodes, or constants
         // !! IF THERE IS AMBIGUOUS NOMENCLATURE
@@ -695,7 +683,6 @@ impl Codegen {
                                     offset,
                                     &mut Vec::from(&mis[..mis.len().saturating_sub(1)]),
                                     jump_table,
-                                    label_indices,
                                 )
                             } else {
                                 Codegen::bubble_arg_call(
@@ -707,7 +694,6 @@ impl Codegen {
                                     offset,
                                     mis,
                                     jump_table,
-                                    label_indices,
                                 )
                             }
                         }
@@ -716,10 +702,6 @@ impl Codegen {
                             tracing::debug!(target: "codegen", "Macro invocation index: {}", macro_invoc.0);
                             tracing::debug!(target: "codegen", "At offset: {}", *offset);
                             // This should be equivalent to a label call.
-                            dbg!("Insert JT 2", *offset);
-                            if let Some(arg) = label_indices.get(arg_name) {
-                                dbg!(arg);
-                            }
                             bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
                             jump_table.insert(
                                 *offset,
