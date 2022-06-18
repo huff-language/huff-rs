@@ -9,7 +9,7 @@ use huff_utils::{
 fn opcodes() {
     for opcode in OPCODES {
         let opcode = (*opcode).to_owned();
-        let source = format!(
+        let source = &format!(
             r#"
             #define macro TEST() = takes(0) returns(0) {}
                 {}
@@ -17,8 +17,8 @@ fn opcodes() {
             "#,
             "{", opcode, "}",
         );
-        let lexer = Lexer::new(&source);
-        assert_eq!(lexer.source, source);
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(flattened_source);
 
         let tokens = lexer
             .into_iter()

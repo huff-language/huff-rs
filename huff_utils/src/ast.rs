@@ -1,7 +1,14 @@
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::{bytecode::*, bytes_util::*, error::CodegenError, evm::Opcode, prelude::TokenKind};
-use std::path::PathBuf;
+use crate::{
+    bytecode::*,
+    bytes_util::*,
+    error::CodegenError,
+    evm::Opcode,
+    prelude::{Span, TokenKind},
+};
+use std::{collections::BTreeMap, path::PathBuf};
 
 /// A contained literal
 pub type Literal = [u8; 32];
@@ -10,6 +17,47 @@ pub type Literal = [u8; 32];
 ///
 /// Used for parsing the huff imports.
 pub type FilePath = PathBuf;
+
+/// An AST-level Span
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct AstSpan(pub Vec<Span>);
+
+impl AstSpan {
+    /// Coalesce Multiple Spans Into an error string
+    pub fn error(&self) -> String {
+        let file_to_source_map =
+            self.0.iter().fold(BTreeMap::<String, Vec<&Span>>::new(), |mut m, s| {
+                let file_name =
+                    s.file.as_ref().map(|f2| f2.path.clone()).unwrap_or_else(|| "".to_string());
+                let mut new_vec: Vec<&Span> = m.get(&file_name).cloned().unwrap_or_default();
+                new_vec.push(s);
+                m.insert(file_name, new_vec);
+                m
+            });
+        file_to_source_map.iter().filter(|fs| !fs.0.is_empty()).fold("".to_string(), |s, fs| {
+            let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
+            let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
+            if start.eq(&0) && end.eq(&0) {
+                format!("{}\n-> {}:{}\n   > 0|", s, fs.0, start,)
+            } else {
+                format!(
+                    "{}\n-> {}:{}-{}\n      |{}\n      |",
+                    s,
+                    fs.0,
+                    start,
+                    end,
+                    fs.1.iter()
+                        .map(|sp| sp.source_seg())
+                        .filter(|ss| !ss.is_empty())
+                        .collect::<Vec<String>>()
+                        .into_iter()
+                        .unique()
+                        .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
+                )
+            }
+        })
+    }
+}
 
 /// A Huff Contract Representation
 ///
@@ -58,27 +106,146 @@ impl Contract {
 
     /// Derives the FreeStoragePointers into their bytes32 representation
     pub fn derive_storage_pointers(&mut self) {
-        let mut storage_pointers: Vec<[u8; 32]> = Vec::new();
+        let mut storage_pointers: Vec<(String, [u8; 32])> = Vec::new();
         let mut last_assigned_free_pointer = 0;
-        // do the non fsp consts first, so we can check for conflicts
-        // when going over the fsp consts
-        for constant in &self.constants {
-            if let ConstVal::Literal(literal) = &constant.value {
-                storage_pointers.push(*literal);
+
+        // Derive Constructor Storage Pointers
+        match self.find_macro_by_name("CONSTRUCTOR") {
+            Some(m) => self.recurse_ast_constants(
+                &m,
+                &mut storage_pointers,
+                &mut last_assigned_free_pointer,
+            ),
+            None => {
+                tracing::error!(target: "ast", "'CONSTRUCTOR' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
             }
         }
-        for constant in self.constants.iter_mut() {
-            if let ConstVal::FreeStoragePointer(_) = &constant.value {
-                let mut fsp_bytes = str_to_bytes32(&format!("{}", last_assigned_free_pointer));
-                while storage_pointers.contains(&fsp_bytes) {
-                    last_assigned_free_pointer += 1;
-                    fsp_bytes = str_to_bytes32(&format!("{}", last_assigned_free_pointer));
+
+        // Derive Main Storage Pointers
+        match self.find_macro_by_name("MAIN") {
+            Some(m) => self.recurse_ast_constants(
+                &m,
+                &mut storage_pointers,
+                &mut last_assigned_free_pointer,
+            ),
+            None => {
+                tracing::error!(target: "ast", "'MAIN' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
+            }
+        }
+
+        tracing::debug!(target: "ast", "Generate Storage pointers: {:?}", storage_pointers);
+        tracing::debug!(target: "ast", "ALL AST CONSTANTS: {:?}", storage_pointers);
+
+        // Set all the constants to their new values
+        for c in &mut self.constants {
+            match storage_pointers
+                .iter()
+                .filter(|pointer| pointer.0.eq(&c.name))
+                .collect::<Vec<&(String, [u8; 32])>>()
+                .get(0)
+            {
+                Some(p) => {
+                    *c = ConstantDefinition {
+                        name: c.name.to_string(),
+                        value: ConstVal::Literal(p.1),
+                    };
                 }
-                storage_pointers.push(fsp_bytes);
-                last_assigned_free_pointer += 1;
-                constant.value = ConstVal::Literal(fsp_bytes);
+                None => {
+                    tracing::warn!(target: "ast", "SET STORAGE POINTER BUT FAILED TO SET DERIVED CONSTANT VALUE FOR \"{}\"", c.name)
+                }
             }
         }
+    }
+
+    /// Recurse down an AST Macro Definition to set Storage Pointers
+    ///
+    /// ## Overview
+    ///
+    /// For each statement in the macro definition:
+    ///     - If it's a free storage pointer constant, set the constant value if not already set and
+    ///       updated out `last_p` tracker value
+    ///     - If it's a literal constant, we can set the constant value directly to the literal if
+    ///       not already set
+    ///     - If it's a macro invocation, look for the macro definition and recurse into that macro
+    ///       definition using `recurse_ast_constants`
+    pub fn recurse_ast_constants(
+        &self,
+        macro_def: &MacroDefinition,
+        storage_pointers: &mut Vec<(String, [u8; 32])>,
+        last_p: &mut i32,
+    ) {
+        let mut statements = macro_def.statements.clone();
+        let mut i = 0;
+        loop {
+            if i >= statements.len() {
+                break
+            }
+            match &statements[i].clone() {
+                Statement::Constant(const_name) => {
+                    tracing::debug!(target: "ast", "Found constant \"{}\" in macro def \"{}\" statements!", const_name, macro_def.name);
+                    if storage_pointers
+                        .iter()
+                        .filter(|pointer| pointer.0.eq(const_name))
+                        .collect::<Vec<&(String, [u8; 32])>>()
+                        .get(0)
+                        .is_none()
+                    {
+                        tracing::debug!(target: "ast", "No storage pointer already set for \"{}\"!", const_name);
+                        // Get the associated constant
+                        match self
+                            .constants
+                            .iter()
+                            .filter(|c| c.name.eq(const_name))
+                            .collect::<Vec<&ConstantDefinition>>()
+                            .get(0)
+                        {
+                            Some(c) => {
+                                let new_value = match c.value {
+                                    ConstVal::Literal(l) => l,
+                                    ConstVal::FreeStoragePointer(_) => {
+                                        let old_p = *last_p;
+                                        *last_p += 1;
+                                        str_to_bytes32(&format!("{}", old_p))
+                                    }
+                                };
+                                storage_pointers.push((const_name.to_string(), new_value));
+                            }
+                            None => {
+                                tracing::warn!(target: "ast", "CONSTANT \"{}\" NOT FOUND IN AST CONSTANTS", const_name)
+                            }
+                        }
+                    }
+                }
+                Statement::MacroInvocation(mi) => {
+                    tracing::debug!(target: "ast", "Found macro invocation: \"{}\" in macro def: \"{}\"!", mi.macro_name, macro_def.name);
+                    match self
+                        .macros
+                        .iter()
+                        .filter(|md| md.name.eq(&mi.macro_name))
+                        .collect::<Vec<&MacroDefinition>>()
+                        .get(0)
+                    {
+                        Some(&md) => self.recurse_ast_constants(md, storage_pointers, last_p),
+                        None => {
+                            tracing::warn!(target: "ast", "MACRO \"{}\" INVOKED BUT NOT FOUND IN AST!", mi.macro_name)
+                        }
+                    }
+                }
+                Statement::Label(l) => {
+                    for state in l.inner.iter().rev() {
+                        statements.insert(i + 1, state.clone());
+                    }
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+
+        // Breadth-first
+        // if !macros_to_recurse.is_empty() {
+        //     let next_md = macros_to_recurse.remove(0);
+        //     self.recurse_ast_constants(next_md, storage_pointers, last_p, macros_to_recurse);
+        // }
     }
 }
 
@@ -186,24 +353,43 @@ pub struct MacroDefinition {
     pub takes: usize,
     /// The return size
     pub returns: usize,
+    /// The Span of the Macro Definition
+    pub span: AstSpan,
 }
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
     fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError> {
+        let inner_irbytes: Vec<IRByte> = MacroDefinition::to_irbytes(&self.statements);
+        Ok(IRBytecode(inner_irbytes))
+    }
+}
+
+impl MacroDefinition {
+    /// Public associated function that instantiates a MacroDefinition.
+    pub fn new(
+        name: String,
+        parameters: Vec<Argument>,
+        statements: Vec<Statement>,
+        takes: usize,
+        returns: usize,
+        spans: Vec<Span>,
+    ) -> Self {
+        MacroDefinition { name, parameters, statements, takes, returns, span: AstSpan(spans) }
+    }
+
+    /// Translate statements into IRBytes
+    pub fn to_irbytes(statements: &[Statement]) -> Vec<IRByte> {
         let mut inner_irbytes: Vec<IRByte> = vec![];
 
-        // Iterate and translate each statement to bytecode if possible
-        self.statements.iter().for_each(|statement| {
+        statements.iter().for_each(|statement| {
             match statement {
                 Statement::Literal(l) => {
                     let hex_literal: String = bytes32_to_string(l, false);
                     let push_bytes = format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal);
-                    tracing::info!(target: "codegen", "PUSHING LITERAL IRBytes: {:?}", push_bytes);
                     inner_irbytes.push(IRByte::Bytes(Bytes(push_bytes)));
                 }
                 Statement::Opcode(o) => {
                     let opcode_str = o.string();
-                    tracing::info!("Got opcode hex string: {}", opcode_str);
                     inner_irbytes.push(IRByte::Bytes(Bytes(opcode_str)))
                 }
                 Statement::MacroInvocation(mi) => {
@@ -219,36 +405,24 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
                 }
                 Statement::LabelCall(jump_to) => {
                     /* Jump To doesn't translate directly to bytecode ? */
-                    tracing::info!(target: "codegen", "PUSHING LABEL CALL IRBytes: {}", jump_to);
                     inner_irbytes
                         .push(IRByte::Statement(Statement::LabelCall(jump_to.to_string())));
                 }
                 Statement::Label(l) => {
                     /* Jump Dests don't translate directly to bytecode ? */
-                    tracing::info!(target: "codegen", "PUSHING LABEL IRBytes: {:?}", l);
                     inner_irbytes.push(IRByte::Statement(Statement::Label(l.clone())));
-                    l.inner.iter().for_each(|s| inner_irbytes.push(IRByte::Statement(s.clone())));
+
+                    // Recurse label statements to IRBytes Bytes
+                    inner_irbytes.append(&mut MacroDefinition::to_irbytes(&l.inner));
                 }
                 Statement::BuiltinFunctionCall(builtin) => {
-                    tracing::info!(target: "codegen", "PUSHING BUILTIN FUNCTION CALL IRBytes: {:?}", builtin);
-                    inner_irbytes.push(IRByte::Statement(Statement::BuiltinFunctionCall(builtin.clone())));
+                    inner_irbytes
+                        .push(IRByte::Statement(Statement::BuiltinFunctionCall(builtin.clone())));
                 }
             }
         });
-        Ok(IRBytecode(inner_irbytes))
-    }
-}
 
-impl MacroDefinition {
-    /// Public associated function that instantiates a MacroDefinition.
-    pub fn new(
-        name: String,
-        parameters: Vec<Argument>,
-        statements: Vec<Statement>,
-        takes: usize,
-        returns: usize,
-    ) -> Self {
-        MacroDefinition { name, parameters, statements, takes, returns }
+        inner_irbytes
     }
 }
 

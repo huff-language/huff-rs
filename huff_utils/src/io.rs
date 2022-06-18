@@ -6,51 +6,40 @@ pub fn parse_extension(filename: &str) -> Option<&str> {
 }
 
 /// Unpacking errors
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum UnpackError {
     /// The file extension is not supported.
-    UnsupportedExtension,
+    UnsupportedExtension(String),
     /// Failed to read directory
-    InvalidDirectory,
+    InvalidDirectory(String),
 }
 
 /// Unpacks huff files into a vec of strings.
-pub fn unpack_files(path: &str) -> Result<Vec<String>, UnpackError> {
+pub fn unpack_files(path: String) -> Result<Vec<String>, UnpackError> {
     // If the path is a file, return a vec of the file
-    match parse_extension(path) {
+    match parse_extension(&path) {
         Some(extension) => {
-            tracing::info!(target: "io", "FOUND HUFF FILE: {}", extension);
             if extension == "huff" {
                 return Ok(vec![path.to_string()])
             }
-            Err(UnpackError::UnsupportedExtension)
+            Err(UnpackError::UnsupportedExtension(path))
         }
         None => {
             // We have a directory, try to extract huff files and parse
-            tracing::info!(target: "io", "READING HUFF FILES IN: {}", path);
-            match std::fs::read_dir(path) {
+            match std::fs::read_dir(&path) {
                 Ok(files) => {
-                    tracing::info!(target: "io", "FOUND FILES: {:?}", files);
                     let input_files: Vec<String> =
                         files.map(|x| x.unwrap().path().to_str().unwrap().to_string()).collect();
-                    tracing::info!(target: "io", "COLLECTED INPUT FILES:");
-                    for f in &input_files {
-                        tracing::info!(target: "io", "- \"{}\"", f);
-                    }
                     let filtered: Vec<String> = input_files
                         .iter()
                         .filter(|&f| Path::new(&f).extension().unwrap_or_default().eq("huff"))
                         .cloned()
                         .collect();
-                    tracing::info!(target: "io", "FILTERED INPUT FILES:");
-                    for f in &filtered {
-                        tracing::info!(target: "io", "- \"{}\"", f);
-                    }
                     Ok(filtered)
                 }
                 Err(e) => {
                     tracing::error!(target: "io", "ERROR READING DIRECTORY {}: {:?}", path, e);
-                    Err(UnpackError::InvalidDirectory)
+                    Err(UnpackError::InvalidDirectory(path))
                 }
             }
         }

@@ -5,13 +5,14 @@ use huff_utils::prelude::*;
 #[test]
 fn free_storage_pointer() {
     let source = "FREE_STORAGE_POINTER() ";
-    let mut lexer = Lexer::new(source);
-    assert_eq!(lexer.source, source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let mut lexer = Lexer::new(flattened_source.clone());
+    assert_eq!(lexer.source, flattened_source);
 
     // The first token should be the fsp
     let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::FreeStoragePointer, Span::new(0..22)));
-    assert_eq!(lexer.span, Span::new(0..22));
+    assert_eq!(tok, Token::new(TokenKind::FreeStoragePointer, Span::new(0..22, None)));
+    assert_eq!(lexer.span, Span::new(0..22, None));
 
     // Eats the whitespace
     let _ = lexer.next();

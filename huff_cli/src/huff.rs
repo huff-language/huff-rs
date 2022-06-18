@@ -9,8 +9,9 @@
 
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
-use huff_utils::prelude::unpack_files;
+use huff_utils::prelude::{unpack_files, CodegenError, CodegenErrorKind, CompilerError};
 use std::path::Path;
+use yansi::Paint;
 
 /// The Huff CLI Args
 #[derive(ClapParser, Debug, Clone)]
@@ -58,67 +59,79 @@ fn main() {
 
     // Initiate Tracing if Verbose
     if cli.verbose {
-        huff_core::init_tracing_subscriber(Some(vec![tracing::Level::DEBUG.into()]));
+        Compiler::init_tracing_subscriber(Some(vec![tracing::Level::DEBUG.into()]));
     }
 
     // Create compiler from the Huff Args
-    let sources = cli.get_inputs().unwrap_or_default();
+    let sources = match cli.get_inputs() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("{}", Paint::red(format!("{}", e)));
+            std::process::exit(1);
+        }
+    };
     let compiler: Compiler = Compiler {
         sources: sources.clone(),
         output: match &cli.output {
             Some(o) => Some(o.clone()),
             None => Some(cli.outputdir.clone()),
         },
-        inputs: cli.inputs,
+        construct_args: cli.inputs,
         optimize: cli.optimize,
         bytecode: cli.bytecode,
     };
-    tracing::info!(target: "core", "COMPILER INCANTATION COMPLETE");
-    tracing::info!(target: "core", "EXECUTING COMPILATION...");
+    tracing::debug!(target: "core", "COMPILER INCANTATION COMPLETE");
+    tracing::debug!(target: "core", "EXECUTING COMPILATION...");
     let compile_res = compiler.execute();
     match compile_res {
         Ok(artifacts) => {
+            if artifacts.is_empty() {
+                let e = CompilerError::CodegenError(CodegenError {
+                    kind: CodegenErrorKind::AbiGenerationFailure,
+                    span: None,
+                    token: None,
+                });
+                tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
+                eprintln!("{}", Paint::red(format!("{}", e)));
+                std::process::exit(1);
+            }
             if cli.bytecode {
                 match sources.len() {
-                    1 => {
-                        if let Ok(a) = &artifacts[0] {
-                            println!("{}", a.bytecode);
-                        }
-                    }
-                    _ => {
-                        for art in artifacts.into_iter().flatten() {
-                            println!("\"{}\" bytecode: {}", art.file.path, art.bytecode);
-                        }
-                    }
+                    1 => println!("{}", artifacts[0].bytecode),
+                    _ => artifacts
+                        .iter()
+                        .for_each(|a| println!("\"{}\" bytecode: {}", a.file.path, a.bytecode)),
                 }
             }
         }
         Err(e) => {
             tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
+            eprintln!("{}", Paint::red(format!("{}", e)));
+            std::process::exit(1);
         }
     }
 }
 
 impl Huff {
     /// Preprocesses input files for compiling
-    pub fn get_inputs(&self) -> Option<Vec<String>> {
+    pub fn get_inputs(&self) -> Result<Vec<String>, CompilerError> {
         match &self.path {
             Some(path) => {
-                tracing::info!(target: "io", "FETCHING INPUT: {}", path);
+                tracing::debug!(target: "io", "FETCHING INPUT: {}", path);
                 // If the file is huff, we can use it
                 let ext = Path::new(&path).extension().unwrap_or_default();
                 if ext.eq("huff") {
-                    Some(vec![path.clone()])
+                    Ok(vec![path.clone()])
                 } else {
                     // Otherwise, override the source files and use all files in the provided dir
-                    unpack_files(path).ok()
+                    unpack_files(path.to_string()).map_err(CompilerError::FileUnpackError)
                 }
             }
             None => {
-                tracing::info!(target: "io", "FETCHING SOURCE FILES: {}", self.source);
+                tracing::debug!(target: "io", "FETCHING SOURCE FILES: {}", self.source);
                 // If there's no path, unpack source files
                 let source: String = self.source.clone();
-                unpack_files(&source).ok()
+                unpack_files(source).map_err(CompilerError::FileUnpackError)
             }
         }
     }

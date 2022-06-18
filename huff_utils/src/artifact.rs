@@ -27,6 +27,7 @@ impl Artifact {
         let serialized_artifact = serde_json::to_string(self)?;
         let file_path = Path::new(&out);
         if let Some(p) = file_path.parent() {
+            tracing::debug!(target: "abi", "Creating directory: \"{:?}\"", p);
             fs::create_dir_all(p)?
         }
         fs::write(file_path, serialized_artifact)

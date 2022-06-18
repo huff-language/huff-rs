@@ -1,5 +1,5 @@
 use huff_lexer::*;
-use huff_utils::{prelude::*, types::*};
+use huff_utils::prelude::*;
 
 #[test]
 fn primitive_type_parsing() {
@@ -14,8 +14,9 @@ fn primitive_type_parsing() {
     ];
 
     for (evm_type, evm_type_enum) in evm_types {
-        let source = format!("#define function test({}) view returns (uint256)", evm_type);
-        let lexer = Lexer::new(source.as_str());
+        let source = &format!("#define function test({}) view returns (uint256)", evm_type);
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(flattened_source);
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())
@@ -39,8 +40,9 @@ fn bounded_array_parsing() {
     ];
 
     for (evm_type, evm_type_enum) in evm_types {
-        let source = format!("#define function test({}) view returns (uint256)", evm_type);
-        let lexer = Lexer::new(source.as_str());
+        let source = &format!("#define function test({}) view returns (uint256)", evm_type);
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(flattened_source);
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())
@@ -64,8 +66,9 @@ fn unbounded_array_parsing() {
     ];
 
     for (evm_type, evm_type_enum) in evm_types {
-        let source = format!("#define function test({}) view returns (uint256)", evm_type);
-        let lexer = Lexer::new(source.as_str());
+        let source = &format!("#define function test({}) view returns (uint256)", evm_type);
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(flattened_source);
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())
@@ -88,8 +91,9 @@ fn multidim_array_parsing() {
     ];
 
     for (evm_type, evm_type_enum) in evm_types {
-        let source = format!("#define function test({}) view returns (uint256)", evm_type);
-        let lexer = Lexer::new(source.as_str());
+        let source = &format!("#define function test({}) view returns (uint256)", evm_type);
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(flattened_source);
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())

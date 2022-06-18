@@ -1,25 +1,44 @@
 ## Huff Core
 
-Core Compiler for the Huff Language.
+Core [Compiler](struct.Compiler.html) for the [Huff Language](https://huff.sh).
 
 #### Usage
 
-The following example steps through compiling source code in the [examples](./examples/) directory.
+Compiling source code with the [Compiler](struct.Compiler.html) is very straightforward.
+
+Once you instantiate a [Compiler](struct.Compiler.html) (WLOG, `compiler`) with the file source, you can generate the compiled artifacts by simply running:
+
+```rust,ignore
+let artifacts: Result<Vec<Artifact>, CompilerError<'_>> = compiler.execute();
+```
+
+Below we demonstrate taking a source file `../huff-examples/erc20/contracts/ERC20.huff`, and generating the copmiled artifacts.
 
 ```rust
 use huff_core::Compiler;
 use huff_utils::error::CompilerError;
 use huff_utils::artifact::Artifact;
 
-
-// Read in the ERC20 example
-// let sources: Vec<FileSource> = Compiler::fetch_sources(vec![PathBuf::from("./examples/ERC20.huff")]);
-
 // Instantiate the Compiler Instance
-// The path is `../examples/ERC20.huff` since the doc-string is run from inside the `src/` directory
-let mut compiler = Compiler::new(vec!["../examples/ERC20.huff".to_string()], None, None, false);
+let mut compiler = Compiler::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()], None, None, false);
 
 // Execute the compiler
-let res: Result<Vec<Result<Artifact, CompilerError<'_>>>, CompilerError<'_>> = compiler.execute();
+let res: Result<Vec<Artifact>, CompilerError<'_>> = compiler.execute();
 assert!(res.is_ok());
 ```
+
+The [Compiler](struct.Compiler.html) is easily configurable upon instantiation.
+
+
+
+
+#### Inner Workings
+
+The [Compiler](struct.Compiler.html) is composed of several compilation phases and bundles them together in one process.
+
+```txt
+
+[Files] -> Lexer -> Parser -> Codegen -> [Bytecode]
+
+```
+

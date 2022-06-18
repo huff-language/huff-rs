@@ -1,4 +1,4 @@
-use crate::{evm::Opcode, span::Span, types::PrimitiveEVMType};
+use crate::{evm::Opcode, files::Span, types::PrimitiveEVMType};
 use std::{fmt, fmt::Write};
 
 type Literal = [u8; 32];
@@ -20,7 +20,7 @@ impl Token {
 }
 
 /// The kind of token
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum TokenKind {
     /// EOF Token
     Eof,

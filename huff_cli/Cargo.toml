@@ -9,14 +9,15 @@ license = "MIT OR Apache-2.0"
 description = """
 Efficient Huff compiler written in rust.
 """
-keywords = ["huff", "rust", "ethereum", "assembly", "compiler"]
+keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
 
 [dependencies]
 clap = { version = "3.1.18", features = ["derive"] }
-huff_core = { path = "../huff_core", version = "0.1.0" }
-huff_utils = { path = "../huff_utils", version = "0.1.0" }
+huff_core = { path = "../huff_core", version = "0.x.x" }
+huff_utils = { path = "../huff_utils", version = "0.x.x" }
 tracing = "0.1.34"
 ethers = "0.6.2"
+yansi = "0.5.1"
 
 [[bin]]
 name = "huff"

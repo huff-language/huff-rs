@@ -50,7 +50,8 @@ fn parse_event() {
     ];
 
     for (source, expected) in sources {
-        let lexer = Lexer::new(source);
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(flattened_source);
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())

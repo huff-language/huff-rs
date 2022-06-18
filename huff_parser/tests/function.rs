@@ -115,7 +115,8 @@ fn parses_valid_function_definition() {
     ]);
 
     for (index, source) in sources.into_iter().enumerate() {
-        let lexer = Lexer::new(source);
+        let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(flattened_source);
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())
@@ -134,7 +135,8 @@ fn parses_valid_function_definition() {
 #[should_panic]
 fn cannot_parse_invalid_function_definition() {
     let source = "#define function test(uint256) returns(uint256)";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     parser.parse().unwrap();

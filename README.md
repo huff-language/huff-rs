@@ -72,6 +72,8 @@ All contributions are welcome! We want to make contributing to this project as e
 
 We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/huff-language/huff-rs/issues/new); it's that easy!
 
+To run examples, make sure you update git submodules to pull down the [huff-examples](./huff-examples/) submodule by running `git submodule update`.
+
 To pass github actions, please run:
 
 ```bash

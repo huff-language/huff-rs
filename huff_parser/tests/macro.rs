@@ -5,22 +5,26 @@ use huff_utils::{evm::Opcode, prelude::*};
 #[test]
 fn empty_macro() {
     let source = "#define macro HELLO_WORLD() = takes(0) returns(4) {}";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
     // Grab the first macro
     let macro_definition = parser.parse().unwrap().macros[0].clone();
-    assert_eq!(
-        macro_definition,
-        MacroDefinition {
-            name: "HELLO_WORLD".to_string(),
-            parameters: vec![],
-            statements: vec![],
-            takes: 0,
-            returns: 4,
-        }
-    );
+    let expected = MacroDefinition {
+        name: "HELLO_WORLD".to_string(),
+        parameters: vec![],
+        statements: vec![],
+        takes: 0,
+        returns: 4,
+        span: AstSpan(vec![]),
+    };
+    assert_eq!(macro_definition.name, expected.name);
+    assert_eq!(macro_definition.parameters, expected.parameters);
+    assert_eq!(macro_definition.statements, expected.statements);
+    assert_eq!(macro_definition.takes, expected.takes);
+    assert_eq!(macro_definition.returns, expected.returns);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
 
@@ -28,28 +32,32 @@ fn empty_macro() {
 fn macro_with_simple_body() {
     let source =
         "#define macro HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
     // Grab the first macro
     let macro_definition = parser.parse().unwrap().macros[0].clone();
-    assert_eq!(
-        macro_definition,
-        MacroDefinition {
-            name: "HELLO_WORLD".to_string(),
-            parameters: vec![],
-            statements: vec![
-                Statement::Literal(str_to_bytes32("00")),
-                Statement::Opcode(Opcode::Mstore),
-                Statement::Literal(str_to_bytes32("01")),
-                Statement::Literal(str_to_bytes32("02")),
-                Statement::Opcode(Opcode::Add)
-            ],
-            takes: 3,
-            returns: 0,
-        }
-    );
+    let expected = MacroDefinition {
+        name: "HELLO_WORLD".to_string(),
+        parameters: vec![],
+        statements: vec![
+            Statement::Literal(str_to_bytes32("00")),
+            Statement::Opcode(Opcode::Mstore),
+            Statement::Literal(str_to_bytes32("01")),
+            Statement::Literal(str_to_bytes32("02")),
+            Statement::Opcode(Opcode::Add),
+        ],
+        takes: 3,
+        returns: 0,
+        span: AstSpan(vec![]),
+    };
+    assert_eq!(macro_definition.name, expected.name);
+    assert_eq!(macro_definition.parameters, expected.parameters);
+    assert_eq!(macro_definition.statements, expected.statements);
+    assert_eq!(macro_definition.takes, expected.takes);
+    assert_eq!(macro_definition.returns, expected.returns);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
 
@@ -78,47 +86,51 @@ fn macro_with_arg_calls() {
     "#;
 
     // Parse tokens
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
     // Grab the first macro
     let macro_definition = parser.parse().unwrap().macros[0].clone();
-    assert_eq!(
-        macro_definition,
-        MacroDefinition {
-            name: "TRANSFER_TAKE_FROM".to_string(),
-            parameters: vec![Argument {
-                arg_type: None,
-                name: Some("error".to_string()),
-                indexed: false
-            }],
-            statements: vec![
-                Statement::Opcode(Opcode::Dup2),
-                Statement::Constant("BALANCE_LOCATION".to_string()),
-                Statement::MacroInvocation(MacroInvocation {
-                    macro_name: "LOAD_ELEMENT_FROM_KEYS".to_string(),
-                    args: vec![MacroArg::Literal(str_to_bytes32("00"))]
-                }),
-                Statement::Opcode(Opcode::Dup1),
-                Statement::Opcode(Opcode::Dup3),
-                Statement::Opcode(Opcode::Gt),
-                Statement::ArgCall("error".to_string()),
-                Statement::Opcode(Opcode::Jumpi),
-                Statement::Opcode(Opcode::Dup2),
-                Statement::Opcode(Opcode::Swap1),
-                Statement::Opcode(Opcode::Sub),
-                Statement::Opcode(Opcode::Dup3),
-                Statement::Constant("BALANCE_LOCATION".to_string()),
-                Statement::MacroInvocation(MacroInvocation {
-                    macro_name: "STORE_ELEMENT_FROM_KEYS".to_string(),
-                    args: vec![MacroArg::Literal(str_to_bytes32("00"))]
-                })
-            ],
-            takes: 3,
-            returns: 3
-        }
-    );
+    let expected = MacroDefinition {
+        name: "TRANSFER_TAKE_FROM".to_string(),
+        parameters: vec![Argument {
+            arg_type: None,
+            name: Some("error".to_string()),
+            indexed: false,
+        }],
+        statements: vec![
+            Statement::Opcode(Opcode::Dup2),
+            Statement::Constant("BALANCE_LOCATION".to_string()),
+            Statement::MacroInvocation(MacroInvocation {
+                macro_name: "LOAD_ELEMENT_FROM_KEYS".to_string(),
+                args: vec![MacroArg::Literal(str_to_bytes32("00"))],
+            }),
+            Statement::Opcode(Opcode::Dup1),
+            Statement::Opcode(Opcode::Dup3),
+            Statement::Opcode(Opcode::Gt),
+            Statement::ArgCall("error".to_string()),
+            Statement::Opcode(Opcode::Jumpi),
+            Statement::Opcode(Opcode::Dup2),
+            Statement::Opcode(Opcode::Swap1),
+            Statement::Opcode(Opcode::Sub),
+            Statement::Opcode(Opcode::Dup3),
+            Statement::Constant("BALANCE_LOCATION".to_string()),
+            Statement::MacroInvocation(MacroInvocation {
+                macro_name: "STORE_ELEMENT_FROM_KEYS".to_string(),
+                args: vec![MacroArg::Literal(str_to_bytes32("00"))],
+            }),
+        ],
+        takes: 3,
+        returns: 3,
+        span: AstSpan(vec![]),
+    };
+    assert_eq!(macro_definition.name, expected.name);
+    assert_eq!(macro_definition.parameters, expected.parameters);
+    assert_eq!(macro_definition.statements, expected.statements);
+    assert_eq!(macro_definition.takes, expected.takes);
+    assert_eq!(macro_definition.returns, expected.returns);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
 
@@ -136,47 +148,51 @@ fn macro_labels() {
     "#;
 
     // Parse tokens
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
     // Grab the first macro
     let macro_definition = parser.parse().unwrap().macros[0].clone();
-    assert_eq!(
-        macro_definition,
-        MacroDefinition {
-            name: "LABEL_FILLED".to_string(),
-            parameters: vec![],
-            statements: vec![
-                Statement::Label(Label {
-                    name: "__label__".to_string(),
-                    inner: vec![
-                        Statement::MacroInvocation(MacroInvocation {
-                            macro_name: "TRANSFER_GIVE_TO".to_string(),
-                            args: vec![]
-                        }),
-                        Statement::Literal(str_to_bytes32("00")),
-                        Statement::Literal(str_to_bytes32("00")),
-                        Statement::Opcode(Opcode::Revert),
-                    ]
-                }),
-                Statement::Label(Label {
-                    name: "error".to_string(),
-                    inner: vec![
-                        Statement::MacroInvocation(MacroInvocation {
-                            macro_name: "TRANSFER_GIVE_TO".to_string(),
-                            args: vec![]
-                        }),
-                        Statement::Literal(str_to_bytes32("00")),
-                        Statement::Literal(str_to_bytes32("00")),
-                        Statement::Opcode(Opcode::Revert),
-                    ]
-                })
-            ],
-            takes: 0,
-            returns: 0
-        }
-    );
+    let expected = MacroDefinition {
+        name: "LABEL_FILLED".to_string(),
+        parameters: vec![],
+        statements: vec![
+            Statement::Label(Label {
+                name: "__label__".to_string(),
+                inner: vec![
+                    Statement::MacroInvocation(MacroInvocation {
+                        macro_name: "TRANSFER_GIVE_TO".to_string(),
+                        args: vec![],
+                    }),
+                    Statement::Literal(str_to_bytes32("00")),
+                    Statement::Literal(str_to_bytes32("00")),
+                    Statement::Opcode(Opcode::Revert),
+                ],
+            }),
+            Statement::Label(Label {
+                name: "error".to_string(),
+                inner: vec![
+                    Statement::MacroInvocation(MacroInvocation {
+                        macro_name: "TRANSFER_GIVE_TO".to_string(),
+                        args: vec![],
+                    }),
+                    Statement::Literal(str_to_bytes32("00")),
+                    Statement::Literal(str_to_bytes32("00")),
+                    Statement::Opcode(Opcode::Revert),
+                ],
+            }),
+        ],
+        takes: 0,
+        returns: 0,
+        span: AstSpan(vec![]),
+    };
+    assert_eq!(macro_definition.name, expected.name);
+    assert_eq!(macro_definition.parameters, expected.parameters);
+    assert_eq!(macro_definition.statements, expected.statements);
+    assert_eq!(macro_definition.takes, expected.takes);
+    assert_eq!(macro_definition.returns, expected.returns);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
 
@@ -193,41 +209,45 @@ fn macro_invocation_with_arg_call() {
     "#;
 
     // Parse tokens
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
     // Grab the first macro
     let macro_definition = parser.parse().unwrap().macros[0].clone();
-    assert_eq!(
-        macro_definition,
-        MacroDefinition {
-            name: "ARG_CALL".to_string(),
-            parameters: vec![Argument {
-                arg_type: None,
-                name: Some("error".to_string()),
-                indexed: false
-            }],
-            statements: vec![
-                Statement::MacroInvocation(MacroInvocation {
-                    macro_name: "TRANSFER_TAKE_FROM".to_string(),
-                    args: vec![MacroArg::ArgCall("error".to_string())]
-                }),
-                Statement::MacroInvocation(MacroInvocation {
-                    macro_name: "TRANSFER_GIVE_TO".to_string(),
-                    args: vec![MacroArg::ArgCall("error".to_string())]
-                }),
-                Statement::Literal(str_to_bytes32("01")),
-                Statement::Literal(str_to_bytes32("00")),
-                Statement::Opcode(Opcode::Mstore),
-                Statement::Literal(str_to_bytes32("20")),
-                Statement::Literal(str_to_bytes32("00")),
-                Statement::Opcode(Opcode::Return),
-            ],
-            takes: 0,
-            returns: 0
-        }
-    );
+    let expected = MacroDefinition {
+        name: "ARG_CALL".to_string(),
+        parameters: vec![Argument {
+            arg_type: None,
+            name: Some("error".to_string()),
+            indexed: false,
+        }],
+        statements: vec![
+            Statement::MacroInvocation(MacroInvocation {
+                macro_name: "TRANSFER_TAKE_FROM".to_string(),
+                args: vec![MacroArg::ArgCall("error".to_string())],
+            }),
+            Statement::MacroInvocation(MacroInvocation {
+                macro_name: "TRANSFER_GIVE_TO".to_string(),
+                args: vec![MacroArg::ArgCall("error".to_string())],
+            }),
+            Statement::Literal(str_to_bytes32("01")),
+            Statement::Literal(str_to_bytes32("00")),
+            Statement::Opcode(Opcode::Mstore),
+            Statement::Literal(str_to_bytes32("20")),
+            Statement::Literal(str_to_bytes32("00")),
+            Statement::Opcode(Opcode::Return),
+        ],
+        takes: 0,
+        returns: 0,
+        span: AstSpan(vec![]),
+    };
+    assert_eq!(macro_definition.name, expected.name);
+    assert_eq!(macro_definition.parameters, expected.parameters);
+    assert_eq!(macro_definition.statements, expected.statements);
+    assert_eq!(macro_definition.takes, expected.takes);
+    assert_eq!(macro_definition.returns, expected.returns);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
 
@@ -241,28 +261,28 @@ fn macro_with_builtin_fn_call() {
     "#;
 
     // Parse tokens
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
     // Grab the first macro
     let macro_definition = parser.parse().unwrap().macros[0].clone();
-    assert_eq!(
-        macro_definition,
-        MacroDefinition {
-            name: "BUILTIN_TEST".to_string(),
-            parameters: vec![],
-            statements: vec![Statement::BuiltinFunctionCall(BuiltinFunctionCall {
-                kind: BuiltinFunctionKind::Codesize,
-                args: vec![Argument {
-                    arg_type: None,
-                    name: Some("TEST".to_string()),
-                    indexed: false,
-                }]
-            }),],
-            takes: 0,
-            returns: 0
-        }
-    );
+    let expected = MacroDefinition {
+        name: "BUILTIN_TEST".to_string(),
+        parameters: vec![],
+        statements: vec![Statement::BuiltinFunctionCall(BuiltinFunctionCall {
+            kind: BuiltinFunctionKind::Codesize,
+            args: vec![Argument { arg_type: None, name: Some("TEST".to_string()), indexed: false }],
+        })],
+        takes: 0,
+        returns: 0,
+        span: AstSpan(vec![]),
+    };
+    assert_eq!(macro_definition.name, expected.name);
+    assert_eq!(macro_definition.parameters, expected.parameters);
+    assert_eq!(macro_definition.statements, expected.statements);
+    assert_eq!(macro_definition.takes, expected.takes);
+    assert_eq!(macro_definition.returns, expected.returns);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }

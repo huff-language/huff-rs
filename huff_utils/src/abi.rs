@@ -282,13 +282,14 @@ impl From<String> for FunctionParamType {
             "Address" | "address" => Self::Address,
             "Bytes" | "bytes" => Self::Bytes,
             "Int" | "int" | "integer" | "Integer" => Self::Int(0),
-            "Uint" | "uint" | "unsignedinteger" | "unsigned integer" => Self::Uint(0),
+            "Uint" | "uint" | "uint256" | "unsignedinteger" | "unsigned integer" => Self::Uint(0),
             "Bool" | "bool" => Self::Bool,
             "String" | "string" | "str" | "Str" => Self::String,
             "Array" | "array" => Self::Array(Box::new(FunctionParamType::Bool)),
             "FixedBytes" | "bytes32" => Self::Array(Box::new(FunctionParamType::Bool)),
             _ => {
                 tracing::error!(
+                    target: "abi",
                     "{}",
                     format!("Failed to create FunctionParamType from string: {}", string)
                 );

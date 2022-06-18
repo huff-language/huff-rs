@@ -1,11 +1,12 @@
 /// Tests lexing the Free Storage Pointer Keyword
 use huff_lexer::*;
-use huff_utils::{evm::*, prelude::*, types::*};
+use huff_utils::prelude::*;
 
 #[test]
 fn function_context() {
     let source = "#define function test(bytes32) {} returns (address)";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())
@@ -24,7 +25,8 @@ fn function_context() {
 #[test]
 fn event_context() {
     let source = "#define event Transfer(bytes32,address)";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())
@@ -41,7 +43,8 @@ fn event_context() {
 #[test]
 fn macro_context() {
     let source = "#define macro TEST() = takes (0) returns (0) {byte}";
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())
