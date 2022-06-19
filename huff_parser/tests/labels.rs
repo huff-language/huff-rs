@@ -26,18 +26,24 @@ fn multiline_labels() {
         statements: vec![
             Statement {
                 ty: StatementType::Literal(str_to_bytes32("00")),
-                span: AstSpan::default(),
+                span: AstSpan(vec![Span { start: 65, end: 67, file: None }]),
             },
-            Statement { ty: StatementType::Opcode(Opcode::Mstore), span: AstSpan::default() },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Mstore),
+                span: AstSpan(vec![Span { start: 68, end: 74, file: None }]),
+            },
             Statement {
                 ty: StatementType::Literal(str_to_bytes32("01")),
-                span: AstSpan::default(),
+                span: AstSpan(vec![Span { start: 83, end: 85, file: None }]),
             },
             Statement {
                 ty: StatementType::Literal(str_to_bytes32("02")),
-                span: AstSpan::default(),
+                span: AstSpan(vec![Span { start: 88, end: 90, file: None }]),
             },
-            Statement { ty: StatementType::Opcode(Opcode::Add), span: AstSpan::default() },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Add),
+                span: AstSpan(vec![Span { start: 91, end: 94, file: None }]),
+            },
             Statement {
                 ty: StatementType::Label(Label {
                     name: "cool_label".to_string(),
@@ -46,49 +52,73 @@ fn multiline_labels() {
                             ty: StatementType::MacroInvocation(MacroInvocation {
                                 macro_name: "HELLO".to_string(),
                                 args: vec![],
-                                span: AstSpan::default(),
+                                span: AstSpan(vec![Span { start: 121, end: 126, file: None }]),
                             }),
-                            span: AstSpan(vec![
-                                Span { start: 101, end: 111, file: None },
-                                Span { start: 111, end: 112, file: None },
-                            ]),
-                        },
-                        Statement {
-                            ty: StatementType::Literal(str_to_bytes32("00")),
-                            span: AstSpan(vec![
-                                Span { start: 121, end: 126, file: None },
-                                Span { start: 126, end: 127, file: None },
-                                Span { start: 127, end: 128, file: None },
-                            ]),
+                            span: AstSpan(vec![Span { start: 121, end: 126, file: None }]),
                         },
                         Statement {
                             ty: StatementType::Literal(str_to_bytes32("00")),
                             span: AstSpan(vec![Span { start: 139, end: 141, file: None }]),
                         },
                         Statement {
-                            ty: StatementType::Opcode(Opcode::Revert),
+                            ty: StatementType::Literal(str_to_bytes32("00")),
                             span: AstSpan(vec![Span { start: 144, end: 146, file: None }]),
                         },
+                        Statement {
+                            ty: StatementType::Opcode(Opcode::Revert),
+                            span: AstSpan(vec![Span { start: 147, end: 153, file: None }]),
+                        },
                     ],
-                    span: AstSpan::default(),
+                    span: AstSpan(vec![
+                        Span { start: 101, end: 111, file: None },
+                        Span { start: 121, end: 126, file: None },
+                        Span { start: 139, end: 141, file: None },
+                        Span { start: 144, end: 146, file: None },
+                        Span { start: 147, end: 153, file: None },
+                    ]),
                 }),
-                span: AstSpan::default(),
+                span: AstSpan(vec![
+                    Span { start: 101, end: 111, file: None },
+                    Span { start: 121, end: 126, file: None },
+                    Span { start: 139, end: 141, file: None },
+                    Span { start: 144, end: 146, file: None },
+                    Span { start: 147, end: 153, file: None },
+                ]),
             },
         ],
         takes: 3,
         returns: 0,
-        span: AstSpan(vec![]),
+        span: AstSpan(vec![
+            Span { start: 51, end: 52, file: None },
+            Span { start: 52, end: 53, file: None },
+            Span { start: 53, end: 54, file: None },
+            Span { start: 55, end: 56, file: None },
+            Span { start: 65, end: 67, file: None },
+            Span { start: 68, end: 74, file: None },
+            Span { start: 83, end: 85, file: None },
+            Span { start: 88, end: 90, file: None },
+            Span { start: 91, end: 94, file: None },
+            Span { start: 101, end: 111, file: None },
+            Span { start: 111, end: 112, file: None },
+            Span { start: 121, end: 126, file: None },
+            Span { start: 126, end: 127, file: None },
+            Span { start: 127, end: 128, file: None },
+            Span { start: 139, end: 141, file: None },
+            Span { start: 144, end: 146, file: None },
+            Span { start: 147, end: 153, file: None },
+            Span { start: 158, end: 159, file: None },
+        ]),
     };
     assert_eq!(macro_definition.name, md_expected.name);
     assert_eq!(macro_definition.parameters, md_expected.parameters);
     assert_eq!(macro_definition.takes, md_expected.takes);
     assert_eq!(macro_definition.returns, md_expected.returns);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
-    // TODO: Test Macro Definition Span
+    assert_eq!(macro_definition.span, md_expected.span);
 
     // Test that each statement is the correct type
-    // TODO: Test each statement's span
     for (i, s) in macro_definition.statements.iter().enumerate() {
         assert_eq!(s.ty, md_expected.statements[i].ty);
+        assert_eq!(s.span, md_expected.statements[i].span);
     }
 }
