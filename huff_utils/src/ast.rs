@@ -148,6 +148,7 @@ impl Contract {
                     *c = ConstantDefinition {
                         name: c.name.to_string(),
                         value: ConstVal::Literal(p.1),
+                        span: c.span.clone(),
                     };
                 }
                 None => {
@@ -258,6 +259,8 @@ pub struct Argument {
     pub name: Option<String>,
     /// Is the argument indexed? TODO: should be valid for event arguments ONLY
     pub indexed: bool,
+    /// The argument span
+    pub span: AstSpan,
 }
 
 /// A Function Signature
@@ -273,6 +276,8 @@ pub struct Function {
     pub fn_type: FunctionType,
     /// The return values of the function
     pub outputs: Vec<Argument>,
+    /// The span of the function
+    pub span: AstSpan,
 }
 
 /// Function Types
@@ -295,6 +300,8 @@ pub struct Event {
     pub name: String,
     /// The parameters of the event
     pub parameters: Vec<Argument>,
+    /// The event span
+    pub span: AstSpan,
 }
 
 /// A Table Definition
@@ -308,12 +315,20 @@ pub struct TableDefinition {
     pub statements: Vec<Statement>,
     /// Size of table
     pub size: Literal,
+    /// The table span
+    pub span: AstSpan,
 }
 
 impl TableDefinition {
     /// Public associated function that instantiates a TableDefinition from a string
-    pub fn new(name: String, kind: TableKind, statements: Vec<Statement>, size: Literal) -> Self {
-        TableDefinition { name, kind, statements, size }
+    pub fn new(
+        name: String,
+        kind: TableKind,
+        statements: Vec<Statement>,
+        size: Literal,
+        span: AstSpan,
+    ) -> Self {
+        TableDefinition { name, kind, statements, size, span }
     }
 }
 
@@ -467,6 +482,8 @@ pub struct MacroInvocation {
     pub macro_name: String,
     /// A list of Macro arguments
     pub args: Vec<MacroArg>,
+    /// The Macro Invocation Span
+    pub span: AstSpan,
 }
 
 /// An argument passed when invoking a maco
@@ -500,6 +517,8 @@ pub struct ConstantDefinition {
     pub name: String,
     /// The Constant value
     pub value: ConstVal,
+    /// The Span of the Constant Definition
+    pub span: AstSpan,
 }
 
 /// A Jump Destination
@@ -509,6 +528,8 @@ pub struct Label {
     pub name: String,
     /// Statements Inside The JumpDest
     pub inner: Vec<Statement>,
+    /// The label span
+    pub span: AstSpan,
 }
 
 /// A Builtin Function Call
@@ -520,6 +541,8 @@ pub struct BuiltinFunctionCall {
     /// TODO: Maybe make a better type for this other than `Argument`? Would be nice if it pointed
     /// directly to the macro/table.
     pub args: Vec<Argument>,
+    /// The builtin function call span
+    pub span: AstSpan,
 }
 
 /// A Builtin Function Kind

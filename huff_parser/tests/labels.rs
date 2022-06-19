@@ -46,6 +46,7 @@ fn multiline_labels() {
                             ty: StatementType::MacroInvocation(MacroInvocation {
                                 macro_name: "HELLO".to_string(),
                                 args: vec![],
+                                span: AstSpan::default(),
                             }),
                             span: AstSpan(vec![
                                 Span { start: 101, end: 111, file: None },
@@ -69,6 +70,7 @@ fn multiline_labels() {
                             span: AstSpan(vec![Span { start: 144, end: 146, file: None }]),
                         },
                     ],
+                    span: AstSpan::default(),
                 }),
                 span: AstSpan::default(),
             },

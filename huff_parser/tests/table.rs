@@ -22,6 +22,7 @@ fn table_with_no_body() {
                 kind: TableKind::from(kind),
                 statements: vec![],
                 size: Literal::default(),
+                span: AstSpan::default(),
             }
         );
         assert_eq!(parser.current_token.kind, TokenKind::Eof);
@@ -82,6 +83,7 @@ fn table_with_body() {
                     },
                 ],
                 size: str_to_bytes32(expected_size),
+                span: AstSpan::default(),
             }
         );
         assert_eq!(parser.current_token.kind, TokenKind::Eof);

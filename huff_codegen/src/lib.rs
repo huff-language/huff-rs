@@ -241,7 +241,7 @@ impl Codegen {
                             tracing::error!(target: "codegen", "STORAGE POINTERS INCORRECTLY DERIVED FOR \"{:?}\"", fsp);
                             return Err(CodegenError {
                                 kind: CodegenErrorKind::StoragePointersNotDerived,
-                                span: AstSpan(vec![]),
+                                span: constant.span.clone(),
                                 token: None,
                             })
                         }

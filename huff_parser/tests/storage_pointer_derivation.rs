@@ -20,7 +20,8 @@ fn derives_storage_pointers() {
         fsp_constant,
         ConstantDefinition {
             name: "FSP_LOCATION".to_string(),
-            value: ConstVal::FreeStoragePointer(FreeStoragePointer {})
+            value: ConstVal::FreeStoragePointer(FreeStoragePointer {}),
+            span: AstSpan(vec![Span { start: 0, end: source.len(), file: None }])
         }
     );
 
@@ -29,7 +30,8 @@ fn derives_storage_pointers() {
         fsp_constant,
         ConstantDefinition {
             name: "FSP_LOCATION_2".to_string(),
-            value: ConstVal::FreeStoragePointer(FreeStoragePointer {})
+            value: ConstVal::FreeStoragePointer(FreeStoragePointer {}),
+            span: AstSpan(vec![Span { start: 0, end: source.len(), file: None }])
         }
     );
 
@@ -38,7 +40,8 @@ fn derives_storage_pointers() {
         num_constant,
         ConstantDefinition {
             name: "NUM".to_string(),
-            value: ConstVal::Literal(str_to_bytes32("a57B"))
+            value: ConstVal::Literal(str_to_bytes32("a57B")),
+            span: AstSpan(vec![Span { start: 0, end: source.len(), file: None }])
         }
     );
 

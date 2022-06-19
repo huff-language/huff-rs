@@ -64,40 +64,35 @@ impl Parser {
 
         // Iterate over tokens and construct the Contract aka AST
         while !self.check(TokenKind::Eof) {
+            // Reset our spans
+            self.spans = vec![];
+
             // first token should be keyword "#define"
             self.match_kind(TokenKind::Define)?;
-
-            let new_spans = self.spans.clone();
-            self.spans = vec![];
 
             // match to fucntion, constant, macro, or event
             match self.current_token.kind {
                 TokenKind::Function => {
-                    self.spans = vec![];
                     let func = self.parse_function()?;
                     tracing::info!(target: "parser", "SUCCESSFULLY PARSED FUNCTION {}", func.name);
                     contract.functions.push(func);
                 }
                 TokenKind::Event => {
-                    self.spans = vec![];
                     let ev = self.parse_event()?;
                     tracing::info!(target: "parser", "SUCCESSFULLY PARSED EVENT {}", ev.name);
                     contract.events.push(ev);
                 }
                 TokenKind::Constant => {
-                    self.spans = vec![];
                     let c = self.parse_constant()?;
                     tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {}", c.name);
                     contract.constants.push(c);
                 }
                 TokenKind::Macro => {
-                    self.spans = vec![];
                     let m = self.parse_macro()?;
                     tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
                     contract.macros.push(m);
                 }
                 TokenKind::JumpTable | TokenKind::JumpTablePacked | TokenKind::CodeTable => {
-                    self.spans = vec![];
                     contract.tables.push(self.parse_table()?);
                 }
                 _ => {
@@ -108,7 +103,7 @@ impl Parser {
                     );
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidDefinition,
-                        spans: AstSpan(new_spans),
+                        spans: AstSpan(self.spans.clone()),
                     })
                 }
             };
@@ -173,10 +168,9 @@ impl Parser {
             Ok(curr_kind)
         } else {
             tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED: {}, GOT: {}", kind, self.current_token.kind);
-            let new_spans = self.spans.clone();
             Err(ParserError {
                 kind: ParserErrorKind::UnexpectedType(kind),
-                spans: AstSpan(new_spans),
+                spans: AstSpan(self.spans.clone()),
             })
         }
     }
@@ -235,11 +229,9 @@ impl Parser {
             TokenKind::Ident(fn_name) => fn_name,
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
-                let new_spans = self.spans.clone();
-                self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidName(tok),
-                    spans: AstSpan(new_spans),
+                    spans: AstSpan(self.spans.clone()),
                 })
             }
         };
@@ -253,11 +245,9 @@ impl Parser {
             TokenKind::Payable => FunctionType::Payable,
             TokenKind::NonPayable => FunctionType::NonPayable,
             tok => {
-                let new_spans = self.spans.clone();
-                self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::UnexpectedType(tok),
-                    spans: AstSpan(new_spans),
+                    spans: AstSpan(self.spans.clone()),
                 })
             }
         };
@@ -276,7 +266,14 @@ impl Parser {
         hasher.update(format!("{}({})", name, input_types.join(",")).as_bytes());
         hasher.finalize(&mut signature);
 
-        Ok(Function { name, signature, inputs, fn_type, outputs })
+        Ok(Function {
+            name,
+            signature,
+            inputs,
+            fn_type,
+            outputs,
+            span: AstSpan(self.spans.clone()),
+        })
     }
 
     /// Parse an event.
@@ -292,11 +289,9 @@ impl Parser {
             TokenKind::Ident(event_name) => event_name,
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
-                let new_spans = self.spans.clone();
-                self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidName(tok),
-                    spans: AstSpan(new_spans),
+                    spans: AstSpan(self.spans.clone()),
                 })
             }
         };
@@ -304,7 +299,7 @@ impl Parser {
         // Parse the event's parameters
         let parameters: Vec<Argument> = self.parse_args(true, true, true)?;
 
-        Ok(Event { name, parameters })
+        Ok(Event { name, parameters, span: AstSpan(self.spans.clone()) })
     }
 
     /// Parse a constant.
@@ -351,8 +346,12 @@ impl Parser {
             }
         };
 
+        // Clone spans and set to nothing
+        let new_spans = self.spans.clone();
+        self.spans = vec![];
+
         // Return the Constant Definition
-        Ok(ConstantDefinition { name, value })
+        Ok(ConstantDefinition { name, value, span: AstSpan(new_spans) })
     }
 
     /// Parses a macro.
@@ -390,24 +389,27 @@ impl Parser {
         self.match_kind(TokenKind::OpenBrace)?;
         tracing::info!(target: "parser", "PARSING MACRO BODY");
         while !self.check(TokenKind::CloseBrace) {
-            let new_spans = self.spans.clone();
-            self.spans = vec![];
             match self.current_token.kind.clone() {
                 TokenKind::Literal(val) => {
+                    let curr_spans = vec![self.current_token.span.clone()];
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [LITERAL: {}]", hex::encode(val));
                     self.consume();
                     statements.push(Statement {
                         ty: StatementType::Literal(val),
-                        span: AstSpan(new_spans),
+                        span: AstSpan(curr_spans),
                     });
                 }
                 TokenKind::Opcode(o) => {
+                    let curr_spans = vec![self.current_token.span.clone()];
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [OPCODE: {}]", o);
                     self.consume();
-                    statements
-                        .push(Statement { ty: StatementType::Opcode(o), span: AstSpan(new_spans) });
+                    statements.push(Statement {
+                        ty: StatementType::Opcode(o),
+                        span: AstSpan(curr_spans),
+                    });
                 }
                 TokenKind::Ident(ident_str) => {
+                    let curr_spans = vec![self.current_token.span.clone()];
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [IDENT: {}]", ident_str);
                     self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
                     // Can be a macro call or label call
@@ -419,61 +421,71 @@ impl Parser {
                                 ty: StatementType::MacroInvocation(MacroInvocation {
                                     macro_name: ident_str.to_string(),
                                     args: lit_args,
+                                    span: AstSpan(curr_spans.clone()),
                                 }),
-                                span: AstSpan(new_spans),
+                                span: AstSpan(curr_spans),
                             });
                         }
                         _ => {
                             tracing::info!(target: "parser", "LABEL CALL TO: {}", ident_str);
                             statements.push(Statement {
                                 ty: StatementType::LabelCall(ident_str),
-                                span: AstSpan(new_spans),
+                                span: AstSpan(curr_spans),
                             });
                         }
                     }
                 }
                 TokenKind::Label(l) => {
+                    let mut curr_spans = vec![self.current_token.span.clone()];
                     self.consume();
                     let inner_statements: Vec<Statement> = self.parse_label()?;
+                    inner_statements.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
                     tracing::info!(target: "parser", "PARSED LABEL \"{}\" INSIDE MACRO WITH {} STATEMENTS.", l, inner_statements.len());
                     statements.push(Statement {
-                        ty: StatementType::Label(Label { name: l, inner: inner_statements }),
-                        span: AstSpan(new_spans),
+                        ty: StatementType::Label(Label {
+                            name: l,
+                            inner: inner_statements,
+                            span: AstSpan(curr_spans.clone()),
+                        }),
+                        span: AstSpan(curr_spans),
                     });
                 }
                 TokenKind::OpenBracket => {
-                    let constant = self.parse_constant_push()?;
+                    let (constant, const_span) = self.parse_constant_push()?;
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [CONSTANT: {}]", constant);
                     statements.push(Statement {
                         ty: StatementType::Constant(constant),
-                        span: AstSpan(new_spans),
+                        span: AstSpan(vec![const_span]),
                     });
                 }
                 TokenKind::LeftAngle => {
-                    let arg_call = self.parse_arg_call()?;
+                    let (arg_call, arg_span) = self.parse_arg_call()?;
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [ARG CALL: {}]", arg_call);
                     statements.push(Statement {
                         ty: StatementType::ArgCall(arg_call),
-                        span: AstSpan(new_spans),
+                        span: AstSpan(vec![arg_span]),
                     });
                 }
                 TokenKind::BuiltinFunction(f) => {
+                    let mut curr_spans = vec![self.current_token.span.clone()];
                     self.match_kind(TokenKind::BuiltinFunction(String::default()))?;
                     let args = self.parse_args(true, false, false)?;
+                    args.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [BUILTIN FN: {}({:?})]", f, args);
                     statements.push(Statement {
                         ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
                             kind: BuiltinFunctionKind::from(f.as_str()),
                             args,
+                            span: AstSpan(curr_spans.clone()),
                         }),
-                        span: AstSpan(new_spans),
+                        span: AstSpan(curr_spans),
                     });
                 }
                 kind => {
                     tracing::error!(target: "parser", "TOKEN MISMATCH - MACRO BODY: {}", kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTokenInMacroBody(kind),
-                        spans: AstSpan(new_spans),
+                        spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
             };
@@ -501,24 +513,27 @@ impl Parser {
         while !self.check(TokenKind::Label("NEXT_LABEL".to_string())) &&
             !self.check(TokenKind::CloseBrace)
         {
-            let new_spans = self.spans.clone();
-            self.spans = vec![];
             match self.current_token.kind.clone() {
                 TokenKind::Literal(val) => {
+                    let curr_spans = vec![self.current_token.span.clone()];
                     tracing::info!(target: "parser", "PARSING LABEL BODY: [LITERAL: {}]", hex::encode(val));
                     self.consume();
                     statements.push(Statement {
                         ty: StatementType::Literal(val),
-                        span: AstSpan(new_spans),
+                        span: AstSpan(curr_spans),
                     });
                 }
                 TokenKind::Opcode(o) => {
+                    let curr_spans = vec![self.current_token.span.clone()];
                     tracing::info!(target: "parser", "PARSING LABEL BODY: [OPCODE: {}]", o);
                     self.consume();
-                    statements
-                        .push(Statement { ty: StatementType::Opcode(o), span: AstSpan(new_spans) });
+                    statements.push(Statement {
+                        ty: StatementType::Opcode(o),
+                        span: AstSpan(curr_spans),
+                    });
                 }
                 TokenKind::Ident(ident_str) => {
+                    let curr_spans = vec![self.current_token.span.clone()];
                     tracing::info!(target: "parser", "PARSING LABEL BODY: [IDENT: {}]", ident_str);
                     self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
                     // Can be a macro call or label call
@@ -530,40 +545,42 @@ impl Parser {
                                 ty: StatementType::MacroInvocation(MacroInvocation {
                                     macro_name: ident_str.to_string(),
                                     args: lit_args,
+                                    span: AstSpan(curr_spans.clone()),
                                 }),
-                                span: AstSpan(new_spans),
+                                span: AstSpan(curr_spans),
                             });
                         }
                         _ => {
                             tracing::info!(target: "parser", "LABEL CALL TO: {}", ident_str);
                             statements.push(Statement {
                                 ty: StatementType::LabelCall(ident_str),
-                                span: AstSpan(new_spans),
+                                span: AstSpan(curr_spans),
                             });
                         }
                     }
                 }
                 TokenKind::OpenBracket => {
-                    let constant = self.parse_constant_push()?;
+                    let (constant, const_span) = self.parse_constant_push()?;
                     tracing::info!(target: "parser", "PARSING LABEL BODY: [CONSTANT: {}]", constant);
                     statements.push(Statement {
                         ty: StatementType::Constant(constant),
-                        span: AstSpan(new_spans),
+                        span: AstSpan(vec![const_span]),
                     });
                 }
                 TokenKind::LeftAngle => {
-                    let arg_call = self.parse_arg_call()?;
+                    let (arg_call, arg_span) = self.parse_arg_call()?;
                     tracing::info!(target: "parser", "PARSING LABEL BODY: [ARG CALL: {}]", arg_call);
                     statements.push(Statement {
                         ty: StatementType::ArgCall(arg_call),
-                        span: AstSpan(new_spans),
+                        span: AstSpan(vec![arg_span]),
                     });
                 }
                 kind => {
+                    let curr_spans = vec![self.current_token.span.clone()];
                     tracing::error!(target: "parser", "TOKEN MISMATCH - LABEL BODY: {}", kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTokenInLabelDefinition(kind),
-                        spans: AstSpan(new_spans),
+                        spans: AstSpan(curr_spans),
                     })
                 }
             };
@@ -597,19 +614,23 @@ impl Parser {
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
             let mut arg = Argument::default();
+            let mut arg_spans = vec![];
 
             // type comes first
             if select_type {
+                arg_spans.push(self.current_token.span.clone());
                 arg.arg_type = Some(self.parse_arg_type()?.to_string());
                 // Check if the argument is indexed
                 if has_indexed && self.check(TokenKind::Indexed) {
                     arg.indexed = true;
+                    arg_spans.push(self.current_token.span.clone());
                     self.consume(); // consume "indexed" keyword
                 }
             }
 
             // name comes second (is optional)
             if select_name && self.check(TokenKind::Ident("x".to_string())) {
+                arg_spans.push(self.current_token.span.clone());
                 arg.name = Some(self.match_kind(TokenKind::Ident("x".to_string()))?.to_string())
             }
 
@@ -617,6 +638,8 @@ impl Parser {
             if self.check(TokenKind::Comma) {
                 self.consume();
             }
+
+            arg.span = AstSpan(arg_spans);
 
             args.push(arg);
         }
@@ -708,9 +731,6 @@ impl Parser {
         self.match_kind(TokenKind::CloseParen)?;
         self.match_kind(TokenKind::Assign)?;
 
-        let _new_spans = self.spans.clone();
-        self.spans = vec![];
-
         let table_statements: Vec<Statement> = self.parse_table_body()?;
         let size = match kind {
             TableKind::JumpTablePacked => table_statements.len() * 0x02,
@@ -741,6 +761,7 @@ impl Parser {
             kind,
             table_statements,
             str_to_bytes32(size.to_string().as_str()),
+            AstSpan(self.spans.clone()),
         ))
     }
 
@@ -751,9 +772,7 @@ impl Parser {
     pub fn parse_table_body(&mut self) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
         self.match_kind(TokenKind::OpenBrace)?;
-        self.spans = vec![];
         while !self.check(TokenKind::CloseBrace) {
-            self.spans = vec![];
             let new_spans = vec![self.current_token.span.clone()];
             match &self.current_token.kind {
                 TokenKind::Ident(ident_str) => {
@@ -778,14 +797,15 @@ impl Parser {
     }
 
     /// Parses a constant push.
-    pub fn parse_constant_push(&mut self) -> Result<String, ParserError> {
+    pub fn parse_constant_push(&mut self) -> Result<(String, Span), ParserError> {
         self.match_kind(TokenKind::OpenBracket)?;
         match self.current_token.kind.clone() {
             TokenKind::Ident(const_str) => {
                 // Consume the Ident and Validate Close Bracket
+                let iden_span = self.current_token.span.clone();
                 self.consume();
                 self.match_kind(TokenKind::CloseBracket)?;
-                Ok(const_str)
+                Ok((const_str, iden_span))
             }
             kind => {
                 let new_spans = self.spans.clone();
@@ -809,13 +829,14 @@ impl Parser {
     ///     <error> jumpi
     /// }
     /// ```
-    pub fn parse_arg_call(&mut self) -> Result<String, ParserError> {
+    pub fn parse_arg_call(&mut self) -> Result<(String, Span), ParserError> {
         self.match_kind(TokenKind::LeftAngle)?;
         match self.current_token.kind.clone() {
             TokenKind::Ident(arg_str) => {
+                let arg_call_span = self.current_token.span.clone();
                 self.consume();
                 self.match_kind(TokenKind::RightAngle)?;
-                Ok(arg_str)
+                Ok((arg_str, arg_call_span))
             }
             kind => {
                 let new_spans = self.spans.clone();
@@ -844,14 +865,10 @@ impl Parser {
                 let _ = self.parse_primitive_type(prim);
                 Ok(self.match_kind(self.current_token.kind.clone())?)
             }
-            kind => {
-                let new_spans = self.spans.clone();
-                self.spans = vec![];
-                Err(ParserError {
-                    kind: ParserErrorKind::InvalidArgs(kind),
-                    spans: AstSpan(new_spans),
-                })
-            }
+            kind => Err(ParserError {
+                kind: ParserErrorKind::InvalidArgs(kind),
+                spans: AstSpan(vec![self.current_token.span.clone()]),
+            }),
         }
     }
 
@@ -864,22 +881,18 @@ impl Parser {
         match prim {
             PrimitiveEVMType::Uint(size) => {
                 if !(8..=256).contains(&size) || size % 8 != 0 {
-                    let new_spans = self.spans.clone();
-                    self.spans = vec![];
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidUint256(size),
-                        spans: AstSpan(new_spans),
+                        spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
                 Ok(self.match_kind(self.current_token.kind.clone())?)
             }
             PrimitiveEVMType::Bytes(size) => {
                 if !(1..=32).contains(&size) {
-                    let new_spans = self.spans.clone();
-                    self.spans = vec![];
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidBytes(size),
-                        spans: AstSpan(new_spans),
+                        spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
                 Ok(self.match_kind(self.current_token.kind.clone())?)
@@ -890,11 +903,9 @@ impl Parser {
             PrimitiveEVMType::DynBytes => Ok(self.match_kind(self.current_token.kind.clone())?),
             PrimitiveEVMType::Int(size) => {
                 if !(8..=256).contains(&size) || size % 8 != 0 {
-                    let new_spans = self.spans.clone();
-                    self.spans = vec![];
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidInt(size),
-                        spans: AstSpan(new_spans),
+                        spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
                 let curr_token_kind = self.current_token.kind.clone();

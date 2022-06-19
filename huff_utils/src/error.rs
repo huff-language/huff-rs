@@ -129,12 +129,6 @@ impl CodegenError {
 /// The Code Generation Error Kind
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum CodegenErrorKind {
-    /// Invalid Operator
-    InvalidOperator,
-    /// Missing AST
-    MissingAst,
-    /// AST is missing constructor
-    MissingConstructor,
     /// Storage Pointers Not Derived
     StoragePointersNotDerived,
     /// Invalid Macro Body Statement
@@ -166,9 +160,6 @@ impl Spanned for CodegenError {
 impl<W: Write> Report<W> for CodegenError {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match &self.kind {
-            CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator!"),
-            CodegenErrorKind::MissingAst => write!(f.out, "Codegen is missing an AST!"),
-            CodegenErrorKind::MissingConstructor => write!(f.out, "AST missing constructor macro!"),
             CodegenErrorKind::StoragePointersNotDerived => {
                 write!(f.out, "Storage pointers not derived for AST!")
             }
@@ -360,15 +351,6 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 )
             }
             CompilerError::CodegenError(ce) => match &ce.kind {
-                CodegenErrorKind::InvalidOperator => {
-                    write!(f, "\nError: Invalid Operator\n{}\n", ce.span.error())
-                }
-                CodegenErrorKind::MissingAst => {
-                    write!(f, "\nError: Missing Generated Ast From Parser\n{}\n", ce.span.error())
-                }
-                CodegenErrorKind::MissingConstructor => {
-                    write!(f, "\nError: Missing Constructor Macro\n{}\n", ce.span.error())
-                }
                 CodegenErrorKind::StoragePointersNotDerived => {
                     write!(f, "\nError: Storage Pointers Not Derived\n{}\n", ce.span.error())
                 }
