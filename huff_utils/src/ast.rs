@@ -37,12 +37,13 @@ impl AstSpan {
         file_to_source_map.iter().filter(|fs| !fs.0.is_empty()).fold("".to_string(), |s, fs| {
             let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
             let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
+            let newline_s = if s.is_empty() { "".to_string() } else { format!("{}\n", s) };
             if start.eq(&0) && end.eq(&0) {
-                format!("{}\n-> {}:{}\n   > 0|", s, fs.0, start)
+                format!("{}-> {}:{}\n   > 0|", newline_s, fs.0, start)
             } else {
                 format!(
-                    "{}\n-> {}:{}-{}{}",
-                    s,
+                    "{}-> {}:{}-{}{}",
+                    newline_s,
                     fs.0,
                     start,
                     end,
