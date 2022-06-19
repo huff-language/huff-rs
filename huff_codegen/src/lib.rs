@@ -274,10 +274,10 @@ impl Codegen {
                                         mi.macro_name
                                     );
                                     return Err(CodegenError {
-                                        kind: CodegenErrorKind::MissingMacroDefinition(
+                                        kind: CodegenErrorKind::InvalidMacroInvocation(
                                             mi.macro_name.clone(),
                                         ),
-                                        span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
+                                        span: mi.span,
                                         token: None,
                                     })
                                 };

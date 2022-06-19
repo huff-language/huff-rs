@@ -147,6 +147,8 @@ pub enum CodegenErrorKind {
     UnkownArgcallType,
     /// Missing Macro Invocation
     MissingMacroInvocation(String),
+    /// Missing Macro Definition for Invocation
+    InvalidMacroInvocation(String),
 }
 
 impl Spanned for CodegenError {
@@ -162,6 +164,9 @@ impl<W: Write> Report<W> for CodegenError {
                 write!(f.out, "Storage pointers not derived for AST!")
             }
             CodegenErrorKind::InvalidMacroStatement => write!(f.out, "Invalid Macro Statement!"),
+            CodegenErrorKind::InvalidMacroInvocation(str) => {
+                write!(f.out, "Missing Macro Definition for Invocation: \"{}\"!", str)
+            }
             CodegenErrorKind::MissingMacroDefinition(str) => {
                 write!(f.out, "Missing Macro \"{}\" Definition!", str)
             }
@@ -360,6 +365,14 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         "\nError: Missing Macro Definition For \"{}\"\n{}",
                         md,
                         ce.span.file()
+                    )
+                }
+                CodegenErrorKind::InvalidMacroInvocation(mmi) => {
+                    write!(
+                        f,
+                        "\nError: Missing Macro Definition For Invocation: \"{}\"\n{}\n",
+                        mmi,
+                        ce.span.error()
                     )
                 }
                 CodegenErrorKind::MissingConstantDefinition(_) => {
