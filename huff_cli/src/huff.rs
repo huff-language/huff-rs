@@ -10,6 +10,7 @@
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
 use huff_utils::prelude::{unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError};
+use spinners::{Spinner, Spinners};
 use std::path::Path;
 use yansi::Paint;
 
@@ -80,9 +81,13 @@ fn main() {
         optimize: cli.optimize,
         bytecode: cli.bytecode,
     };
-    tracing::debug!(target: "core", "COMPILER INCANTATION COMPLETE");
-    tracing::debug!(target: "core", "EXECUTING COMPILATION...");
+
+    // Create compiling spinner
+    tracing::debug!(target: "core", "[⠔] COMPILING");
+    let mut sp = Spinner::new(Spinners::Dots, "Compiling...".into());
+
     let compile_res = compiler.execute();
+    sp.stop();
     match compile_res {
         Ok(artifacts) => {
             if artifacts.is_empty() {
