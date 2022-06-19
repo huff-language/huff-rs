@@ -57,6 +57,14 @@ impl AstSpan {
             }
         })
     }
+
+    /// Print just the file for missing
+    pub fn file(&self) -> String {
+        self.0.iter().fold("".to_string(), |acc, span| match &span.file {
+            Some(fs) => format!("-> {}\n{}", fs.path, acc),
+            None => Default::default(),
+        })
+    }
 }
 
 /// A Huff Contract Representation

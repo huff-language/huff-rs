@@ -135,8 +135,6 @@ pub enum CodegenErrorKind {
     InvalidMacroStatement,
     /// The Macro Definition is Missing
     MissingMacroDefinition(String),
-    /// Failed to recurse macro
-    FailedMacroRecursion,
     /// Missing Constant Definition
     MissingConstantDefinition(String),
     /// Abi Generation Failure
@@ -167,7 +165,6 @@ impl<W: Write> Report<W> for CodegenError {
             CodegenErrorKind::MissingMacroDefinition(str) => {
                 write!(f.out, "Missing Macro \"{}\" Definition!", str)
             }
-            CodegenErrorKind::FailedMacroRecursion => write!(f.out, "Failed Macro Recursion!"),
             CodegenErrorKind::MissingConstantDefinition(cd) => {
                 write!(f.out, "Missing Constant Definition for \"{}\"!", cd)
             }
@@ -360,13 +357,10 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 CodegenErrorKind::MissingMacroDefinition(md) => {
                     write!(
                         f,
-                        "\nError: Missing Macro Definition For \"{}\"\n{}\n",
+                        "\nError: Missing Macro Definition For \"{}\"\n{}",
                         md,
-                        ce.span.error()
+                        ce.span.file()
                     )
-                }
-                CodegenErrorKind::FailedMacroRecursion => {
-                    write!(f, "\nError: Failed Macro Recursion\n{}\n", ce.span.error())
                 }
                 CodegenErrorKind::MissingConstantDefinition(_) => {
                     write!(f, "\nError: Missing Constant Definition\n{}\n", ce.span.error())
@@ -375,7 +369,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
                     write!(f, "\nError: ABI Generation Failed\n{}\n", ce.span.error())
                 }
                 CodegenErrorKind::IOError(ioe) => {
-                    write!(f, "\nError: IO Error: {}\n{}\n", ioe, ce.span.error())
+                    write!(f, "\nError: IO Error: {}\n{}", ioe, ce.span.file())
                 }
                 CodegenErrorKind::UnkownArgcallType => {
                     write!(f, "\nError: Unknown Arg Call Type\n{}\n", ce.span.error())

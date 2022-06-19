@@ -11,7 +11,9 @@ use huff_utils::{
     bytecode::*,
     error::CodegenError,
     evm::Opcode,
-    prelude::{bytes32_to_string, format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource},
+    prelude::{
+        bytes32_to_string, format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span,
+    },
     types::EToken,
 };
 use std::{collections::HashMap, fs, path::Path, str::FromStr};
@@ -60,7 +62,7 @@ impl Codegen {
             tracing::error!(target: "codegen", "MISSING \"{}\" MACRO!", name);
             Err(CodegenError {
                 kind: CodegenErrorKind::MissingMacroDefinition(name.to_string()),
-                span: AstSpan(vec![]),
+                span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
                 token: None,
             })
         }
@@ -270,7 +272,7 @@ impl Codegen {
                                         kind: CodegenErrorKind::MissingMacroDefinition(
                                             mi.macro_name.clone(),
                                         ),
-                                        span: AstSpan(vec![]),
+                                        span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
                                         token: None,
                                     })
                                 };
@@ -364,7 +366,11 @@ impl Codegen {
                                             kind: CodegenErrorKind::MissingMacroDefinition(
                                                 bf.args[0].name.as_ref().unwrap().to_string(), /* yuck */
                                             ),
-                                            span: AstSpan(vec![]),
+                                            span: AstSpan(vec![Span {
+                                                start: 0,
+                                                end: 0,
+                                                file: None,
+                                            }]),
                                             token: None,
                                         })
                                     };
@@ -412,7 +418,11 @@ impl Codegen {
                                             kind: CodegenErrorKind::MissingMacroDefinition(
                                                 bf.args[0].name.as_ref().unwrap().to_string(), /* yuck */
                                             ),
-                                            span: AstSpan(vec![]),
+                                            span: AstSpan(vec![Span {
+                                                start: 0,
+                                                end: 0,
+                                                file: None,
+                                            }]),
                                             token: None,
                                         })
                                     };
@@ -434,12 +444,12 @@ impl Codegen {
                                 }
                             }
                         }
-                        s => {
+                        sty => {
                             tracing::error!(target: "codegen", "CURRENT MACRO DEF: {}", macro_def.name);
-                            tracing::error!(target: "codegen", "UNEXPECTED STATEMENT: {:?}", s);
+                            tracing::error!(target: "codegen", "UNEXPECTED STATEMENT: {:?}", sty);
                             return Err(CodegenError {
                                 kind: CodegenErrorKind::InvalidMacroStatement,
-                                span: AstSpan(vec![]),
+                                span: s.span,
                                 token: None,
                             })
                         }
@@ -752,7 +762,17 @@ impl Codegen {
             if let Err(e) = fs::create_dir_all(p) {
                 return Err(CodegenError {
                     kind: CodegenErrorKind::IOError(e.to_string()),
-                    span: AstSpan(vec![]),
+                    span: AstSpan(vec![Span {
+                        start: 0,
+                        end: 0,
+                        file: Some(FileSource {
+                            id: uuid::Uuid::new_v4(),
+                            path: output,
+                            source: None,
+                            access: None,
+                            dependencies: None,
+                        }),
+                    }]),
                     token: None,
                 })
             }
@@ -760,7 +780,17 @@ impl Codegen {
         if let Err(e) = fs::write(file_path, serialized_artifact) {
             return Err(CodegenError {
                 kind: CodegenErrorKind::IOError(e.to_string()),
-                span: AstSpan(vec![]),
+                span: AstSpan(vec![Span {
+                    start: 0,
+                    end: 0,
+                    file: Some(FileSource {
+                        id: uuid::Uuid::new_v4(),
+                        path: output,
+                        source: None,
+                        access: None,
+                        dependencies: None,
+                    }),
+                }]),
                 token: None,
             })
         }

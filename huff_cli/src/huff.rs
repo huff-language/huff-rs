@@ -9,7 +9,9 @@
 
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
-use huff_utils::prelude::{unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError};
+use huff_utils::prelude::{
+    unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError, FileSource, Span,
+};
 use spinners::{Spinner, Spinners};
 use std::path::Path;
 use yansi::Paint;
@@ -64,7 +66,7 @@ fn main() {
     }
 
     // Create compiler from the Huff Args
-    let sources = match cli.get_inputs() {
+    let sources: Vec<String> = match cli.get_inputs() {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{}", Paint::red(format!("{}", e)));
@@ -93,7 +95,22 @@ fn main() {
             if artifacts.is_empty() {
                 let e = CompilerError::CodegenError(CodegenError {
                     kind: CodegenErrorKind::AbiGenerationFailure,
-                    span: AstSpan(vec![]),
+                    span: AstSpan(
+                        sources
+                            .iter()
+                            .map(|s| Span {
+                                start: 0,
+                                end: 0,
+                                file: Some(FileSource {
+                                    id: uuid::Uuid::new_v4(),
+                                    path: s.clone(),
+                                    source: None,
+                                    access: None,
+                                    dependencies: None,
+                                }),
+                            })
+                            .collect::<Vec<Span>>(),
+                    ),
                     token: None,
                 });
                 tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
