@@ -89,23 +89,63 @@ fn multiline_labels() {
         takes: 3,
         returns: 0,
         span: AstSpan(vec![
+            // "#define"
+            Span { start: 5, end: 12, file: None },
+            // "macro"
+            Span { start: 13, end: 18, file: None },
+            // "HELLO_WORLD"
+            Span { start: 19, end: 30, file: None },
+            // "("
+            Span { start: 30, end: 31, file: None },
+            // ")"
+            Span { start: 31, end: 32, file: None },
+            // "="
+            Span { start: 33, end: 34, file: None },
+            // "takes"
+            Span { start: 35, end: 40, file: None },
+            // "("
+            Span { start: 40, end: 41, file: None },
+            // "0"
+            Span { start: 41, end: 42, file: None },
+            // ")"
+            Span { start: 42, end: 43, file: None },
+            // "returns"
+            Span { start: 44, end: 51, file: None },
+            // "("
             Span { start: 51, end: 52, file: None },
+            // "0"
             Span { start: 52, end: 53, file: None },
+            // ")"
             Span { start: 53, end: 54, file: None },
+            // "{"
             Span { start: 55, end: 56, file: None },
+            // "0x00"
             Span { start: 65, end: 67, file: None },
+            // "mstore"
             Span { start: 68, end: 74, file: None },
+            // "0x01"
             Span { start: 83, end: 85, file: None },
+            // "0x02"
             Span { start: 88, end: 90, file: None },
+            // "add"
             Span { start: 91, end: 94, file: None },
+            // "cool_label"
             Span { start: 101, end: 111, file: None },
+            // ":"
             Span { start: 111, end: 112, file: None },
+            // "HELLO"
             Span { start: 121, end: 126, file: None },
+            // "("
             Span { start: 126, end: 127, file: None },
+            // ")"
             Span { start: 127, end: 128, file: None },
+            // "0x00"
             Span { start: 139, end: 141, file: None },
+            // "0x00"
             Span { start: 144, end: 146, file: None },
+            // "revert"
             Span { start: 147, end: 153, file: None },
+            // "}"
             Span { start: 158, end: 159, file: None },
         ]),
     };

@@ -650,16 +650,14 @@ impl Parser {
 
     /// Parses the following : (x)
     pub fn parse_single_arg(&mut self) -> Result<usize, ParserError> {
-        self.spans = vec![];
         self.match_kind(TokenKind::OpenParen)?;
+        let single_arg_span = vec![self.current_token.span.clone()];
         let value: usize = match self.match_kind(TokenKind::Num(0)) {
             Ok(TokenKind::Num(value)) => value,
             _ => {
-                let new_spans = self.spans.clone();
-                self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidSingleArg(self.current_token.kind.clone()),
-                    spans: AstSpan(new_spans),
+                    spans: AstSpan(single_arg_span),
                 })
             }
         };
