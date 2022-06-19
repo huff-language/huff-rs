@@ -43,11 +43,31 @@ fn macro_with_simple_body() {
         name: "HELLO_WORLD".to_string(),
         parameters: vec![],
         statements: vec![
-            Statement::Literal(str_to_bytes32("00")),
-            Statement::Opcode(Opcode::Mstore),
-            Statement::Literal(str_to_bytes32("01")),
-            Statement::Literal(str_to_bytes32("02")),
-            Statement::Opcode(Opcode::Add),
+            Statement {
+                ty: StatementType::Literal(str_to_bytes32("00")),
+                span: AstSpan(vec![
+                    Span { start: 46, end: 47, file: None },
+                    Span { start: 47, end: 48, file: None },
+                    Span { start: 48, end: 49, file: None },
+                    Span { start: 50, end: 51, file: None },
+                ]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Mstore),
+                span: AstSpan(vec![Span { start: 54, end: 56, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Literal(str_to_bytes32("01")),
+                span: AstSpan(vec![Span { start: 57, end: 63, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Literal(str_to_bytes32("02")),
+                span: AstSpan(vec![Span { start: 67, end: 69, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Add),
+                span: AstSpan(vec![Span { start: 72, end: 74, file: None }]),
+            },
         ],
         takes: 3,
         returns: 0,
@@ -101,26 +121,90 @@ fn macro_with_arg_calls() {
             indexed: false,
         }],
         statements: vec![
-            Statement::Opcode(Opcode::Dup2),
-            Statement::Constant("BALANCE_LOCATION".to_string()),
-            Statement::MacroInvocation(MacroInvocation {
-                macro_name: "LOAD_ELEMENT_FROM_KEYS".to_string(),
-                args: vec![MacroArg::Literal(str_to_bytes32("00"))],
-            }),
-            Statement::Opcode(Opcode::Dup1),
-            Statement::Opcode(Opcode::Dup3),
-            Statement::Opcode(Opcode::Gt),
-            Statement::ArgCall("error".to_string()),
-            Statement::Opcode(Opcode::Jumpi),
-            Statement::Opcode(Opcode::Dup2),
-            Statement::Opcode(Opcode::Swap1),
-            Statement::Opcode(Opcode::Sub),
-            Statement::Opcode(Opcode::Dup3),
-            Statement::Constant("BALANCE_LOCATION".to_string()),
-            Statement::MacroInvocation(MacroInvocation {
-                macro_name: "STORE_ELEMENT_FROM_KEYS".to_string(),
-                args: vec![MacroArg::Literal(str_to_bytes32("00"))],
-            }),
+            Statement {
+                ty: StatementType::Opcode(Opcode::Dup2),
+                span: AstSpan(vec![
+                    Span { start: 93, end: 94, file: None },
+                    Span { start: 94, end: 95, file: None },
+                    Span { start: 95, end: 96, file: None },
+                    Span { start: 97, end: 98, file: None },
+                ]),
+            },
+            Statement {
+                ty: StatementType::Constant("BALANCE_LOCATION".to_string()),
+                span: AstSpan(vec![Span { start: 209, end: 213, file: None }]),
+            },
+            Statement {
+                ty: StatementType::MacroInvocation(MacroInvocation {
+                    macro_name: "LOAD_ELEMENT_FROM_KEYS".to_string(),
+                    args: vec![MacroArg::Literal(str_to_bytes32("00"))],
+                }),
+                span: AstSpan(vec![
+                    Span { start: 264, end: 265, file: None },
+                    Span { start: 265, end: 281, file: None },
+                    Span { start: 281, end: 282, file: None },
+                ]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Dup1),
+                span: AstSpan(vec![
+                    Span { start: 283, end: 305, file: None },
+                    Span { start: 305, end: 306, file: None },
+                    Span { start: 308, end: 310, file: None },
+                    Span { start: 310, end: 311, file: None },
+                ]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Dup3),
+                span: AstSpan(vec![Span { start: 351, end: 355, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Gt),
+                span: AstSpan(vec![Span { start: 418, end: 422, file: None }]),
+            },
+            Statement {
+                ty: StatementType::ArgCall("error".to_string()),
+                span: AstSpan(vec![Span { start: 492, end: 494, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Jumpi),
+                span: AstSpan(vec![
+                    Span { start: 565, end: 566, file: None },
+                    Span { start: 566, end: 571, file: None },
+                    Span { start: 571, end: 572, file: None },
+                ]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Dup2),
+                span: AstSpan(vec![Span { start: 573, end: 578, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Swap1),
+                span: AstSpan(vec![Span { start: 715, end: 719, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Sub),
+                span: AstSpan(vec![Span { start: 780, end: 785, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Dup3),
+                span: AstSpan(vec![Span { start: 845, end: 848, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Constant("BALANCE_LOCATION".to_string()),
+                span: AstSpan(vec![Span { start: 911, end: 915, file: None }]),
+            },
+            Statement {
+                ty: StatementType::MacroInvocation(MacroInvocation {
+                    macro_name: "STORE_ELEMENT_FROM_KEYS".to_string(),
+                    args: vec![MacroArg::Literal(str_to_bytes32("00"))],
+                }),
+                span: AstSpan(vec![
+                    Span { start: 981, end: 982, file: None },
+                    Span { start: 982, end: 998, file: None },
+                    Span { start: 998, end: 999, file: None },
+                ]),
+            },
         ],
         takes: 3,
         returns: 3,
@@ -159,30 +243,79 @@ fn macro_labels() {
         name: "LABEL_FILLED".to_string(),
         parameters: vec![],
         statements: vec![
-            Statement::Label(Label {
-                name: "__label__".to_string(),
-                inner: vec![
-                    Statement::MacroInvocation(MacroInvocation {
-                        macro_name: "TRANSFER_GIVE_TO".to_string(),
-                        args: vec![],
-                    }),
-                    Statement::Literal(str_to_bytes32("00")),
-                    Statement::Literal(str_to_bytes32("00")),
-                    Statement::Opcode(Opcode::Revert),
-                ],
-            }),
-            Statement::Label(Label {
-                name: "error".to_string(),
-                inner: vec![
-                    Statement::MacroInvocation(MacroInvocation {
-                        macro_name: "TRANSFER_GIVE_TO".to_string(),
-                        args: vec![],
-                    }),
-                    Statement::Literal(str_to_bytes32("00")),
-                    Statement::Literal(str_to_bytes32("00")),
-                    Statement::Opcode(Opcode::Revert),
-                ],
-            }),
+            Statement {
+                ty: StatementType::Label(Label {
+                    name: "__label__".to_string(),
+                    inner: vec![
+                        Statement {
+                            ty: StatementType::MacroInvocation(MacroInvocation {
+                                macro_name: "TRANSFER_GIVE_TO".to_string(),
+                                args: vec![],
+                            }),
+                            span: AstSpan(vec![
+                                Span { start: 66, end: 75, file: None },
+                                Span { start: 75, end: 76, file: None },
+                            ]),
+                        },
+                        Statement {
+                            ty: StatementType::Literal(str_to_bytes32("00")),
+                            span: AstSpan(vec![
+                                Span { start: 89, end: 105, file: None },
+                                Span { start: 105, end: 106, file: None },
+                                Span { start: 106, end: 107, file: None },
+                            ]),
+                        },
+                        Statement {
+                            ty: StatementType::Literal(str_to_bytes32("00")),
+                            span: AstSpan(vec![Span { start: 122, end: 124, file: None }]),
+                        },
+                        Statement {
+                            ty: StatementType::Opcode(Opcode::Revert),
+                            span: AstSpan(vec![Span { start: 127, end: 129, file: None }]),
+                        },
+                    ],
+                }),
+                span: AstSpan(vec![
+                    Span { start: 52, end: 53, file: None },
+                    Span { start: 53, end: 54, file: None },
+                    Span { start: 54, end: 55, file: None },
+                    Span { start: 56, end: 57, file: None },
+                ]),
+            },
+            Statement {
+                ty: StatementType::Label(Label {
+                    name: "error".to_string(),
+                    inner: vec![
+                        Statement {
+                            ty: StatementType::MacroInvocation(MacroInvocation {
+                                macro_name: "TRANSFER_GIVE_TO".to_string(),
+                                args: vec![],
+                            }),
+                            span: AstSpan(vec![
+                                Span { start: 145, end: 150, file: None },
+                                Span { start: 150, end: 151, file: None },
+                            ]),
+                        },
+                        Statement {
+                            ty: StatementType::Literal(str_to_bytes32("00")),
+                            span: AstSpan(vec![
+                                Span { start: 164, end: 180, file: None },
+                                Span { start: 180, end: 181, file: None },
+                                Span { start: 181, end: 182, file: None },
+                            ]),
+                        },
+                        Statement {
+                            ty: StatementType::Literal(str_to_bytes32("00")),
+                            span: AstSpan(vec![Span { start: 197, end: 199, file: None }]),
+                        },
+                        Statement {
+                            ty: StatementType::Opcode(Opcode::Revert),
+                            span: AstSpan(vec![Span { start: 202, end: 204, file: None }]),
+                        },
+                    ],
+                }),
+                span: AstSpan(vec![Span { start: 130, end: 136, file: None }]),
+            },
         ],
         takes: 0,
         returns: 0,
@@ -224,20 +357,63 @@ fn macro_invocation_with_arg_call() {
             indexed: false,
         }],
         statements: vec![
-            Statement::MacroInvocation(MacroInvocation {
-                macro_name: "TRANSFER_TAKE_FROM".to_string(),
-                args: vec![MacroArg::ArgCall("error".to_string())],
-            }),
-            Statement::MacroInvocation(MacroInvocation {
-                macro_name: "TRANSFER_GIVE_TO".to_string(),
-                args: vec![MacroArg::ArgCall("error".to_string())],
-            }),
-            Statement::Literal(str_to_bytes32("01")),
-            Statement::Literal(str_to_bytes32("00")),
-            Statement::Opcode(Opcode::Mstore),
-            Statement::Literal(str_to_bytes32("20")),
-            Statement::Literal(str_to_bytes32("00")),
-            Statement::Opcode(Opcode::Return),
+            Statement {
+                ty: StatementType::MacroInvocation(MacroInvocation {
+                    macro_name: "TRANSFER_TAKE_FROM".to_string(),
+                    args: vec![MacroArg::ArgCall("error".to_string())],
+                }),
+                span: AstSpan(vec![
+                    Span { start: 53, end: 54, file: None },
+                    Span { start: 54, end: 55, file: None },
+                    Span { start: 55, end: 56, file: None },
+                    Span { start: 57, end: 58, file: None },
+                ]),
+            },
+            Statement {
+                ty: StatementType::MacroInvocation(MacroInvocation {
+                    macro_name: "TRANSFER_GIVE_TO".to_string(),
+                    args: vec![MacroArg::ArgCall("error".to_string())],
+                }),
+                span: AstSpan(vec![
+                    Span { start: 67, end: 85, file: None },
+                    Span { start: 85, end: 86, file: None },
+                    Span { start: 86, end: 87, file: None },
+                    Span { start: 87, end: 92, file: None },
+                    Span { start: 92, end: 93, file: None },
+                    Span { start: 93, end: 94, file: None },
+                ]),
+            },
+            Statement {
+                ty: StatementType::Literal(str_to_bytes32("01")),
+                span: AstSpan(vec![
+                    Span { start: 103, end: 119, file: None },
+                    Span { start: 119, end: 120, file: None },
+                    Span { start: 120, end: 121, file: None },
+                    Span { start: 121, end: 126, file: None },
+                    Span { start: 126, end: 127, file: None },
+                    Span { start: 127, end: 128, file: None },
+                ]),
+            },
+            Statement {
+                ty: StatementType::Literal(str_to_bytes32("00")),
+                span: AstSpan(vec![Span { start: 140, end: 142, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Mstore),
+                span: AstSpan(vec![Span { start: 145, end: 147, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Literal(str_to_bytes32("20")),
+                span: AstSpan(vec![Span { start: 148, end: 154, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Literal(str_to_bytes32("00")),
+                span: AstSpan(vec![Span { start: 165, end: 167, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Return),
+                span: AstSpan(vec![Span { start: 170, end: 172, file: None }]),
+            },
         ],
         takes: 0,
         returns: 0,
@@ -271,10 +447,22 @@ fn macro_with_builtin_fn_call() {
     let expected = MacroDefinition {
         name: "BUILTIN_TEST".to_string(),
         parameters: vec![],
-        statements: vec![Statement::BuiltinFunctionCall(BuiltinFunctionCall {
-            kind: BuiltinFunctionKind::Codesize,
-            args: vec![Argument { arg_type: None, name: Some("TEST".to_string()), indexed: false }],
-        })],
+        statements: vec![Statement {
+            ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
+                kind: BuiltinFunctionKind::Codesize,
+                args: vec![Argument {
+                    arg_type: None,
+                    name: Some("TEST".to_string()),
+                    indexed: false,
+                }],
+            }),
+            span: AstSpan(vec![
+                Span { start: 52, end: 53, file: None },
+                Span { start: 53, end: 54, file: None },
+                Span { start: 54, end: 55, file: None },
+                Span { start: 56, end: 57, file: None },
+            ]),
+        }],
         takes: 0,
         returns: 0,
         span: AstSpan(vec![]),

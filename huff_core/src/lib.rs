@@ -189,29 +189,41 @@ impl<'a> Compiler {
         // Primary Bytecode Generation
         // See huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
         let mut cg = Codegen::new();
-        let main_bytecode = match Codegen::roll(Some(contract.clone())) {
+        let main_bytecode = match Codegen::generate_main_bytecode(&contract) {
             Ok(mb) => mb,
             Err(mut e) => {
-                e.span = Some(e.span.unwrap_or(Span { start: 0, end: 0, file: None }));
                 // Add File Source to Span
-                e.span = e.span.map(|mut s| {
-                    s.file = Some(file);
-                    s
-                });
+                e.span = AstSpan(
+                    e.span
+                        .0
+                        .iter()
+                        .map(|s| {
+                            let mut n_s = s.clone();
+                            n_s.file = Some(file.clone());
+                            n_s
+                        })
+                        .collect::<Vec<Span>>(),
+                );
                 tracing::error!(target: "codegen", "Roll Failed with CodegenError: {:?}", e);
                 return Err(CompilerError::CodegenError(e))
             }
         };
         tracing::info!(target: "core", "MAIN BYTECODE GENERATED [{}]", main_bytecode);
-        let constructor_bytecode = match Codegen::construct(Some(contract.clone())) {
+        let constructor_bytecode = match Codegen::generate_constructor_bytecode(&contract) {
             Ok(mb) => mb,
             Err(mut e) => {
-                e.span = Some(e.span.unwrap_or(Span { start: 0, end: 0, file: None }));
                 // Add File Source to Span
-                e.span = e.span.map(|mut s| {
-                    s.file = Some(file);
-                    s
-                });
+                e.span = AstSpan(
+                    e.span
+                        .0
+                        .iter()
+                        .map(|s| {
+                            let mut n_s = s.clone();
+                            n_s.file = Some(file.clone());
+                            n_s
+                        })
+                        .collect::<Vec<Span>>(),
+                );
                 tracing::error!(target: "codegen", "Construct Failed with CodegenError: {:?}", e);
                 return Err(CompilerError::CodegenError(e))
             }

@@ -40,6 +40,9 @@ fn table_with_body() {
             "{",
             "}"
         );
+        let lb1_start = source.find("label_call_1").unwrap_or(0);
+        let lb2_start = source.find("label_call_2").unwrap_or(0);
+        let lb3_start = source.find("label_call_3").unwrap_or(0);
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let lexer = Lexer::new(flattened_source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
@@ -53,9 +56,30 @@ fn table_with_body() {
                 name: "TEST_TABLE".to_string(),
                 kind: TableKind::from(kind),
                 statements: vec![
-                    Statement::LabelCall("label_call_1".to_string()),
-                    Statement::LabelCall("label_call_2".to_string()),
-                    Statement::LabelCall("label_call_3".to_string()),
+                    Statement {
+                        ty: StatementType::LabelCall("label_call_1".to_string()),
+                        span: AstSpan(vec![Span {
+                            start: lb1_start,
+                            end: lb1_start + "label_call_1".len(),
+                            file: None
+                        }]),
+                    },
+                    Statement {
+                        ty: StatementType::LabelCall("label_call_2".to_string()),
+                        span: AstSpan(vec![Span {
+                            start: lb2_start,
+                            end: lb2_start + "label_call_2".len(),
+                            file: None
+                        }]),
+                    },
+                    Statement {
+                        ty: StatementType::LabelCall("label_call_3".to_string()),
+                        span: AstSpan(vec![Span {
+                            start: lb3_start,
+                            end: lb3_start + "label_call_3".len(),
+                            file: None
+                        }]),
+                    },
                 ],
                 size: str_to_bytes32(expected_size),
             }

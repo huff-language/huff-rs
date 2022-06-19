@@ -1,7 +1,7 @@
 use crate::{
     files::{Span, Spanned},
     io::UnpackError,
-    prelude::{parse_extension, AstSpan, ConstantDefinition},
+    prelude::{parse_extension, AstSpan},
     report::{Report, Reporter},
     token::TokenKind,
 };

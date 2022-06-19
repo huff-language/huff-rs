@@ -384,7 +384,7 @@ impl MacroDefinition {
         statements.iter().for_each(|statement| {
             match &statement.ty {
                 StatementType::Literal(l) => {
-                    let hex_literal: String = bytes32_to_string(&l, false);
+                    let hex_literal: String = bytes32_to_string(l, false);
                     let push_bytes = format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal);
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(push_bytes)),

@@ -9,7 +9,7 @@
 
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
-use huff_utils::prelude::{unpack_files, CodegenError, CodegenErrorKind, CompilerError};
+use huff_utils::prelude::{unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError};
 use std::path::Path;
 use yansi::Paint;
 
@@ -88,7 +88,7 @@ fn main() {
             if artifacts.is_empty() {
                 let e = CompilerError::CodegenError(CodegenError {
                     kind: CodegenErrorKind::AbiGenerationFailure,
-                    span: None,
+                    span: AstSpan(vec![]),
                     token: None,
                 });
                 tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
