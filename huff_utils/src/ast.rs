@@ -41,7 +41,7 @@ impl AstSpan {
                 format!("{}\n-> {}:{}\n   > 0|", s, fs.0, start,)
             } else {
                 format!(
-                    "{}\n-> {}:{}-{}\n      |{}\n      |",
+                    "{}\n-> {}:{}-{}{}",
                     s,
                     fs.0,
                     start,

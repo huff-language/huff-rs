@@ -199,10 +199,14 @@ impl Span {
                         let line_start = &s[0..self.start].rfind('\n').unwrap_or(0);
                         let line_end = self.end +
                             s[self.end..s.len()].find('\n').unwrap_or(s.len()).to_owned();
+                        let padding =
+                            (0..line_num.to_string().len()).map(|_| " ").collect::<String>();
                         format!(
-                            "\n  > {} | {}",
+                            "\n     {}|\n  > {} | {}\n     {}|",
+                            padding,
                             line_num,
-                            &s[line_start.to_owned()..line_end].replace('\n', "")
+                            &s[line_start.to_owned()..line_end].replace('\n', ""),
+                            padding
                         )
                     })
                     .unwrap_or_default()

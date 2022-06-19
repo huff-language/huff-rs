@@ -280,25 +280,23 @@ impl Codegen {
                             // Recurse into macro invocation
                             scope.push(ir_macro.clone());
                             mis.push((offset, mi.clone()));
-                            let mut res: BytecodeRes = if let Ok(res) = Codegen::macro_to_bytecode(
+
+                            let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
                                 ir_macro.clone(),
                                 contract,
                                 scope,
                                 offset,
                                 mis,
                             ) {
-                                res
-                            } else {
-                                tracing::error!(
-                                    target: "codegen",
-                                    "FAILED TO RECURSE INTO MACRO \"{}\"",
-                                    ir_macro.name
-                                );
-                                return Err(CodegenError {
-                                    kind: CodegenErrorKind::FailedMacroRecursion,
-                                    span: AstSpan(vec![]),
-                                    token: None,
-                                })
+                                Ok(r) => r,
+                                Err(e) => {
+                                    tracing::error!(
+                                        target: "codegen",
+                                        "FAILED TO RECURSE INTO MACRO \"{}\"",
+                                        ir_macro.name
+                                    );
+                                    return Err(e)
+                                }
                             };
 
                             // Set jump table values
@@ -371,26 +369,22 @@ impl Codegen {
                                         })
                                     };
 
-                                    let res: BytecodeRes = if let Ok(res) =
-                                        Codegen::macro_to_bytecode(
-                                            ir_macro.clone(),
-                                            contract,
-                                            scope,
-                                            offset,
-                                            mis,
-                                        ) {
-                                        res
-                                    } else {
-                                        tracing::error!(
-                                            target: "codegen",
-                                            "FAILED TO RECURSE INTO MACRO \"{}\"",
-                                            ir_macro.name
-                                        );
-                                        return Err(CodegenError {
-                                            kind: CodegenErrorKind::FailedMacroRecursion,
-                                            span: AstSpan(vec![]),
-                                            token: None,
-                                        })
+                                    let res: BytecodeRes = match Codegen::macro_to_bytecode(
+                                        ir_macro.clone(),
+                                        contract,
+                                        scope,
+                                        offset,
+                                        mis,
+                                    ) {
+                                        Ok(r) => r,
+                                        Err(e) => {
+                                            tracing::error!(
+                                                target: "codegen",
+                                                "FAILED TO RECURSE INTO MACRO \"{}\"",
+                                                ir_macro.name
+                                            );
+                                            return Err(e)
+                                        }
                                     };
 
                                     let size = format_even_bytes(format!(
