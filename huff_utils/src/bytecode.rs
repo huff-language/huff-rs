@@ -97,12 +97,14 @@ impl Display for BytecodeRes {
 }
 
 /// A Jump
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Jump {
     /// Jump's Label
     pub label: String,
     /// Index of jump within bytecode
     pub bytecode_index: usize,
+    /// The Jump Span
+    pub span: AstSpan,
 }
 
 /// Type for a vec of `Jump`s

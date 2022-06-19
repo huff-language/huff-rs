@@ -38,7 +38,7 @@ impl AstSpan {
             let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
             let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
             if start.eq(&0) && end.eq(&0) {
-                format!("{}\n-> {}:{}\n   > 0|", s, fs.0, start,)
+                format!("{}\n-> {}:{}\n   > 0|", s, fs.0, start)
             } else {
                 format!(
                     "{}\n-> {}:{}-{}{}",

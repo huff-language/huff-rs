@@ -119,7 +119,12 @@ impl Codegen {
             );
             return Err(CodegenError {
                 kind: CodegenErrorKind::UnmatchedJumpLabel,
-                span: AstSpan(vec![]),
+                span: AstSpan(
+                    res.unmatched_jumps
+                        .iter()
+                        .flat_map(|uj| uj.span.0.clone())
+                        .collect::<Vec<Span>>(),
+                ),
                 token: None,
             })
         }
@@ -338,9 +343,7 @@ impl Codegen {
                             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL CALL: {}", label);
                             jump_table.insert(
                                 offset,
-                                vec![Jump { label, bytecode_index: 0 }], /* Insert label with a
-                                                                          * placeholder bytecode
-                                                                          * index */
+                                vec![Jump { label, bytecode_index: 0, span: s.span }],
                             );
                             bytes.push((offset, Bytes(format!("{}xxxx", Opcode::Push2))));
                             offset += 3;
@@ -437,6 +440,7 @@ impl Codegen {
                                     table_instances.push(Jump {
                                         label: bf.args[0].name.as_ref().unwrap().to_owned(),
                                         bytecode_index: offset,
+                                        span: bf.span,
                                     });
 
                                     bytes.push((offset, Bytes(format!("{}xxxx", Opcode::Push2))));
@@ -529,7 +533,8 @@ impl Codegen {
                             // unmatched jumps vec.
                             unmatched_jumps.push(Jump {
                                 label: jump.label.clone(),
-                                bytecode_index: code_index
+                                bytecode_index: code_index,
+                                span: jump.span.clone()
                             });
                         }
                     }
@@ -634,7 +639,7 @@ impl Codegen {
                                         kind: CodegenErrorKind::MissingMacroInvocation(
                                             macro_def.name.clone(),
                                         ),
-                                        span: AstSpan(vec![]),
+                                        span: bubbled_macro_invocation.span,
                                         token: None,
                                     })
                                 }
@@ -672,7 +677,11 @@ impl Codegen {
                             bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
                             jump_table.insert(
                                 *offset,
-                                vec![Jump { label: iden.to_owned(), bytecode_index: 0 }],
+                                vec![Jump {
+                                    label: iden.to_owned(),
+                                    bytecode_index: 0,
+                                    span: macro_invoc.1.span.clone(),
+                                }],
                             );
                             *offset += 3;
                         }
@@ -687,9 +696,13 @@ impl Codegen {
             // Label can be defined in parent
             // Assume Label Call Otherwise
             tracing::info!(target: "codegen", "RECURSE_BYTECODE ARG CALL DEFAULTING TO LABEL CALL: \"{}\"", arg_name);
+            let new_span = match mis.last() {
+                Some(mi) => mi.1.span.clone(),
+                None => AstSpan(vec![]),
+            };
             jump_table.insert(
                 mis.last().map(|mi| mi.0).unwrap_or_else(|| 0),
-                vec![Jump { label: arg_name.to_owned(), bytecode_index: 0 }],
+                vec![Jump { label: arg_name.to_owned(), bytecode_index: 0, span: new_span }],
             );
             bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
             *offset += 3;
