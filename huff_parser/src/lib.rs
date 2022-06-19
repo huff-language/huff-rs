@@ -439,10 +439,15 @@ impl Parser {
                     self.match_kind(TokenKind::BuiltinFunction(String::default()))?;
                     let args = self.parse_args(true, false, false)?;
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [BUILTIN FN: {}({:?})]", f, args);
-                    statements.push(Statement::BuiltinFunctionCall(BuiltinFunctionCall {
-                        kind: BuiltinFunctionKind::from(f.as_str()),
-                        args,
-                    }));
+                    let new_spans = self.spans.clone();
+                    self.spans = vec![];
+                    statements.push(Statement {
+                        ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
+                            kind: BuiltinFunctionKind::from(f.as_str()),
+                            args,
+                        }),
+                        span: AstSpan(new_spans),
+                    });
                 }
                 kind => {
                     tracing::error!(target: "parser", "TOKEN MISMATCH - MACRO BODY: {}", kind);

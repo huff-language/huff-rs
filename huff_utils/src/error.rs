@@ -1,7 +1,7 @@
 use crate::{
     files::{Span, Spanned},
     io::UnpackError,
-    prelude::{parse_extension, AstSpan},
+    prelude::{parse_extension, AstSpan, ConstantDefinition},
     report::{Report, Reporter},
     token::TokenKind,
 };
@@ -114,15 +114,15 @@ pub struct CodegenError {
     /// The kind of code generation error
     pub kind: CodegenErrorKind,
     /// An Optional Span where the error occured
-    pub span: Option<Span>,
+    pub span: AstSpan,
     /// An Optional Token Kind
     pub token: Option<TokenKind>,
 }
 
 impl CodegenError {
     /// Public associated function to instatiate a new CodegenError.
-    pub fn new(kind: CodegenErrorKind, span: Option<Span>, token: Option<TokenKind>) -> Self {
-        Self { kind, span, token }
+    pub fn new(kind: CodegenErrorKind, spans: AstSpan, token: Option<TokenKind>) -> Self {
+        Self { kind, span: spans, token }
     }
 }
 
@@ -144,7 +144,7 @@ pub enum CodegenErrorKind {
     /// Failed to recurse macro
     FailedMacroRecursion,
     /// Missing Constant Definition
-    MissingConstantDefinition,
+    MissingConstantDefinition(String),
     /// Abi Generation Failure
     AbiGenerationFailure,
     /// Unmatched Jump
@@ -159,7 +159,7 @@ pub enum CodegenErrorKind {
 
 impl Spanned for CodegenError {
     fn span(&self) -> Span {
-        self.span.clone().unwrap()
+        self.span.0[0].clone()
     }
 }
 
@@ -177,8 +177,8 @@ impl<W: Write> Report<W> for CodegenError {
                 write!(f.out, "Missing Macro \"{}\" Definition!", str)
             }
             CodegenErrorKind::FailedMacroRecursion => write!(f.out, "Failed Macro Recursion!"),
-            CodegenErrorKind::MissingConstantDefinition => {
-                write!(f.out, "Missing Constant Definition!")
+            CodegenErrorKind::MissingConstantDefinition(cd) => {
+                write!(f.out, "Missing Constant Definition for \"{}\"!", cd)
             }
             CodegenErrorKind::AbiGenerationFailure => write!(f.out, "Abi generation failure!"),
             CodegenErrorKind::UnmatchedJumpLabel => write!(f.out, "Unmatched jump label!"),
@@ -361,137 +361,53 @@ impl<'a> fmt::Display for CompilerError<'a> {
             }
             CompilerError::CodegenError(ce) => match &ce.kind {
                 CodegenErrorKind::InvalidOperator => {
-                    write!(
-                        f,
-                        "\nError: Invalid Operator\n{}\n",
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                    write!(f, "\nError: Invalid Operator\n{}\n", ce.span.error())
                 }
                 CodegenErrorKind::MissingAst => {
-                    write!(
-                        f,
-                        "\nError: Missing Generated Ast From Parser\n{}\n",
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                    write!(f, "\nError: Missing Generated Ast From Parser\n{}\n", ce.span.error())
                 }
                 CodegenErrorKind::MissingConstructor => {
-                    write!(
-                        f,
-                        "\nError: Missing Constructor Macro\n{}\n",
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                    write!(f, "\nError: Missing Constructor Macro\n{}\n", ce.span.error())
                 }
                 CodegenErrorKind::StoragePointersNotDerived => {
-                    write!(
-                        f,
-                        "\nError: Storage Pointers Not Derived\n{}\n",
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                    write!(f, "\nError: Storage Pointers Not Derived\n{}\n", ce.span.error())
                 }
                 CodegenErrorKind::InvalidMacroStatement => {
-                    write!(
-                        f,
-                        "\nError: Invalid Macro Statement\n{}\n",
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                    write!(f, "\nError: Invalid Macro Statement\n{}\n", ce.span.error())
                 }
                 CodegenErrorKind::MissingMacroDefinition(md) => {
                     write!(
                         f,
                         "\nError: Missing Macro Definition For \"{}\"\n{}\n",
                         md,
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
+                        ce.span.error()
                     )
                 }
                 CodegenErrorKind::FailedMacroRecursion => {
-                    write!(
-                        f,
-                        "\nError: Failed Macro Recursion\n{}\n",
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                    write!(f, "\nError: Failed Macro Recursion\n{}\n", ce.span.error())
                 }
-                CodegenErrorKind::MissingConstantDefinition => {
-                    write!(
-                        f,
-                        "\nError: Missing Constant Definition\n{}\n",
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                CodegenErrorKind::MissingConstantDefinition(_) => {
+                    write!(f, "\nError: Missing Constant Definition\n{}\n", ce.span.error())
                 }
                 CodegenErrorKind::AbiGenerationFailure => {
-                    write!(
-                        f,
-                        "\nError: ABI Generation Failed\n{}\n",
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                    write!(f, "\nError: ABI Generation Failed\n{}\n", ce.span.error())
                 }
                 CodegenErrorKind::IOError(ioe) => {
-                    write!(
-                        f,
-                        "\nError: IO Error: {}\n{}\n",
-                        ioe,
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                    write!(f, "\nError: IO Error: {}\n{}\n", ioe, ce.span.error())
                 }
                 CodegenErrorKind::UnkownArgcallType => {
-                    write!(
-                        f,
-                        "\nError: Unknown Arg Call Type\n{}\n",
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                    write!(f, "\nError: Unknown Arg Call Type\n{}\n", ce.span.error())
                 }
                 CodegenErrorKind::MissingMacroInvocation(mmi) => {
                     write!(
                         f,
                         "\nError: Missing Macro Invocation: \"{}\"\n{}\n",
                         mmi,
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
+                        ce.span.error()
                     )
                 }
                 CodegenErrorKind::UnmatchedJumpLabel => {
-                    write!(
-                        f,
-                        "\nError: Unmatched Jump Label\n{}\n",
-                        ce.span
-                            .as_ref()
-                            .map(|s| AstSpan(vec![s.clone()]).error())
-                            .unwrap_or_else(|| "".to_string())
-                    )
+                    write!(f, "\nError: Unmatched Jump Label\n{}\n", ce.span.error())
                 }
             },
             CompilerError::FailedCompiles(v) => {

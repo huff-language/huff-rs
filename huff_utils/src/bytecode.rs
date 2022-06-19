@@ -2,7 +2,7 @@
 //!
 //! Abstract translating state into bytecode.
 
-use crate::prelude::Statement;
+use crate::prelude::{AstSpan, Statement};
 use std::{
     collections::BTreeMap,
     fmt::{self, Display},
@@ -14,7 +14,16 @@ pub struct Bytes(pub String);
 
 /// Intermediate Bytecode Representation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum IRByte {
+pub struct IRBytes {
+    /// The type of IRByte
+    pub ty: IRByteType,
+    /// The Span of the IRBytes
+    pub span: AstSpan,
+}
+
+/// IRBytes Type
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum IRByteType {
     /// Bytes
     Bytes(Bytes),
     /// Macro Statement to be expanded
@@ -27,7 +36,7 @@ pub enum IRByte {
 
 /// Full Intermediate Bytecode Representation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct IRBytecode(pub Vec<IRByte>);
+pub struct IRBytecode(pub Vec<IRBytes>);
 
 /// ToIRBytecode
 ///

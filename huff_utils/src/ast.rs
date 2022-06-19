@@ -180,8 +180,8 @@ impl Contract {
             if i >= statements.len() {
                 break
             }
-            match &statements[i].clone() {
-                Statement::Constant(const_name) => {
+            match &statements[i].clone().ty {
+                StatementType::Constant(const_name) => {
                     tracing::debug!(target: "ast", "Found constant \"{}\" in macro def \"{}\" statements!", const_name, macro_def.name);
                     if storage_pointers
                         .iter()
@@ -216,7 +216,7 @@ impl Contract {
                         }
                     }
                 }
-                Statement::MacroInvocation(mi) => {
+                StatementType::MacroInvocation(mi) => {
                     tracing::debug!(target: "ast", "Found macro invocation: \"{}\" in macro def: \"{}\"!", mi.macro_name, macro_def.name);
                     match self
                         .macros
@@ -231,7 +231,7 @@ impl Contract {
                         }
                     }
                 }
-                Statement::Label(l) => {
+                StatementType::Label(l) => {
                     for state in l.inner.iter().rev() {
                         statements.insert(i + 1, state.clone());
                     }
@@ -359,7 +359,7 @@ pub struct MacroDefinition {
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
     fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError> {
-        let inner_irbytes: Vec<IRByte> = MacroDefinition::to_irbytes(&self.statements);
+        let inner_irbytes: Vec<IRBytes> = MacroDefinition::to_irbytes(&self.statements);
         Ok(IRBytecode(inner_irbytes))
     }
 }
@@ -378,46 +378,80 @@ impl MacroDefinition {
     }
 
     /// Translate statements into IRBytes
-    pub fn to_irbytes(statements: &[Statement]) -> Vec<IRByte> {
-        let mut inner_irbytes: Vec<IRByte> = vec![];
+    pub fn to_irbytes(statements: &[Statement]) -> Vec<IRBytes> {
+        let mut inner_irbytes: Vec<IRBytes> = vec![];
 
         statements.iter().for_each(|statement| {
-            match statement {
-                Statement::Literal(l) => {
-                    let hex_literal: String = bytes32_to_string(l, false);
+            match &statement.ty {
+                StatementType::Literal(l) => {
+                    let hex_literal: String = bytes32_to_string(&l, false);
                     let push_bytes = format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal);
-                    inner_irbytes.push(IRByte::Bytes(Bytes(push_bytes)));
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Bytes(Bytes(push_bytes)),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::Opcode(o) => {
+                StatementType::Opcode(o) => {
                     let opcode_str = o.string();
-                    inner_irbytes.push(IRByte::Bytes(Bytes(opcode_str)))
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Bytes(Bytes(opcode_str)),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::MacroInvocation(mi) => {
-                    inner_irbytes.push(IRByte::Statement(Statement::MacroInvocation(mi.clone())));
+                StatementType::MacroInvocation(mi) => {
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Statement(Statement {
+                            ty: StatementType::MacroInvocation(mi.clone()),
+                            span: statement.span.clone(),
+                        }),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::Constant(name) => {
+                StatementType::Constant(name) => {
                     // Constant needs to be evaluated at the top-level
-                    inner_irbytes.push(IRByte::Constant(name.to_string()));
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Constant(name.to_string()),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::ArgCall(arg_name) => {
+                StatementType::ArgCall(arg_name) => {
                     // Arg call needs to use a destination defined in the calling macro context
-                    inner_irbytes.push(IRByte::ArgCall(arg_name.to_string()));
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::ArgCall(arg_name.to_string()),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::LabelCall(jump_to) => {
+                StatementType::LabelCall(jump_to) => {
                     /* Jump To doesn't translate directly to bytecode ? */
-                    inner_irbytes
-                        .push(IRByte::Statement(Statement::LabelCall(jump_to.to_string())));
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Statement(Statement {
+                            ty: StatementType::LabelCall(jump_to.to_string()),
+                            span: statement.span.clone(),
+                        }),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::Label(l) => {
+                StatementType::Label(l) => {
                     /* Jump Dests don't translate directly to bytecode ? */
-                    inner_irbytes.push(IRByte::Statement(Statement::Label(l.clone())));
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Statement(Statement {
+                            ty: StatementType::Label(l.clone()),
+                            span: statement.span.clone(),
+                        }),
+                        span: statement.span.clone(),
+                    });
 
                     // Recurse label statements to IRBytes Bytes
                     inner_irbytes.append(&mut MacroDefinition::to_irbytes(&l.inner));
                 }
-                Statement::BuiltinFunctionCall(builtin) => {
-                    inner_irbytes
-                        .push(IRByte::Statement(Statement::BuiltinFunctionCall(builtin.clone())));
+                StatementType::BuiltinFunctionCall(builtin) => {
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Statement(Statement {
+                            ty: StatementType::BuiltinFunctionCall(builtin.clone()),
+                            span: statement.span.clone(),
+                        }),
+                        span: statement.span.clone(),
+                    });
                 }
             }
         });
@@ -512,7 +546,16 @@ impl From<&str> for BuiltinFunctionKind {
 
 /// A Statement
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Statement {
+pub struct Statement {
+    /// The type of statement
+    pub ty: StatementType,
+    /// The span of the Statement
+    pub span: AstSpan,
+}
+
+/// The Statement Type
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum StatementType {
     /// A Literal Statement
     Literal(Literal),
     /// An Opcode Statement
