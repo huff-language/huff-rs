@@ -153,8 +153,7 @@ impl Huff {
             None => {
                 tracing::debug!(target: "io", "FETCHING SOURCE FILES: {}", self.source);
                 // If there's no path, unpack source files
-                let source: String = self.source.clone();
-                unpack_files(&source).map_err(CompilerError::FileUnpackError)
+                unpack_files(&self.source).map_err(CompilerError::FileUnpackError)
             }
         }
     }
