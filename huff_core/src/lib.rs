@@ -92,8 +92,8 @@ impl<'a> Compiler {
     /// 2. Fetch file sources in parallel with [fetch_sources](Compiler::fetch_sources).
     /// 3. Recurse file dependencies in parallel with [recurse_deps](Compiler::recurse_deps).
     /// 4. For each top-level file [Parallelized], generate the artifact using
-    /// [gen_artifact](Compiler::gen_artifact). 5. Return the compiling error(s) or successfully
-    /// generated artifacts.
+    /// [gen_artifact](Compiler::gen_artifact).
+    /// 5. Return the compiling error(s) or successfully generated artifacts.
     pub fn execute(&self) -> Result<Vec<Artifact>, CompilerError<'a>> {
         // Grab the input files
         let file_paths: Vec<PathBuf> = Compiler::transform_paths(&self.sources)?;
