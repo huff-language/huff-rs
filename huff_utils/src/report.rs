@@ -3,7 +3,7 @@ use std::{
     io::{self, Write},
 };
 
-use crate::span::{Span, Spanned};
+use crate::files::{Span, Spanned};
 
 /// A Report Trait
 pub trait Report<W>: Spanned {

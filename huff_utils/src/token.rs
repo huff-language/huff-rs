@@ -1,4 +1,4 @@
-use crate::{evm::Opcode, span::Span, types::PrimitiveEVMType};
+use crate::{evm::Opcode, files::Span, types::PrimitiveEVMType};
 use std::{fmt, fmt::Write};
 
 type Literal = [u8; 32];
@@ -20,7 +20,7 @@ impl Token {
 }
 
 /// The kind of token
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum TokenKind {
     /// EOF Token
     Eof,
@@ -107,6 +107,14 @@ pub enum TokenKind {
     /// Array of EVM Types
     /// uint256[5][2][3] => ArrayType(PrimitiveEVMType::Uint(256), [5, 2, 3])
     ArrayType(PrimitiveEVMType, Vec<usize>),
+    /// A Jump Table
+    JumpTable,
+    /// A Packed Jump Table
+    JumpTablePacked,
+    /// A Code Table
+    CodeTable,
+    /// A builtin function (__codesize, __tablesize, __tablestart)
+    BuiltinFunction(String),
 }
 
 impl fmt::Display for TokenKind {
@@ -165,6 +173,10 @@ impl fmt::Display for TokenKind {
                 }
                 return write!(f, "{}{}", pt, s)
             }
+            TokenKind::JumpTable => "jumptable",
+            TokenKind::JumpTablePacked => "jumptable__packed",
+            TokenKind::CodeTable => "table",
+            TokenKind::BuiltinFunction(s) => return write!(f, "BuiltinFunction({})", s),
         };
 
         write!(f, "{}", x)

@@ -4,8 +4,9 @@ use huff_utils::prelude::*;
 #[test]
 fn end_of_file() {
     let source = " ";
-    let mut lexer = Lexer::new(source);
-    assert_eq!(lexer.source, source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let mut lexer = Lexer::new(flattened_source.clone());
+    assert_eq!(lexer.source, flattened_source);
 
     // Eats the whitespace
     let _ = lexer.next();
@@ -13,8 +14,8 @@ fn end_of_file() {
     // Get an EOF token
     let tok = lexer.next();
     let tok = tok.unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::Eof, Span::new(1..1)));
-    assert_eq!(lexer.span, Span::new(1..1));
+    assert_eq!(tok, Token::new(TokenKind::Eof, Span::new(1..1, None)));
+    assert_eq!(lexer.span, Span::new(1..1, None));
 
     // We should have reached EOF now
     assert_eq!(lexer.span.end, source.len());

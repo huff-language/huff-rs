@@ -18,9 +18,6 @@ pub mod ast;
 /// Bytecode Traits Module
 pub mod bytecode;
 
-/// Span Module
-pub mod span;
-
 /// Token Module
 pub mod token;
 
@@ -48,7 +45,7 @@ pub mod bytes_util;
 /// Prelude wraps common utilities.
 pub mod prelude {
     pub use crate::{
-        abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, files::*, io::*,
-        report::*, span::*, token::*,
+        abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, evm::*, files::*, io::*,
+        report::*, token::*, types::*,
     };
 }

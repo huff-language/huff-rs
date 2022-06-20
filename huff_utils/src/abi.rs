@@ -9,7 +9,7 @@
 //! instance like so:
 //!
 //! ```rust
-//! use huff_utils::{abi::Abi, ast::*};
+//! use huff_utils::prelude::*;
 //!
 //! // Generate a default contract for demonstrative purposes.
 //! // Realistically, contract generation would be done as shown in [huff_parser](./huff_parser)
@@ -18,12 +18,13 @@
 //!     invocations: vec![],
 //!     imports: vec![],
 //!     constants: vec![],
-//!     functions: vec![Function {
+//!     functions: vec![huff_utils::ast::Function {
 //!         name: "CONSTRUCTOR".to_string(),
 //!         signature: [0u8, 0u8, 0u8, 0u8],
 //!         inputs: vec![],
 //!         fn_type: FunctionType::NonPayable,
 //!         outputs: vec![],
+//!         span: AstSpan(vec![]),
 //!     }],
 //!     events: vec![],
 //!     tables: vec![],
@@ -66,13 +67,13 @@ impl Abi {
 // Allows for simple ABI Generation by directly translating the AST
 impl From<ast::Contract> for Abi {
     fn from(contract: ast::Contract) -> Self {
-        let constructors: Vec<ast::Function> = contract
-            .functions
+        let constructors = contract
+            .macros
             .iter()
-            .filter(|function: &&ast::Function| function.name == "CONSTRUCTOR")
+            .filter(|m| m.name == "CONSTRUCTOR")
             .cloned()
-            .collect();
-        let constructor: ast::Function = constructors.get(0).unwrap().clone();
+            .collect::<Vec<ast::MacroDefinition>>();
+        let constructor: Option<&ast::MacroDefinition> = constructors.get(0);
 
         // Instantiate functions and events
         let mut functions = BTreeMap::new();
@@ -143,9 +144,9 @@ impl From<ast::Contract> for Abi {
             });
 
         Self {
-            constructor: Some(Constructor {
-                inputs: constructor
-                    .inputs
+            constructor: constructor.map(|c| Constructor {
+                inputs: c
+                    .parameters
                     .iter()
                     .map(|argument| FunctionParam {
                         name: argument.name.clone().unwrap_or_default(),
@@ -282,13 +283,14 @@ impl From<String> for FunctionParamType {
             "Address" | "address" => Self::Address,
             "Bytes" | "bytes" => Self::Bytes,
             "Int" | "int" | "integer" | "Integer" => Self::Int(0),
-            "Uint" | "uint" | "unsignedinteger" | "unsigned integer" => Self::Uint(0),
+            "Uint" | "uint" | "uint256" | "unsignedinteger" | "unsigned integer" => Self::Uint(0),
             "Bool" | "bool" => Self::Bool,
             "String" | "string" | "str" | "Str" => Self::String,
             "Array" | "array" => Self::Array(Box::new(FunctionParamType::Bool)),
             "FixedBytes" | "bytes32" => Self::Array(Box::new(FunctionParamType::Bool)),
             _ => {
                 tracing::error!(
+                    target: "abi",
                     "{}",
                     format!("Failed to create FunctionParamType from string: {}", string)
                 );

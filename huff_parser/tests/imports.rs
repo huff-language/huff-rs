@@ -5,10 +5,10 @@ use huff_utils::prelude::*;
 #[test]
 fn parses_import() {
     let source = " /* .,*./. */  #include \"../huff-examples/erc20/contracts/ERC20.huff\"";
-
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, None);
     let contract = parser.parse().unwrap();
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 
@@ -21,9 +21,10 @@ fn parses_import() {
 fn fails_to_parse_invalid_import() {
     let source = " /* .,*./. */  #include \"../huff-examples/erc20/contracts/ERC1155.huff\"";
 
-    let lexer = Lexer::new(source);
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, None);
     let contract = parser.parse().unwrap();
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 
