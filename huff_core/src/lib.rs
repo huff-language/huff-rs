@@ -268,8 +268,9 @@ impl<'a> Compiler {
     pub fn fetch_sources(paths: &Vec<PathBuf>) -> Vec<Arc<FileSource>> {
         let files: Vec<Arc<FileSource>> = paths
             .into_par_iter()
-            .map(|pb| match pb.clone().into_os_string().into_string() {
-                Ok(file_loc) => match std::fs::read_to_string(&file_loc) {
+            .map(|pb| {
+                let file_loc = String::from(pb.to_string_lossy());
+                match std::fs::read_to_string(&file_loc) {
                     Ok(source) => Some(Arc::new(FileSource {
                         id: Uuid::new_v4(),
                         path: file_loc,
@@ -281,10 +282,6 @@ impl<'a> Compiler {
                         tracing::error!(target: "core", "FILE READ FAILED: \"{}\"!", file_loc);
                         None
                     }
-                },
-                Err(e) => {
-                    tracing::error!(target: "core", "PATHBUF CONVERSION FAILED: {:?}", e);
-                    None
                 }
             })
             .filter(|f| f.is_some())
