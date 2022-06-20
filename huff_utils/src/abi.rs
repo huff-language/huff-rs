@@ -9,7 +9,7 @@
 //! instance like so:
 //!
 //! ```rust
-//! use huff_utils::{abi::Abi, ast::*};
+//! use huff_utils::prelude::*;
 //!
 //! // Generate a default contract for demonstrative purposes.
 //! // Realistically, contract generation would be done as shown in [huff_parser](./huff_parser)
@@ -18,12 +18,13 @@
 //!     invocations: vec![],
 //!     imports: vec![],
 //!     constants: vec![],
-//!     functions: vec![Function {
+//!     functions: vec![huff_utils::ast::Function {
 //!         name: "CONSTRUCTOR".to_string(),
 //!         signature: [0u8, 0u8, 0u8, 0u8],
 //!         inputs: vec![],
 //!         fn_type: FunctionType::NonPayable,
 //!         outputs: vec![],
+//!         span: AstSpan(vec![]),
 //!     }],
 //!     events: vec![],
 //!     tables: vec![],

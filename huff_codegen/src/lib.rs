@@ -11,14 +11,28 @@ use huff_utils::{
     bytecode::*,
     error::CodegenError,
     evm::Opcode,
-    prelude::{bytes32_to_string, format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource},
+    prelude::{
+        bytes32_to_string, format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span,
+    },
     types::EToken,
 };
 use std::{collections::HashMap, fs, path::Path, str::FromStr};
 
 /// ### Codegen
 ///
-/// Code Generation Manager responsible for generating the code for the Huff Language.
+/// Code Generation Manager responsible for generating bytecode from a [Contract]() Abstract Syntax
+/// Tree.
+///
+/// #### Usage
+///
+/// The canonical way to instantiate a Codegen instance is using the public associated
+/// [new](Codegen::new) function.
+///
+///
+/// ```rust
+/// use huff_codegen::Codegen;
+/// let cg = Codegen::new();
+/// ```
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Codegen {
     /// The Input AST
@@ -37,38 +51,27 @@ impl Codegen {
         Self { ast: None, artifact: None, main_bytecode: None, constructor_bytecode: None }
     }
 
-    /// Generates main bytecode from a Contract AST
-    ///
-    /// # Arguments
-    ///
-    /// * `ast` - Optional Contract Abstract Syntax Tree
-    pub fn roll(ast: Option<Contract>) -> Result<String, CodegenError> {
-        // Grab the AST
-        let contract = match &ast {
-            Some(a) => a,
-            None => {
-                tracing::error!(target: "codegen", "MISSING BOTH STATEFUL AND PARAMETER AST!");
-                return Err(CodegenError {
-                    kind: CodegenErrorKind::MissingAst,
-                    span: None,
-                    token: None,
-                })
-            }
-        };
-
-        // Find the main macro
-        let m_macro: MacroDefinition = if let Some(m) = contract.find_macro_by_name("MAIN") {
-            m
+    /// Helper function to find a macro or generate a CodegenError
+    pub(crate) fn get_macro_by_name(
+        name: &str,
+        contract: &Contract,
+    ) -> Result<MacroDefinition, CodegenError> {
+        if let Some(m) = contract.find_macro_by_name(name) {
+            Ok(m)
         } else {
-            tracing::error!(target: "codegen", "MISSING \"MAIN\" MACRO!");
-            return Err(CodegenError {
-                kind: CodegenErrorKind::MissingMacroDefinition("MAIN".to_string()),
-                span: None,
+            tracing::error!(target: "codegen", "MISSING \"{}\" MACRO!", name);
+            Err(CodegenError {
+                kind: CodegenErrorKind::MissingMacroDefinition(name.to_string()),
+                span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
                 token: None,
             })
-        };
+        }
+    }
 
-        tracing::info!(target: "codegen", "MAIN MACRO FOUND: {}", m_macro.name);
+    /// Generates main bytecode from a Contract AST
+    pub fn generate_main_bytecode(contract: &Contract) -> Result<String, CodegenError> {
+        // Find the main macro
+        let m_macro = Codegen::get_macro_by_name("MAIN", contract)?;
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
@@ -78,64 +81,15 @@ impl Codegen {
             0,
             &mut Vec::default(),
         )?;
-        tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
-        let bytecode = Codegen::gen_table_bytecode(bytecode_res, contract)?;
-        tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
 
-        // Return
-        Ok(bytecode)
-    }
-
-    /// Gracefully get the Contract AST
-    pub fn graceful_ast_grab(&self, ast: Option<Contract>) -> Result<Contract, CodegenError> {
-        match ast {
-            Some(a) => Ok(a),
-            None => match &self.ast {
-                Some(a) => Ok(a.clone()),
-                None => {
-                    tracing::error!("Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
-                    Err(CodegenError {
-                        kind: CodegenErrorKind::MissingAst,
-                        span: None,
-                        token: None,
-                    })
-                }
-            },
-        }
+        // Generate the fully baked bytecode
+        Codegen::gen_table_bytecode(bytecode_res, contract)
     }
 
     /// Generates constructor bytecode from a Contract AST
-    ///
-    /// # Arguments
-    ///
-    /// * `ast` - Optional Contract Abstract Syntax Tree
-    pub fn construct(ast: Option<Contract>) -> Result<String, CodegenError> {
-        // Grab the AST
-        let contract = match &ast {
-            Some(a) => a,
-            None => {
-                tracing::error!(target: "codegen", "Neither Codegen AST was set nor passed in as a parameter to Codegen::construct()!");
-                return Err(CodegenError {
-                    kind: CodegenErrorKind::MissingAst,
-                    span: None,
-                    token: None,
-                })
-            }
-        };
-
+    pub fn generate_constructor_bytecode(contract: &Contract) -> Result<String, CodegenError> {
         // Find the constructor macro
-        let c_macro: MacroDefinition = if let Some(m) = contract.find_macro_by_name("CONSTRUCTOR") {
-            m
-        } else {
-            tracing::error!(target: "codegen", "'CONSTRUCTOR' Macro definition missing in AST!");
-            return Err(CodegenError {
-                kind: CodegenErrorKind::MissingConstructor,
-                span: None,
-                token: None,
-            })
-        };
-
-        tracing::debug!(target: "codegen", "FOUND CONSTRUCTOR MACRO: {}", c_macro.name);
+        let c_macro = Codegen::get_macro_by_name("CONSTRUCTOR", contract)?;
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
@@ -145,21 +99,14 @@ impl Codegen {
             0,
             &mut Vec::default(),
         )?;
-        tracing::info!(target: "codegen", "RECURSED BYTECODE: {:?}", bytecode_res);
-        let bytecode = bytecode_res.bytes.iter().map(|(_, b)| b.0.to_string()).collect();
-        tracing::info!(target: "codegen", "FINAL BYTECODE: {:?}", bytecode);
 
-        // Return
+        // Generate the bytecode return string
+        let bytecode = bytecode_res.bytes.iter().map(|(_, b)| b.0.to_string()).collect();
         Ok(bytecode)
     }
 
-    /// Finalize bytecode generated by `recurse_bytecode`
-    /// Adds table bytecode to the tail end and fills table JUMPDEST placeholders
-    ///
-    /// # Arguments
-    ///
-    /// * `res` - Bytecode res generated by `macro_to_bytecode`
-    /// * `contract` - Reference to the `Contract` AST generated by the parser
+    /// Adds table bytecode at the end of the `recurse_bytecode`
+    /// output and fills table JUMPDEST placeholders
     pub fn gen_table_bytecode(
         res: BytecodeRes,
         contract: &Contract,
@@ -172,7 +119,12 @@ impl Codegen {
             );
             return Err(CodegenError {
                 kind: CodegenErrorKind::UnmatchedJumpLabel,
-                span: None,
+                span: AstSpan(
+                    res.unmatched_jumps
+                        .iter()
+                        .flat_map(|uj| uj.span.0.clone())
+                        .collect::<Vec<Span>>(),
+                ),
                 token: None,
             })
         }
@@ -194,7 +146,7 @@ impl Codegen {
                 .statements
                 .iter()
                 .map(|s| {
-                    if let Statement::LabelCall(label) = s {
+                    if let StatementType::LabelCall(label) = &s.ty {
                         let offset = res.label_indices.get(label).unwrap(); // TODO: Error handling
                         let hex = format_even_bytes(format!("{:02x}", offset));
 
@@ -250,9 +202,7 @@ impl Codegen {
     ) -> Result<BytecodeRes, CodegenError> {
         // Get intermediate bytecode representation of the AST
         let mut bytes: Vec<(usize, Bytes)> = Vec::default();
-        tracing::info!(target: "codegen", "RECURSING MACRO DEFINITION \"{}\" [SCOPE: {}]", macro_def.name, scope.len());
         let ir_bytes = macro_def.to_irbytecode()?.0;
-        tracing::info!(target: "codegen", "MACRO DEFINITION \"{}\"", macro_def.name);
 
         // Define outer loop variables
         let mut jump_table = JumpTable::new();
@@ -262,14 +212,12 @@ impl Codegen {
         // Loop through all intermediate bytecode representations generated from the AST
         for (ir_bytes_index, ir_byte) in ir_bytes.into_iter().enumerate() {
             let starting_offset = offset;
-            match ir_byte {
-                IRByte::Bytes(b) => {
-                    // Add a string of bytes that has already been generated
+            match ir_byte.ty {
+                IRByteType::Bytes(b) => {
                     offset += b.0.len() / 2;
-                    tracing::debug!(target: "codegen", "RECURSE_BYTECODE FOUND BYTES: {:?}", b);
                     bytes.push((starting_offset, b));
                 }
-                IRByte::Constant(name) => {
+                IRByteType::Constant(name) => {
                     // Get the first `ConstantDefinition` that matches the constant's name
                     let constant = if let Some(m) =
                         contract.constants.iter().find(|const_def| const_def.name.eq(&name))
@@ -278,10 +226,9 @@ impl Codegen {
                     } else {
                         tracing::error!(target: "codegen", "MISSING CONSTANT DEFINITION \"{}\"", name);
 
-                        // TODO we should try and find the constant defined in other files here
                         return Err(CodegenError {
-                            kind: CodegenErrorKind::MissingConstantDefinition,
-                            span: None,
+                            kind: CodegenErrorKind::MissingConstantDefinition(name),
+                            span: ir_byte.span,
                             token: None,
                         })
                     };
@@ -301,7 +248,7 @@ impl Codegen {
                             tracing::error!(target: "codegen", "STORAGE POINTERS INCORRECTLY DERIVED FOR \"{:?}\"", fsp);
                             return Err(CodegenError {
                                 kind: CodegenErrorKind::StoragePointersNotDerived,
-                                span: None,
+                                span: constant.span.clone(),
                                 token: None,
                             })
                         }
@@ -312,10 +259,10 @@ impl Codegen {
                     tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                     bytes.push((starting_offset, Bytes(push_bytes)));
                 }
-                IRByte::Statement(s) => {
+                IRByteType::Statement(s) => {
                     tracing::debug!(target: "codegen", "Got Statement: {:?}", s);
-                    match s {
-                        Statement::MacroInvocation(mi) => {
+                    match s.ty {
+                        StatementType::MacroInvocation(mi) => {
                             // Get the macro definition that matches the name of this invocation
                             let ir_macro =
                                 if let Some(m) = contract.find_macro_by_name(&mi.macro_name) {
@@ -327,10 +274,10 @@ impl Codegen {
                                         mi.macro_name
                                     );
                                     return Err(CodegenError {
-                                        kind: CodegenErrorKind::MissingMacroDefinition(
+                                        kind: CodegenErrorKind::InvalidMacroInvocation(
                                             mi.macro_name.clone(),
                                         ),
-                                        span: None,
+                                        span: mi.span,
                                         token: None,
                                     })
                                 };
@@ -340,25 +287,23 @@ impl Codegen {
                             // Recurse into macro invocation
                             scope.push(ir_macro.clone());
                             mis.push((offset, mi.clone()));
-                            let mut res: BytecodeRes = if let Ok(res) = Codegen::macro_to_bytecode(
+
+                            let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
                                 ir_macro.clone(),
                                 contract,
                                 scope,
                                 offset,
                                 mis,
                             ) {
-                                res
-                            } else {
-                                tracing::error!(
-                                    target: "codegen",
-                                    "FAILED TO RECURSE INTO MACRO \"{}\"",
-                                    ir_macro.name
-                                );
-                                return Err(CodegenError {
-                                    kind: CodegenErrorKind::FailedMacroRecursion,
-                                    span: None,
-                                    token: None,
-                                })
+                                Ok(r) => r,
+                                Err(e) => {
+                                    tracing::error!(
+                                        target: "codegen",
+                                        "FAILED TO RECURSE INTO MACRO \"{}\"",
+                                        ir_macro.name
+                                    );
+                                    return Err(e)
+                                }
                             };
 
                             // Set jump table values
@@ -384,28 +329,26 @@ impl Codegen {
                             // Add the macro's bytecode to the final result
                             bytes = [bytes, res.bytes].concat()
                         }
-                        Statement::Label(label) => {
+                        StatementType::Label(label) => {
                             // Add JUMPDEST opcode to final result and add to label_indices
                             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL: {:?}", label);
                             label_indices.insert(label.name, offset);
                             bytes.push((offset, Bytes(Opcode::Jumpdest.to_string())));
                             offset += 1;
                         }
-                        Statement::LabelCall(label) => {
+                        StatementType::LabelCall(label) => {
                             // Generate code for a `LabelCall`
                             // PUSH2 + 2 byte destination (placeholder for now, filled at the bottom
                             // of this function)
                             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL CALL: {}", label);
                             jump_table.insert(
                                 offset,
-                                vec![Jump { label, bytecode_index: 0 }], /* Insert label with a
-                                                                          * placeholder bytecode
-                                                                          * index */
+                                vec![Jump { label, bytecode_index: 0, span: s.span }],
                             );
                             bytes.push((offset, Bytes(format!("{}xxxx", Opcode::Push2))));
                             offset += 3;
                         }
-                        Statement::BuiltinFunctionCall(bf) => {
+                        StatementType::BuiltinFunctionCall(bf) => {
                             // Generate code for a `BuiltinFunctionCall`
                             // __codesize, __tablesize, or __tablestart
                             // TODO: Inline docs
@@ -426,31 +369,31 @@ impl Codegen {
                                             kind: CodegenErrorKind::MissingMacroDefinition(
                                                 bf.args[0].name.as_ref().unwrap().to_string(), /* yuck */
                                             ),
-                                            span: None,
+                                            span: AstSpan(vec![Span {
+                                                start: 0,
+                                                end: 0,
+                                                file: None,
+                                            }]),
                                             token: None,
                                         })
                                     };
 
-                                    let res: BytecodeRes = if let Ok(res) =
-                                        Codegen::macro_to_bytecode(
-                                            ir_macro.clone(),
-                                            contract,
-                                            scope,
-                                            offset,
-                                            mis,
-                                        ) {
-                                        res
-                                    } else {
-                                        tracing::error!(
-                                            target: "codegen",
-                                            "FAILED TO RECURSE INTO MACRO \"{}\"",
-                                            ir_macro.name
-                                        );
-                                        return Err(CodegenError {
-                                            kind: CodegenErrorKind::FailedMacroRecursion,
-                                            span: None,
-                                            token: None,
-                                        })
+                                    let res: BytecodeRes = match Codegen::macro_to_bytecode(
+                                        ir_macro.clone(),
+                                        contract,
+                                        scope,
+                                        offset,
+                                        mis,
+                                    ) {
+                                        Ok(r) => r,
+                                        Err(e) => {
+                                            tracing::error!(
+                                                target: "codegen",
+                                                "FAILED TO RECURSE INTO MACRO \"{}\"",
+                                                ir_macro.name
+                                            );
+                                            return Err(e)
+                                        }
                                     };
 
                                     let size = format_even_bytes(format!(
@@ -478,7 +421,11 @@ impl Codegen {
                                             kind: CodegenErrorKind::MissingMacroDefinition(
                                                 bf.args[0].name.as_ref().unwrap().to_string(), /* yuck */
                                             ),
-                                            span: None,
+                                            span: AstSpan(vec![Span {
+                                                start: 0,
+                                                end: 0,
+                                                file: None,
+                                            }]),
                                             token: None,
                                         })
                                     };
@@ -493,6 +440,7 @@ impl Codegen {
                                     table_instances.push(Jump {
                                         label: bf.args[0].name.as_ref().unwrap().to_owned(),
                                         bytecode_index: offset,
+                                        span: bf.span,
                                     });
 
                                     bytes.push((offset, Bytes(format!("{}xxxx", Opcode::Push2))));
@@ -500,18 +448,18 @@ impl Codegen {
                                 }
                             }
                         }
-                        s => {
+                        sty => {
                             tracing::error!(target: "codegen", "CURRENT MACRO DEF: {}", macro_def.name);
-                            tracing::error!(target: "codegen", "UNEXPECTED STATEMENT: {:?}", s);
+                            tracing::error!(target: "codegen", "UNEXPECTED STATEMENT: {:?}", sty);
                             return Err(CodegenError {
                                 kind: CodegenErrorKind::InvalidMacroStatement,
-                                span: None,
+                                span: s.span,
                                 token: None,
                             })
                         }
                     }
                 }
-                IRByte::ArgCall(arg_name) => {
+                IRByteType::ArgCall(arg_name) => {
                     // Bubble up arg call by looking through the previous scopes. Once the arg
                     // value is found, add it to `bytes`
                     if let Err(e) = Codegen::bubble_arg_call(
@@ -585,7 +533,8 @@ impl Codegen {
                             // unmatched jumps vec.
                             unmatched_jumps.push(Jump {
                                 label: jump.label.clone(),
-                                bytecode_index: code_index
+                                bytecode_index: code_index,
+                                span: jump.span.clone()
                             });
                         }
                     }
@@ -636,7 +585,7 @@ impl Codegen {
                     tracing::error!(target: "codegen", "STORAGE POINTERS INCORRECTLY DERIVED FOR \"{:?}\"", fsp);
                     return Err(CodegenError {
                         kind: CodegenErrorKind::StoragePointersNotDerived,
-                        span: None,
+                        span: AstSpan(vec![]),
                         token: None,
                     })
                 }
@@ -690,7 +639,7 @@ impl Codegen {
                                         kind: CodegenErrorKind::MissingMacroInvocation(
                                             macro_def.name.clone(),
                                         ),
-                                        span: None,
+                                        span: bubbled_macro_invocation.span,
                                         token: None,
                                     })
                                 }
@@ -728,7 +677,11 @@ impl Codegen {
                             bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
                             jump_table.insert(
                                 *offset,
-                                vec![Jump { label: iden.to_owned(), bytecode_index: 0 }],
+                                vec![Jump {
+                                    label: iden.to_owned(),
+                                    bytecode_index: 0,
+                                    span: macro_invoc.1.span.clone(),
+                                }],
                             );
                             *offset += 3;
                         }
@@ -743,9 +696,13 @@ impl Codegen {
             // Label can be defined in parent
             // Assume Label Call Otherwise
             tracing::info!(target: "codegen", "RECURSE_BYTECODE ARG CALL DEFAULTING TO LABEL CALL: \"{}\"", arg_name);
+            let new_span = match mis.last() {
+                Some(mi) => mi.1.span.clone(),
+                None => AstSpan(vec![]),
+            };
             jump_table.insert(
                 mis.last().map(|mi| mi.0).unwrap_or_else(|| 0),
-                vec![Jump { label: arg_name.to_owned(), bytecode_index: 0 }],
+                vec![Jump { label: arg_name.to_owned(), bytecode_index: 0, span: new_span }],
             );
             bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
             *offset += 3;
@@ -818,7 +775,17 @@ impl Codegen {
             if let Err(e) = fs::create_dir_all(p) {
                 return Err(CodegenError {
                     kind: CodegenErrorKind::IOError(e.to_string()),
-                    span: None,
+                    span: AstSpan(vec![Span {
+                        start: 0,
+                        end: 0,
+                        file: Some(FileSource {
+                            id: uuid::Uuid::new_v4(),
+                            path: output,
+                            source: None,
+                            access: None,
+                            dependencies: None,
+                        }),
+                    }]),
                     token: None,
                 })
             }
@@ -826,7 +793,17 @@ impl Codegen {
         if let Err(e) = fs::write(file_path, serialized_artifact) {
             return Err(CodegenError {
                 kind: CodegenErrorKind::IOError(e.to_string()),
-                span: None,
+                span: AstSpan(vec![Span {
+                    start: 0,
+                    end: 0,
+                    file: Some(FileSource {
+                        id: uuid::Uuid::new_v4(),
+                        path: output,
+                        source: None,
+                        access: None,
+                        dependencies: None,
+                    }),
+                }]),
                 token: None,
             })
         }

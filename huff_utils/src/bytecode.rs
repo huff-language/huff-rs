@@ -2,7 +2,7 @@
 //!
 //! Abstract translating state into bytecode.
 
-use crate::prelude::Statement;
+use crate::prelude::{AstSpan, Statement};
 use std::{
     collections::BTreeMap,
     fmt::{self, Display},
@@ -14,7 +14,16 @@ pub struct Bytes(pub String);
 
 /// Intermediate Bytecode Representation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum IRByte {
+pub struct IRBytes {
+    /// The type of IRByte
+    pub ty: IRByteType,
+    /// The Span of the IRBytes
+    pub span: AstSpan,
+}
+
+/// IRBytes Type
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum IRByteType {
     /// Bytes
     Bytes(Bytes),
     /// Macro Statement to be expanded
@@ -27,7 +36,7 @@ pub enum IRByte {
 
 /// Full Intermediate Bytecode Representation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct IRBytecode(pub Vec<IRByte>);
+pub struct IRBytecode(pub Vec<IRBytes>);
 
 /// ToIRBytecode
 ///
@@ -88,12 +97,14 @@ impl Display for BytecodeRes {
 }
 
 /// A Jump
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Jump {
     /// Jump's Label
     pub label: String,
     /// Index of jump within bytecode
     pub bytecode_index: usize,
+    /// The Jump Span
+    pub span: AstSpan,
 }
 
 /// Type for a vec of `Jump`s

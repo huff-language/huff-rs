@@ -9,7 +9,10 @@
 
 use clap::Parser as ClapParser;
 use huff_core::Compiler;
-use huff_utils::prelude::{unpack_files, CodegenError, CodegenErrorKind, CompilerError};
+use huff_utils::prelude::{
+    unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError, FileSource, Span,
+};
+use spinners::{Spinner, Spinners};
 use std::path::Path;
 use yansi::Paint;
 
@@ -63,7 +66,7 @@ fn main() {
     }
 
     // Create compiler from the Huff Args
-    let sources = match cli.get_inputs() {
+    let sources: Vec<String> = match cli.get_inputs() {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{}", Paint::red(format!("{}", e)));
@@ -80,15 +83,35 @@ fn main() {
         optimize: cli.optimize,
         bytecode: cli.bytecode,
     };
-    tracing::debug!(target: "core", "COMPILER INCANTATION COMPLETE");
-    tracing::debug!(target: "core", "EXECUTING COMPILATION...");
+
+    // Create compiling spinner
+    tracing::debug!(target: "core", "[⠔] COMPILING");
+    let mut sp = Spinner::new(Spinners::Dots, "Compiling...".into());
+
     let compile_res = compiler.execute();
+    sp.stop();
+    println!(" ");
     match compile_res {
         Ok(artifacts) => {
             if artifacts.is_empty() {
                 let e = CompilerError::CodegenError(CodegenError {
                     kind: CodegenErrorKind::AbiGenerationFailure,
-                    span: None,
+                    span: AstSpan(
+                        sources
+                            .iter()
+                            .map(|s| Span {
+                                start: 0,
+                                end: 0,
+                                file: Some(FileSource {
+                                    id: uuid::Uuid::new_v4(),
+                                    path: s.clone(),
+                                    source: None,
+                                    access: None,
+                                    dependencies: None,
+                                }),
+                            })
+                            .collect::<Vec<Span>>(),
+                    ),
                     token: None,
                 });
                 tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);

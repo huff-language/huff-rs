@@ -37,12 +37,13 @@ impl AstSpan {
         file_to_source_map.iter().filter(|fs| !fs.0.is_empty()).fold("".to_string(), |s, fs| {
             let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
             let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
+            let newline_s = if s.is_empty() { "".to_string() } else { format!("{}\n", s) };
             if start.eq(&0) && end.eq(&0) {
-                format!("{}\n-> {}:{}\n   > 0|", s, fs.0, start,)
+                format!("{}-> {}:{}\n   > 0|", newline_s, fs.0, start)
             } else {
                 format!(
-                    "{}\n-> {}:{}-{}\n      |{}\n      |",
-                    s,
+                    "{}-> {}:{}-{}{}",
+                    newline_s,
                     fs.0,
                     start,
                     end,
@@ -55,6 +56,14 @@ impl AstSpan {
                         .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
                 )
             }
+        })
+    }
+
+    /// Print just the file for missing
+    pub fn file(&self) -> String {
+        self.0.iter().fold("".to_string(), |acc, span| match &span.file {
+            Some(fs) => format!("-> {}\n{}", fs.path, acc),
+            None => Default::default(),
         })
     }
 }
@@ -148,6 +157,7 @@ impl Contract {
                     *c = ConstantDefinition {
                         name: c.name.to_string(),
                         value: ConstVal::Literal(p.1),
+                        span: c.span.clone(),
                     };
                 }
                 None => {
@@ -180,8 +190,8 @@ impl Contract {
             if i >= statements.len() {
                 break
             }
-            match &statements[i].clone() {
-                Statement::Constant(const_name) => {
+            match &statements[i].clone().ty {
+                StatementType::Constant(const_name) => {
                     tracing::debug!(target: "ast", "Found constant \"{}\" in macro def \"{}\" statements!", const_name, macro_def.name);
                     if storage_pointers
                         .iter()
@@ -216,7 +226,7 @@ impl Contract {
                         }
                     }
                 }
-                Statement::MacroInvocation(mi) => {
+                StatementType::MacroInvocation(mi) => {
                     tracing::debug!(target: "ast", "Found macro invocation: \"{}\" in macro def: \"{}\"!", mi.macro_name, macro_def.name);
                     match self
                         .macros
@@ -231,7 +241,7 @@ impl Contract {
                         }
                     }
                 }
-                Statement::Label(l) => {
+                StatementType::Label(l) => {
                     for state in l.inner.iter().rev() {
                         statements.insert(i + 1, state.clone());
                     }
@@ -258,6 +268,8 @@ pub struct Argument {
     pub name: Option<String>,
     /// Is the argument indexed? TODO: should be valid for event arguments ONLY
     pub indexed: bool,
+    /// The argument span
+    pub span: AstSpan,
 }
 
 /// A Function Signature
@@ -273,6 +285,8 @@ pub struct Function {
     pub fn_type: FunctionType,
     /// The return values of the function
     pub outputs: Vec<Argument>,
+    /// The span of the function
+    pub span: AstSpan,
 }
 
 /// Function Types
@@ -295,6 +309,8 @@ pub struct Event {
     pub name: String,
     /// The parameters of the event
     pub parameters: Vec<Argument>,
+    /// The event span
+    pub span: AstSpan,
 }
 
 /// A Table Definition
@@ -308,12 +324,20 @@ pub struct TableDefinition {
     pub statements: Vec<Statement>,
     /// Size of table
     pub size: Literal,
+    /// The table span
+    pub span: AstSpan,
 }
 
 impl TableDefinition {
     /// Public associated function that instantiates a TableDefinition from a string
-    pub fn new(name: String, kind: TableKind, statements: Vec<Statement>, size: Literal) -> Self {
-        TableDefinition { name, kind, statements, size }
+    pub fn new(
+        name: String,
+        kind: TableKind,
+        statements: Vec<Statement>,
+        size: Literal,
+        span: AstSpan,
+    ) -> Self {
+        TableDefinition { name, kind, statements, size, span }
     }
 }
 
@@ -359,7 +383,7 @@ pub struct MacroDefinition {
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
     fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError> {
-        let inner_irbytes: Vec<IRByte> = MacroDefinition::to_irbytes(&self.statements);
+        let inner_irbytes: Vec<IRBytes> = MacroDefinition::to_irbytes(&self.statements);
         Ok(IRBytecode(inner_irbytes))
     }
 }
@@ -378,46 +402,80 @@ impl MacroDefinition {
     }
 
     /// Translate statements into IRBytes
-    pub fn to_irbytes(statements: &[Statement]) -> Vec<IRByte> {
-        let mut inner_irbytes: Vec<IRByte> = vec![];
+    pub fn to_irbytes(statements: &[Statement]) -> Vec<IRBytes> {
+        let mut inner_irbytes: Vec<IRBytes> = vec![];
 
         statements.iter().for_each(|statement| {
-            match statement {
-                Statement::Literal(l) => {
+            match &statement.ty {
+                StatementType::Literal(l) => {
                     let hex_literal: String = bytes32_to_string(l, false);
                     let push_bytes = format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal);
-                    inner_irbytes.push(IRByte::Bytes(Bytes(push_bytes)));
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Bytes(Bytes(push_bytes)),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::Opcode(o) => {
+                StatementType::Opcode(o) => {
                     let opcode_str = o.string();
-                    inner_irbytes.push(IRByte::Bytes(Bytes(opcode_str)))
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Bytes(Bytes(opcode_str)),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::MacroInvocation(mi) => {
-                    inner_irbytes.push(IRByte::Statement(Statement::MacroInvocation(mi.clone())));
+                StatementType::MacroInvocation(mi) => {
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Statement(Statement {
+                            ty: StatementType::MacroInvocation(mi.clone()),
+                            span: statement.span.clone(),
+                        }),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::Constant(name) => {
+                StatementType::Constant(name) => {
                     // Constant needs to be evaluated at the top-level
-                    inner_irbytes.push(IRByte::Constant(name.to_string()));
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Constant(name.to_string()),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::ArgCall(arg_name) => {
+                StatementType::ArgCall(arg_name) => {
                     // Arg call needs to use a destination defined in the calling macro context
-                    inner_irbytes.push(IRByte::ArgCall(arg_name.to_string()));
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::ArgCall(arg_name.to_string()),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::LabelCall(jump_to) => {
+                StatementType::LabelCall(jump_to) => {
                     /* Jump To doesn't translate directly to bytecode ? */
-                    inner_irbytes
-                        .push(IRByte::Statement(Statement::LabelCall(jump_to.to_string())));
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Statement(Statement {
+                            ty: StatementType::LabelCall(jump_to.to_string()),
+                            span: statement.span.clone(),
+                        }),
+                        span: statement.span.clone(),
+                    });
                 }
-                Statement::Label(l) => {
+                StatementType::Label(l) => {
                     /* Jump Dests don't translate directly to bytecode ? */
-                    inner_irbytes.push(IRByte::Statement(Statement::Label(l.clone())));
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Statement(Statement {
+                            ty: StatementType::Label(l.clone()),
+                            span: statement.span.clone(),
+                        }),
+                        span: statement.span.clone(),
+                    });
 
                     // Recurse label statements to IRBytes Bytes
                     inner_irbytes.append(&mut MacroDefinition::to_irbytes(&l.inner));
                 }
-                Statement::BuiltinFunctionCall(builtin) => {
-                    inner_irbytes
-                        .push(IRByte::Statement(Statement::BuiltinFunctionCall(builtin.clone())));
+                StatementType::BuiltinFunctionCall(builtin) => {
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Statement(Statement {
+                            ty: StatementType::BuiltinFunctionCall(builtin.clone()),
+                            span: statement.span.clone(),
+                        }),
+                        span: statement.span.clone(),
+                    });
                 }
             }
         });
@@ -433,6 +491,8 @@ pub struct MacroInvocation {
     pub macro_name: String,
     /// A list of Macro arguments
     pub args: Vec<MacroArg>,
+    /// The Macro Invocation Span
+    pub span: AstSpan,
 }
 
 /// An argument passed when invoking a maco
@@ -466,6 +526,8 @@ pub struct ConstantDefinition {
     pub name: String,
     /// The Constant value
     pub value: ConstVal,
+    /// The Span of the Constant Definition
+    pub span: AstSpan,
 }
 
 /// A Jump Destination
@@ -475,6 +537,8 @@ pub struct Label {
     pub name: String,
     /// Statements Inside The JumpDest
     pub inner: Vec<Statement>,
+    /// The label span
+    pub span: AstSpan,
 }
 
 /// A Builtin Function Call
@@ -486,6 +550,8 @@ pub struct BuiltinFunctionCall {
     /// TODO: Maybe make a better type for this other than `Argument`? Would be nice if it pointed
     /// directly to the macro/table.
     pub args: Vec<Argument>,
+    /// The builtin function call span
+    pub span: AstSpan,
 }
 
 /// A Builtin Function Kind
@@ -512,7 +578,16 @@ impl From<&str> for BuiltinFunctionKind {
 
 /// A Statement
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Statement {
+pub struct Statement {
+    /// The type of statement
+    pub ty: StatementType,
+    /// The span of the Statement
+    pub span: AstSpan,
+}
+
+/// The Statement Type
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum StatementType {
     /// A Literal Statement
     Literal(Literal),
     /// An Opcode Statement
