@@ -12,6 +12,7 @@ use rayon::prelude::*;
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::Arc,
     time::SystemTime,
 };
 use tracing_subscriber::{filter::Directive, EnvFilter};
@@ -31,8 +32,10 @@ use uuid::Uuid;
 ///
 /// ```rust
 /// use huff_core::Compiler;
+/// use std::sync::Arc;
+///
 /// let compiler = Compiler::new(
-///     vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()],
+///     Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]),
 ///     Some("./artifacts".to_string()),
 ///     None,
 ///     false
@@ -41,7 +44,7 @@ use uuid::Uuid;
 #[derive(Default, Debug, Clone)]
 pub struct Compiler {
     /// The location of the files to compile
-    pub sources: Vec<String>,
+    pub sources: Arc<Vec<String>>,
     /// The output location
     pub output: Option<String>,
     /// Constructor Input Arguments
@@ -55,7 +58,7 @@ pub struct Compiler {
 impl<'a> Compiler {
     /// Public associated function to instantiate a new compiler.
     pub fn new(
-        sources: Vec<String>,
+        sources: Arc<Vec<String>>,
         output: Option<String>,
         construct_args: Option<Vec<String>>,
         verbose: bool,

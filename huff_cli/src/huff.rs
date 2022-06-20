@@ -13,7 +13,7 @@ use huff_utils::prelude::{
     unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError, FileSource, Span,
 };
 use spinners::{Spinner, Spinners};
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 use yansi::Paint;
 
 /// The Huff CLI Args
@@ -66,15 +66,15 @@ fn main() {
     }
 
     // Create compiler from the Huff Args
-    let sources: Vec<String> = match cli.get_inputs() {
-        Ok(s) => s,
+    let sources: Arc<Vec<String>> = match cli.get_inputs() {
+        Ok(s) => Arc::new(s),
         Err(e) => {
             eprintln!("{}", Paint::red(format!("{}", e)));
             std::process::exit(1);
         }
     };
     let compiler: Compiler = Compiler {
-        sources: sources.clone(),
+        sources: Arc::clone(&sources),
         output: match &cli.output {
             Some(o) => Some(o.clone()),
             None => Some(cli.outputdir.clone()),

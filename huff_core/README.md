@@ -18,9 +18,10 @@ Below we demonstrate taking a source file `../huff-examples/erc20/contracts/ERC2
 use huff_core::Compiler;
 use huff_utils::error::CompilerError;
 use huff_utils::artifact::Artifact;
+use std::sync::Arc;
 
 // Instantiate the Compiler Instance
-let mut compiler = Compiler::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()], None, None, false);
+let mut compiler = Compiler::new(Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]), None, None, false);
 
 // Execute the compiler
 let res: Result<Vec<Artifact>, CompilerError<'_>> = compiler.execute();
