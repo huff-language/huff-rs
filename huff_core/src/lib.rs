@@ -76,8 +76,8 @@ impl<'a> Compiler {
         let subscriber_builder = tracing_subscriber::fmt();
         let mut env_filter = EnvFilter::from_default_env();
         if let Some(dv) = directives {
-            for d in dv.iter() {
-                env_filter = env_filter.add_directive(d.clone());
+            for d in dv {
+                env_filter = env_filter.add_directive(d);
             }
         }
         if let Err(e) = subscriber_builder.with_env_filter(env_filter).try_init() {
