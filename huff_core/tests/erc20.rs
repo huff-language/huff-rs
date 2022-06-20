@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use huff_codegen::Codegen;
 use huff_core::*;
@@ -8,24 +8,30 @@ use huff_utils::prelude::*;
 
 #[test]
 fn test_erc20_compile() {
-    let file_sources: Vec<FileSource> = Compiler::fetch_sources(&vec![PathBuf::from(
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![PathBuf::from(
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
     )]);
 
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
-    let recursed_file_source = Compiler::recurse_deps(file_source.clone()).unwrap();
-    let flattened = recursed_file_source.fully_flatten();
+    let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source)).unwrap();
+    println!("Recursed file source: {:?}", recursed_file_source);
+    let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
+    println!("File source path: {}", flattened.0);
     let full_source = FullFileSource {
         source: &flattened.0,
-        file: Some(file_source.clone()),
+        file: Some(Arc::clone(file_source)),
         spans: flattened.1,
     };
+    println!("Full source: {:?}", full_source);
     let lexer = Lexer::new(full_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    println!("Tokens: {:?}", tokens);
     let mut parser = Parser::new(tokens, Some("../huff-examples/erc20/contracts".to_string()));
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
+
+    println!("Got contract: {:?}", contract);
 
     // Create main and constructor bytecode
     let main_bytecode = Codegen::generate_main_bytecode(&contract).unwrap();
@@ -34,7 +40,7 @@ fn test_erc20_compile() {
     // Churn
     let mut cg = Codegen::new();
     let artifact =
-        cg.churn(file_source.clone(), vec![], &main_bytecode, &constructor_bytecode).unwrap();
+        cg.churn(Arc::clone(file_source), vec![], &main_bytecode, &constructor_bytecode).unwrap();
 
     // Full expected bytecode output (generated from huffc)
     let expected_bytecode = "336000556101ac806100116000396000f360003560E01c8063a9059cbb1461004857806340c10f19146100de57806370a082311461014e57806318160ddd1461016b578063095ea7b314610177578063dd62ed3e1461018e575b600435336024358160016000526000602001526040600020548082116100d8578190038260016000526000602001526040600020558281906001600052600060200152604060002054018360016000526000602001526040600020556000527fDDF252AD1BE2C89B69C2B068FC378DAA952BA7F163C4A11628F55A4DF523B3EF60206000a3600160005260206000f35b60006000fd5b60005433146100ed5760006000fd5b600435600060243582819060016000526000602001526040600020540183600160005260006020015260406000205580600254016002556000527fDDF252AD1BE2C89B69C2B068FC378DAA952BA7F163C4A11628F55A4DF523B3EF60206000a35b600435600160005260006020015260406000205460005260206000f35b60025460005260206000f35b602435600435336000526000602001526040600020555b60243560043560005260006020015260406000205460005260206000f3";

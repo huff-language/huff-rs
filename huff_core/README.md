@@ -24,7 +24,7 @@ use std::sync::Arc;
 let mut compiler = Compiler::new(Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]), None, None, false);
 
 // Execute the compiler
-let res: Result<Vec<Artifact>, CompilerError<'_>> = compiler.execute();
+let res: Result<Vec<Arc<Artifact>>, Arc<CompilerError<'_>>> = compiler.execute();
 assert!(res.is_ok());
 ```
 

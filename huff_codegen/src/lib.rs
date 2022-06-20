@@ -16,7 +16,7 @@ use huff_utils::{
     },
     types::EToken,
 };
-use std::{collections::HashMap, fs, path::Path, str::FromStr};
+use std::{collections::HashMap, fs, path::Path, str::FromStr, sync::Arc};
 
 /// ### Codegen
 ///
@@ -720,7 +720,7 @@ impl Codegen {
     /// * `constructor_bytecode` - The compiled `CONSTRUCTOR` Macro bytecode
     pub fn churn(
         &mut self,
-        file: FileSource,
+        file: Arc<FileSource>,
         args: Vec<ethers::abi::token::Token>,
         main_bytecode: &str,
         constructor_bytecode: &str,
@@ -778,13 +778,13 @@ impl Codegen {
                     span: AstSpan(vec![Span {
                         start: 0,
                         end: 0,
-                        file: Some(FileSource {
+                        file: Some(Arc::new(FileSource {
                             id: uuid::Uuid::new_v4(),
                             path: output,
                             source: None,
                             access: None,
                             dependencies: None,
-                        }),
+                        })),
                     }]),
                     token: None,
                 })
@@ -796,13 +796,13 @@ impl Codegen {
                 span: AstSpan(vec![Span {
                     start: 0,
                     end: 0,
-                    file: Some(FileSource {
+                    file: Some(Arc::new(FileSource {
                         id: uuid::Uuid::new_v4(),
                         path: output,
                         source: None,
                         access: None,
                         dependencies: None,
-                    }),
+                    })),
                 }]),
                 token: None,
             })

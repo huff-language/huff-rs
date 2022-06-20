@@ -102,13 +102,13 @@ fn main() {
                             .map(|s| Span {
                                 start: 0,
                                 end: 0,
-                                file: Some(FileSource {
+                                file: Some(Arc::new(FileSource {
                                     id: uuid::Uuid::new_v4(),
                                     path: s.clone(),
                                     source: None,
                                     access: None,
                                     dependencies: None,
-                                }),
+                                })),
                             })
                             .collect::<Vec<Span>>(),
                     ),
@@ -147,14 +147,14 @@ impl Huff {
                     Ok(vec![path.clone()])
                 } else {
                     // Otherwise, override the source files and use all files in the provided dir
-                    unpack_files(path.to_string()).map_err(CompilerError::FileUnpackError)
+                    unpack_files(path).map_err(CompilerError::FileUnpackError)
                 }
             }
             None => {
                 tracing::debug!(target: "io", "FETCHING SOURCE FILES: {}", self.source);
                 // If there's no path, unpack source files
                 let source: String = self.source.clone();
-                unpack_files(source).map_err(CompilerError::FileUnpackError)
+                unpack_files(&source).map_err(CompilerError::FileUnpackError)
             }
         }
     }
