@@ -90,6 +90,7 @@ fn main() {
 
     let compile_res = compiler.execute();
     sp.stop();
+    println!(" ");
     match compile_res {
         Ok(artifacts) => {
             if artifacts.is_empty() {
