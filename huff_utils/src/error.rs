@@ -84,18 +84,18 @@ impl<'a, W: Write> Report<W> for LexicalError<'a> {
 
 /// A Code Generation Error
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct CodegenError {
+pub struct CodegenError<'a> {
     /// The kind of code generation error
     pub kind: CodegenErrorKind,
     /// An Optional Span where the error occured
     pub span: Option<Span>,
     /// An Optional Token Kind
-    pub token: Option<TokenKind>,
+    pub token: Option<TokenKind<'a>>,
 }
 
-impl CodegenError {
+impl<'a> CodegenError<'a> {
     /// Public associated function to instatiate a new CodegenError.
-    pub fn new(kind: CodegenErrorKind, span: Option<Span>, token: Option<TokenKind>) -> Self {
+    pub fn new(kind: CodegenErrorKind, span: Option<Span>, token: Option<TokenKind<'a>>) -> Self {
         Self { kind, span, token }
     }
 }
@@ -119,13 +119,13 @@ pub enum CodegenErrorKind {
     MissingConstantDefinition,
 }
 
-impl Spanned for CodegenError {
+impl Spanned for CodegenError<'_> {
     fn span(&self) -> Span {
         self.span.unwrap()
     }
 }
 
-impl<W: Write> Report<W> for CodegenError {
+impl<W: Write> Report<W> for CodegenError<'_> {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match self.kind {
             CodegenErrorKind::InvalidOperator => write!(f.out, "Invalid operator!"),
@@ -153,7 +153,7 @@ pub enum CompilerError<'a> {
     /// Reading PathBuf Failed
     PathBufRead(OsString),
     /// Bytecode Generation Error
-    CodegenError(CodegenError),
+    CodegenError(CodegenError<'a>),
 }
 
 impl<'a> fmt::Display for CompilerError<'a> {

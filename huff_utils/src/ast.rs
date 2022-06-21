@@ -150,8 +150,8 @@ pub struct MacroDefinition {
     pub returns: usize,
 }
 
-impl ToIRBytecode<CodegenError> for MacroDefinition {
-    fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError> {
+impl<'a> ToIRBytecode<CodegenError<'a>> for MacroDefinition {
+    fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError<'a>> {
         let mut inner_irbytes: Vec<IRByte> = vec![];
 
         // Iterate and translate each statement to bytecode
