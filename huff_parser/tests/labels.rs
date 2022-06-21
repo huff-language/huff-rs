@@ -52,9 +52,17 @@ fn multiline_labels() {
                             ty: StatementType::MacroInvocation(MacroInvocation {
                                 macro_name: "HELLO".to_string(),
                                 args: vec![],
-                                span: AstSpan(vec![Span { start: 121, end: 126, file: None }]),
+                                span: AstSpan(vec![
+                                    Span { start: 121, end: 126, file: None },
+                                    Span { start: 126, end: 127, file: None },
+                                    Span { start: 127, end: 128, file: None },
+                                ]),
                             }),
-                            span: AstSpan(vec![Span { start: 121, end: 126, file: None }]),
+                            span: AstSpan(vec![
+                                Span { start: 121, end: 126, file: None },
+                                Span { start: 126, end: 127, file: None },
+                                Span { start: 127, end: 128, file: None },
+                            ]),
                         },
                         Statement {
                             ty: StatementType::Literal(str_to_bytes32("00")),
@@ -72,6 +80,8 @@ fn multiline_labels() {
                     span: AstSpan(vec![
                         Span { start: 101, end: 111, file: None },
                         Span { start: 121, end: 126, file: None },
+                        Span { start: 126, end: 127, file: None },
+                        Span { start: 127, end: 128, file: None },
                         Span { start: 139, end: 141, file: None },
                         Span { start: 144, end: 146, file: None },
                         Span { start: 147, end: 153, file: None },
@@ -80,6 +90,8 @@ fn multiline_labels() {
                 span: AstSpan(vec![
                     Span { start: 101, end: 111, file: None },
                     Span { start: 121, end: 126, file: None },
+                    Span { start: 126, end: 127, file: None },
+                    Span { start: 127, end: 128, file: None },
                     Span { start: 139, end: 141, file: None },
                     Span { start: 144, end: 146, file: None },
                     Span { start: 147, end: 153, file: None },

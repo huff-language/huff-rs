@@ -271,11 +271,11 @@ fn test_unknown_macro_definition() {
                 e,
                 CodegenError {
                     kind: CodegenErrorKind::InvalidMacroInvocation("UNKNOWN".to_string()),
-                    span: AstSpan(vec![Span {
-                        start: macro_invoc_start,
-                        end: macro_invoc_end,
-                        file: None
-                    }]),
+                    span: AstSpan(vec![
+                        Span { start: 344, end: 351, file: None },
+                        Span { start: 351, end: 352, file: None },
+                        Span { start: 352, end: 353, file: None }
+                    ]),
                     token: None
                 }
             )
@@ -283,4 +283,50 @@ fn test_unknown_macro_definition() {
     }
 }
 
-// TODO: unmatched jump tables
+#[test]
+fn test_unmatched_jump_label() {
+    let source = r#"
+    #define macro MINT(error) = takes(0) returns (0) {
+        0x04 calldataload   // [to]
+        0x00                // [from (0x00), to]
+        0x24 calldataload   // [value, from, to]
+
+        <error> jumpi
+    }
+
+    #define macro MAIN() = takes(0) returns (0) {
+        0x00 calldataload 0xE0 shr
+        dup1 0x40c10f19 eq mints jumpi
+
+        mints:
+            MINT(err)
+    }
+    "#;
+
+    let full_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(full_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, Some("".to_string()));
+    let mut contract = parser.parse().unwrap();
+    contract.derive_storage_pointers();
+
+    // Create main and constructor bytecode
+    match Codegen::generate_main_bytecode(&contract) {
+        Ok(_) => panic!("moose"),
+        Err(e) => {
+            assert_eq!(
+                e,
+                CodegenError {
+                    kind: CodegenErrorKind::UnmatchedJumpLabel,
+                    span: AstSpan(vec![
+                        Span { start: 372, end: 376, file: None },
+                        Span { start: 376, end: 377, file: None },
+                        Span { start: 377, end: 380, file: None },
+                        Span { start: 380, end: 381, file: None }
+                    ]),
+                    token: None
+                }
+            )
+        }
+    }
+}

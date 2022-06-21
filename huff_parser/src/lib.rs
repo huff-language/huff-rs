@@ -409,7 +409,7 @@ impl Parser {
                     });
                 }
                 TokenKind::Ident(ident_str) => {
-                    let curr_spans = vec![self.current_token.span.clone()];
+                    let mut curr_spans = vec![self.current_token.span.clone()];
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [IDENT: {}]", ident_str);
                     self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
                     // Can be a macro call or label call
@@ -417,6 +417,10 @@ impl Parser {
                         TokenKind::OpenParen => {
                             // Parse Macro Call
                             let lit_args = self.parse_macro_call()?;
+                            // Grab all spans following our macro invocation spam
+                            if let Some(i) = self.spans.iter().position(|s| s.eq(&curr_spans[0])) {
+                                curr_spans.append(&mut self.spans[(i + 1)..].to_vec());
+                            }
                             statements.push(Statement {
                                 ty: StatementType::MacroInvocation(MacroInvocation {
                                     macro_name: ident_str.to_string(),
@@ -533,7 +537,7 @@ impl Parser {
                     });
                 }
                 TokenKind::Ident(ident_str) => {
-                    let curr_spans = vec![self.current_token.span.clone()];
+                    let mut curr_spans = vec![self.current_token.span.clone()];
                     tracing::info!(target: "parser", "PARSING LABEL BODY: [IDENT: {}]", ident_str);
                     self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
                     // Can be a macro call or label call
@@ -541,6 +545,10 @@ impl Parser {
                         TokenKind::OpenParen => {
                             // Parse Macro Call
                             let lit_args = self.parse_macro_call()?;
+                            // Grab all spans following our macro invocation spam
+                            if let Some(i) = self.spans.iter().position(|s| s.eq(&curr_spans[0])) {
+                                curr_spans.append(&mut self.spans[(i + 1)..].to_vec());
+                            }
                             statements.push(Statement {
                                 ty: StatementType::MacroInvocation(MacroInvocation {
                                     macro_name: ident_str.to_string(),
