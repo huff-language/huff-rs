@@ -16,36 +16,28 @@ fn primitive_type_parsing() {
     for (evm_type, evm_type_enum) in evm_types {
         let source = format!("#define function test({}) view returns (uint256)", evm_type);
         let lexer = Lexer::new(source.as_str());
-        let tokens = lexer
-            .into_iter()
-            .map(|x| x.unwrap())
-            .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
-            .collect::<Vec<Token>>();
+        let tokens = lexer.into_iter().collect::<Vec<Token>>();
 
-        assert_eq!(tokens.get(4).unwrap().kind, TokenKind::PrimitiveType(evm_type_enum));
+        assert_eq!(tokens.get(4).unwrap().kind, TokenKind::PrimitiveType(evm_type));
     }
 }
 
 #[test]
 fn bounded_array_parsing() {
     let evm_types = [
-        ("address[3]", TokenKind::ArrayType(PrimitiveEVMType::Address, vec![3])),
-        ("string[1]", TokenKind::ArrayType(PrimitiveEVMType::String, vec![1])),
-        ("uint192[4]", TokenKind::ArrayType(PrimitiveEVMType::Uint(192), vec![4])),
-        ("bytes32[11]", TokenKind::ArrayType(PrimitiveEVMType::Bytes(32), vec![11])),
-        ("bool[2]", TokenKind::ArrayType(PrimitiveEVMType::Bool, vec![2])),
-        ("int8[3]", TokenKind::ArrayType(PrimitiveEVMType::Int(8), vec![3])),
-        ("bytes[6]", TokenKind::ArrayType(PrimitiveEVMType::DynBytes, vec![6])),
+        ("address[3]", TokenKind::ArrayType("address[3]")),
+        ("string[1]", TokenKind::ArrayType("string[1]")),
+        ("uint192[4]", TokenKind::ArrayType("uint192[4]")),
+        ("bytes32[11]", TokenKind::ArrayType("bytes32[11]")),
+        ("bool[2]", TokenKind::ArrayType("bool[2]")),
+        ("int8[3]", TokenKind::ArrayType("int8[3]")),
+        ("bytes[6]", TokenKind::ArrayType("bytes[6]")),
     ];
 
     for (evm_type, evm_type_enum) in evm_types {
         let source = format!("#define function test({}) view returns (uint256)", evm_type);
         let lexer = Lexer::new(source.as_str());
-        let tokens = lexer
-            .into_iter()
-            .map(|x| x.unwrap())
-            .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
-            .collect::<Vec<Token>>();
+        let tokens = lexer.into_iter().collect::<Vec<Token>>();
 
         assert_eq!(tokens.get(4).unwrap().kind, evm_type_enum);
     }
@@ -54,23 +46,19 @@ fn bounded_array_parsing() {
 #[test]
 fn unbounded_array_parsing() {
     let evm_types = [
-        ("address[]", TokenKind::ArrayType(PrimitiveEVMType::Address, vec![0])),
-        ("string[]", TokenKind::ArrayType(PrimitiveEVMType::String, vec![0])),
-        ("uint192[]", TokenKind::ArrayType(PrimitiveEVMType::Uint(192), vec![0])),
-        ("bytes32[]", TokenKind::ArrayType(PrimitiveEVMType::Bytes(32), vec![0])),
-        ("bool[]", TokenKind::ArrayType(PrimitiveEVMType::Bool, vec![0])),
-        ("int8[]", TokenKind::ArrayType(PrimitiveEVMType::Int(8), vec![0])),
-        ("bytes[]", TokenKind::ArrayType(PrimitiveEVMType::DynBytes, vec![0])),
+        ("address[]", TokenKind::ArrayType("address[]")),
+        ("string[]", TokenKind::ArrayType("string[]")),
+        ("uint192[]", TokenKind::ArrayType("uint192[]")),
+        ("bytes32[]", TokenKind::ArrayType("bytes32[]")),
+        ("bool[]", TokenKind::ArrayType("bool[]")),
+        ("int8[]", TokenKind::ArrayType("int8[]")),
+        ("bytes[]", TokenKind::ArrayType("bytes[]")),
     ];
 
     for (evm_type, evm_type_enum) in evm_types {
         let source = format!("#define function test({}) view returns (uint256)", evm_type);
         let lexer = Lexer::new(source.as_str());
-        let tokens = lexer
-            .into_iter()
-            .map(|x| x.unwrap())
-            .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
-            .collect::<Vec<Token>>();
+        let tokens = lexer.into_iter().collect::<Vec<Token>>();
         assert_eq!(tokens.get(4).unwrap().kind, evm_type_enum);
     }
 }
@@ -78,23 +66,19 @@ fn unbounded_array_parsing() {
 #[test]
 fn multidim_array_parsing() {
     let evm_types = [
-        ("address[3][2]", TokenKind::ArrayType(PrimitiveEVMType::Address, vec![3, 2])),
-        ("string[1][]", TokenKind::ArrayType(PrimitiveEVMType::String, vec![1, 0])),
-        ("uint192[][][]", TokenKind::ArrayType(PrimitiveEVMType::Uint(192), vec![0, 0, 0])),
-        ("bytes32[][11]", TokenKind::ArrayType(PrimitiveEVMType::Bytes(32), vec![0, 11])),
-        ("bool[2][4]", TokenKind::ArrayType(PrimitiveEVMType::Bool, vec![2, 4])),
-        ("int8[3][4]", TokenKind::ArrayType(PrimitiveEVMType::Int(8), vec![3, 4])),
-        ("bytes[6][4]", TokenKind::ArrayType(PrimitiveEVMType::DynBytes, vec![6, 4])),
+        ("address[3][2]", TokenKind::ArrayType("address[3][2]")),
+        ("string[1][]", TokenKind::ArrayType("string[1][]")),
+        ("uint192[][][]", TokenKind::ArrayType("uint192[][][]")),
+        ("bytes32[][11]", TokenKind::ArrayType("bytes32[][11]")),
+        ("bool[2][4]", TokenKind::ArrayType("bool[2][4]")),
+        ("int8[3][4]", TokenKind::ArrayType("int8[3][4]")),
+        ("bytes[6][4]", TokenKind::ArrayType("bytes[6][4]")),
     ];
 
     for (evm_type, evm_type_enum) in evm_types {
         let source = format!("#define function test({}) view returns (uint256)", evm_type);
         let lexer = Lexer::new(source.as_str());
-        let tokens = lexer
-            .into_iter()
-            .map(|x| x.unwrap())
-            .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
-            .collect::<Vec<Token>>();
+        let tokens = lexer.into_iter().collect::<Vec<Token>>();
 
         assert_eq!(tokens.get(4).unwrap().kind, evm_type_enum);
     }

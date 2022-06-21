@@ -16,28 +16,24 @@ fn parses_function_type() {
         assert_eq!(lexer.source, source);
 
         let _ = lexer.next(); // #define
-        let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // function
-        let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // fn name "test"
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // close parenthesis
-        let _ = lexer.next(); // whitespace
 
         // Lex view first
-        let tok = lexer.next().unwrap().unwrap();
+        let tok = lexer.next().unwrap();
         let type_span = Span::new(24..24 + fn_type.len());
         assert_eq!(tok, Token::new(fn_type_kind, type_span));
         assert_eq!(lexer.span, type_span);
 
-        let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // returns
-        let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // uint256
         let _ = lexer.next(); // close parenthesis
 
         // We covered the whole source
+        assert_eq!(lexer.next(), None);
         assert_eq!(lexer.span.end, source.len());
         assert!(lexer.eof);
     }

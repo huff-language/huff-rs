@@ -2,18 +2,11 @@ use huff_lexer::*;
 use huff_utils::prelude::*;
 
 #[test]
-fn parse_label() {
-    let source =
-        "#define macro HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add cool_label:\n0x01\n}";
-    let lexer = Lexer::new(source);
-    let tokens = lexer
-        .into_iter()
-        .map(|x| x.unwrap())
-        .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
-        .collect::<Vec<Token>>();
+fn label() {
+    let source = "here: RUN()";
+    let mut lexer = Lexer::new(source);
 
-    assert_eq!(
-        tokens.get(tokens.len() - 4).unwrap().kind,
-        TokenKind::Label("cool_label".to_string())
-    );
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap();
+    assert_eq!(unwrapped, Token::new(TokenKind::Label("here:"), Span::new(0..5)));
 }
