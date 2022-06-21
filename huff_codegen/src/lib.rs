@@ -14,7 +14,7 @@ use std::fs;
 ///
 /// Code Generation Manager responsible for generating the code for the Huff Language.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
-pub struct Codegen {
+pub struct Codegen<'a> {
     /// The Input AST
     pub ast: Option<Contract>,
     /// A cached codegen output artifact
@@ -23,12 +23,20 @@ pub struct Codegen {
     pub main_bytecode: Option<String>,
     /// Intermediate constructor bytecode store
     pub constructor_bytecode: Option<String>,
+
+    phantom: std::marker::PhantomData<&'a ()>,
 }
 
-impl Codegen {
+impl<'a> Codegen<'a> {
     /// Public associated function to instantiate a new Codegen instance.
     pub fn new() -> Self {
-        Self { ast: None, artifact: None, main_bytecode: None, constructor_bytecode: None }
+        Self {
+            ast: None,
+            artifact: None,
+            main_bytecode: None,
+            constructor_bytecode: None,
+            phantom: std::marker::PhantomData,
+        }
     }
 
     /// Generates main bytecode from a Contract AST
@@ -36,7 +44,7 @@ impl Codegen {
     /// # Arguments
     ///
     /// * `ast` - Optional Contract Abstract Syntax Tree
-    pub fn roll(ast: Option<Contract>) -> Result<String, CodegenError> {
+    pub fn roll(ast: Option<Contract>) -> Result<String, CodegenError<'a>> {
         let bytecode: String = String::default();
 
         // Grab the AST
@@ -50,7 +58,7 @@ impl Codegen {
                     kind: CodegenErrorKind::MissingAst,
                     span: None,
                     token: None,
-                })
+                });
             }
         };
 
@@ -86,7 +94,7 @@ impl Codegen {
     /// # Arguments
     ///
     /// * `ast` - Optional Contract Abstract Syntax Tree
-    pub fn construct(ast: Option<Contract>) -> Result<String, CodegenError> {
+    pub fn construct(ast: Option<Contract>) -> Result<String, CodegenError<'a>> {
         // Grab the AST
         let contract = match &ast {
             Some(a) => a,
@@ -96,7 +104,7 @@ impl Codegen {
                     kind: CodegenErrorKind::MissingAst,
                     span: None,
                     token: None,
-                })
+                });
             }
         };
 
@@ -109,7 +117,7 @@ impl Codegen {
                 kind: CodegenErrorKind::MissingConstructor,
                 span: None,
                 token: None,
-            })
+            });
         };
 
         tracing::info!(target: "codegen", "CONSTRUCTOR MACRO FOUND: {:?}", c_macro);
@@ -131,7 +139,7 @@ impl Codegen {
         macro_def: MacroDefinition,
         ast: Option<Contract>,
         scope: &mut Vec<MacroDefinition>,
-    ) -> Result<Vec<Byte>, CodegenError> {
+    ) -> Result<Vec<Byte>, CodegenError<'a>> {
         let mut final_bytes: Vec<Byte> = vec![];
         tracing::info!(target: "codegen", "RECURSING MACRO DEFINITION");
 
@@ -144,7 +152,7 @@ impl Codegen {
                     kind: CodegenErrorKind::MissingAst,
                     span: None,
                     token: None,
-                })
+                });
             }
         };
 
@@ -174,7 +182,7 @@ impl Codegen {
                             kind: CodegenErrorKind::MissingConstantDefinition,
                             span: None,
                             token: None,
-                        })
+                        });
                     };
 
                     tracing::info!(target: "codegen", "FOUND CONSTANT DEFINITION: {:?}", constant);
@@ -212,7 +220,7 @@ impl Codegen {
                                         kind: CodegenErrorKind::MissingMacroDefinition,
                                         span: None,
                                         token: None,
-                                    })
+                                    });
                                 };
 
                             tracing::info!(target: "codegen", "FOUND INNER MACRO: {:?}", ir_macro);
@@ -232,7 +240,7 @@ impl Codegen {
                                     kind: CodegenErrorKind::FailedMacroRecursion,
                                     span: None,
                                     token: None,
-                                })
+                                });
                             };
                             final_bytes = final_bytes
                                 .iter()
@@ -246,7 +254,7 @@ impl Codegen {
                                 kind: CodegenErrorKind::InvalidMacroStatement,
                                 span: None,
                                 token: None,
-                            })
+                            });
                         }
                     }
                 }
