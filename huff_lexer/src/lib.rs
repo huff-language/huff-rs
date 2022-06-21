@@ -370,8 +370,7 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Indexed,
                         TokenKind::View,
                         TokenKind::Pure,
-                        TokenKind::JumpTablePacked, /* Check for packed jump table first, would
-                                                     * match with jump table if not */
+                        TokenKind::JumpTablePacked,
                         TokenKind::JumpTable,
                         TokenKind::CodeTable,
                     ];

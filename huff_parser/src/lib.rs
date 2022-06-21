@@ -733,10 +733,12 @@ impl Parser {
         let table_name: String =
             self.match_kind(TokenKind::Ident("TABLE_NAME".to_string()))?.to_string();
 
-        self.match_kind(TokenKind::OpenParen)?;
-        self.match_kind(TokenKind::CloseParen)?;
-        self.match_kind(TokenKind::Assign)?;
+        // Parenthesis and assignment are optional
+        let _ = self.match_kind(TokenKind::OpenParen);
+        let _ = self.match_kind(TokenKind::CloseParen);
+        let _ = self.match_kind(TokenKind::Assign);
 
+        // Parse the core table
         let table_statements: Vec<Statement> = self.parse_table_body()?;
         let size = match kind {
             TableKind::JumpTablePacked => table_statements.len() * 0x02,
