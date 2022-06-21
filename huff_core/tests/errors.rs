@@ -253,9 +253,6 @@ fn test_unknown_macro_definition() {
     }
     "#;
 
-    let macro_invoc_start = source.find("UNKNOWN").unwrap_or(0);
-    let macro_invoc_end = macro_invoc_start + "UNKNOWN".len();
-
     let full_source = FullFileSource { source, file: None, spans: vec![] };
     let lexer = Lexer::new(full_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
