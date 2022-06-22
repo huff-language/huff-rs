@@ -1,6 +1,21 @@
 ## Codegen
 
-Code Generation Module for the Huff Language.
+Bytecode Generation Module for the Huff Language.
+
+#### Architecture
+
+The `huff_codegen` module exposes a few main bytecode generation functions. It is expected that both the [huff_lexer](../huff_lexer/) and [huff_parser](../huff_parser/) are executed before `huff_codegen` to produce a valid abstract syntax tree ([Contract](../huff_utils/struct.Contract.html) in our case) that `huff_codegen` can _walk_.
+
+
+
+
+
+`churn` takes the generated **CONSTRUCTOR** and **MAIN** macros' bytecode and produces an [Artifact](huff_utils/struct.Artifact.html) containing:
+- The file source: `Artifact.file`
+- The deployed bytecode: `Artifact.deployed`
+- The runtime bytecode: `Artifact.runtime`
+- The contract ABI: `Artifact.abi`
+
 
 #### Usage
 
