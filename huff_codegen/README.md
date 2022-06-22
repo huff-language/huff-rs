@@ -4,13 +4,15 @@ Bytecode Generation Module for the Huff Language.
 
 #### Architecture
 
-The `huff_codegen` module exposes a few main bytecode generation functions. It is expected that both the [huff_lexer](../huff_lexer/) and [huff_parser](../huff_parser/) are executed before `huff_codegen` to produce a valid abstract syntax tree ([Contract](../huff_utils/struct.Contract.html) in our case) that `huff_codegen` can _walk_.
+The `huff_codegen` module exposes a few main bytecode generation functions. It is expected that both the [huff_lexer](../huff_lexer/) and [huff_parser](../huff_parser/) are executed before `huff_codegen` to produce a valid abstract syntax tree ([Contract](../huff_utils/ast/struct.Contract.html) in our case) that `huff_codegen` can _walk_.
 
+Once the AST ([Contract](../huff_utils/ast/struct.Contract.html)) is produced, [Codegen](struct.Codegen.html) can be used to produce the **MAIN** and **CONSTRUCTOR** bytecode.
 
+The `generate_main_bytecode` function takes a reference of [Contract](../huff_utils/ast/struct.Contract.html) and produces a bytecode `String` on success or a [CodegenError](../huff_utils/error/struct.CodegenError.html) on failure.
 
+Likewise, the `generate_constructor_bytecode` function takes a reference of [Contract](../huff_utils/ast/struct.Contract.html) and produces a bytecode `String` on success or a [CodegenError](../huff_utils/error/struct.CodegenError.html) on failure.
 
-
-`churn` takes the generated **CONSTRUCTOR** and **MAIN** macros' bytecode and produces an [Artifact](huff_utils/struct.Artifact.html) containing:
+`churn` takes the generated **CONSTRUCTOR** and **MAIN** macros' bytecode and produces an [Artifact](../huff_utils/artifact/struct.Artifact.html) containing:
 - The file source: `Artifact.file`
 - The deployed bytecode: `Artifact.deployed`
 - The runtime bytecode: `Artifact.runtime`
