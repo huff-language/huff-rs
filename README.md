@@ -4,9 +4,13 @@
 
 > `huff-rs` is a [Huff](https://github.com/huff-language) compiler built in rust.
 
+<hr />
+
 > **Warning**
 >
-> This repo contains highly experimental code. Expect rapid iteration. Use at your own risk.
+> This repo contains highly experimental code. Expect rapid iteration. **Use at your own risk.**
+
+<hr />
 
 ## What is a Huff?
 
