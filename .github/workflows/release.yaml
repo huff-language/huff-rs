@@ -14,7 +14,9 @@ env:
 jobs:
   prepare:
     name: Prepare release
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
+    # self hosted since out of action capacity
+    runs-on: self-hosted
 
     outputs:
       tag_name: ${{ steps.release_info.outputs.tag_name }}
@@ -66,7 +68,10 @@ jobs:
 
   release:
     name: ${{ matrix.job.target }} (${{ matrix.job.os }})
-    runs-on: ${{ matrix.job.os }}
+    # runs-on: ${{ matrix.job.os }}
+    # runs-on: ubuntu-latest
+    # self hosted since out of action capacity
+    runs-on: self-hosted
     needs: prepare
     strategy:
       matrix:
@@ -202,7 +207,9 @@ jobs:
             ${{ steps.man.outputs.huff_man }}
   cleanup:
     name: Release cleanup
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
+    # self hosted since out of action capacity
+    runs-on: self-hosted
     needs: release
 
     steps:

@@ -13,7 +13,9 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
+    # self hosted since out of action capacity
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
