@@ -6,27 +6,30 @@
 
 use huff_utils::{
     ast::*,
+    bytes_util::str_to_bytes32,
     error::ParserError,
+    evm::*,
     token::{Token, TokenKind},
     types::*,
 };
 use std::path::Path;
+use std::str::FromStr;
 use tiny_keccak::{Hasher, Keccak};
 
 /// The Parser
 #[derive(Debug, Clone)]
-pub struct Parser {
+pub struct Parser<'a> {
     /// Vector of the tokens
-    pub tokens: Vec<Token>,
+    pub tokens: Vec<Token<'a>>,
     /// Current position
     pub cursor: usize,
     /// Current token
-    pub current_token: Token,
+    pub current_token: Token<'a>,
 }
 
-impl Parser {
+impl<'a> Parser<'a> {
     /// Public associated function that instantiates a Parser.
-    pub fn new(tokens: Vec<Token>) -> Self {
+    pub fn new(tokens: Vec<Token<'a>>) -> Self {
         let initial_token = tokens.get(0).unwrap().clone();
         Self { tokens, cursor: 0, current_token: initial_token }
     }
@@ -42,8 +45,7 @@ impl Parser {
     /// Parse
     pub fn parse(&mut self) -> Result<Contract, ParserError> {
         // Remove all whitespaces, newlines, and comments first
-        self.tokens
-            .retain(|token| !matches!(token.kind, TokenKind::Whitespace | TokenKind::Comment(_)));
+        self.tokens.retain(|token| !matches!(token.kind, TokenKind::Comment(_)));
 
         // Reset the initial token
         self.reset();
@@ -52,17 +54,17 @@ impl Parser {
         let mut contract = Contract::default();
 
         // First iterate over imports
-        while !self.check(TokenKind::Eof) && !self.check(TokenKind::Define) {
+        while self.cursor < self.tokens.len() && !self.check(TokenKind::Define) {
             contract.imports.push(self.parse_imports()?);
             tracing::info!(target: "parser", "SUCCESSFULLY PARSED IMPORTS {:?}", contract.imports);
         }
 
         // Iterate over tokens and construct the Contract aka AST
-        while !self.check(TokenKind::Eof) {
+        while self.cursor < self.tokens.len() {
             // first token should be keyword "#define"
             self.match_kind(TokenKind::Define)?;
 
-            // match to fucntion, constant, macro, or event
+            // match to function, constant, macro, or event
             match self.current_token.kind {
                 TokenKind::Function => {
                     let func = self.parse_function()?;
@@ -90,7 +92,7 @@ impl Parser {
                         "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
                         self.current_token.kind
                     );
-                    return Err(ParserError::InvalidDefinition)
+                    return Err(ParserError::InvalidDefinition);
                 }
             };
         }
@@ -104,21 +106,20 @@ impl Parser {
         self.match_kind(TokenKind::Include)?;
 
         // Then let's grab and validate the file path
-        self.match_kind(TokenKind::Str("x".to_string()))?;
+        self.match_kind(TokenKind::Str("x"))?;
         let tok = self.peek_behind().unwrap().kind;
         let p = match tok {
             TokenKind::Str(file_path) => file_path,
             _ => {
                 tracing::error!(target: "parser", "INVALID IMPORT PATH: {}", tok);
-                return Err(ParserError::InvalidName)
+                return Err(ParserError::InvalidName);
             }
         };
         let path = Path::new(&p);
-
         // Validate that a file @ the path exists
         if !(path.exists() && path.is_file() && path.to_str().unwrap().ends_with(".huff")) {
             tracing::error!(target: "parser", "INVALID IMPORT PATH: {:?}", path.to_str());
-            return Err(ParserError::InvalidImportPath)
+            return Err(ParserError::InvalidImportPath);
         }
 
         Ok(path.to_path_buf())
@@ -143,8 +144,15 @@ impl Parser {
 
     /// Consumes the next token.
     pub fn consume(&mut self) {
-        self.current_token = self.peek().unwrap();
-        self.cursor += 1;
+        match self.peek() {
+            Some(tok) => {
+                self.current_token = tok;
+                self.cursor += 1;
+            }
+            None => {
+                self.cursor = self.tokens.len();
+            }
+        }
     }
 
     /// Consumes following tokens until not contained in the kinds vec of TokenKinds.
@@ -152,7 +160,7 @@ impl Parser {
         loop {
             let token = self.peek().unwrap();
             if !kinds.contains(&token.kind) {
-                break
+                break;
             }
             self.current_token = token;
             self.cursor += 1;
@@ -160,12 +168,8 @@ impl Parser {
     }
 
     /// Take a look at next token without consuming.
-    pub fn peek(&mut self) -> Option<Token> {
-        if self.cursor >= self.tokens.len() {
-            None
-        } else {
-            Some(self.tokens.get(self.cursor + 1).unwrap().clone())
-        }
+    pub fn peek(&mut self) -> Option<Token<'a>> {
+        self.tokens.get(self.cursor + 1).and_then(|tok| Some(tok.clone()))
     }
 
     /// Take a look at the previous token.
@@ -183,13 +187,13 @@ impl Parser {
         // the first token should be of `TokenKind::Function`
         self.match_kind(TokenKind::Function)?;
         // function name should be next
-        self.match_kind(TokenKind::Ident("x".to_string()))?;
+        self.match_kind(TokenKind::Ident("x"))?;
         let tok = self.peek_behind().unwrap().kind;
         let name = match tok {
-            TokenKind::Ident(fn_name) => fn_name,
+            TokenKind::Ident(fn_name) => fn_name.to_string(),
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
-                return Err(ParserError::InvalidName)
+                return Err(ParserError::InvalidName);
             }
         };
 
@@ -218,7 +222,7 @@ impl Parser {
         hasher.update(format!("{}({})", name, input_types.join(",")).as_bytes());
         hasher.finalize(&mut signature);
 
-        Ok(Function { name, signature, inputs, fn_type, outputs })
+        Ok(Function { name: name.to_string(), signature, inputs, fn_type, outputs })
     }
 
     /// Parse an event.
@@ -227,21 +231,21 @@ impl Parser {
         self.match_kind(TokenKind::Event)?;
 
         // Parse the event name
-        self.match_kind(TokenKind::Ident("x".to_string()))?;
+        self.match_kind(TokenKind::Ident("x"))?;
         let tok = self.peek_behind().unwrap().kind;
 
         let name = match tok {
-            TokenKind::Ident(event_name) => event_name,
+            TokenKind::Ident(event_name) => event_name.to_string(),
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
-                return Err(ParserError::InvalidName)
+                return Err(ParserError::InvalidName);
             }
         };
 
         // Parse the event's parameters
         let parameters: Vec<Argument> = self.parse_args(true, true, true)?;
 
-        Ok(Event { name, parameters })
+        Ok(Event { name: name.to_string(), parameters })
     }
 
     /// Parse a constant.
@@ -250,13 +254,13 @@ impl Parser {
         self.match_kind(TokenKind::Constant)?;
 
         // Parse the constant name
-        self.match_kind(TokenKind::Ident("x".to_string()))?;
+        self.match_kind(TokenKind::Ident("x"))?;
         let tok = self.peek_behind().unwrap().kind;
         let name = match tok {
-            TokenKind::Ident(event_name) => event_name,
+            TokenKind::Ident(event_name) => event_name.to_string(),
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
-                return Err(ParserError::InvalidName)
+                return Err(ParserError::InvalidName);
             }
         };
 
@@ -268,18 +272,18 @@ impl Parser {
                 self.consume();
                 ConstVal::FreeStoragePointer(FreeStoragePointer {})
             }
-            TokenKind::Literal(l) => {
+            TokenKind::Hex(val) => {
                 self.consume();
-                ConstVal::Literal(l)
+                ConstVal::Literal(str_to_bytes32(val))
             }
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED FreeStoragePointer OR Literal, GOT: {}", self.current_token.kind);
-                return Err(ParserError::InvalidConstantValue)
+                return Err(ParserError::InvalidConstantValue);
             }
         };
 
         // Return the Constant Definition
-        Ok(ConstantDefinition { name, value })
+        Ok(ConstantDefinition { name: name.to_string(), value })
     }
 
     /// Parses a macro.
@@ -287,8 +291,7 @@ impl Parser {
     /// It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
     pub fn parse_macro(&mut self) -> Result<MacroDefinition, ParserError> {
         self.match_kind(TokenKind::Macro)?;
-        let macro_name: String =
-            self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?.to_string();
+        let macro_name: String = self.match_kind(TokenKind::Ident("MACRO_NAME"))?.to_string();
 
         let macro_arguments: Vec<Argument> = self.parse_args(true, false, false)?;
         self.match_kind(TokenKind::Assign)?;
@@ -315,13 +318,13 @@ impl Parser {
         self.match_kind(TokenKind::OpenBrace)?;
         while !self.check(TokenKind::CloseBrace) {
             match self.current_token.kind.clone() {
-                TokenKind::Literal(val) => {
+                TokenKind::Hex(val) => {
                     self.consume();
-                    statements.push(Statement::Literal(val));
+                    statements.push(Statement::Literal(str_to_bytes32(val)));
                 }
                 TokenKind::Opcode(o) => {
                     self.consume();
-                    statements.push(Statement::Opcode(o));
+                    statements.push(Statement::Opcode(Opcode::from_str(o).unwrap()));
                 }
                 TokenKind::Ident(ident_str) => {
                     tracing::info!("Found iden string in macro: {}", ident_str);
@@ -347,24 +350,13 @@ impl Parser {
                     return Err(ParserError::SyntaxError(format!(
                         "Invalid token in macro body: {:?}. Must be of kind Hex, Opcode, Macro, or Label.",
                         self.current_token
-                    )))
+                    )));
                 }
             };
         }
         // consume close brace
         self.match_kind(TokenKind::CloseBrace)?;
         Ok(statements)
-    }
-
-    /// Parse new lines.
-    ///
-    /// No-return since newlines are non-essential.
-    pub fn parse_newline(&mut self) -> Result<(), ParserError> {
-        self.match_kind(TokenKind::Whitespace)?;
-        while self.check(TokenKind::Whitespace) {
-            self.consume();
-        }
-        Ok(())
     }
 
     /// Parse arguments
@@ -397,8 +389,8 @@ impl Parser {
             }
 
             // name comes second (is optional)
-            if select_name && self.check(TokenKind::Ident("x".to_string())) {
-                arg.name = Some(self.match_kind(TokenKind::Ident("x".to_string()))?.to_string())
+            if select_name && self.check(TokenKind::Ident("x")) {
+                arg.name = Some(self.match_kind(TokenKind::Ident("x"))?.to_string())
             }
 
             // multiple args possible
@@ -429,7 +421,7 @@ impl Parser {
 
     /// Parse call to a macro.
     pub fn parse_macro_call(&mut self) -> Result<Vec<MacroArg>, ParserError> {
-        self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?;
+        self.match_kind(TokenKind::Ident("MACRO_NAME"))?;
         self.parse_macro_call_args()
     }
 
@@ -440,12 +432,12 @@ impl Parser {
         while !self.check(TokenKind::CloseParen) {
             // We can pass either directly hex values or labels (without the ":")
             match self.current_token.kind.clone() {
-                TokenKind::Literal(lit) => {
-                    args.push(MacroArg::Literal(lit));
+                TokenKind::Hex(val) => {
+                    args.push(MacroArg::Literal(str_to_bytes32(val)));
                     self.consume();
                 }
                 TokenKind::Ident(ident) => {
-                    args.push(MacroArg::Ident(ident));
+                    args.push(MacroArg::Ident(ident.to_string()));
                     self.consume();
                 }
                 _ => {
@@ -454,7 +446,7 @@ impl Parser {
                         "Invalid macro call arguments. Must be of kind Ident or Literal. Got: {}",
                         self.current_token.kind
                     );
-                    return Err(ParserError::InvalidMacroArgs)
+                    return Err(ParserError::InvalidMacroArgs);
                 }
             }
             if self.check(TokenKind::Comma) {
@@ -474,7 +466,7 @@ impl Parser {
                 // Consume the Ident and Validate Close Bracket
                 self.consume();
                 self.match_kind(TokenKind::CloseBracket)?;
-                Ok(const_str)
+                Ok(const_str.to_string())
             }
             _ => Err(ParserError::InvalidConstant),
         }
@@ -497,7 +489,7 @@ impl Parser {
             TokenKind::Ident(arg_str) => {
                 self.consume();
                 self.match_kind(TokenKind::RightAngle)?;
-                Ok(arg_str)
+                Ok(arg_str.to_string())
             }
             _ => Err(ParserError::InvalidMacroArgs),
         }
@@ -505,18 +497,22 @@ impl Parser {
 
     /// Parses whitespaces and newlines until none are left.
     pub fn parse_nl_or_whitespace(&mut self) -> Result<(), ParserError> {
-        while self.check(TokenKind::Whitespace) {
-            self.consume();
-        }
+        // There are no whitespace tokens
+        // while self.check(TokenKind::Whitespace) {
+        //     self.consume();
+        // }
         Ok(())
     }
 
     /// Parses the type of an argument.
     pub fn parse_arg_type(&mut self) -> Result<TokenKind, ParserError> {
         match self.current_token.kind {
-            TokenKind::PrimitiveType(prim) => Ok(self.parse_primitive_type(prim)?),
-            TokenKind::ArrayType(prim, _) => {
-                let _ = self.parse_primitive_type(prim);
+            TokenKind::PrimitiveType(prim) => {
+                Ok(self
+                    .parse_primitive_type(PrimitiveEVMType::try_from(prim.to_string()).unwrap())?)
+            }
+            TokenKind::ArrayType(prim) => {
+                // let _ = self.parse_primitive_type(prim);
                 Ok(self.match_kind(self.current_token.kind.clone())?)
             }
             _ => Err(ParserError::InvalidArgs),
@@ -532,13 +528,13 @@ impl Parser {
         match prim {
             PrimitiveEVMType::Uint(size) => {
                 if !(8..=256).contains(&size) || size % 8 != 0 {
-                    return Err(ParserError::InvalidArgs)
+                    return Err(ParserError::InvalidArgs);
                 }
                 Ok(self.match_kind(self.current_token.kind.clone())?)
             }
             PrimitiveEVMType::Bytes(size) => {
                 if !(1..=32).contains(&size) {
-                    return Err(ParserError::InvalidArgs)
+                    return Err(ParserError::InvalidArgs);
                 }
                 Ok(self.match_kind(self.current_token.kind.clone())?)
             }
@@ -548,7 +544,7 @@ impl Parser {
             PrimitiveEVMType::DynBytes => Ok(self.match_kind(self.current_token.kind.clone())?),
             PrimitiveEVMType::Int(size) => {
                 if !(8..=256).contains(&size) || size % 8 != 0 {
-                    return Err(ParserError::InvalidArgs)
+                    return Err(ParserError::InvalidArgs);
                 }
                 let curr_token_kind = self.current_token.kind.clone();
                 self.consume();
