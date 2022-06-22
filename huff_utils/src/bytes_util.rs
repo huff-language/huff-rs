@@ -3,7 +3,12 @@
 /// i.e. 0xa57b becomes `[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 /// 0, 0, 0, 0, 0, 165, 123]`
 pub fn str_to_bytes32(s: &str) -> [u8; 32] {
-    let mut s = String::from(s);
+    let mut s = s.to_ascii_lowercase();
+    // Remove prefix '0x' if present
+    if s.starts_with("0x") {
+        s = s.chars().skip(2).collect();
+    }
+
     // Pad odd-length byte string with a leading 0
     if s.len() % 2 != 0 {
         s = format!("0{}", s);
