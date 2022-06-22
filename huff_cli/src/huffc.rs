@@ -13,7 +13,7 @@ use huff_utils::prelude::{
     unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError, FileSource, Span,
 };
 use spinners::{Spinner, Spinners};
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 use yansi::Paint;
 
 /// The Huff CLI Args
@@ -66,15 +66,15 @@ fn main() {
     }
 
     // Create compiler from the Huff Args
-    let sources: Vec<String> = match cli.get_inputs() {
-        Ok(s) => s,
+    let sources: Arc<Vec<String>> = match cli.get_inputs() {
+        Ok(s) => Arc::new(s),
         Err(e) => {
             eprintln!("{}", Paint::red(format!("{}", e)));
             std::process::exit(1);
         }
     };
     let compiler: Compiler = Compiler {
-        sources: sources.clone(),
+        sources: Arc::clone(&sources),
         output: match &cli.output {
             Some(o) => Some(o.clone()),
             None => Some(cli.outputdir.clone()),
@@ -102,13 +102,13 @@ fn main() {
                             .map(|s| Span {
                                 start: 0,
                                 end: 0,
-                                file: Some(FileSource {
+                                file: Some(Arc::new(FileSource {
                                     id: uuid::Uuid::new_v4(),
                                     path: s.clone(),
                                     source: None,
                                     access: None,
                                     dependencies: None,
-                                }),
+                                })),
                             })
                             .collect::<Vec<Span>>(),
                     ),
@@ -147,14 +147,13 @@ impl Huff {
                     Ok(vec![path.clone()])
                 } else {
                     // Otherwise, override the source files and use all files in the provided dir
-                    unpack_files(path.to_string()).map_err(CompilerError::FileUnpackError)
+                    unpack_files(path).map_err(CompilerError::FileUnpackError)
                 }
             }
             None => {
                 tracing::debug!(target: "io", "FETCHING SOURCE FILES: {}", self.source);
                 // If there's no path, unpack source files
-                let source: String = self.source.clone();
-                unpack_files(source).map_err(CompilerError::FileUnpackError)
+                unpack_files(&self.source).map_err(CompilerError::FileUnpackError)
             }
         }
     }

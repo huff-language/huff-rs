@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, time::SystemTime};
+use std::{path::PathBuf, sync::Arc, time::SystemTime};
 use uuid::Uuid;
 
 #[allow(clippy::to_string_in_format_args)]
@@ -20,9 +20,9 @@ pub struct FullFileSource<'a> {
     /// Flattened file source
     pub source: &'a str,
     /// The top level file source
-    pub file: Option<FileSource>,
+    pub file: Option<Arc<FileSource>>,
     /// Files and their associated spans in the flattend file source
-    pub spans: Vec<(FileSource, Span)>,
+    pub spans: Vec<(Arc<FileSource>, Span)>,
 }
 
 impl<'a> FullFileSource<'a> {
@@ -54,7 +54,7 @@ pub struct FileSource {
     /// Last File Access Time
     pub access: Option<SystemTime>,
     /// An Ordered List of File Dependencies
-    pub dependencies: Option<Vec<FileSource>>,
+    pub dependencies: Option<Vec<Arc<FileSource>>>,
 }
 
 impl FileSource {
@@ -65,22 +65,23 @@ impl FileSource {
     /// Let's say you have a file, `a.txt` with two dependencies, `b.txt` and `c.txt`,
     /// `fully_flatten()` will generate a source code string with the contents of `b.txt` and
     /// `c.txt` appended to the end of the contents of `a.txt`.
-    pub fn fully_flatten(&self) -> (String, Vec<(FileSource, Span)>) {
+    pub fn fully_flatten(self_ref: Arc<FileSource>) -> (String, Vec<(Arc<FileSource>, Span)>) {
         // First grab the parent file source
-        let mut full_source = if let Some(s) = &self.source { s.clone() } else { "".to_string() };
+        let mut full_source =
+            if let Some(s) = &self_ref.source { s.clone() } else { "".to_string() };
         let span = Span::new(0..full_source.len(), None);
-        let mut relative_positions = vec![(self.clone(), span)];
+        let mut relative_positions = vec![(Arc::clone(&self_ref), span)];
 
         // Then recursively grab source code for dependencies
-        match &self.dependencies {
+        match &self_ref.dependencies {
             Some(vfs) => {
                 for fs in vfs {
-                    let mut flattened = fs.fully_flatten();
+                    let mut flattened = FileSource::fully_flatten(Arc::clone(fs));
                     let span =
                         Span::new(full_source.len()..(full_source.len() + flattened.0.len()), None);
                     full_source.push_str(&flattened.0);
                     relative_positions.append(&mut flattened.1);
-                    relative_positions.push((fs.clone(), span))
+                    relative_positions.push((Arc::clone(fs), span))
                 }
             }
             None => {}
@@ -161,7 +162,7 @@ pub struct Span {
     /// The end of the span.
     pub end: usize,
     /// The Associated File
-    pub file: Option<FileSource>,
+    pub file: Option<Arc<FileSource>>,
 }
 
 impl Span {
@@ -169,7 +170,7 @@ impl Span {
     pub const EOF: Span = Span { start: 0, end: 0, file: None };
 
     /// Public associated function to instatiate a new span.
-    pub fn new(Range { start, end }: Range<usize>, file: Option<FileSource>) -> Self {
+    pub fn new(Range { start, end }: Range<usize>, file: Option<Arc<FileSource>>) -> Self {
         Self { start, end, file }
     }
 

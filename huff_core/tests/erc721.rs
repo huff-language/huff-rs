@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use huff_codegen::Codegen;
 use huff_core::*;
@@ -8,17 +8,17 @@ use huff_utils::prelude::*;
 
 #[test]
 fn test_erc721_compile() {
-    let file_sources: Vec<FileSource> = Compiler::fetch_sources(&vec![PathBuf::from(
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![PathBuf::from(
         "../huff-examples/erc721/contracts/ERC721.huff".to_string(),
     )]);
 
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
-    let recursed_file_source = Compiler::recurse_deps(file_source.clone()).unwrap();
-    let flattened = recursed_file_source.fully_flatten();
+    let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source)).unwrap();
+    let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
     let full_source = FullFileSource {
         source: &flattened.0,
-        file: Some(file_source.clone()),
+        file: Some(Arc::clone(file_source)),
         spans: flattened.1,
     };
     let lexer = Lexer::new(full_source);
@@ -34,7 +34,7 @@ fn test_erc721_compile() {
     // Churn
     let mut cg = Codegen::new();
     let artifact =
-        cg.churn(file_source.clone(), vec![], &main_bytecode, &constructor_bytecode).unwrap();
+        cg.churn(Arc::clone(file_source), vec![], &main_bytecode, &constructor_bytecode).unwrap();
 
     // Full expected bytecode output (different from huffc since our storage pointer derivation is
     // depth first)

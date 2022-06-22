@@ -1,11 +1,11 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use huff_core::Compiler;
 use huff_utils::files::FileSource;
 
 #[test]
 fn test_fetch_sources() {
-    let file_sources: Vec<FileSource> = Compiler::fetch_sources(&vec![
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![
         PathBuf::from("../huff-examples/erc20/contracts/ERC20.huff".to_string()),
         PathBuf::from("../huff-examples/erc20/contracts/utils/Address.huff".to_string()),
         PathBuf::from("../huff-examples/erc20/contracts/utils/HashMap.huff".to_string()),
@@ -24,7 +24,7 @@ fn test_fetch_sources() {
 
 #[test]
 fn test_fetch_invalid_sources() {
-    let file_sources: Vec<FileSource> = Compiler::fetch_sources(&vec![
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![
         PathBuf::from("../huff-examples/erc20/contracts/non_existant.huff".to_string()),
         PathBuf::from("../huff-examples/erc20/contracts/non_huff.txt".to_string()),
         PathBuf::from("../huff-examples/erc20/contracts/random/Address.huff".to_string()),
