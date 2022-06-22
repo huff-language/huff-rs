@@ -256,6 +256,7 @@ pub enum FunctionParamType {
 }
 
 impl FunctionParamType {
+    /// Convert string to type
     pub fn convert_string_to_type(string: &str) -> Self {
         let input = string.to_string().to_lowercase();
         if input.starts_with("uint") {
