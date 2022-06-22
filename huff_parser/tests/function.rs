@@ -116,11 +116,7 @@ fn parses_valid_function_definition() {
 
     for (index, source) in sources.into_iter().enumerate() {
         let lexer = Lexer::new(source);
-        let tokens = lexer
-            .into_iter()
-            .map(|x| x.unwrap())
-            .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
-            .collect::<Vec<Token>>();
+        let tokens = lexer.into_iter().collect::<Vec<Token>>();
         let mut parser = Parser::new(tokens);
         let _ = parser.match_kind(TokenKind::Define);
         let function = parser.parse_function().unwrap();
@@ -135,7 +131,7 @@ fn parses_valid_function_definition() {
 fn cannot_parse_invalid_function_definition() {
     let source = "#define function test(uint256) returns(uint256)";
     let lexer = Lexer::new(source);
-    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let tokens = lexer.into_iter().collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens);
     parser.parse().unwrap();
 }

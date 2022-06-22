@@ -8,10 +8,9 @@ fn derives_storage_pointers() {
         "#define constant FSP_LOCATION = FREE_STORAGE_POINTER()\n#define constant FSP_LOCATION_2 = FREE_STORAGE_POINTER()\n#define constant NUM = 0xa57B";
 
     let lexer = Lexer::new(c);
-    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let tokens = lexer.into_iter().collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens);
     let mut contract = parser.parse().unwrap();
-    assert_eq!(parser.current_token.kind, TokenKind::Eof);
 
     // Ensure that the constant definitions were parsed correctly
     let fsp_constant = contract.constants[0].clone();
