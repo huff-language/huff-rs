@@ -255,47 +255,61 @@ pub enum FunctionParamType {
     Tuple(Vec<FunctionParamType>),
 }
 
+impl FunctionParamType {
+    pub fn convert_string_to_type(string: &str) -> Self {
+        let input = string.to_string().to_lowercase();
+        if input.starts_with("uint") {
+            // Default to 256 if no size
+            let size = match input.get(4..input.len()) {
+                Some(s) => match s.is_empty() {
+                    false => s.parse::<usize>().unwrap(),
+                    true => 256,
+                },
+                None => 256,
+            };
+            return Self::Uint(size)
+        }
+        if input.starts_with("int") {
+            // Default to 256 if no size
+            let size = match input.get(3..input.len()) {
+                Some(s) => match s.is_empty() {
+                    false => s.parse::<usize>().unwrap(),
+                    true => 256,
+                },
+                None => 256,
+            };
+            return Self::Int(size)
+        }
+        if input.starts_with("bytes") && input.len() != 5 {
+            let size = input.get(5..input.len()).unwrap().parse::<usize>().unwrap();
+            return Self::FixedBytes(size)
+        }
+        if input.starts_with("bool") {
+            return Self::Bool
+        }
+        if input.starts_with("address") {
+            return Self::Address
+        }
+        if input.starts_with("string") {
+            return Self::String
+        }
+        if input == "bytes" {
+            Self::Bytes
+        } else {
+            tracing::error!("Failed to create FunctionParamType from string: {}", string);
+            panic!("{}", format!("Failed to create FunctionParamType from string: {}", string))
+        }
+    }
+}
+
 impl From<&str> for FunctionParamType {
     fn from(string: &str) -> Self {
-        match string {
-            "Address" | "address" => Self::Address,
-            "Bytes" | "bytes" => Self::Bytes,
-            "Int" | "int" | "integer" | "Integer" => Self::Int(0),
-            "Uint" | "uint" | "unsignedinteger" | "unsigned integer" => Self::Uint(0),
-            "Bool" | "bool" => Self::Bool,
-            "String" | "string" | "str" | "Str" => Self::String,
-            "Array" | "array" => Self::Array(Box::new(FunctionParamType::Bool)),
-            "FixedBytes" | "bytes32" => Self::Array(Box::new(FunctionParamType::Bool)),
-            _ => {
-                tracing::error!(
-                    "{}",
-                    format!("Failed to create FunctionParamType from string: {}", string)
-                );
-                panic!("{}", format!("Failed to create FunctionParamType from string: {}", string))
-            }
-        }
+        FunctionParamType::convert_string_to_type(string)
     }
 }
 
 impl From<String> for FunctionParamType {
     fn from(string: String) -> Self {
-        match string.as_ref() {
-            "Address" | "address" => Self::Address,
-            "Bytes" | "bytes" => Self::Bytes,
-            "Int" | "int" | "integer" | "Integer" => Self::Int(0),
-            "Uint" | "uint" | "uint256" | "unsignedinteger" | "unsigned integer" => Self::Uint(0),
-            "Bool" | "bool" => Self::Bool,
-            "String" | "string" | "str" | "Str" => Self::String,
-            "Array" | "array" => Self::Array(Box::new(FunctionParamType::Bool)),
-            "FixedBytes" | "bytes32" => Self::Array(Box::new(FunctionParamType::Bool)),
-            _ => {
-                tracing::error!(
-                    target: "abi",
-                    "{}",
-                    format!("Failed to create FunctionParamType from string: {}", string)
-                );
-                panic!("{}", format!("Failed to create FunctionParamType from string: {}", string))
-            }
-        }
+        FunctionParamType::convert_string_to_type(&string)
     }
 }
