@@ -7,7 +7,7 @@ _Forked from [foundry](https://github.com/foundry-rs/foundry/tree/master/foundry
 
 ## Installing
 
-`curl -L https://huff.nascent.xyz | bash`
+`curl -L https://get.huff.sh | bash`
 
 
 ## Usage
