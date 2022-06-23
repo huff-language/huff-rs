@@ -86,8 +86,7 @@ impl Codegen {
         )?;
 
         // Generate the bytecode return string
-        let bytecode = bytecode_res.bytes.iter().map(|(_, b)| b.0.to_string()).collect();
-        Ok(bytecode)
+        Codegen::gen_table_bytecode(bytecode_res, contract)
     }
 
     /// Helper function to find a macro or generate a CodegenError
