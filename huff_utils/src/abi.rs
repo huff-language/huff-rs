@@ -245,7 +245,7 @@ pub enum FunctionParamType {
     Bool,
     /// A String
     String,
-    /// Array
+    /// Array ; uint256[2][] => Array(Uint(256), [2, 0])
     Array(Box<FunctionParamType>, Vec<usize>),
     /// Fixed number of bytes
     FixedBytes(usize),
