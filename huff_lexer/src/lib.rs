@@ -477,7 +477,6 @@ impl<'a> Iterator for Lexer<'a> {
                                     .split(&raw_type)
                                     .map(|x| x.replace(']', ""))
                                     .collect();
-
                                 let mut size_vec: Vec<usize> = Vec::new();
                                 // go over all array sizes
                                 let sizes = words.get(1..words.len()).unwrap();

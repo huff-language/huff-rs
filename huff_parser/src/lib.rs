@@ -870,8 +870,12 @@ impl Parser {
         match self.current_token.kind.clone() {
             TokenKind::PrimitiveType(prim) => Ok(self.parse_primitive_type(prim)?),
             TokenKind::ArrayType(prim, _) => {
+                // The trick is that when we parse the primitive type
+                // of the array, it will consume the current token which is the ArrayType.
+                // So we have to preserve the token before parsing (and matching thus consuming).
+                let token = self.current_token.kind.clone();
                 let _ = self.parse_primitive_type(prim);
-                Ok(self.match_kind(self.current_token.kind.clone())?)
+                Ok(token)
             }
             kind => Err(ParserError {
                 kind: ParserErrorKind::InvalidArgs(kind),
