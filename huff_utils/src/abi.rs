@@ -245,12 +245,10 @@ pub enum FunctionParamType {
     Bool,
     /// A String
     String,
-    /// An array of parameters
-    Array(Box<FunctionParamType>),
+    /// Array
+    Array(Box<FunctionParamType>, Vec<usize>),
     /// Fixed number of bytes
     FixedBytes(usize),
-    /// Fixed size array of parameters
-    FixedArray(Box<FunctionParamType>, usize),
     /// A tuple of parameters
     Tuple(Vec<FunctionParamType>),
 }
@@ -259,6 +257,17 @@ impl FunctionParamType {
     /// Convert string to type
     pub fn convert_string_to_type(string: &str) -> Self {
         let input = string.to_string().to_lowercase();
+        let split_input: Vec<&str> = input.split('[').collect();
+        if split_input.len() > 1 {
+            let mut cleaned: Vec<String> = split_input
+                .iter()
+                .map(|x| x.replace(']', ""))
+                .map(|x| if x.is_empty() { "0".to_owned() } else { x })
+                .collect();
+            let func_type = FunctionParamType::convert_string_to_type(&cleaned.remove(0));
+            let sizes: Vec<usize> = cleaned.iter().map(|x| x.parse::<usize>().unwrap()).collect();
+            return Self::Array(Box::new(func_type), sizes)
+        }
         if input.starts_with("uint") {
             // Default to 256 if no size
             let size = match input.get(4..input.len()) {
