@@ -1,6 +1,23 @@
 ## Codegen
 
-Code Generation Module for the Huff Language.
+Bytecode Generation Module for the Huff Language.
+
+#### Architecture
+
+The `huff_codegen` module exposes a few main bytecode generation functions. It is expected that both the [huff_lexer](../huff_lexer/) and [huff_parser](../huff_parser/) are executed before `huff_codegen` to produce a valid abstract syntax tree ([Contract](../huff_utils/ast/struct.Contract.html) in our case) that `huff_codegen` can _walk_.
+
+Once the AST ([Contract](../huff_utils/ast/struct.Contract.html)) is produced, [Codegen](struct.Codegen.html) can be used to produce the **MAIN** and **CONSTRUCTOR** bytecode.
+
+The [generate_main_bytecode](struct.Codegen.html#method.generate_main_bytecode) function takes a reference of [Contract](../huff_utils/ast/struct.Contract.html) and produces a bytecode `String` on success or a [CodegenError](../huff_utils/error/struct.CodegenError.html) on failure.
+
+Likewise, the [generate_constructor_bytecode](struct.Codegen.html#method.generate_constructor_bytecode) function takes a reference of [Contract](../huff_utils/ast/struct.Contract.html) and produces a bytecode `String` on success or a [CodegenError](../huff_utils/error/struct.CodegenError.html) on failure.
+
+[churn](struct.Codegen.html#method.churn) takes the generated **CONSTRUCTOR** and **MAIN** macros' bytecode and produces an [Artifact](../huff_utils/artifact/struct.Artifact.html) containing:
+- The file source: [Artifact.file](../huff_utils/artifact/struct.Artifact.html#structfield.file)
+- The deployed bytecode: [Artifact.deployed](../huff_utils/artifact/struct.Artifact.html#structfield.deployed)
+- The runtime bytecode: [Artifact.runtime](../huff_utils/artifact/struct.Artifact.html#structfield.runtime)
+- The contract ABI: [Artifact.abi](../huff_utils/artifact/struct.Artifact.html#structfield.abi)
+
 
 #### Usage
 
@@ -27,4 +44,107 @@ assert_eq!(churn_res.unwrap().bytecode, "336000556101ac806100116000396000f360003
 
 // Write the compile artifact out to a file
 // cg.export("./output.json");
+```
+
+
+Let's say you have a [Contract](../huff_utils/ast/struct.Contract.html) instance with a simple **MAIN** macro. You can generate the main macro bytecode using the [generate_main_bytecode](struct.Codegen.html#method.generate_main_bytecode) function.
+
+```rust
+use huff_codegen::*;
+use huff_utils::prelude::*;
+use std::sync::Arc;
+
+// Mock contract with a main macro
+let contract = Contract {
+  macros: vec![
+    MacroDefinition {
+      name: "MAIN".to_string(),
+      parameters: vec![],
+      statements: vec![
+        Statement {
+          ty: StatementType::Literal(str_to_bytes32("00")),
+          span: AstSpan(vec![]),
+        },
+        Statement {
+          ty: StatementType::Opcode(Opcode::Calldataload),
+          span: AstSpan(vec![]),
+        },
+        Statement {
+          ty: StatementType::Literal(str_to_bytes32("E0")),
+          span: AstSpan(vec![]),
+        },
+        Statement {
+          ty: StatementType::Opcode(Opcode::Shr),
+          span: AstSpan(vec![]),
+        }
+      ],
+      takes: 0,
+      returns: 0,
+      span: AstSpan(vec![]),
+    }
+  ],
+  invocations: vec![],
+  imports: vec![],
+  constants: vec![],
+  functions: vec![],
+  events: vec![],
+  tables: vec![],
+};
+
+// Generate the main bytecode
+let main_bytecode: String = Codegen::generate_main_bytecode(&contract).unwrap();
+
+// Validate the output bytecode
+assert_eq!(main_bytecode, "60003560e01c");
+```
+
+Similarly, once you have a [Contract](../huff_utils/ast/struct.Contract.html) instance with a simple **CONSTRUCTOR** macro definition. You can generate the constructor/creation bytecode using the [generate_constructor_bytecode](struct.Codegen.html#method.generate_constructor_bytecode) function.
+
+```rust
+use huff_codegen::*;
+use huff_utils::prelude::*;
+use std::sync::Arc;
+
+// Mock contract with a constructor macro
+let contract = Contract {
+  macros: vec![
+    MacroDefinition {
+      name: "CONSTRUCTOR".to_string(),
+      parameters: vec![],
+      statements: vec![
+        Statement {
+          ty: StatementType::Literal(str_to_bytes32("00")),
+          span: AstSpan(vec![]),
+        },
+        Statement {
+          ty: StatementType::Opcode(Opcode::Calldataload),
+          span: AstSpan(vec![]),
+        },
+        Statement {
+          ty: StatementType::Literal(str_to_bytes32("E0")),
+          span: AstSpan(vec![]),
+        },
+        Statement {
+          ty: StatementType::Opcode(Opcode::Shr),
+          span: AstSpan(vec![]),
+        }
+      ],
+      takes: 0,
+      returns: 0,
+      span: AstSpan(vec![]),
+    }
+  ],
+  invocations: vec![],
+  imports: vec![],
+  constants: vec![],
+  functions: vec![],
+  events: vec![],
+  tables: vec![],
+};
+
+// Generate the constructor bytecode
+let constructor_bytecode: String = Codegen::generate_constructor_bytecode(&contract).unwrap();
+
+// Validate the output bytecode
+assert_eq!(constructor_bytecode, "60003560e01c");
 ```

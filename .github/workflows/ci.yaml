@@ -5,6 +5,8 @@ on: [push]
 jobs:
   cargo-fmt:
     runs-on: ubuntu-latest
+    # self hosted since out of action capacity
+    # runs-on: self-hosted
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
