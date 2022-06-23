@@ -149,6 +149,8 @@ pub enum CodegenErrorKind {
     MissingMacroInvocation(String),
     /// Missing Macro Definition for Invocation
     InvalidMacroInvocation(String),
+    /// Conversion Error for usize
+    UsizeConversion(String),
 }
 
 impl Spanned for CodegenError {
@@ -179,6 +181,9 @@ impl<W: Write> Report<W> for CodegenError {
             CodegenErrorKind::UnkownArgcallType => write!(f.out, "Unknown Argcall Type!"),
             CodegenErrorKind::MissingMacroInvocation(str) => {
                 write!(f.out, "Missing Macro \"{}\" Invocation!", str)
+            }
+            CodegenErrorKind::UsizeConversion(input) => {
+                write!(f.out, "Usize Conversion Failed for \"{}\"", input)
             }
         }
     }
@@ -397,6 +402,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
                 CodegenErrorKind::UnmatchedJumpLabel => {
                     write!(f, "\nError: Unmatched Jump Label\n{}\n", ce.span.error())
+                }
+                CodegenErrorKind::UsizeConversion(_) => {
+                    write!(f, "\nError: Usize Conversion\n{}\n", ce.span.error())
                 }
             },
             CompilerError::FailedCompiles(v) => {

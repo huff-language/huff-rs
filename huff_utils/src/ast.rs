@@ -241,6 +241,27 @@ impl Contract {
                         }
                     }
                 }
+                StatementType::BuiltinFunctionCall(bfc) => {
+                    tracing::debug!(target: "ast", "Deriving Storage Pointrs: Found builtin function {:?}", bfc.kind);
+                    for a in &bfc.args {
+                        if let Some(name) = &a.name {
+                            match self
+                                .macros
+                                .iter()
+                                .filter(|md| md.name.eq(name))
+                                .collect::<Vec<&MacroDefinition>>()
+                                .get(0)
+                            {
+                                Some(&md) => {
+                                    self.recurse_ast_constants(md, storage_pointers, last_p)
+                                }
+                                None => {
+                                    tracing::warn!(target: "ast", "BUILTIN HAS ARG NAME \"{}\" BUT NOT FOUND IN AST!", name)
+                                }
+                            }
+                        }
+                    }
+                }
                 StatementType::Label(l) => {
                     for state in l.inner.iter().rev() {
                         statements.insert(i + 1, state.clone());
