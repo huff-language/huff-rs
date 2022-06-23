@@ -97,6 +97,11 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
 
 To run examples, make sure you update git submodules to pull down the [huff-examples](./huff-examples/) submodule by running `git submodule update`.
 
+The branching convention used by [huff-rs](https://github.com/huff-language/huff-rs) is a `stage` branch that is meant to be merged off of and is periodically merged into `main`.
+
+i.e:
+![Branching Conventions](./assets/branching.png)
+
 To pass github actions, please run:
 
 ```bash
