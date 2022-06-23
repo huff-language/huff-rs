@@ -1,5 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
+use std::ops::Deref;
 
 #[test]
 fn lexes_zero_prefixed_numbers() {
@@ -10,10 +11,10 @@ fn lexes_zero_prefixed_numbers() {
     // The first and only token should be lexed as 0
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::Num(0), Span::new(0..2, None)));
-    assert_eq!(lexer.span, Span::new(0..2, None));
+    assert_eq!(lexer.current_span().deref(), &Span::new(0..2, None));
 
     // We covered the whole source
-    assert_eq!(lexer.span.end, source.len());
+    assert_eq!(lexer.current_span().end, source.len());
     assert!(lexer.eof);
 }
 
@@ -26,9 +27,9 @@ fn lexes_large_numbers() {
     // The first and only token should be lexed
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::Num(usize::MAX), Span::new(0..source.len(), None)));
-    assert_eq!(lexer.span, Span::new(0..source.len(), None));
+    assert_eq!(lexer.current_span().deref(), &Span::new(0..source.len(), None));
 
     // We covered the whole source
-    assert_eq!(lexer.span.end, source.len());
+    assert_eq!(lexer.current_span().end, source.len());
     assert!(lexer.eof);
 }
