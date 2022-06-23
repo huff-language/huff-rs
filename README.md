@@ -33,7 +33,7 @@ _Something not working? Send a message in [discord](https://discord.gg/2uuJyatE6
 First run the command below to get `huffup`, the Huff installer:
 
 ```bash
-curl -L https://huff.nascent.xyz | bash
+curl -L https://get.huff.sh | bash
 ```
 
 To avoid redirecting the script directly into bash, download and run the [huffup installation script](https://raw.githubusercontent.com/huff-language/huff-rs/main/huffup/install).
