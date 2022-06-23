@@ -146,4 +146,4 @@ An exemplary, minimal rust compiler: [ripc](https://github.com/ibraheemdev/ripc)
 
 [Foundry](https://github.com/foundry-rs/foundry), for the many scripts, documentation, devops, and code on which [huff-rs](https://github.com/huff-language/huff-rs) is based on.
 
-All [huff-rs](https://github.com/huff-language/huff-rs) contributors, users, advocates, and discord enthusiasts!
+All [huff-rs](https://github.com/huff-language/huff-rs) contributors, users, advocates, and enthusiasts!
