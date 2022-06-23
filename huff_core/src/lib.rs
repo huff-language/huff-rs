@@ -98,7 +98,7 @@ impl<'a> Compiler {
                 Ok(source) => source,
                 Err(_) => {
                     tracing::error!(target: "core", "FILE READ FAILED: \"{}\"!", fs.path);
-                    return Err(CompilerError::PathBufRead(fs.path.clone().into()))
+                    return Err(CompilerError::PathBufRead(fs.path.clone().into()));
                 }
             };
             new_fs.source = Some(new_source.clone());
@@ -176,7 +176,7 @@ impl<'a> Compiler {
                 let lexer: Lexer = Lexer::new(&full_source);
 
                 // Grab the tokens from the lexer
-                let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+                let tokens = lexer.into_iter().collect::<Vec<Token>>();
                 tracing::info!(target: "core", "LEXICAL ANALYSIS COMPLETE [{}]", file.path);
 
                 // Parser incantation
@@ -252,7 +252,7 @@ impl<'a> Compiler {
                     }
                     Err(e) => {
                         tracing::error!(target: "core", "ERROR UNPACKING FILE: {:?}", e);
-                        return Err(CompilerError::FileUnpackError(e))
+                        return Err(CompilerError::FileUnpackError(e));
                     }
                 }
             }
