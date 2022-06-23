@@ -3,6 +3,7 @@ use ethers::abi::{ethereum_types::*, token::*, Tokenizable};
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{fmt, str::FromStr};
+
 /// Primitive EVM types
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum PrimitiveEVMType {
@@ -29,11 +30,25 @@ impl TryFrom<String> for PrimitiveEVMType {
 
     fn try_from(input: String) -> Result<Self, Self::Error> {
         if input.starts_with("uint") {
-            let size = input.get(4..input.len()).unwrap().parse::<usize>().unwrap();
+            // Default to 256 if no size
+            let size = match input.get(4..input.len()) {
+                Some(s) => match s.is_empty() {
+                    false => s.parse::<usize>().unwrap(),
+                    true => 256,
+                },
+                None => 256,
+            };
             return Ok(PrimitiveEVMType::Uint(size))
         }
         if input.starts_with("int") {
-            let size = input.get(3..input.len()).unwrap().parse::<usize>().unwrap();
+            // Default to 256 if no size
+            let size = match input.get(3..input.len()) {
+                Some(s) => match s.is_empty() {
+                    false => s.parse::<usize>().unwrap(),
+                    true => 256,
+                },
+                None => 256,
+            };
             return Ok(PrimitiveEVMType::Int(size))
         }
         if input.starts_with("bytes") && input.len() != 5 {

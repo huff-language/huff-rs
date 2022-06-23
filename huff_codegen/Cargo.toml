@@ -1,15 +1,15 @@
 [package]
 name = "huff_codegen"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Andreas Bigger", "clabby", "exp.table"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
 license = "MIT OR Apache-2.0"
 description = """
-Code Generation Crate for the Huff-Language
+Bytecode Generation Crate for the Huff-Language
 """
-keywords = ["huff", "rust", "ethereum", "assembly", "compiler"]
+keywords = ["huff", "rust", "ethereum", "bytecode", "compiler"]
 
 [dependencies]
 serde_json = "1.0.81"
