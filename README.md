@@ -1,6 +1,6 @@
 <img align="right" width="150" height="150" top="100" src="./assets/huff.png">
 
-# huff-rs • [![ci](https://github.com/huff-language/huff-rs/actions/workflows/ci.yaml/badge.svg)](https://github.com/huff-language/huff-rs/actions/workflows/ci.yaml) ![GitHub](https://img.shields.io/github/license/huff-language/huff-rs) ![Crates.io](https://img.shields.io/crates/v/huff-rs) ![Discord](https://img.shields.io/discord/980519274600882306)
+# huff-rs • [![ci](https://github.com/huff-language/huff-rs/actions/workflows/ci.yaml/badge.svg)](https://github.com/huff-language/huff-rs/actions/workflows/ci.yaml) ![Crates.io](https://img.shields.io/crates/v/huff-rs) ![Discord](https://img.shields.io/discord/980519274600882306)
 
 > `huff-rs` is a [Huff](https://github.com/huff-language) compiler built in rust.
 
