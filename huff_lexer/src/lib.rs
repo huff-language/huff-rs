@@ -90,7 +90,7 @@ impl<'a> Lexer<'a> {
 
         let mut imports = Vec::new();
         while let Some(tok) = iter.next() {
-            if tok.kind != TokenKind::Define {
+            if tok.kind != TokenKind::Include {
                 continue;
             }
 
