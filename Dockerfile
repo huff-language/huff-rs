@@ -1,12 +1,12 @@
 from alpine as build-environment
 WORKDIR /opt
-RUN apk add clang lld curl build-base linux-headers git \
+RUN apk add pkgconfig gcc musl-dev python3-dev libffi-dev openssl-dev clang lld curl build-base linux-headers git \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh \
     && chmod +x ./rustup.sh \
     && ./rustup.sh -y
 WORKDIR /opt/huff-rs
 COPY . .
-RUN source $HOME/.profile && cargo build --release \
+RUN apk add libressl-dev && source $HOME/.profile && cargo build --release \
     && strip /opt/huff-rs/target/release/huffc
 
 from alpine as huff-client

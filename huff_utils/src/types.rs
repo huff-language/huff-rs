@@ -1,5 +1,5 @@
 use crate::bytes_util::*;
-use ethers::abi::{ethereum_types::*, token::*, Tokenizable};
+use ethers_core::abi::{ethereum_types::*, token::*, Tokenizable};
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{fmt, str::FromStr};
