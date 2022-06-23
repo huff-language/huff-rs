@@ -15,14 +15,14 @@ pub enum UnpackError {
 }
 
 /// Unpacks huff files into a vec of strings.
-pub fn unpack_files(path: String) -> Result<Vec<String>, UnpackError> {
+pub fn unpack_files(path: &str) -> Result<Vec<String>, UnpackError> {
     // If the path is a file, return a vec of the file
-    match parse_extension(&path) {
+    match parse_extension(path) {
         Some(extension) => {
             if extension == "huff" {
                 return Ok(vec![path.to_string()])
             }
-            Err(UnpackError::UnsupportedExtension(path))
+            Err(UnpackError::UnsupportedExtension(path.to_string()))
         }
         None => {
             // We have a directory, try to extract huff files and parse
@@ -39,7 +39,7 @@ pub fn unpack_files(path: String) -> Result<Vec<String>, UnpackError> {
                 }
                 Err(e) => {
                     tracing::error!(target: "io", "ERROR READING DIRECTORY {}: {:?}", path, e);
-                    Err(UnpackError::InvalidDirectory(path))
+                    Err(UnpackError::InvalidDirectory(path.to_string()))
                 }
             }
         }

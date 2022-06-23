@@ -10,8 +10,10 @@ use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
 use std::{
+    ffi::OsString,
     fs,
     path::{Path, PathBuf},
+    sync::Arc,
     time::SystemTime,
 };
 use tracing_subscriber::{filter::Directive, EnvFilter};
@@ -31,8 +33,10 @@ use uuid::Uuid;
 ///
 /// ```rust
 /// use huff_core::Compiler;
+/// use std::sync::Arc;
+///
 /// let compiler = Compiler::new(
-///     vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()],
+///     Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]),
 ///     Some("./artifacts".to_string()),
 ///     None,
 ///     false
@@ -41,7 +45,7 @@ use uuid::Uuid;
 #[derive(Default, Debug, Clone)]
 pub struct Compiler {
     /// The location of the files to compile
-    pub sources: Vec<String>,
+    pub sources: Arc<Vec<String>>,
     /// The output location
     pub output: Option<String>,
     /// Constructor Input Arguments
@@ -55,7 +59,7 @@ pub struct Compiler {
 impl<'a> Compiler {
     /// Public associated function to instantiate a new compiler.
     pub fn new(
-        sources: Vec<String>,
+        sources: Arc<Vec<String>>,
         output: Option<String>,
         construct_args: Option<Vec<String>>,
         verbose: bool,
@@ -73,8 +77,8 @@ impl<'a> Compiler {
         let subscriber_builder = tracing_subscriber::fmt();
         let mut env_filter = EnvFilter::from_default_env();
         if let Some(dv) = directives {
-            for d in dv.iter() {
-                env_filter = env_filter.add_directive(d.clone());
+            for d in dv {
+                env_filter = env_filter.add_directive(d);
             }
         }
         if let Err(e) = subscriber_builder.with_env_filter(env_filter).try_init() {
@@ -94,36 +98,33 @@ impl<'a> Compiler {
     /// 4. For each top-level file [Parallelized], generate the artifact using
     /// [gen_artifact](Compiler::gen_artifact).
     /// 5. Return the compiling error(s) or successfully generated artifacts.
-    pub fn execute(&self) -> Result<Vec<Artifact>, CompilerError<'a>> {
+    pub fn execute(&self) -> Result<Vec<Arc<Artifact>>, Arc<CompilerError<'a>>> {
         // Grab the input files
         let file_paths: Vec<PathBuf> = Compiler::transform_paths(&self.sources)?;
 
         // Parallel file fetching
-        let mut files: Vec<FileSource> = Compiler::fetch_sources(&file_paths);
+        let files: Vec<Arc<FileSource>> = Compiler::fetch_sources(&file_paths);
 
         // Parallel Dependency Resolution
-        let recursed_file_sources: Vec<Result<FileSource, CompilerError<'a>>> =
+        let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
             files.into_par_iter().map(Compiler::recurse_deps).collect();
 
         // Collect Recurse Deps errors and try to resolve to the first one
-        let errors = recursed_file_sources
+        let mut errors = recursed_file_sources
             .iter()
             .filter_map(|rfs| rfs.as_ref().err())
-            .collect::<Vec<&CompilerError>>();
-        if let Some(&e) = errors.get(0) {
-            return Err(e.clone())
+            .collect::<Vec<&Arc<CompilerError>>>();
+        if !errors.is_empty() {
+            let error = errors.remove(0);
+            return Err(Arc::clone(error))
         }
 
         // Unpack recursed dependencies into FileSources
-        files = recursed_file_sources
+        let files = recursed_file_sources
             .iter()
-            .filter_map(|fs| fs.as_ref().ok())
-            .cloned()
-            .collect::<Vec<FileSource>>();
-        tracing::info!(target: "core", "COMPILER RECURSED FILE DEPENDENCIES:");
-        for f in &files {
-            tracing::info!(target: "core", "- \"{}\"", f.path);
-        }
+            .filter_map(|fs| fs.as_ref().map(Arc::clone).ok())
+            .collect::<Vec<Arc<FileSource>>>();
+        tracing::info!(target: "core", "COMPILER RECURSED {} FILE DEPENDENCIES", files.len());
 
         // Parallel Compilation
         let potential_artifacts: Vec<Result<Artifact, CompilerError<'a>>> =
@@ -131,16 +132,16 @@ impl<'a> Compiler {
 
         // Output errors + return OR print # of successfully compiled files
         let mut errors: Vec<CompilerError<'a>> = vec![];
-        let mut artifacts: Vec<Artifact> = vec![];
+        let mut artifacts: Vec<Arc<Artifact>> = vec![];
         for r in potential_artifacts {
             match r {
-                Ok(a) => artifacts.push(a),
+                Ok(a) => artifacts.push(Arc::new(a)),
                 Err(ce) => errors.push(ce),
             }
         }
         if !errors.is_empty() {
             tracing::error!(target: "core", "{} FILES FAILED TO COMPILE", errors.len());
-            return Err(CompilerError::FailedCompiles(errors))
+            return Err(Arc::new(CompilerError::FailedCompiles(errors)))
         }
         match artifacts.len() {
             0 => tracing::warn!(target: "core", "NO FILES COMPILED SUCCESSFULLY"),
@@ -159,13 +160,16 @@ impl<'a> Compiler {
     /// Artifact Generation
     ///
     /// Compiles a FileSource into an Artifact.
-    pub fn gen_artifact(&self, file: FileSource) -> Result<Artifact, CompilerError<'a>> {
+    pub fn gen_artifact(&self, file: Arc<FileSource>) -> Result<Artifact, CompilerError<'a>> {
         // Fully Flatten a file into a source string containing source code of file and all
         // its dependencies
-        let flattened = file.fully_flatten();
+        let flattened = FileSource::fully_flatten(Arc::clone(&file));
         tracing::info!(target: "core", "FLATTENED SOURCE FILE \"{}\"", file.path);
-        let full_source =
-            FullFileSource { source: &flattened.0, file: Some(file.clone()), spans: flattened.1 };
+        let full_source = FullFileSource {
+            source: &flattened.0,
+            file: Some(Arc::clone(&file)),
+            spans: flattened.1,
+        };
         tracing::debug!(target: "core", "GOT FULL SOURCE: \"{:?}\"", full_source);
 
         // Perform Lexical Analysis
@@ -199,7 +203,7 @@ impl<'a> Compiler {
                         .iter()
                         .map(|s| {
                             let mut n_s = s.clone();
-                            n_s.file = Some(file.clone());
+                            n_s.file = Some(Arc::clone(&file));
                             n_s
                         })
                         .collect::<Vec<Span>>(),
@@ -219,7 +223,7 @@ impl<'a> Compiler {
                         .iter()
                         .map(|s| {
                             let mut n_s = s.clone();
-                            n_s.file = Some(file.clone());
+                            n_s.file = Some(Arc::clone(&file));
                             n_s
                         })
                         .collect::<Vec<Span>>(),
@@ -261,26 +265,23 @@ impl<'a> Compiler {
     }
 
     /// Get the file sources for a vec of PathBufs
-    pub fn fetch_sources(paths: &Vec<PathBuf>) -> Vec<FileSource> {
-        let files: Vec<FileSource> = paths
+    pub fn fetch_sources(paths: &Vec<PathBuf>) -> Vec<Arc<FileSource>> {
+        let files: Vec<Arc<FileSource>> = paths
             .into_par_iter()
-            .map(|pb| match pb.clone().into_os_string().into_string() {
-                Ok(file_loc) => match std::fs::read_to_string(file_loc.clone()) {
-                    Ok(source) => Some(FileSource {
+            .map(|pb| {
+                let file_loc = String::from(pb.to_string_lossy());
+                match std::fs::read_to_string(&file_loc) {
+                    Ok(source) => Some(Arc::new(FileSource {
                         id: Uuid::new_v4(),
                         path: file_loc,
                         source: Some(source),
                         access: Some(SystemTime::now()),
                         dependencies: None,
-                    }),
+                    })),
                     Err(_) => {
                         tracing::error!(target: "core", "FILE READ FAILED: \"{}\"!", file_loc);
                         None
                     }
-                },
-                Err(e) => {
-                    tracing::error!(target: "core", "PATHBUF CONVERSION FAILED: {:?}", e);
-                    None
                 }
             })
             .filter(|f| f.is_some())
@@ -291,24 +292,24 @@ impl<'a> Compiler {
     }
 
     /// Recurses file dependencies
-    pub fn recurse_deps(fs: FileSource) -> Result<FileSource, CompilerError<'a>> {
-        let mut new_fs = fs.clone();
+    pub fn recurse_deps(fs: Arc<FileSource>) -> Result<Arc<FileSource>, Arc<CompilerError<'a>>> {
+        let mut new_fs = FileSource { path: fs.path.clone(), ..Default::default() };
         let file_source = if let Some(s) = &fs.source {
             s.clone()
         } else {
             // Read from path
-            let new_source = match std::fs::read_to_string(fs.path.clone()) {
+            let new_source = match std::fs::read_to_string(&fs.path) {
                 Ok(source) => source,
                 Err(_) => {
                     tracing::error!(target: "core", "FILE READ FAILED: \"{}\"!", fs.path);
-                    return Err(CompilerError::PathBufRead(fs.path.clone().into()))
+                    return Err(Arc::new(CompilerError::PathBufRead(OsString::from(&fs.path))))
                 }
             };
-            new_fs.source = Some(new_source.clone());
             new_fs.access = Some(SystemTime::now());
             new_source
         };
         let imports: Vec<String> = Lexer::lex_imports(&file_source);
+        new_fs.source = Some(file_source);
         if !imports.is_empty() {
             tracing::info!(target: "core", "IMPORT LEXICAL ANALYSIS COMPLETE ON {:?}", imports);
         }
@@ -326,7 +327,7 @@ impl<'a> Compiler {
             tracing::info!(target: "core", "LOCALIZED IMPORTS {:?}", localized_imports);
         }
         let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&localized_imports)?;
-        let mut file_sources: Vec<FileSource> = Compiler::fetch_sources(&import_bufs);
+        let mut file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&import_bufs);
         if !file_sources.is_empty() {
             tracing::info!(target: "core", "FETCHED {} FILE SOURCES", file_sources.len());
         }
@@ -334,11 +335,11 @@ impl<'a> Compiler {
         // Now that we have all the file sources, we have to recurse and get their source
         file_sources = file_sources
             .into_par_iter()
-            .map(|inner_fs| match Compiler::recurse_deps(inner_fs.clone()) {
+            .map(|inner_fs| match Compiler::recurse_deps(Arc::clone(&inner_fs)) {
                 Ok(new_fs) => new_fs,
                 Err(e) => {
                     tracing::error!(target: "core", "NESTED DEPENDENCY RESOLUTION FAILED: \"{:?}\"", e);
-                    inner_fs
+                    Arc::clone(&inner_fs)
                 }
             })
             .collect();
@@ -346,18 +347,17 @@ impl<'a> Compiler {
         // Finally set the parent deps
         new_fs.dependencies = Some(file_sources);
 
-        Ok(new_fs)
+        Ok(Arc::new(new_fs))
     }
 
     /// Export Artifacts
     ///
     /// 1. Cleans any previous artifacts in the output directory.
     /// 2. Exports artifacts in parallel as serialized json `Artifact` objects.
-    pub fn export_artifacts(artifacts: &Vec<Artifact>, output: &OutputLocation) {
+    pub fn export_artifacts(artifacts: &Vec<Arc<Artifact>>, output: &OutputLocation) {
         // Clean the Output Directory
         tracing::warn!(target: "core", "REMOVING DIRECTORY: \"{}\"", output.0);
-        let p = output.0.clone();
-        if !p.is_empty() && fs::remove_dir_all(p).is_ok() {
+        if !output.0.is_empty() && fs::remove_dir_all(&output.0).is_ok() {
             tracing::info!(target: "core", "OUTPUT DIRECTORY DELETED!");
         }
 
@@ -367,7 +367,7 @@ impl<'a> Compiler {
                 format!("{}/{}.json", output.0, a.file.path.to_uppercase().replacen("./", "", 1));
             tracing::debug!(target: "core", "JSON OUTPUT: {:?}", json_out);
 
-            if let Err(e) = a.export(json_out.clone()) {
+            if let Err(e) = a.export(&json_out) {
                 tracing::error!(target: "core", "ARTIFACT EXPORT FAILED!\nError: {:?}", e);
             }
             tracing::info!(target: "core", "EXPORTED ARTIFACT TO \"{}\"", json_out);
@@ -384,7 +384,7 @@ impl<'a> Compiler {
                 paths.push(Path::new(&f).to_path_buf())
             } else {
                 // Otherwise, override the source files and use all files in the provided dir
-                match unpack_files(f.clone()) {
+                match unpack_files(f) {
                     Ok(files) => {
                         files.iter().for_each(|fil| paths.push(Path::new(&fil).to_path_buf()))
                     }

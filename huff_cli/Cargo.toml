@@ -22,6 +22,6 @@ spinners = "4.1.0"
 uuid = { version = "1.1.1", features = ["v4"] }
 
 [[bin]]
-name = "huff"
-path = "src/huff.rs"
+name = "huffc"
+path = "src/huffc.rs"
 doc = false
