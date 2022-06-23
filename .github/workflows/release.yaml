@@ -124,9 +124,10 @@ jobs:
           echo "SDKROOT=$(xcrun -sdk macosx --show-sdk-path)" >> $GITHUB_ENV
           echo "MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version)" >> $GITHUB_ENV
       - name: Linux ARM setup
-        if: ${{ matrix.job.target == 'aarch64-unknown-linux-gnu' }}
+        if: ${{ matrix.job.target == 'aarch64-unknown-linux-gnu' || matrix.job.target == 'x86_64-unknown-linux-gnu' }}
         run: |
           sudo apt-get update -y
+          sudo apt-get install -y openssl
           sudo apt-get install -y pkg-config
           sudo apt-get install -y libssl-dev
           sudo apt-get install -y gcc-aarch64-linux-gnu
@@ -136,7 +137,7 @@ jobs:
         env:
           SVM_TARGET_PLATFORM: ${{ matrix.job.svm_target_platform }}
         with:
-          use-cross: true
+          # use-cross: true
           command: build
           args: --release --bins --target ${{ matrix.job.target }}
 
