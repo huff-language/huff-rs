@@ -38,7 +38,7 @@ const SOURCE: &str = r#"
 fn compiles_constructor_bytecode() {
     // Lex and Parse the source code
     let lexer = Lexer::new(SOURCE);
-    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let tokens = lexer.into_iter().collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens);
 
     // Grab the first macro
@@ -60,7 +60,7 @@ fn compiles_constructor_bytecode() {
 fn compiles_runtime_bytecode() {
     // Lex and Parse the source code
     let lexer = Lexer::new(SOURCE);
-    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let tokens = lexer.into_iter().collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens);
 
     // Grab the first macro

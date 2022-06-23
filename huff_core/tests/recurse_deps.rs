@@ -6,7 +6,7 @@ use huff_utils::files::FileSource;
 #[test]
 fn test_recursing_fs_dependencies() {
     let file_sources: Vec<FileSource> = Compiler::fetch_sources(&vec![PathBuf::from(
-        "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
+        "../huff-examples/erc20/contracts/ERC20.huff",
     )]);
     assert_eq!(file_sources.len(), 1);
     let erc20_file_source = file_sources[0].clone();
