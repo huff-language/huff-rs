@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, sync::Arc, time::SystemTime};
+use std::{cell::Ref, path::PathBuf, sync::Arc, time::SystemTime};
 use uuid::Uuid;
 
 #[allow(clippy::to_string_in_format_args)]
@@ -27,7 +27,7 @@ pub struct FullFileSource<'a> {
 
 impl<'a> FullFileSource<'a> {
     /// Get the relative span
-    pub fn relative_span(&self, span: Span) -> Option<Span> {
+    pub fn relative_span(&self, span: Ref<'a, Span>) -> Option<Span> {
         self.spans
             .iter()
             .filter(|s| s.1.start < span.start && s.1.end > span.end)
