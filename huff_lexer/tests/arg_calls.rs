@@ -1,5 +1,6 @@
 use huff_lexer::*;
 use huff_utils::{evm::Opcode, prelude::*};
+use std::ops::Deref;
 
 #[test]
 fn lexes_arg_calls() {
@@ -66,24 +67,24 @@ fn lexes_arg_calls() {
     // We should find a left angle
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::LeftAngle, Span::new(184..185, None)));
-    assert_eq!(lexer.span, Span::new(184..185, None));
+    assert_eq!(lexer.current_span().deref(), &Span::new(184..185, None));
 
     // The we should have an Ident
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::Ident("error".to_string()), Span::new(185..190, None)));
-    assert_eq!(lexer.span, Span::new(185..190, None));
+    assert_eq!(lexer.current_span().deref(), &Span::new(185..190, None));
 
     // Then should find a right angle
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::RightAngle, Span::new(190..191, None)));
-    assert_eq!(lexer.span, Span::new(190..191, None));
+    assert_eq!(lexer.current_span().deref(), &Span::new(190..191, None));
 
     let _ = lexer.next(); // Whitespace
 
     // Jumpi Opcode
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::Opcode(Opcode::Jumpi), Span::new(192..197, None)));
-    assert_eq!(lexer.span, Span::new(192..197, None));
+    assert_eq!(lexer.current_span().deref(), &Span::new(192..197, None));
 
     // Eat the rest of the tokens
     let _ = lexer.next(); // Whitespace
@@ -93,10 +94,10 @@ fn lexes_arg_calls() {
     // Get an EOF token
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::Eof, Span::new(source.len()..source.len(), None)));
-    assert_eq!(lexer.span, Span::new(source.len()..source.len(), None));
+    assert_eq!(lexer.current_span().deref(), &Span::new(source.len()..source.len(), None));
 
     // We should have reached EOF now
-    assert_eq!(lexer.span.end, source.len());
+    assert_eq!(lexer.current_span().end, source.len());
     assert!(lexer.eof);
     assert!(lexer.next().is_none());
 }

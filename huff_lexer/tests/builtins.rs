@@ -1,5 +1,6 @@
 use huff_lexer::Lexer;
 use huff_utils::prelude::{FullFileSource, Span, Token, TokenKind};
+use std::ops::Deref;
 
 #[test]
 fn parses_builtin_function_in_macro_body() {
@@ -50,7 +51,7 @@ fn parses_builtin_function_in_macro_body() {
             unwrapped,
             Token::new(TokenKind::BuiltinFunction(builtin.to_string()), builtin_span.clone())
         );
-        assert_eq!(lexer.span, builtin_span);
+        assert_eq!(lexer.current_span().deref(), &builtin_span);
 
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // MAIN
@@ -60,7 +61,7 @@ fn parses_builtin_function_in_macro_body() {
         let _ = lexer.next(); // whitespace
 
         // We covered the whole source
-        assert_eq!(lexer.span.end, source.len());
+        assert_eq!(lexer.current_span().end, source.len());
         assert!(lexer.eof);
     }
 }
@@ -83,14 +84,14 @@ fn fails_to_parse_builtin_outside_macro_body() {
             unwrapped,
             Token::new(TokenKind::BuiltinFunction(builtin.to_string()), fn_name_span.clone())
         );
-        assert_eq!(lexer.span, fn_name_span);
+        assert_eq!(lexer.current_span().deref(), &fn_name_span);
 
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // MAIN
         let _ = lexer.next(); // close parenthesis
 
         // We covered the whole source
-        assert_eq!(lexer.span.end, source.len());
+        assert_eq!(lexer.current_span().end, source.len());
         assert!(lexer.eof);
     }
 }

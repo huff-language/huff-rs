@@ -1,5 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
+use std::ops::Deref;
 
 #[test]
 fn parses_function_type() {
@@ -29,7 +30,7 @@ fn parses_function_type() {
         let tok = lexer.next().unwrap().unwrap();
         let type_span = Span::new(24..24 + fn_type.len(), None);
         assert_eq!(tok, Token::new(fn_type_kind, type_span.clone()));
-        assert_eq!(lexer.span, type_span);
+        assert_eq!(lexer.current_span().deref(), &type_span);
 
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // returns
@@ -39,7 +40,7 @@ fn parses_function_type() {
         let _ = lexer.next(); // close parenthesis
 
         // We covered the whole source
-        assert_eq!(lexer.span.end, source.len());
+        assert_eq!(lexer.current_span().end, source.len());
         assert!(lexer.eof);
     }
 }
