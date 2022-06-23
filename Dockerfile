@@ -6,7 +6,7 @@ RUN apk add pkgconfig gcc musl-dev python3-dev libffi-dev openssl-dev clang lld 
     && ./rustup.sh -y
 WORKDIR /opt/huff-rs
 COPY . .
-RUN source $HOME/.profile && cargo build --release \
+RUN apk add pkg-config libssl-dev && source $HOME/.profile && cargo build --release \
     && strip /opt/huff-rs/target/release/huffc
 
 from alpine as huff-client
