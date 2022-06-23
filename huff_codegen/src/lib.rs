@@ -72,7 +72,7 @@ impl<'a> Codegen<'a> {
     }
 
     /// Gracefully get the Contract AST
-    pub fn graceful_ast_grab(&self, ast: Option<Contract>) -> Result<Contract, CodegenError> {
+    pub fn graceful_ast_grab(&self, ast: Option<Contract>) -> Result<Contract, CodegenError<'a>> {
         match ast {
             Some(a) => Ok(a),
             None => match &self.ast {
@@ -281,7 +281,7 @@ impl<'a> Codegen<'a> {
         args: Vec<ethers::abi::token::Token>,
         main_bytecode: &str,
         constructor_bytecode: &str,
-    ) -> Result<Artifact, CodegenError> {
+    ) -> Result<Artifact, CodegenError<'a>> {
         let mut artifact: &mut Artifact = if let Some(art) = &mut self.artifact {
             art
         } else {
@@ -322,7 +322,7 @@ impl<'a> Codegen<'a> {
     /// # Arguments
     ///
     /// * `out` - Output location to write the serialized json artifact to.
-    pub fn export(&self, output: String) -> Result<(), CodegenError> {
+    pub fn export(&self, output: String) -> Result<(), CodegenError<'a>> {
         if let Some(art) = &self.artifact {
             let serialized_artifact = serde_json::to_string(art).unwrap();
             fs::write(output, serialized_artifact).expect("Unable to write file");
@@ -345,7 +345,11 @@ impl<'a> Codegen<'a> {
     ///
     /// * `ast` - The Contract Abstract Syntax Tree
     /// * `output` - An optional output path
-    pub fn abigen(&mut self, ast: Contract, output: Option<String>) -> Result<Abi, CodegenError> {
+    pub fn abigen(
+        &mut self,
+        ast: Contract,
+        output: Option<String>,
+    ) -> Result<Abi, CodegenError<'a>> {
         let abi: Abi = ast.into();
 
         // Set the abi on self
