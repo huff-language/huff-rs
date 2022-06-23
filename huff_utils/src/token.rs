@@ -1,31 +1,31 @@
-use crate::{evm::Opcode, span::Span};
+use crate::{evm::Opcode, files::Span, types::PrimitiveEVMType};
 use std::{fmt, fmt::Write};
 
 type Literal = [u8; 32];
 
 /// A single Token
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Token<'a> {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Token {
     /// The kind of token
-    pub kind: TokenKind<'a>,
+    pub kind: TokenKind,
     /// An associated Span
     pub span: Span,
 }
 
-impl<'a> Token<'a> {
+impl Token {
     /// Public associated function that instantiates a Token.
-    pub fn new(kind: TokenKind<'a>, span: Span) -> Self {
+    pub fn new(kind: TokenKind, span: Span) -> Self {
         Self { kind, span }
     }
 }
 
 /// The kind of token
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum TokenKind<'a> {
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum TokenKind {
     /// EOF Token
     Eof,
     /// A Comment
-    Comment(&'a str),
+    Comment(String),
     /// Division
     /// Lexing done at the comment level due to clash
     Div,
@@ -37,16 +37,28 @@ pub enum TokenKind<'a> {
     Macro,
     /// "function" keyword
     Function,
+    /// "event" keyword
+    Event,
     /// "constant" keyword
     Constant,
     /// "takes" keyword
     Takes,
     /// "returns" keyword
     Returns,
+    /// "view" keyword
+    View,
+    /// "pure" keyword
+    Pure,
+    /// "payable" keyword
+    Payable,
+    /// "nonpayable" keyword
+    NonPayable,
+    /// "indexed" keyword
+    Indexed,
     /// "FREE_STORAGE_POINTER()" keyword
     FreeStoragePointer,
     /// An Identifier
-    Ident(&'a str),
+    Ident(String),
     /// Equal Sign
     Assign,
     /// An open parenthesis
@@ -61,6 +73,10 @@ pub enum TokenKind<'a> {
     OpenBrace,
     /// A close brace
     CloseBrace,
+    /// A Less-Than Angle Bracket
+    LeftAngle,
+    /// A Greater-Than Angle Bracket
+    RightAngle,
     /// Addition
     Add,
     /// Subtraction
@@ -69,27 +85,41 @@ pub enum TokenKind<'a> {
     Mul,
     /// A comma
     Comma,
+    /// A Colon
+    Colon,
     /// Number
     Num(usize),
     /// A Space
     Whitespace,
     /// A string literal
-    Str(&'a str),
-    // TODO below aren't lexed
+    Str(String),
     /// Hex
     Literal(Literal),
     /// Opcode
     Opcode(Opcode),
     /// Huff label (aka PC)
-    Label(&'a str),
+    Label(String),
     // TODO: recursive dependency resolution at the lexing level?
     // Import path
-    // Path(&'a str),
+    // Path(String),
+    /// EVM Type
+    PrimitiveType(PrimitiveEVMType),
+    /// Array of EVM Types
+    /// uint256[5][2][3] => ArrayType(PrimitiveEVMType::Uint(256), [5, 2, 3])
+    ArrayType(PrimitiveEVMType, Vec<usize>),
+    /// A Jump Table
+    JumpTable,
+    /// A Packed Jump Table
+    JumpTablePacked,
+    /// A Code Table
+    CodeTable,
+    /// A builtin function (__codesize, __tablesize, __tablestart)
+    BuiltinFunction(String),
 }
 
-impl<'a> fmt::Display for TokenKind<'a> {
+impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let x = match *self {
+        let x = match self {
             TokenKind::Eof => "EOF",
             TokenKind::Comment(s) => return write!(f, "Comment({})", s),
             TokenKind::Div => "/",
@@ -97,7 +127,13 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Include => "#include",
             TokenKind::Macro => "macro",
             TokenKind::Function => "function",
+            TokenKind::Event => "event",
             TokenKind::Constant => "constant",
+            TokenKind::View => "view",
+            TokenKind::Pure => "pure",
+            TokenKind::Payable => "payable",
+            TokenKind::NonPayable => "nonpayable",
+            TokenKind::Indexed => "indexed",
             TokenKind::Takes => "takes",
             TokenKind::Returns => "returns",
             TokenKind::FreeStoragePointer => "FREE_STORAGE_POINTER()",
@@ -109,15 +145,16 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::CloseBracket => "]",
             TokenKind::OpenBrace => "{",
             TokenKind::CloseBrace => "}",
+            TokenKind::LeftAngle => "<",
+            TokenKind::RightAngle => ">",
             TokenKind::Add => "+",
-            TokenKind::Sub => "+",
+            TokenKind::Sub => "-",
             TokenKind::Mul => "*",
+            TokenKind::Colon => ":",
             TokenKind::Comma => ",",
             TokenKind::Num(num) => return write!(f, "{}", num),
             TokenKind::Whitespace => " ",
             TokenKind::Str(str) => str,
-
-            // TODO these aren't lexed yet
             TokenKind::Literal(l) => {
                 let mut s = String::new();
                 for b in l.iter() {
@@ -127,6 +164,19 @@ impl<'a> fmt::Display for TokenKind<'a> {
             }
             TokenKind::Opcode(o) => return write!(f, "{}", o),
             TokenKind::Label(s) => return write!(f, "{}", s),
+            TokenKind::PrimitiveType(pt) => return write!(f, "{}", pt),
+            TokenKind::ArrayType(pt, size_vec) => {
+                let mut s = String::new();
+                for size in size_vec {
+                    let brackets = if size > &0 { format!("[{}]", size) } else { "[]".to_string() };
+                    s.push_str(&brackets);
+                }
+                return write!(f, "{}{}", pt, s)
+            }
+            TokenKind::JumpTable => "jumptable",
+            TokenKind::JumpTablePacked => "jumptable__packed",
+            TokenKind::CodeTable => "table",
+            TokenKind::BuiltinFunction(s) => return write!(f, "BuiltinFunction({})", s),
         };
 
         write!(f, "{}", x)

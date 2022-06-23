@@ -1,116 +1,170 @@
-//! ## Huff Lexer
-//!
-//! Lexical analyzer for the huff language.
-//!
-//! The Huff Lexer is instantiable with a string representing the source code.
-//!
-//! Once instantiated, the lexer can be used to iterate over the tokens in the source code.
-//! It also exposes a number of practical methods for accessing information about the source code
-//! throughout lexing.
-//!
-//! #### Usage
-//!
-//! The following example steps through the lexing of a simple, single-line source code macro
-//! definition.
-//!
-//! ```rust
-//! use huff_utils::{token::*, span::*};
-//! use huff_lexer::{Lexer};
-//!
-//! // Instantiate a new lexer
-//! let source = "#define macro HELLO_WORLD()";
-//! let mut lexer = Lexer::new(source);
-//! assert_eq!(lexer.source, source);
-//!
-//! // This token should be a Define identifier
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Define, Span::new(0..7)));
-//! assert_eq!(lexer.span, Span::new(0..7));
-//!
-//! // The next token should be the whitespace
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Whitespace, Span::new(7..8)));
-//! assert_eq!(lexer.span, Span::new(7..8));
-//!
-//! // Then we should parse the macro keyword
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Macro, Span::new(8..13)));
-//! assert_eq!(lexer.span, Span::new(8..13));
-//!
-//! // The next token should be another whitespace
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Whitespace, Span::new(13..14)));
-//! assert_eq!(lexer.span, Span::new(13..14));
-//!
-//! // Then we should get the function name
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::Ident("HELLO_WORLD"), Span::new(14..25)));
-//! assert_eq!(lexer.span, Span::new(14..25));
-//!
-//! // Then we should have an open paren
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::OpenParen, Span::new(25..26)));
-//! assert_eq!(lexer.span, Span::new(25..26));
-//!
-//! // Lastly, we should have a closing parenthesis
-//! let tok = lexer.next().unwrap().unwrap();
-//! assert_eq!(tok, Token::new(TokenKind::CloseParen, Span::new(26..27)));
-//! assert_eq!(lexer.span, Span::new(26..27));
-//!
-//! // We covered the whole source
-//! assert_eq!(lexer.span.end, source.len());
-//! assert!(lexer.eof);
-//! ```
-
-#![deny(missing_docs)]
+#![doc = include_str!("../README.md")]
 #![allow(dead_code)]
-use bytes::BytesMut;
-use huff_utils::{error::*, evm::*, span::*, token::*};
-use std::{iter::Peekable, str::Chars};
+#![warn(missing_docs)]
+#![warn(unused_extern_crates)]
+#![forbid(unsafe_code)]
+#![forbid(where_clauses_object_safety)]
+
+use huff_utils::prelude::*;
+use regex::Regex;
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    iter::Peekable,
+    str::Chars,
+};
+
+/// Defines a context in which the lexing happens.
+/// Allows to differientate between EVM types and opcodes that can either
+/// be identical or the latter being a substring of the former (example : bytes32 and byte)
+#[derive(Debug, PartialEq, Eq)]
+pub enum Context {
+    /// global context
+    Global,
+    /// Macro definition context
+    MacroDefinition,
+    /// Macro's body context
+    MacroBody,
+    /// ABI context
+    Abi,
+    /// Lexing args of functions inputs/outputs and events
+    AbiArgs,
+    /// constant context
+    Constant,
+}
 
 /// ## Lexer
 ///
 /// The lexer encapsulated in a struct.
 pub struct Lexer<'a> {
     /// The source code as peekable chars.
+    /// SHOULD NOT BE MODIFIED EVER!
+    pub reference_chars: Peekable<Chars<'a>>,
+    /// The source code as peekable chars.
     pub chars: Peekable<Chars<'a>>,
     /// The raw source code.
-    pub source: &'a str,
+    pub source: FullFileSource<'a>,
     /// The current lexing span.
-    pub span: Span,
-    /// The previous lexing span. (used for lookbacks)
-    pub prev_span: Span,
+    pub span: RefCell<Span>,
+    /// The previous lexed Token.
+    /// Cannot be a whitespace.
+    pub lookback: Option<Token>,
     /// If the lexer has reached the end of file.
     pub eof: bool,
     /// EOF Token has been returned.
     pub eof_returned: bool,
+    /// Current context.
+    pub context: Context,
 }
 
 impl<'a> Lexer<'a> {
     /// Public associated function that instantiates a new lexer.
-    pub fn new(source: &'a str) -> Self {
+    pub fn new(source: FullFileSource<'a>) -> Self {
         Self {
-            chars: source.chars().peekable(),
+            reference_chars: source.source.chars().peekable(),
+            chars: source.source.chars().peekable(),
             source,
-            span: Span::default(),
-            prev_span: Span::default(),
+            span: RefCell::new(Span::default()),
+            lookback: None,
             eof: false,
             eof_returned: false,
+            context: Context::Global,
         }
     }
 
-    /// Public associated function that returns the current lexing span.
-    pub fn current_span(&self) -> Span {
-        if self.eof {
-            Span::EOF
-        } else {
-            self.span
+    // `// #include "./Utils.huff"`
+    /// Lex all imports
+    pub fn lex_imports(source: &str) -> Vec<String> {
+        let mut imports = vec![];
+        let mut peekable_source = source.chars().peekable();
+        let mut include_chars_iterator = "#include".chars().peekable();
+        while peekable_source.peek().is_some() {
+            while let Some(nc) = peekable_source.next() {
+                if nc.eq(&'/') {
+                    if let Some(nnc) = peekable_source.peek() {
+                        if nnc.eq(&'/') {
+                            // Iterate until newline
+                            while let Some(lc) = &peekable_source.next() {
+                                if lc.eq(&'\n') {
+                                    break
+                                }
+                            }
+                        } else if nnc.eq(&'*') {
+                            // Iterate until '*/'
+                            while let Some(lc) = peekable_source.next() {
+                                if lc.eq(&'*') {
+                                    if let Some(llc) = peekable_source.peek() {
+                                        if *llc == '/' {
+                                            break
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if include_chars_iterator.peek().is_none() {
+                    // Reset the include chars iterator
+                    include_chars_iterator = "#include".chars().peekable();
+
+                    // Skip over whitespace
+                    while peekable_source.peek().is_some() {
+                        if !peekable_source.peek().unwrap().is_whitespace() {
+                            break
+                        } else {
+                            peekable_source.next();
+                        }
+                    }
+
+                    // Then we should have an import path between quotes
+                    match peekable_source.peek() {
+                        Some(char) => match char {
+                            '"' | '\'' => {
+                                peekable_source.next();
+                                let mut import = String::new();
+                                while peekable_source.peek().is_some() {
+                                    match peekable_source.next().unwrap() {
+                                        '"' | '\'' => {
+                                            imports.push(import);
+                                            break
+                                        }
+                                        c => import.push(c),
+                                    }
+                                }
+                            }
+                            _ => { /* Ignore non-include tokens */ }
+                        },
+                        None => { /* EOF */ }
+                    }
+                } else if nc.ne(&include_chars_iterator.next().unwrap()) {
+                    include_chars_iterator = "#include".chars().peekable();
+                    break
+                }
+            }
         }
+        imports
+    }
+
+    /// Public associated function that returns a shared reference to the current lexing span.
+    pub fn current_span(&self) -> Ref<Span> {
+        self.span.borrow()
+    }
+
+    /// Public associated function that returns an exclusive reference to the current lexing span.
+    pub fn current_span_mut(&self) -> RefMut<Span> {
+        self.span.borrow_mut()
     }
 
     /// Get the length of the previous lexing span.
-    pub fn prev_span_len(&self) -> usize {
-        self.prev_span.end - self.prev_span.start
+    pub fn lookback_len(&self) -> usize {
+        if let Some(lookback) = &self.lookback {
+            return lookback.span.end - lookback.span.start
+        }
+        0
+    }
+
+    /// Checks the previous token kind against the input.
+    pub fn checked_lookback(&self, kind: TokenKind) -> bool {
+        self.lookback.clone().and_then(|t| if t.kind == kind { Some(true) } else { None }).is_some()
     }
 
     /// Try to peek at the next character from the source
@@ -118,45 +172,46 @@ impl<'a> Lexer<'a> {
         self.chars.peek().copied()
     }
 
+    /// Dynamically peeks characters based on the filter
+    pub fn dyn_peek(&mut self, f: impl Fn(&char) -> bool + Copy) -> String {
+        let mut chars: Vec<char> = Vec::new();
+        let mut current_pos = self.current_span().start;
+        while self.nth_peek(current_pos).map(|x| f(&x)).unwrap_or(false) {
+            chars.push(self.nth_peek(current_pos).unwrap());
+            current_pos += 1;
+        }
+        chars.iter().collect()
+    }
+
     /// Try to peek at the nth character from the source
     pub fn nth_peek(&mut self, n: usize) -> Option<char> {
-        self.chars.clone().nth(n)
+        self.reference_chars.clone().nth(n)
     }
 
     /// Try to peek at next n characters from the source
     pub fn peek_n_chars(&mut self, n: usize) -> String {
-        let mut newspan: Span = self.span;
-        newspan.end += n;
+        let cur_span: Ref<Span> = self.current_span();
         // Break with an empty string if the bounds are exceeded
-        if newspan.end > self.source.len() {
+        if cur_span.end + n > self.source.source.len() {
             return String::default()
         }
-        self.source[newspan.range().unwrap()].to_string()
+        self.source.source[cur_span.start..cur_span.end + n].to_string()
     }
 
     /// Peek n chars from a given start point in the source
     pub fn peek_n_chars_from(&mut self, n: usize, from: usize) -> String {
-        self.source[Span::new(from..(from + n)).range().unwrap()].to_string()
-    }
-
-    /// Try to look back `dist` chars from `span.start`, but return an empty string if
-    /// `self.span.start - dist` will underflow.
-    pub fn try_look_back(&mut self, dist: usize) -> String {
-        match self.span.start.checked_sub(dist) {
-            Some(n) => self.peek_n_chars_from(dist - 1, n),
-            None => String::default(),
-        }
+        self.source.source[Span::new(from..(from + n), None).range().unwrap()].to_string()
     }
 
     /// Gets the current slice of the source code covered by span
-    pub fn slice(&self) -> &'a str {
-        &self.source[self.span.range().unwrap()]
+    pub fn slice(&self) -> String {
+        self.source.source[self.current_span().range().unwrap()].to_string()
     }
 
     /// Consumes the characters
     pub fn consume(&mut self) -> Option<char> {
         self.chars.next().map(|x| {
-            self.span.end += 1;
+            self.current_span_mut().end += 1;
             x
         })
     }
@@ -170,7 +225,7 @@ impl<'a> Lexer<'a> {
 
     /// Consume characters until a sequence matches
     pub fn seq_consume(&mut self, word: &str) {
-        let mut current_pos = self.span.start;
+        let mut current_pos = self.current_span().start;
         while self.peek() != None {
             let peeked = self.peek_n_chars_from(word.len(), current_pos);
             if word == peeked {
@@ -189,36 +244,58 @@ impl<'a> Lexer<'a> {
     }
 
     /// Resets the Lexer's span
+    ///
+    /// Only sets the previous span if the current token is not a whitespace.
     pub fn reset(&mut self) {
-        self.prev_span = self.span;
-        self.span.start = self.span.end;
+        let mut exclusive_span = self.current_span_mut();
+        exclusive_span.start = exclusive_span.end;
     }
 
     /// Check if a given keyword follows the keyword rules in the `source`. If not, it is a
     /// `TokenKind::Ident`.
     ///
     /// Rules:
-    /// - The `macro`, `function` and `constant` keywords must be preceded by a `#define` keyword.
+    /// - The `macro`, `function`, `constant`, `event`, `jumptable`, `jumptable__packed`, and
+    ///   `table` keywords must be preceded by a `#define` keyword.
     /// - The `takes` keyword must be preceded by an assignment operator: `=`.
+    /// - The `nonpayable`, `payable`, `view`, and `pure` keywords must be preceeded by one of these
+    ///   keywords or a close paren.
     /// - The `returns` keyword must be succeeded by an open parenthesis and must *not* be succeeded
     ///   by a colon or preceded by the keyword `function`
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
         match found_kind {
-            Some(TokenKind::Macro) | Some(TokenKind::Function) | Some(TokenKind::Constant) => {
-                let define_key = TokenKind::Define.to_string();
-                self.try_look_back(self.prev_span_len() + define_key.len()).trim() == define_key
+            Some(TokenKind::Macro) |
+            Some(TokenKind::Function) |
+            Some(TokenKind::Constant) |
+            Some(TokenKind::Event) |
+            Some(TokenKind::JumpTable) |
+            Some(TokenKind::JumpTablePacked) |
+            Some(TokenKind::CodeTable) => self.checked_lookback(TokenKind::Define),
+            Some(TokenKind::NonPayable) |
+            Some(TokenKind::Payable) |
+            Some(TokenKind::View) |
+            Some(TokenKind::Pure) => {
+                let keys = [
+                    TokenKind::NonPayable,
+                    TokenKind::Payable,
+                    TokenKind::View,
+                    TokenKind::Pure,
+                    TokenKind::CloseParen,
+                ];
+                for key in keys {
+                    if self.checked_lookback(key) {
+                        return true
+                    }
+                }
+                false
             }
-            Some(TokenKind::Takes) => {
-                let assign = TokenKind::Assign.to_string();
-                self.try_look_back(self.prev_span_len() + assign.len()).trim() == assign
-            }
+            Some(TokenKind::Takes) => self.checked_lookback(TokenKind::Assign),
             Some(TokenKind::Returns) => {
-                let function_key = TokenKind::Function.to_string();
+                let cur_span_end = self.current_span().end;
                 // Allow for loose and tight syntax (e.g. `returns (0)` & `returns(0)`)
-                self.peek_n_chars_from(2, self.span.end).trim().starts_with('(') &&
-                    self.try_look_back(self.prev_span_len() + function_key.len()).trim() !=
-                        function_key &&
-                    self.peek_n_chars_from(1, self.span.end) != ":"
+                self.peek_n_chars_from(2, cur_span_end).trim().starts_with('(') &&
+                    !self.checked_lookback(TokenKind::Function) &&
+                    self.peek_n_chars_from(1, cur_span_end) != ":"
             }
             _ => true,
         }
@@ -226,7 +303,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token<'a>, LexicalError>;
+    type Item = Result<Token, LexicalError<'a>>;
 
     /// Iterates over the source code
     fn next(&mut self) -> Option<Self::Item> {
@@ -260,29 +337,31 @@ impl<'a> Iterator for Lexer<'a> {
                     let mut found_kind: Option<TokenKind> = None;
 
                     let keys = [TokenKind::Define, TokenKind::Include];
-                    for kind in &keys {
+                    for kind in keys.into_iter() {
                         let key = kind.to_string();
-                        let peeked = self.peek_n_chars(key.len() - 1);
+                        let token_length = key.len() - 1;
+                        let peeked = self.peek_n_chars(token_length);
 
-                        if *key == peeked {
-                            self.dyn_consume(|c| c.is_alphabetic());
-                            found_kind = Some(*kind);
+                        if key == peeked {
+                            self.nconsume(token_length);
+                            found_kind = Some(kind);
                             break
                         }
                     }
 
-                    if let Some(kind) = found_kind {
-                        kind
+                    if let Some(kind) = &found_kind {
+                        kind.clone()
                     } else {
                         // Otherwise we don't support # prefixed indentifiers
+                        tracing::error!(target: "lexer", "INVALID '#' CHARACTER USAGE");
                         return Some(Err(LexicalError::new(
                             LexicalErrorKind::InvalidCharacter('#'),
-                            self.current_span(),
+                            self.current_span().clone(),
                         )))
                     }
                 }
                 // Alphabetical characters
-                ch if ch.is_alphabetic() => {
+                ch if ch.is_alphabetic() || ch.eq(&'_') => {
                     let mut found_kind: Option<TokenKind> = None;
 
                     let keys = [
@@ -291,14 +370,29 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Constant,
                         TokenKind::Takes,
                         TokenKind::Returns,
+                        TokenKind::Event,
+                        TokenKind::NonPayable,
+                        TokenKind::Payable,
+                        TokenKind::Indexed,
+                        TokenKind::View,
+                        TokenKind::Pure,
+                        // First check for packed jump table
+                        TokenKind::JumpTablePacked,
+                        // Match with jump table if not
+                        TokenKind::JumpTable,
+                        TokenKind::CodeTable,
                     ];
-                    for kind in &keys {
+                    for kind in keys.into_iter() {
+                        if self.context == Context::MacroBody {
+                            break
+                        }
                         let key = kind.to_string();
-                        let peeked = self.peek_n_chars(key.len() - 1);
+                        let token_length = key.len() - 1;
+                        let peeked = self.peek_n_chars(token_length);
 
-                        if *key == peeked {
-                            self.dyn_consume(|c| c.is_alphabetic());
-                            found_kind = Some(*kind);
+                        if key == peeked {
+                            self.nconsume(token_length);
+                            found_kind = Some(kind);
                             break
                         }
                     }
@@ -310,12 +404,24 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = None;
                     }
 
+                    if let Some(kind) = &found_kind {
+                        match kind {
+                            TokenKind::Macro => self.context = Context::MacroDefinition,
+                            TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
+                            TokenKind::Constant => self.context = Context::Constant,
+                            _ => (),
+                        }
+                    }
+
                     // Check for macro keyword
                     let fsp = "FREE_STORAGE_POINTER";
-                    let peeked = self.peek_n_chars(fsp.len() - 1);
+                    let token_length = fsp.len() - 1;
+                    let peeked = self.peek_n_chars(token_length);
                     if fsp == peeked {
-                        self.dyn_consume(|c| c.is_alphabetic() || c.eq(&'_'));
+                        self.nconsume(token_length);
                         // Consume the parenthesis following the FREE_STORAGE_POINTER
+                        // Note: This will consume `FREE_STORAGE_POINTER)` or
+                        // `FREE_STORAGE_POINTER(` as well
                         if let Some('(') = self.peek() {
                             self.consume();
                         }
@@ -325,51 +431,163 @@ impl<'a> Iterator for Lexer<'a> {
                         found_kind = Some(TokenKind::FreeStoragePointer);
                     }
 
+                    let potential_label: String =
+                        self.dyn_peek(|c| c.is_alphanumeric() || c == &'_' || c == &':');
+                    if let true = potential_label.ends_with(':') {
+                        self.dyn_consume(|c| c.is_alphanumeric() || c == &'_');
+                        let label = self.slice();
+                        if let Some(l) = label.get(0..label.len()) {
+                            found_kind = Some(TokenKind::Label(l.to_string()));
+                        } else {
+                            tracing::error!(target: "lexer", "[huff_lexer] Fatal Label Colon Truncation!");
+                        }
+                    }
+
+                    let pot_op = self.dyn_peek(|c| c.is_alphanumeric());
                     // goes over all opcodes
                     for opcode in OPCODES {
-                        let peeked = self.peek_n_chars(opcode.len() - 1);
-                        if opcode == peeked {
+                        if self.context != Context::MacroBody {
+                            break
+                        }
+                        if opcode == pot_op {
                             self.dyn_consume(|c| c.is_alphanumeric());
-                            found_kind = Some(TokenKind::Opcode(
-                                OPCODES_MAP.get(opcode).unwrap().to_owned(),
-                            ));
+                            if let Some(o) = OPCODES_MAP.get(opcode) {
+                                found_kind = Some(TokenKind::Opcode(o.to_owned()));
+                            } else {
+                                tracing::error!(target: "lexer", "[huff_lexer] Fatal Opcode Mapping!");
+                            }
                             break
                         }
                     }
 
-                    if let Some(kind) = found_kind {
-                        kind
+                    // Last case ; we are in ABI context and
+                    // we are parsing an EVM type
+                    if self.context == Context::AbiArgs {
+                        let curr_char = self.peek()?;
+                        if !['(', ')'].contains(&curr_char) {
+                            self.dyn_consume(|c| c.is_alphanumeric() || *c == '[' || *c == ']');
+                            // got a type at this point, we have to know which
+                            let raw_type: String = self.slice();
+                            // check for arrays first
+                            if EVM_TYPE_ARRAY_REGEX.is_match(&raw_type) {
+                                // split to get array size and type
+                                // TODO: support multi-dimensional arrays
+                                let words: Vec<String> = Regex::new(r"\[")
+                                    .unwrap()
+                                    .split(&raw_type)
+                                    .map(|x| x.replace(']', ""))
+                                    .collect();
+
+                                let mut size_vec: Vec<usize> = Vec::new();
+                                // go over all array sizes
+                                let sizes = words.get(1..words.len()).unwrap();
+                                for size in sizes.iter() {
+                                    match size.is_empty() {
+                                        true => size_vec.push(0),
+                                        false => {
+                                            let arr_size: usize = size
+                                                .parse::<usize>()
+                                                .map_err(|_| {
+                                                    let err = LexicalError {
+                                                        kind: LexicalErrorKind::InvalidArraySize(
+                                                            &words[1],
+                                                        ),
+                                                        span: self.current_span().clone(),
+                                                    };
+                                                    tracing::error!(target: "lexer", "{}", format!("{:?}", err));
+                                                    err
+                                                })
+                                                .unwrap();
+                                            size_vec.push(arr_size);
+                                        }
+                                    }
+                                }
+                                let primitive = PrimitiveEVMType::try_from(words[0].clone());
+                                if let Ok(primitive) = primitive {
+                                    found_kind = Some(TokenKind::ArrayType(primitive, size_vec));
+                                } else {
+                                    let err = LexicalError {
+                                        kind: LexicalErrorKind::InvalidPrimitiveType(&words[0]),
+                                        span: self.current_span().clone(),
+                                    };
+                                    tracing::error!(target: "lexer", "{}", format!("{:?}", err));
+                                }
+                            } else {
+                                // We don't want to consider any argument names or the "indexed"
+                                // keyword here.
+                                let primitive = PrimitiveEVMType::try_from(raw_type);
+                                if let Ok(primitive) = primitive {
+                                    found_kind = Some(TokenKind::PrimitiveType(primitive));
+                                }
+                            }
+                        }
+                    }
+
+                    if let Some(kind) = &found_kind {
+                        kind.clone()
                     } else {
                         self.dyn_consume(|c| c.is_alphanumeric() || c.eq(&'_'));
-                        TokenKind::Ident(self.slice())
+
+                        let slice = self.slice();
+                        // Check for built-in function calls
+                        if self.context == Context::MacroBody &&
+                            matches!(
+                                slice.as_ref(),
+                                "__codesize" | "__tablesize" | "__tablestart"
+                            )
+                        {
+                            TokenKind::BuiltinFunction(slice)
+                        } else {
+                            TokenKind::Ident(slice)
+                        }
                     }
                 }
                 // If it's the start of a hex literal
                 ch if ch == '0' && self.peek().unwrap() == 'x' => {
+                    self.consume(); // Consume the 'x' after '0' (separated from the `dyn_consume` so we don't have
+                                    // to match `x` in the actual hex)
                     self.dyn_consume(|c| {
                         c.is_numeric() ||
-                            // Match a-f, A-F, and 'x'
-                            // Note: This still allows for invalid hex, as it doesn't care if
-                            // there are multiple 'x' values in the literal.
-                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}' | 'x')
+                            // Match a-f & A-F
+                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
                     });
-                    let mut arr: [u8; 32] = Default::default();
-                    let mut buf = BytesMut::from(self.slice());
-                    buf.resize(32, 0);
-                    arr.copy_from_slice(buf.as_ref());
-                    TokenKind::Literal(arr)
+                    self.current_span_mut().start += 2; // Ignore the "0x"
+                    TokenKind::Literal(str_to_bytes32(self.slice().as_ref()))
                 }
                 '=' => TokenKind::Assign,
-                '(' => TokenKind::OpenParen,
-                ')' => TokenKind::CloseParen,
+                '(' => {
+                    if self.context == Context::Abi {
+                        self.context = Context::AbiArgs;
+                    }
+                    TokenKind::OpenParen
+                }
+                ')' => {
+                    if self.context == Context::AbiArgs {
+                        self.context = Context::Abi;
+                    }
+                    TokenKind::CloseParen
+                }
                 '[' => TokenKind::OpenBracket,
                 ']' => TokenKind::CloseBracket,
-                '{' => TokenKind::OpenBrace,
-                '}' => TokenKind::CloseBrace,
+                '{' => {
+                    if self.context == Context::MacroDefinition {
+                        self.context = Context::MacroBody;
+                    }
+                    TokenKind::OpenBrace
+                }
+                '}' => {
+                    if self.context == Context::MacroBody {
+                        self.context = Context::Global;
+                    }
+                    TokenKind::CloseBrace
+                }
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
                 '*' => TokenKind::Mul,
+                '<' => TokenKind::LeftAngle,
+                '>' => TokenKind::RightAngle,
                 // NOTE: TokenKind::Div is lexed further up since it overlaps with comment
+                ':' => TokenKind::Colon,
                 // identifiers
                 ',' => TokenKind::Comma,
                 '0'..='9' => {
@@ -387,7 +605,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('"') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str(&str[1..str.len() - 1])
+                            break TokenKind::Str((&str[1..str.len() - 1]).to_string())
                         }
                         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('"')) => {
                             self.consume();
@@ -395,9 +613,10 @@ impl<'a> Iterator for Lexer<'a> {
                         Some(_) => {}
                         None => {
                             self.eof = true;
+                            tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN");
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
-                                self.span,
+                                self.current_span().clone(),
                             )))
                         }
                     }
@@ -409,7 +628,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('\'') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str(&str[1..str.len() - 1])
+                            break TokenKind::Str((&str[1..str.len() - 1]).to_string())
                         }
                         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('\'')) => {
                             self.consume();
@@ -417,9 +636,10 @@ impl<'a> Iterator for Lexer<'a> {
                         Some(_) => {}
                         None => {
                             self.eof = true;
+                            tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN");
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
-                                self.span,
+                                self.current_span().clone(),
                             )))
                         }
                     }
@@ -427,9 +647,10 @@ impl<'a> Iterator for Lexer<'a> {
                 },
                 // At this point, the source code has an invalid or unsupported token
                 ch => {
+                    tracing::error!(target: "lexer", "UNSUPPORTED TOKEN '{}'", ch);
                     return Some(Err(LexicalError::new(
                         LexicalErrorKind::InvalidCharacter(ch),
-                        self.span,
+                        self.current_span().clone(),
                     )))
                 }
             };
@@ -438,7 +659,18 @@ impl<'a> Iterator for Lexer<'a> {
                 self.eof = true;
             }
 
-            let token = Token { kind, span: self.span };
+            // Produce a relative span
+            let new_span = match self.source.relative_span(self.current_span()) {
+                Some(s) => s,
+                None => {
+                    tracing::warn!(target: "lexer", "UNABLE TO RELATIVIZE SPAN FOR \"{}\"", kind);
+                    self.current_span().clone()
+                }
+            };
+            let token = Token { kind, span: new_span };
+            if token.kind != TokenKind::Whitespace {
+                self.lookback = Some(token.clone());
+            }
 
             return Some(Ok(token))
         }
@@ -449,7 +681,11 @@ impl<'a> Iterator for Lexer<'a> {
         // If we haven't returned an eof token, return one
         if !self.eof_returned {
             self.eof_returned = true;
-            return Some(Ok(Token { kind: TokenKind::Eof, span: self.span }))
+            let token = Token { kind: TokenKind::Eof, span: self.current_span().clone() };
+            if token.kind != TokenKind::Whitespace {
+                self.lookback = Some(token.clone());
+            }
+            return Some(Ok(token))
         }
 
         None

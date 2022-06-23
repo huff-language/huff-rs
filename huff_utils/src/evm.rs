@@ -298,8 +298,8 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
 };
 
 /// EVM Opcodes
-/// References https://evm.codes
-#[derive(Debug, PartialEq, Eq, EnumString, Clone, Copy)]
+/// References <https://evm.codes>
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumString)]
 pub enum Opcode {
     /// Halts execution.
     #[strum(serialize = "stop")]
