@@ -495,15 +495,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Parses whitespaces and newlines until none are left.
-    pub fn parse_nl_or_whitespace(&mut self) -> Result<(), ParserError> {
-        // There are no whitespace tokens
-        // while self.check(TokenKind::Whitespace) {
-        //     self.consume();
-        // }
-        Ok(())
-    }
-
     /// Parses the type of an argument.
     pub fn parse_arg_type(&mut self) -> Result<TokenKind, ParserError> {
         match self.current_token.kind {
