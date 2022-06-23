@@ -100,13 +100,12 @@ impl Codegen {
             &mut Vec::default(),
         )?;
 
-        // Generate the bytecode return string
-        let bytecode = bytecode_res.bytes.iter().map(|(_, b)| b.0.to_string()).collect();
-        Ok(bytecode)
+        // Generate the fully baked bytecode
+        Codegen::gen_table_bytecode(bytecode_res, contract)
     }
 
-    /// Adds table bytecode at the end of the `recurse_bytecode`
-    /// output and fills table JUMPDEST placeholders
+    /// Appends table bytecode to the end of the BytecodeRes output.
+    /// Fills table JUMPDEST placeholders.
     pub fn gen_table_bytecode(
         res: BytecodeRes,
         contract: &Contract,
