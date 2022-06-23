@@ -12,7 +12,7 @@ HUFF_DIR=${HUFF_DIR-"$HOME/.huff"}
 HUFF_BIN_DIR="$HUFF_DIR/bin"
 HUFF_MAN_DIR="$HUFF_DIR/share/man/man1"
 
-BIN_URL="https://raw.githubusercontent.com/huff-language/huff-rs/master/huffup/huffup"
+BIN_URL="https://raw.githubusercontent.com/huff-language/huff-rs/main/huffup/huffup"
 BIN_PATH="$HUFF_BIN_DIR/huffup"
 
 # Create the .huff bin directory and huffup binary if it doesn't exist.
