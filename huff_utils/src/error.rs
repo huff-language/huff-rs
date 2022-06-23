@@ -62,7 +62,7 @@ pub enum ParserErrorKind {
 pub struct LexicalError<'a> {
     /// The kind of error
     pub kind: LexicalErrorKind<'a>,
-    /// The span where the error occured
+    /// The span where the error occurred
     pub span: Span,
 }
 

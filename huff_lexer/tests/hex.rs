@@ -1,5 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
+use std::ops::Deref;
 
 #[test]
 fn parses_single_hex() {
@@ -10,11 +11,11 @@ fn parses_single_hex() {
     // The first and only token should be lexed as Literal(0xa57B)
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::Literal(str_to_bytes32("a57B")), Span::new(2..6, None)));
-    assert_eq!(lexer.span, Span::new(2..6, None));
+    assert_eq!(lexer.current_span().deref(), &Span::new(2..6, None));
 
     // We covered the whole source
     lexer.next();
-    assert_eq!(lexer.span.end, source.len());
+    assert_eq!(lexer.current_span().end, source.len());
     assert!(lexer.eof);
 }
 
@@ -27,11 +28,11 @@ fn parses_odd_len_hex() {
     // The first and only token should be lexed as Literal(0x1)
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::Literal(str_to_bytes32("1")), Span::new(2..3, None)));
-    assert_eq!(lexer.span, Span::new(2..3, None));
+    assert_eq!(lexer.current_span().deref(), &Span::new(2..3, None));
 
     // We covered the whole source
     lexer.next();
-    assert_eq!(lexer.span.end, source.len());
+    assert_eq!(lexer.current_span().end, source.len());
     assert!(lexer.eof);
 }
 

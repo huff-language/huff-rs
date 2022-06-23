@@ -57,10 +57,10 @@ main() {
 
 
     # Remove prior installations if they exist
-    rm -f "$HUFF_BIN_DIR/huff"
+    rm -f "$HUFF_BIN_DIR/huffc"
 
     # Symlink from local repo binaries to bin dir
-    ensure ln -s "$PWD/target/release/huff" "$HUFF_BIN_DIR/huff"
+    ensure ln -s "$PWD/target/release/huffc" "$HUFF_BIN_DIR/huff"
 
     say "done"
     exit 0
@@ -89,7 +89,7 @@ main() {
       HUFFUP_TAG="${HUFFUP_VERSION}"
     fi
 
-    say "installing huff (version ${HUFFUP_VERSION}, tag ${HUFFUP_TAG})"
+    say "installing huffc (version ${HUFFUP_VERSION}, tag ${HUFFUP_TAG})"
 
     PLATFORM="$(uname -s)"
     case $PLATFORM in
@@ -120,8 +120,8 @@ main() {
 
     # Compute the URL of the release tarball in the Huff repository.
     RELEASE_URL="https://github.com/${HUFFUP_REPO}/releases/download/${HUFFUP_TAG}/"
-    BIN_TARBALL_URL="${RELEASE_URL}huff${HUFFUP_VERSION}_${PLATFORM}_${ARCHITECTURE}.tar.gz"
-    MAN_TARBALL_URL="${RELEASE_URL}huff${HUFFUP_VERSION}.tar.gz"
+    BIN_TARBALL_URL="${RELEASE_URL}huffc${HUFFUP_VERSION}_${PLATFORM}_${ARCHITECTURE}.tar.gz"
+    MAN_TARBALL_URL="${RELEASE_URL}huffc${HUFFUP_VERSION}.tar.gz"
 
     # Download the binaries tarball and unpack it into the .huff bin directory.
     say "downloading latest huff-rs"
@@ -132,8 +132,8 @@ main() {
     say "installed - $($HUFF_BIN_DIR/huff --version)"
     say "done"
 
-    if [[ $(which huff) =~ "cargo" ]]; then
-      warn "it appears your system has already has huff-rs installed via cargo. you may need to run 'rm $(which huff)' to allow huffup to take precedence!"
+    if [[ $(which huffc) =~ "cargo" ]]; then
+      warn "it appears your system has already has huff-rs installed via cargo. you may need to run 'rm $(which huffc)' to allow huffup to take precedence!"
     fi
   else
     need_cmd cargo
