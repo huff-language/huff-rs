@@ -1,4 +1,4 @@
-use ethers::{
+use ethers_core::{
     abi::{Token, Tokenizable},
     types::*,
 };

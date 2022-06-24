@@ -1,6 +1,6 @@
 <img align="right" width="150" height="150" top="100" src="./assets/huff.png">
 
-# huff-rs • [![ci](https://github.com/huff-language/huff-rs/actions/workflows/ci.yaml/badge.svg)](https://github.com/huff-language/huff-rs/actions/workflows/ci.yaml) ![GitHub](https://img.shields.io/github/license/huff-language/huff-rs) ![Crates.io](https://img.shields.io/crates/v/huff-rs) ![Discord](https://img.shields.io/discord/980519274600882306)
+# huff-rs • [![ci](https://github.com/huff-language/huff-rs/actions/workflows/ci.yaml/badge.svg)](https://github.com/huff-language/huff-rs/actions/workflows/ci.yaml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) ![Crates.io](https://img.shields.io/crates/v/huff-rs) ![Discord](https://img.shields.io/discord/980519274600882306)
 
 > `huff-rs` is a [Huff](https://github.com/huff-language) compiler built in rust.
 
@@ -33,7 +33,7 @@ _Something not working? Send a message in [discord](https://discord.gg/2uuJyatE6
 First run the command below to get `huffup`, the Huff installer:
 
 ```bash
-curl -L https://huff.nascent.xyz | bash
+curl -L https://get.huff.sh | bash
 ```
 
 To avoid redirecting the script directly into bash, download and run the [huffup installation script](https://raw.githubusercontent.com/huff-language/huff-rs/main/huffup/install).
@@ -97,6 +97,11 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
 
 To run examples, make sure you update git submodules to pull down the [huff-examples](./huff-examples/) submodule by running `git submodule update`.
 
+The branching convention used by [huff-rs](https://github.com/huff-language/huff-rs) is a `stage` branch that is meant to be merged off of and is periodically merged into `main`. So, when creating a feature, branch off of the `stage` branch and create a pr from your branch into the `stage` branch!
+
+i.e:
+![Branching Conventions](./assets/branching.png)
+
 To pass github actions, please run:
 
 ```bash
@@ -141,4 +146,4 @@ An exemplary, minimal rust compiler: [ripc](https://github.com/ibraheemdev/ripc)
 
 [Foundry](https://github.com/foundry-rs/foundry), for the many scripts, documentation, devops, and code on which [huff-rs](https://github.com/huff-language/huff-rs) is based on.
 
-All [huff-rs](https://github.com/huff-language/huff-rs) contributors, users, advocates, and discord enthusiasts!
+All [huff-rs](https://github.com/huff-language/huff-rs) contributors, users, advocates, and enthusiasts!
