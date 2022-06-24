@@ -5,15 +5,8 @@ use uuid::Uuid;
 #[allow(clippy::to_string_in_format_args)]
 
 /// An aliased output location to derive from the cli arguments.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Default)]
 pub struct OutputLocation(pub String);
-
-impl Default for OutputLocation {
-    fn default() -> Self {
-        Self(String::default())
-    }
-}
-
 /// Full File Source
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct FullFileSource<'a> {
