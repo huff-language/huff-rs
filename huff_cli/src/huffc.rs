@@ -39,6 +39,10 @@ struct Huff {
     #[clap(short = 'i', long = "inputs", multiple_values = true)]
     inputs: Option<Vec<String>>,
 
+    /// Whether to generate artifacts or not
+    #[clap(short = 'a', long = "artifacts")]
+    artifacts: bool,
+
     /// Optimize compilation.
     #[clap(short = 'z', long = "optimize")]
     optimize: bool,
@@ -75,9 +79,10 @@ fn main() {
     };
     let compiler: Compiler = Compiler {
         sources: Arc::clone(&sources),
-        output: match &cli.output {
-            Some(o) => Some(o.clone()),
-            None => Some(cli.outputdir.clone()),
+        output: match (&cli.output, cli.artifacts) {
+            (Some(o), true) => Some(o.clone()),
+            (None, true) => Some(cli.outputdir.clone()),
+            _ => None,
         },
         construct_args: cli.inputs,
         optimize: cli.optimize,
