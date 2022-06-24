@@ -103,7 +103,22 @@ impl<'a> Compiler {
         let file_paths: Vec<PathBuf> = Compiler::transform_paths(&self.sources)?;
 
         // Parallel file fetching
-        let files: Vec<Arc<FileSource>> = Compiler::fetch_sources(&file_paths);
+        let files: Vec<Result<Arc<FileSource>, CompilerError>> =
+            Compiler::fetch_sources(file_paths);
+
+        // Unwrap errors
+        let mut errors =
+            files.iter().filter_map(|rfs| rfs.as_ref().err()).collect::<Vec<&CompilerError>>();
+        if !errors.is_empty() {
+            let error = errors.remove(0);
+            return Err(Arc::new(error.clone()))
+        }
+
+        // Unpack files into their file sources
+        let files = files
+            .iter()
+            .filter_map(|fs| fs.as_ref().map(Arc::clone).ok())
+            .collect::<Vec<Arc<FileSource>>>();
 
         // Parallel Dependency Resolution
         let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
@@ -265,13 +280,13 @@ impl<'a> Compiler {
     }
 
     /// Get the file sources for a vec of PathBufs
-    pub fn fetch_sources(paths: &Vec<PathBuf>) -> Vec<Arc<FileSource>> {
-        let files: Vec<Arc<FileSource>> = paths
+    pub fn fetch_sources(paths: Vec<PathBuf>) -> Vec<Result<Arc<FileSource>, CompilerError<'a>>> {
+        paths
             .into_par_iter()
             .map(|pb| {
                 let file_loc = String::from(pb.to_string_lossy());
                 match std::fs::read_to_string(&file_loc) {
-                    Ok(source) => Some(Arc::new(FileSource {
+                    Ok(source) => Ok(Arc::new(FileSource {
                         id: Uuid::new_v4(),
                         path: file_loc,
                         source: Some(source),
@@ -280,15 +295,11 @@ impl<'a> Compiler {
                     })),
                     Err(_) => {
                         tracing::error!(target: "core", "FILE READ FAILED: \"{}\"!", file_loc);
-                        None
+                        Err(CompilerError::FileUnpackError(UnpackError::MissingFile(file_loc)))
                     }
                 }
             })
-            .filter(|f| f.is_some())
-            .map(|f| f.unwrap_or_default())
-            .collect();
-        tracing::info!(target: "core", "COMPILER FETCHED {} FILE SOURCES", files.len());
-        files
+            .collect()
     }
 
     /// Recurses file dependencies
@@ -327,7 +338,12 @@ impl<'a> Compiler {
             tracing::info!(target: "core", "LOCALIZED IMPORTS {:?}", localized_imports);
         }
         let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&localized_imports)?;
-        let mut file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&import_bufs);
+        let potentials: Result<Vec<Arc<FileSource>>, CompilerError> =
+            Compiler::fetch_sources(import_bufs).iter().cloned().collect();
+        let mut file_sources = match potentials {
+            Ok(p) => p,
+            Err(e) => return Err(Arc::new(e)),
+        };
         if !file_sources.is_empty() {
             tracing::info!(target: "core", "FETCHED {} FILE SOURCES", file_sources.len());
         }

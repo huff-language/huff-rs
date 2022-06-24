@@ -12,6 +12,8 @@ pub enum UnpackError {
     UnsupportedExtension(String),
     /// Failed to read directory
     InvalidDirectory(String),
+    /// Missing File
+    MissingFile(String),
 }
 
 /// Unpacks huff files into a vec of strings.
