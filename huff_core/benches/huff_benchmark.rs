@@ -7,9 +7,12 @@ use huff_utils::prelude::*;
 use std::{path::PathBuf, sync::Arc};
 
 fn lex_erc20_from_source_benchmark(c: &mut Criterion) {
-    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![PathBuf::from(
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-    )]);
+    )])
+    .into_iter()
+    .map(|p| p.unwrap())
+    .collect();
 
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
@@ -31,9 +34,12 @@ fn lex_erc20_from_source_benchmark(c: &mut Criterion) {
 }
 
 fn parse_erc20_benchmark(c: &mut Criterion) {
-    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![PathBuf::from(
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-    )]);
+    )])
+    .into_iter()
+    .map(|p| p.unwrap())
+    .collect();
 
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
@@ -60,9 +66,12 @@ fn parse_erc20_benchmark(c: &mut Criterion) {
 }
 
 fn codegen_erc20_benchmark(c: &mut Criterion) {
-    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![PathBuf::from(
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-    )]);
+    )])
+    .into_iter()
+    .map(|p| p.unwrap())
+    .collect();
 
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
@@ -101,9 +110,12 @@ fn codegen_erc20_benchmark(c: &mut Criterion) {
 
 fn erc20_compilation_benchmark(c: &mut Criterion) {
     c.bench_function("Full ERC-20 compilation", |b| b.iter(|| {
-        let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![PathBuf::from(
+        let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
             "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-        )]);
+        )])
+            .into_iter()
+            .map(|p| p.unwrap())
+            .collect();
 
         // Recurse file deps + generate flattened source
         let file_source = file_sources.get(0).unwrap();
@@ -138,9 +150,12 @@ fn erc20_compilation_benchmark(c: &mut Criterion) {
 
 fn erc721_compilation_benchmark(c: &mut Criterion) {
     c.bench_function("Full ERC-721 compilation", |b| b.iter(|| {
-        let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![PathBuf::from(
+        let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
             "../huff-examples/erc721/contracts/ERC721.huff".to_string(),
-        )]);
+        )])
+            .into_iter()
+            .map(|p| p.unwrap())
+            .collect();
 
         // Recurse file deps + generate flattened source
         let file_source = file_sources.get(0).unwrap();
