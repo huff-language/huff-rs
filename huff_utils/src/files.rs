@@ -10,7 +10,7 @@ pub struct OutputLocation(pub String);
 
 impl Default for OutputLocation {
     fn default() -> Self {
-        Self("".to_string())
+        Self(String::default())
     }
 }
 
@@ -68,7 +68,7 @@ impl FileSource {
     pub fn fully_flatten(self_ref: Arc<FileSource>) -> (String, Vec<(Arc<FileSource>, Span)>) {
         // First grab the parent file source
         let mut full_source =
-            if let Some(s) = &self_ref.source { s.clone() } else { "".to_string() };
+            if let Some(s) = &self_ref.source { s.clone() } else { String::default() };
         let span = Span::new(0..full_source.len(), None);
         let mut relative_positions = vec![(Arc::clone(&self_ref), span)];
 
