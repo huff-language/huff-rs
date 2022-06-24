@@ -228,29 +228,33 @@ impl<'a> Compiler {
             }
         };
         tracing::info!(target: "core", "MAIN BYTECODE GENERATED [{}]", main_bytecode);
+        let inputs = self.get_constructor_args();
         let constructor_bytecode = match Codegen::generate_constructor_bytecode(&contract) {
             Ok(mb) => mb,
             Err(mut e) => {
-                // Add File Source to Span
-                e.span = AstSpan(
-                    e.span
-                        .0
-                        .iter()
-                        .map(|s| {
-                            let mut n_s = s.clone();
-                            n_s.file = Some(Arc::clone(&file));
-                            n_s
-                        })
-                        .collect::<Vec<Span>>(),
-                );
-                tracing::error!(target: "codegen", "Construct Failed with CodegenError: {:?}", e);
-                return Err(CompilerError::CodegenError(e))
+                if !inputs.is_empty() {
+                    // Add File Source to Span
+                    e.span = AstSpan(
+                        e.span
+                            .0
+                            .iter()
+                            .map(|s| {
+                                let mut n_s = s.clone();
+                                n_s.file = Some(Arc::clone(&file));
+                                n_s
+                            })
+                            .collect::<Vec<Span>>(),
+                    );
+                    tracing::error!(target: "codegen", "Constructor inputs provided, but contract missing \"CONSTRUCTOR\" macro!");
+                    return Err(CompilerError::CodegenError(e))
+                }
+                tracing::warn!(target: "codegen", "Contract has no \"CONSTRUCTOR\" macro definition!");
+                "".to_string()
             }
         };
 
         // Encode Constructor Arguments
         tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
-        let inputs = self.get_constructor_args();
         tracing::info!(target: "core", "ENCODING {} INPUTS", inputs.len());
         let encoded_inputs = Codegen::encode_constructor_args(inputs);
         tracing::info!(target: "core", "ENCODED {} INPUTS", encoded_inputs.len());
