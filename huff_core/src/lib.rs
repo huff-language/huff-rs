@@ -339,7 +339,7 @@ impl<'a> Compiler {
         }
         let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&localized_imports)?;
         let potentials: Result<Vec<Arc<FileSource>>, CompilerError> =
-            Compiler::fetch_sources(import_bufs).iter().cloned().collect();
+            Compiler::fetch_sources(import_bufs).into_iter().collect();
         let mut file_sources = match potentials {
             Ok(p) => p,
             Err(e) => return Err(Arc::new(e)),

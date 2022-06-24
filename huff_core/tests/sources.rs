@@ -34,7 +34,6 @@ fn test_fetch_invalid_sources() {
         PathBuf::from("../huff-examples/erc20/contracts/random/".to_string()),
         PathBuf::from("../huff-examples/erc20/contracts/utils/".to_string()),
     ];
-    #[allow(clippy::needless_collect)]
     let file_sources: Vec<Result<Arc<FileSource>, CompilerError>> =
         Compiler::fetch_sources(paths.clone());
     for (i, e) in file_sources.iter().enumerate() {
