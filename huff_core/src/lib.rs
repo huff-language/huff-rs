@@ -215,11 +215,10 @@ impl<'a> Compiler {
                 e.span = AstSpan(
                     e.span
                         .0
-                        .iter()
-                        .map(|s| {
-                            let mut n_s = s.clone();
-                            n_s.file = Some(Arc::clone(&file));
-                            n_s
+                        .into_iter()
+                        .map(|mut s| {
+                            s.file = Some(Arc::clone(&file));
+                            s
                         })
                         .collect::<Vec<Span>>(),
                 );
@@ -237,11 +236,10 @@ impl<'a> Compiler {
                     e.span = AstSpan(
                         e.span
                             .0
-                            .iter()
-                            .map(|s| {
-                                let mut n_s = s.clone();
-                                n_s.file = Some(Arc::clone(&file));
-                                n_s
+                            .into_iter()
+                            .map(|mut s| {
+                                s.file = Some(Arc::clone(&file));
+                                s
                             })
                             .collect::<Vec<Span>>(),
                     );
