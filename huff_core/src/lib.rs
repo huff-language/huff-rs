@@ -185,7 +185,7 @@ impl<'a> Compiler {
             file: Some(Arc::clone(&file)),
             spans: flattened.1,
         };
-        tracing::debug!(target: "core", "GOT FULL SOURCE: \"{:?}\"", full_source);
+        tracing::debug!(target: "core", "GOT FULL SOURCE FOR PATH: {:?}", file.path);
 
         // Perform Lexical Analysis
         // Create a new lexer from the FileSource, flattening dependencies
