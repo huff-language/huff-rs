@@ -4,8 +4,7 @@ use huff_utils::{evm::Opcode, prelude::*};
 
 #[test]
 fn not_mistaken_as_opcode() {
-    let source = 
-    r#"
+    let source = r#"
         #define macro IS_AUTHORIZED(not_authed_arg) = takes(0) returns(0) {}
         #define macro MAIN() = takes(0) returns(0) {
             IS_AUTHORIZED(not_authed)
@@ -23,8 +22,5 @@ fn not_mistaken_as_opcode() {
         .collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let contract = parser.parse().unwrap();
-    assert_eq!(
-        true,
-        true
-    );
+    assert_eq!(true, true);
 }
