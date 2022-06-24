@@ -4,9 +4,9 @@ use huff_utils::prelude::{OutputLocation, FileSource, Artifact};
 /// Parallelized Artifact Cachcing
 pub fn get_cached_artifacts(files: Vec<Arc<FileSource>>, out: OutputLocation) -> Option<Vec<Artifact>> {
   // Check if the file artifacts are already generated the the default "./artifacts/" directory or the specified output dir
-  resolve_existing_artifacts(out)
+  let artifacts: Vec<(Arc<FileSource>, Artifact)> = resolve_existing_artifacts(out);
 
-  // cloned_files
+  // For each 
   
 
 }
