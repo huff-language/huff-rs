@@ -20,7 +20,8 @@ fn not_mistaken_as_opcode() {
         .map(|x| x.unwrap())
         .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
         .collect::<Vec<Token>>();
+    let actual_label = tokens[tokens.len() - 5].kind.clone();
     let mut parser = Parser::new(tokens, None);
     let contract = parser.parse().unwrap();
-    assert_eq!(true, true);
+    assert_eq!(actual_label, TokenKind::Label("not_authed".to_string()));
 }
