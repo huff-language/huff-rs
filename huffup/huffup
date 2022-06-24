@@ -129,7 +129,7 @@ main() {
     # Download the man tarball and unpack it into the .huff man directory.
     say "downloading manpages"
     ensure curl -# -L $MAN_TARBALL_URL | tar -xzC $HUFF_MAN_DIR
-    say "installed - $($HUFF_BIN_DIR/huff --version)"
+    say "installed - $($HUFF_BIN_DIR/huffc --version)"
     say "done"
 
     if [[ $(which huffc) =~ "cargo" ]]; then
@@ -137,7 +137,7 @@ main() {
     fi
   else
     need_cmd cargo
-    HUFFUP_BRANCH=${HUFFUP_BRANCH-master}
+    HUFFUP_BRANCH=${HUFFUP_BRANCH-main}
     REPO_PATH="${HUFF_DIR}/${HUFFUP_REPO}"
 
     if [ ! -d $REPO_PATH ]; then
@@ -162,7 +162,7 @@ main() {
 
     # If help2man is installed, use it to add Huff man pages.
     if command -v help2man &> /dev/null ; then
-      help2man -N $HUFF_BIN_DIR/huff > $HUFF_MAN_DIR/huff.1
+      help2man -N $HUFF_BIN_DIR/huffc > $HUFF_MAN_DIR/huff.1
     fi
     say "done"
   fi

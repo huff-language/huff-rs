@@ -146,12 +146,12 @@ jobs:
           VERSION_NAME: ${{ (env.IS_NIGHTLY && 'nightly') || needs.prepare.outputs.tag_name }}
         run: |
           if [ "$PLATFORM_NAME" == "linux" ]; then
-            tar -czvf "huff_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.tar.gz" -C ./target/${TARGET}/release huff
+            tar -czvf "huff_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.tar.gz" -C ./target/${TARGET}/release huffc
             echo "::set-output name=file_name::huff_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.tar.gz"
           elif [ "$PLATFORM_NAME" == "darwin" ]; then
             # We need to use gtar here otherwise the archive is corrupt.
             # See: https://github.com/actions/virtual-environments/issues/2619
-            gtar -czvf "huff_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.tar.gz" -C ./target/${TARGET}/release huff
+            gtar -czvf "huff_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.tar.gz" -C ./target/${TARGET}/release huffc
             echo "::set-output name=file_name::huff_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.tar.gz"
           else
             cd ./target/${TARGET}/release
@@ -170,7 +170,7 @@ jobs:
           VERSION_NAME: ${{ (env.IS_NIGHTLY && 'nightly') || needs.prepare.outputs.tag_name }}
         run: |
           sudo apt-get -y install help2man
-          help2man -N ./target/${TARGET}/release/huff > huff.1
+          help2man -N ./target/${TARGET}/release/huffc > huff.1
           gzip huff.1
           tar -czvf "huff_man_${VERSION_NAME}.tar.gz" huff.1.gz
           echo "::set-output name=huff_man::huff_man_${VERSION_NAME}.tar.gz"
@@ -187,6 +187,7 @@ jobs:
           files: |
             ${{ steps.artifacts.outputs.file_name }}
             ${{ steps.man.outputs.huff_man }}
+
       # If this is a nightly release, it also updates the release
       # tagged `nightly` for compatability with `huffup`
       - name: Update nightly release
@@ -200,6 +201,7 @@ jobs:
           files: |
             ${{ steps.artifacts.outputs.file_name }}
             ${{ steps.man.outputs.huff_man }}
+
   cleanup:
     name: Release cleanup
     runs-on: ubuntu-latest
@@ -217,6 +219,7 @@ jobs:
           script: |
             const moveTag = require('./.github/scripts/move-tag.js')
             await moveTag({ github, context }, 'nightly')
+
       - name: Delete old nightlies
         uses: actions/github-script@v5
         with:

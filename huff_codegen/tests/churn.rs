@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use ethers::abi::Token;
+use ethers_core::abi::Token;
 use huff_codegen::Codegen;
 use huff_utils::prelude::FileSource;
 

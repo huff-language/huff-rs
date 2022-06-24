@@ -383,7 +383,7 @@ impl Codegen {
     pub fn churn(
         &mut self,
         file: Arc<FileSource>,
-        args: Vec<ethers::abi::token::Token>,
+        args: Vec<ethers_core::abi::token::Token>,
         main_bytecode: &str,
         constructor_bytecode: &str,
     ) -> Result<Artifact, CodegenError> {
@@ -401,7 +401,7 @@ impl Codegen {
         let contract_code_offset = format!("{:04x}", 13 + constructor_length);
 
         let encoded: Vec<Vec<u8>> =
-            args.iter().map(|tok| ethers::abi::encode(&[tok.clone()])).collect();
+            args.iter().map(|tok| ethers_core::abi::encode(&[tok.clone()])).collect();
         let hex_args: Vec<String> = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
         let constructor_args = hex_args.join("");
 
@@ -415,9 +415,9 @@ impl Codegen {
         Ok(artifact.clone())
     }
 
-    /// Encode constructor arguments as ethers::abi::token::Token
-    pub fn encode_constructor_args(args: Vec<String>) -> Vec<ethers::abi::token::Token> {
-        let tokens: Vec<ethers::abi::token::Token> =
+    /// Encode constructor arguments as ethers_core::abi::token::Token
+    pub fn encode_constructor_args(args: Vec<String>) -> Vec<ethers_core::abi::token::Token> {
+        let tokens: Vec<ethers_core::abi::token::Token> =
             args.iter().map(|tok| EToken::try_from(tok.clone()).unwrap().0).collect();
         tokens
     }
