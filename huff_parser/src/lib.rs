@@ -311,7 +311,7 @@ impl Parser {
         self.match_kind(TokenKind::Ident("x".to_string()))?;
         let tok = self.peek_behind().unwrap().kind;
         let name = match tok {
-            TokenKind::Ident(event_name) => event_name,
+            TokenKind::Ident(const_name) => const_name,
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 let new_spans = self.spans.clone();

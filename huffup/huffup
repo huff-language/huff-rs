@@ -120,8 +120,8 @@ main() {
 
     # Compute the URL of the release tarball in the Huff repository.
     RELEASE_URL="https://github.com/${HUFFUP_REPO}/releases/download/${HUFFUP_TAG}/"
-    BIN_TARBALL_URL="${RELEASE_URL}huffc${HUFFUP_VERSION}_${PLATFORM}_${ARCHITECTURE}.tar.gz"
-    MAN_TARBALL_URL="${RELEASE_URL}huffc${HUFFUP_VERSION}.tar.gz"
+    BIN_TARBALL_URL="${RELEASE_URL}huff_${HUFFUP_VERSION}_${PLATFORM}_${ARCHITECTURE}.tar.gz"
+    MAN_TARBALL_URL="${RELEASE_URL}huff_man_${HUFFUP_VERSION}.tar.gz"
 
     # Download the binaries tarball and unpack it into the .huff bin directory.
     say "downloading latest huff-rs"

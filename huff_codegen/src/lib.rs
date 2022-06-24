@@ -430,7 +430,7 @@ impl Codegen {
     ///
     /// * `out` - Output location to write the serialized json artifact to.
     pub fn export(output: String, art: &Artifact) -> Result<(), CodegenError> {
-        let serialized_artifact = serde_json::to_string(art).unwrap();
+        let serialized_artifact = serde_json::to_string_pretty(art).unwrap();
         // Try to create the parent directory
         let file_path = Path::new(&output);
         if let Some(p) = file_path.parent() {
