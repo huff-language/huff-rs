@@ -397,7 +397,6 @@ impl<'a> Compiler {
                     a.file.path.to_uppercase().replacen("./", "", 1)
                 ),
             };
-            tracing::debug!(target: "core", "JSON OUTPUT: {:?}", json_out);
 
             if let Err(e) = a.export(&json_out) {
                 tracing::error!(target: "core", "ARTIFACT EXPORT FAILED!\nError: {:?}", e);
