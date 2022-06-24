@@ -258,6 +258,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         unsupported
                     )
                 }
+                UnpackError::MissingFile(file) => {
+                    write!(f, "\nError: File Not Found \"{}\"\n", file)
+                }
             },
             CompilerError::ParserError(pe) => match &pe.kind {
                 ParserErrorKind::SyntaxError(se) => {

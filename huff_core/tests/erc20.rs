@@ -8,9 +8,12 @@ use huff_utils::prelude::*;
 
 #[test]
 fn test_erc20_compile() {
-    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![PathBuf::from(
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-    )]);
+    )])
+    .iter()
+    .map(|p| p.clone().unwrap())
+    .collect();
 
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
