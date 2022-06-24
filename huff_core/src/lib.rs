@@ -19,6 +19,8 @@ use std::{
 use tracing_subscriber::{filter::Directive, EnvFilter};
 use uuid::Uuid;
 
+pub(crate) mod cache;
+
 /// ## The Core Huff Compiler
 ///
 /// #### Usage
@@ -120,6 +122,18 @@ impl<'a> Compiler {
             .filter_map(|fs| fs.as_ref().map(Arc::clone).ok())
             .collect::<Vec<Arc<FileSource>>>();
 
+        // Grab the output
+        let output = self.get_outputs();
+
+        // Parallelize Artifact Caching
+        rayon::spawn({
+            let cloned_files: Vec<Arc<FileSource>> = files.iter().map(Arc::clone).collect();
+            let ol: OutputLocation = output.clone();
+            || {
+                cache::get_cached_artifacts(cloned_files, ol)
+            }
+        });
+
         // Parallel Dependency Resolution
         let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
             files.into_par_iter().map(Compiler::recurse_deps).collect();
@@ -162,9 +176,6 @@ impl<'a> Compiler {
             0 => tracing::warn!(target: "core", "NO FILES COMPILED SUCCESSFULLY"),
             num => tracing::info!(target: "core", "{} FILES COMPILED SUCCESSFULLY", num),
         }
-
-        // Grab the output
-        let output = self.get_outputs();
 
         // Export
         Compiler::export_artifacts(&artifacts, &output);
