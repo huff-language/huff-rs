@@ -28,7 +28,7 @@ fn convert_function_param_type() {
     ]);
 
     for (index, func_type) in func_types.into_iter().enumerate() {
-        let ac_func_type = FunctionParamType::convert_string_to_type(func_type);
+        let ac_func_type = FunctionParamType::convert_string_to_type(func_type).unwrap();
         assert_eq!(ac_func_type, *expected_fn_types.get(&index).unwrap());
     }
 }
