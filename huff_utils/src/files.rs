@@ -10,7 +10,7 @@ pub struct OutputLocation(pub String);
 
 impl Default for OutputLocation {
     fn default() -> Self {
-        Self("./artifacts/".to_string())
+        Self("".to_string())
     }
 }
 
