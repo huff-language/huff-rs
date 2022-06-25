@@ -20,6 +20,7 @@ ethers-core = "0.13.0"
 yansi = "0.5.1"
 spinners = "4.1.0"
 uuid = { version = "1.1.1", features = ["v4"] }
+isatty = "0.1.9"
 
 [[bin]]
 name = "huffc"
