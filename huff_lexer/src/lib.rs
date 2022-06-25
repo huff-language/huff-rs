@@ -444,6 +444,15 @@ impl<'a> Iterator for Lexer<'a> {
                     }
 
                     let pot_op = self.dyn_peek(|c| c.is_alphanumeric());
+
+                    // Syntax sugar: true evaluates to 0x01, false evaluates to 0x00
+                    if matches!(pot_op.as_str(), "true" | "false") {
+                        found_kind = Some(TokenKind::Literal(str_to_bytes32(
+                            if pot_op.as_str() == "true" { "1" } else { "0" },
+                        )));
+                        self.dyn_consume(|c| c.is_alphabetic());
+                    }
+
                     // goes over all opcodes
                     for opcode in OPCODES {
                         if self.context != Context::MacroBody {
@@ -477,7 +486,6 @@ impl<'a> Iterator for Lexer<'a> {
                                     .split(&raw_type)
                                     .map(|x| x.replace(']', ""))
                                     .collect();
-
                                 let mut size_vec: Vec<usize> = Vec::new();
                                 // go over all array sizes
                                 let sizes = words.get(1..words.len()).unwrap();

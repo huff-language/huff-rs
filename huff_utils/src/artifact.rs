@@ -24,7 +24,7 @@ pub struct Artifact {
 impl Artifact {
     /// Exports an artifact to a json file
     pub fn export(&self, out: &str) -> std::result::Result<(), std::io::Error> {
-        let serialized_artifact = serde_json::to_string(self)?;
+        let serialized_artifact = serde_json::to_string_pretty(self)?;
         let file_path = Path::new(out);
         if let Some(p) = file_path.parent() {
             tracing::debug!(target: "abi", "Creating directory: \"{:?}\"", p);

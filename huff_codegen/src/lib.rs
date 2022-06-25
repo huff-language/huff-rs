@@ -397,47 +397,39 @@ impl Codegen {
         let contract_length = main_bytecode.len() / 2;
         let constructor_length = constructor_bytecode.len() / 2;
         let mut bootstrap_code_size = 0;
-
-        // Compute pushX(contract size)
-        let push_contract_size_code = if contract_length < 256 {
-            // Convert the size and offset to bytes.
-            let contract_size = format!("{:02x}", contract_length);
-            // push1(contract size)
-            format!("60{}", contract_size)
-        } else {
-            // Increment bootstrap code size
-            bootstrap_code_size += 1;
-            // Convert the size and offset to bytes.
-            let contract_size = format!("{:04x}", contract_length);
-            // push2(contract size)
-            format!("61{}", contract_size)
-        };
-
-        // Compute pushX(offset to code)
-        let push_contract_code_offset = if (bootstrap_code_size + constructor_length) < 256 {
-            // Convert the size and offset to bytes.
-            let contract_code_offset = format!("{:02x}", bootstrap_code_size + constructor_length);
-            // push1(offset to code)
-            format!("60{}", contract_code_offset)
-        } else {
-            // Increment bootstrap code size
-            bootstrap_code_size += 1;
-            // Convert the size and offset to bytes.
-            let contract_code_offset = format!("{:04x}", bootstrap_code_size + constructor_length);
-            // push2(offset to code)
-            format!("61{}", contract_code_offset)
-        };
-
+  
         let encoded: Vec<Vec<u8>> =
             args.iter().map(|tok| ethers_core::abi::encode(&[tok.clone()])).collect();
         let hex_args: Vec<String> = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
         let constructor_args = hex_args.join("");
 
+        // Constructor size optimizations
+        let mut bootstrap_code_size = 9;
+        let contract_size = if contract_length < 256 {
+            format!("60{}", pad_n_bytes(format!("{:x}", contract_length).as_str(), 1))
+        } else {
+            bootstrap_code_size += 1;
+
+            format!("61{}", pad_n_bytes(format!("{:x}", contract_length).as_str(), 2))
+        };
+        let contract_code_offset = if (bootstrap_code_size + constructor_length) < 256 {
+            format!(
+                "60{}",
+                pad_n_bytes(format!("{:x}", bootstrap_code_size + constructor_length).as_str(), 1)
+            )
+        } else {
+            bootstrap_code_size += 1;
+
+            format!(
+                "61{}",
+                pad_n_bytes(format!("{:x}", bootstrap_code_size + constructor_length).as_str(), 2)
+            )
+        };
+
         // Generate the final bytecode
         // pushX(contract size) dup1 pushX(offset to code) returndatsize codecopy returndatasize
         // return
-        let bootstrap_code =
-            format!("{}80{}3d393df3", push_contract_size_code, push_contract_code_offset);
+        let bootstrap_code = format!("{}80{}3d393df3", contract_size, contract_code_offset);
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
         artifact.bytecode =
             format!("{}{}{}", constructor_code, main_bytecode, constructor_args).to_lowercase();
@@ -461,7 +453,7 @@ impl Codegen {
     ///
     /// * `out` - Output location to write the serialized json artifact to.
     pub fn export(output: String, art: &Artifact) -> Result<(), CodegenError> {
-        let serialized_artifact = serde_json::to_string(art).unwrap();
+        let serialized_artifact = serde_json::to_string_pretty(art).unwrap();
         // Try to create the parent directory
         let file_path = Path::new(&output);
         if let Some(p) = file_path.parent() {
