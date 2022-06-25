@@ -24,6 +24,8 @@ pub enum Context {
     MacroDefinition,
     /// Macro's body context
     MacroBody,
+    /// Macro's argument context (definition or being called)
+    MacroArgs,
     /// ABI context
     Abi,
     /// Lexing args of functions inputs/outputs and events
@@ -455,7 +457,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // goes over all opcodes
                     for opcode in OPCODES {
-                        if self.context != Context::MacroBody {
+                        if self.context != Context::MacroBody || found_kind != None {
                             break
                         }
                         if opcode == pot_op {
@@ -564,14 +566,18 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 '=' => TokenKind::Assign,
                 '(' => {
-                    if self.context == Context::Abi {
-                        self.context = Context::AbiArgs;
+                    match self.context {
+                        Context::Abi => self.context = Context::AbiArgs,
+                        Context::MacroBody => self.context = Context::MacroArgs,
+                        _ => {}
                     }
                     TokenKind::OpenParen
                 }
                 ')' => {
-                    if self.context == Context::AbiArgs {
-                        self.context = Context::Abi;
+                    match self.context {
+                        Context::AbiArgs => self.context = Context::Abi,
+                        Context::MacroArgs => self.context = Context::MacroBody,
+                        _ => {}
                     }
                     TokenKind::CloseParen
                 }
