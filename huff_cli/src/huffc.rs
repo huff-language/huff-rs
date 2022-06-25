@@ -133,7 +133,7 @@ fn main() {
             }
             if cli.bytecode {
                 match sources.len() {
-                    1 => println!("{}", artifacts[0].bytecode),
+                    1 => print!("{}", artifacts[0].bytecode),
                     _ => artifacts
                         .iter()
                         .for_each(|a| println!("\"{}\" bytecode: {}", a.file.path, a.bytecode)),
