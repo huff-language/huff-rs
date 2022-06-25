@@ -406,7 +406,8 @@ impl Codegen {
         let constructor_args = hex_args.join("");
 
         // Generate the final bytecode
-        let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);
+        // Original ${pushContractSizeCode}80${pushContractCodeOffset}3d393df3
+        let bootstrap_code = format!("61{}8061{}3d393df3", contract_size, contract_code_offset);
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
         artifact.bytecode =
             format!("{}{}{}", constructor_code, main_bytecode, constructor_args).to_lowercase();
