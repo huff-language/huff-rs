@@ -28,12 +28,12 @@ To dive deeper into [Huff](https://github.com/huff-language), visit the [Officia
 
 ## Installation
 
-_Something not working? Send a message in [discord](https://discord.gg/2uuJyatE6M)._
+_Something not working? Send a message in [discord](https://discord.huff.sh)._
 
 First run the command below to get `huffup`, the Huff installer:
 
 ```bash
-curl -L https://get.huff.sh | bash
+curl -L get.huff.sh | bash
 ```
 
 To avoid redirecting the script directly into bash, download and run the [huffup installation script](https://raw.githubusercontent.com/huff-language/huff-rs/main/huffup/install).
