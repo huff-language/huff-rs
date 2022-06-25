@@ -404,14 +404,14 @@ impl Codegen {
 
         // Constructor size optimizations
         let mut bootstrap_code_size = 9;
-        let mut contract_size = if contract_length < 256 {
+        let contract_size = if contract_length < 256 {
             format!("60{}", pad_n_bytes(format!("{:x}", contract_length).as_str(), 1))
         } else {
             bootstrap_code_size += 1;
 
             format!("61{}", pad_n_bytes(format!("{:x}", contract_length).as_str(), 2))
         };
-        let mut contract_code_offset = if (bootstrap_code_size + constructor_length) < 256 {
+        let contract_code_offset = if (bootstrap_code_size + constructor_length) < 256 {
             format!(
                 "60{}",
                 pad_n_bytes(format!("{:x}", bootstrap_code_size + constructor_length).as_str(), 1)
