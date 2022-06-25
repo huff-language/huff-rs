@@ -40,7 +40,7 @@ fn test_missing_constructor() {
             assert_eq!(artifact.file, arc_source);
             assert_eq!(
                 artifact.bytecode,
-                "61001a8061000d6000396000f360003560e01c806340c10f1914610011575b6004356000602435"
+                "601a8060093d393df360003560e01c806340c10f1914610011575b6004356000602435"
                     .to_string()
             );
         }
