@@ -398,7 +398,7 @@ impl Codegen {
         let constructor_length = constructor_bytecode.len() / 2;
 
         let contract_size = format!("{:04x}", contract_length);
-        let contract_code_offset = format!("{:04x}", 13 + constructor_length);
+        let contract_code_offset = format!("{:04x}", 9 + constructor_length);
 
         let encoded: Vec<Vec<u8>> =
             args.iter().map(|tok| ethers_core::abi::encode(&[tok.clone()])).collect();
