@@ -8,7 +8,11 @@ use crate::{
     evm::Opcode,
     prelude::{Span, TokenKind},
 };
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    fmt::{Display, Formatter},
+    path::PathBuf,
+};
 
 /// A contained literal
 pub type Literal = [u8; 32];
@@ -625,4 +629,23 @@ pub enum StatementType {
     LabelCall(String),
     /// A built-in function call
     BuiltinFunctionCall(BuiltinFunctionCall),
+}
+
+impl Display for StatementType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StatementType::Literal(l) => write!(f, "LITERAL: {}", bytes32_to_string(l, true)),
+            StatementType::Opcode(o) => write!(f, "OPCODE: {}", o),
+            StatementType::MacroInvocation(m) => {
+                write!(f, "MACRO INVOCATION: {}", m.macro_name)
+            }
+            StatementType::Constant(c) => write!(f, "CONSTANT: {}", c),
+            StatementType::ArgCall(c) => write!(f, "ARG CALL: {}", c),
+            StatementType::Label(l) => write!(f, "LABEL: {}", l.name),
+            StatementType::LabelCall(l) => write!(f, "LABEL CALL: {}", l),
+            StatementType::BuiltinFunctionCall(b) => {
+                write!(f, "BUILTIN FUNCTION CALL: {:?}", b.kind)
+            }
+        }
+    }
 }

@@ -18,7 +18,7 @@ pub fn statement_gen(
 ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
     let mut bytes = vec![];
 
-    tracing::debug!(target: "codegen", "Got Statement: {:?}", s);
+    tracing::debug!(target: "codegen", "Got Statement: {}", s.ty);
 
     match &s.ty {
         StatementType::MacroInvocation(mi) => {
@@ -58,7 +58,7 @@ pub fn statement_gen(
                 };
 
             // Set jump table values
-            tracing::debug!(target: "codegen", "Unmatched jumps: {:?}", res.unmatched_jumps);
+            tracing::debug!(target: "codegen", "Unmatched jumps: {:?}", res.unmatched_jumps.iter().map(|uj| uj.label.clone()).collect::<Vec<String>>());
             for j in res.unmatched_jumps.iter_mut() {
                 let new_index = j.bytecode_index;
                 j.bytecode_index = 0;
@@ -80,7 +80,7 @@ pub fn statement_gen(
         }
         StatementType::Label(label) => {
             // Add JUMPDEST opcode to final result and add to label_indices
-            tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL: {:?}", label);
+            tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL: {:?}", label.name);
             label_indices.insert(label.name.clone(), *offset);
             bytes.push((*offset, Bytes(Opcode::Jumpdest.to_string())));
             *offset += 1;

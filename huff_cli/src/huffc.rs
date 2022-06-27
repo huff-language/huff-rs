@@ -12,6 +12,7 @@ use huff_core::Compiler;
 use huff_utils::prelude::{
     unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError, FileSource, Span,
 };
+use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
 use std::{path::Path, sync::Arc};
 use yansi::Paint;
@@ -38,6 +39,10 @@ struct Huff {
     /// The input constructor arguments
     #[clap(short = 'i', long = "inputs", multiple_values = true)]
     inputs: Option<Vec<String>>,
+
+    /// Whether to generate artifacts or not
+    #[clap(short = 'a', long = "artifacts")]
+    artifacts: bool,
 
     /// Optimize compilation.
     #[clap(short = 'z', long = "optimize")]
@@ -75,9 +80,10 @@ fn main() {
     };
     let compiler: Compiler = Compiler {
         sources: Arc::clone(&sources),
-        output: match &cli.output {
-            Some(o) => Some(o.clone()),
-            None => Some(cli.outputdir.clone()),
+        output: match (&cli.output, cli.artifacts) {
+            (Some(o), true) => Some(o.clone()),
+            (None, true) => Some(cli.outputdir.clone()),
+            _ => None,
         },
         construct_args: cli.inputs,
         optimize: cli.optimize,
@@ -86,11 +92,18 @@ fn main() {
 
     // Create compiling spinner
     tracing::debug!(target: "core", "[⠔] COMPILING");
-    let mut sp = Spinner::new(Spinners::Dots, "Compiling...".into());
+    let mut sp: Option<Spinner> = None;
+    // If stdout is a TTY, create a spinner
+    if stdout_isatty() {
+        sp = Some(Spinner::new(Spinners::Dots, "Compiling...".into()));
+    }
 
     let compile_res = compiler.execute();
-    sp.stop();
-    println!(" ");
+    // Stop spinner animation if it exists
+    if let Some(mut sp) = sp {
+        sp.stop();
+        println!(" ");
+    }
     match compile_res {
         Ok(artifacts) => {
             if artifacts.is_empty() {
@@ -120,7 +133,7 @@ fn main() {
             }
             if cli.bytecode {
                 match sources.len() {
-                    1 => println!("{}", artifacts[0].bytecode),
+                    1 => print!("{}", artifacts[0].bytecode),
                     _ => artifacts
                         .iter()
                         .for_each(|a| println!("\"{}\" bytecode: {}", a.file.path, a.bytecode)),

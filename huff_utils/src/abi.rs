@@ -245,20 +245,29 @@ pub enum FunctionParamType {
     Bool,
     /// A String
     String,
-    /// An array of parameters
-    Array(Box<FunctionParamType>),
+    /// Array ; uint256[2][] => Array(Uint(256), [2, 0])
+    Array(Box<FunctionParamType>, Vec<usize>),
     /// Fixed number of bytes
     FixedBytes(usize),
-    /// Fixed size array of parameters
-    FixedArray(Box<FunctionParamType>, usize),
     /// A tuple of parameters
     Tuple(Vec<FunctionParamType>),
 }
 
 impl FunctionParamType {
     /// Convert string to type
-    pub fn convert_string_to_type(string: &str) -> Self {
+    pub fn convert_string_to_type(string: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let input = string.to_string().to_lowercase();
+        let split_input: Vec<&str> = input.split('[').collect();
+        if split_input.len() > 1 {
+            let mut cleaned: Vec<String> = split_input
+                .iter()
+                .map(|x| x.replace(']', ""))
+                .map(|x| if x.is_empty() { "0".to_owned() } else { x })
+                .collect();
+            let func_type = FunctionParamType::convert_string_to_type(&cleaned.remove(0))?;
+            let sizes: Vec<usize> = cleaned.iter().map(|x| x.parse::<usize>().unwrap()).collect();
+            return Ok(Self::Array(Box::new(func_type), sizes))
+        }
         if input.starts_with("uint") {
             // Default to 256 if no size
             let size = match input.get(4..input.len()) {
@@ -268,7 +277,7 @@ impl FunctionParamType {
                 },
                 None => 256,
             };
-            return Self::Uint(size)
+            return Ok(Self::Uint(size))
         }
         if input.starts_with("int") {
             // Default to 256 if no size
@@ -279,38 +288,38 @@ impl FunctionParamType {
                 },
                 None => 256,
             };
-            return Self::Int(size)
+            return Ok(Self::Int(size))
         }
         if input.starts_with("bytes") && input.len() != 5 {
             let size = input.get(5..input.len()).unwrap().parse::<usize>().unwrap();
-            return Self::FixedBytes(size)
+            return Ok(Self::FixedBytes(size))
         }
         if input.starts_with("bool") {
-            return Self::Bool
+            return Ok(Self::Bool)
         }
         if input.starts_with("address") {
-            return Self::Address
+            return Ok(Self::Address)
         }
         if input.starts_with("string") {
-            return Self::String
+            return Ok(Self::String)
         }
         if input == "bytes" {
-            Self::Bytes
+            Ok(Self::Bytes)
         } else {
             tracing::error!("Failed to create FunctionParamType from string: {}", string);
-            panic!("{}", format!("Failed to create FunctionParamType from string: {}", string))
+            Err(format!("Failed to create FunctionParamType from string: {}", string))?
         }
     }
 }
 
 impl From<&str> for FunctionParamType {
     fn from(string: &str) -> Self {
-        FunctionParamType::convert_string_to_type(string)
+        FunctionParamType::convert_string_to_type(string).unwrap()
     }
 }
 
 impl From<String> for FunctionParamType {
     fn from(string: String) -> Self {
-        FunctionParamType::convert_string_to_type(&string)
+        FunctionParamType::convert_string_to_type(&string).unwrap()
     }
 }

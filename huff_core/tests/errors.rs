@@ -186,7 +186,7 @@ fn test_missing_constructor() {
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
 
-    // Createconstructor bytecode
+    // Create constructor bytecode
     match Codegen::generate_constructor_bytecode(&contract) {
         Ok(_) => panic!("moose"),
         Err(e) => {

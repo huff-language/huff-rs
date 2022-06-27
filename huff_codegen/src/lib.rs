@@ -397,16 +397,36 @@ impl Codegen {
         let contract_length = main_bytecode.len() / 2;
         let constructor_length = constructor_bytecode.len() / 2;
 
-        let contract_size = format!("{:04x}", contract_length);
-        let contract_code_offset = format!("{:04x}", 13 + constructor_length);
-
         let encoded: Vec<Vec<u8>> =
             args.iter().map(|tok| ethers_core::abi::encode(&[tok.clone()])).collect();
         let hex_args: Vec<String> = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
         let constructor_args = hex_args.join("");
 
+        // Constructor size optimizations
+        let mut bootstrap_code_size = 9;
+        let contract_size = if contract_length < 256 {
+            format!("60{}", pad_n_bytes(format!("{:x}", contract_length).as_str(), 1))
+        } else {
+            bootstrap_code_size += 1;
+
+            format!("61{}", pad_n_bytes(format!("{:x}", contract_length).as_str(), 2))
+        };
+        let contract_code_offset = if (bootstrap_code_size + constructor_length) < 256 {
+            format!(
+                "60{}",
+                pad_n_bytes(format!("{:x}", bootstrap_code_size + constructor_length).as_str(), 1)
+            )
+        } else {
+            bootstrap_code_size += 1;
+
+            format!(
+                "61{}",
+                pad_n_bytes(format!("{:x}", bootstrap_code_size + constructor_length).as_str(), 2)
+            )
+        };
+
         // Generate the final bytecode
-        let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);
+        let bootstrap_code = format!("{}80{}3d393df3", contract_size, contract_code_offset);
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
         artifact.bytecode =
             format!("{}{}{}", constructor_code, main_bytecode, constructor_args).to_lowercase();
@@ -430,7 +450,7 @@ impl Codegen {
     ///
     /// * `out` - Output location to write the serialized json artifact to.
     pub fn export(output: String, art: &Artifact) -> Result<(), CodegenError> {
-        let serialized_artifact = serde_json::to_string(art).unwrap();
+        let serialized_artifact = serde_json::to_string_pretty(art).unwrap();
         // Try to create the parent directory
         let file_path = Path::new(&output);
         if let Some(p) = file_path.parent() {

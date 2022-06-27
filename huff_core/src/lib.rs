@@ -103,7 +103,22 @@ impl<'a> Compiler {
         let file_paths: Vec<PathBuf> = Compiler::transform_paths(&self.sources)?;
 
         // Parallel file fetching
-        let files: Vec<Arc<FileSource>> = Compiler::fetch_sources(&file_paths);
+        let files: Vec<Result<Arc<FileSource>, CompilerError>> =
+            Compiler::fetch_sources(file_paths);
+
+        // Unwrap errors
+        let mut errors =
+            files.iter().filter_map(|rfs| rfs.as_ref().err()).collect::<Vec<&CompilerError>>();
+        if !errors.is_empty() {
+            let error = errors.remove(0);
+            return Err(Arc::new(error.clone()))
+        }
+
+        // Unpack files into their file sources
+        let files = files
+            .iter()
+            .filter_map(|fs| fs.as_ref().map(Arc::clone).ok())
+            .collect::<Vec<Arc<FileSource>>>();
 
         // Parallel Dependency Resolution
         let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
@@ -170,7 +185,7 @@ impl<'a> Compiler {
             file: Some(Arc::clone(&file)),
             spans: flattened.1,
         };
-        tracing::debug!(target: "core", "GOT FULL SOURCE: \"{:?}\"", full_source);
+        tracing::debug!(target: "core", "GOT FULL SOURCE FOR PATH: {:?}", file.path);
 
         // Perform Lexical Analysis
         // Create a new lexer from the FileSource, flattening dependencies
@@ -200,11 +215,10 @@ impl<'a> Compiler {
                 e.span = AstSpan(
                     e.span
                         .0
-                        .iter()
-                        .map(|s| {
-                            let mut n_s = s.clone();
-                            n_s.file = Some(Arc::clone(&file));
-                            n_s
+                        .into_iter()
+                        .map(|mut s| {
+                            s.file = Some(Arc::clone(&file));
+                            s
                         })
                         .collect::<Vec<Span>>(),
                 );
@@ -213,29 +227,32 @@ impl<'a> Compiler {
             }
         };
         tracing::info!(target: "core", "MAIN BYTECODE GENERATED [{}]", main_bytecode);
+        let inputs = self.get_constructor_args();
         let constructor_bytecode = match Codegen::generate_constructor_bytecode(&contract) {
             Ok(mb) => mb,
             Err(mut e) => {
-                // Add File Source to Span
-                e.span = AstSpan(
-                    e.span
-                        .0
-                        .iter()
-                        .map(|s| {
-                            let mut n_s = s.clone();
-                            n_s.file = Some(Arc::clone(&file));
-                            n_s
-                        })
-                        .collect::<Vec<Span>>(),
-                );
-                tracing::error!(target: "codegen", "Construct Failed with CodegenError: {:?}", e);
-                return Err(CompilerError::CodegenError(e))
+                if !inputs.is_empty() {
+                    // Add File Source to Span
+                    e.span = AstSpan(
+                        e.span
+                            .0
+                            .into_iter()
+                            .map(|mut s| {
+                                s.file = Some(Arc::clone(&file));
+                                s
+                            })
+                            .collect::<Vec<Span>>(),
+                    );
+                    tracing::error!(target: "codegen", "Constructor inputs provided, but contract missing \"CONSTRUCTOR\" macro!");
+                    return Err(CompilerError::CodegenError(e))
+                }
+                tracing::warn!(target: "codegen", "Contract has no \"CONSTRUCTOR\" macro definition!");
+                "".to_string()
             }
         };
 
         // Encode Constructor Arguments
         tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
-        let inputs = self.get_constructor_args();
         tracing::info!(target: "core", "ENCODING {} INPUTS", inputs.len());
         let encoded_inputs = Codegen::encode_constructor_args(inputs);
         tracing::info!(target: "core", "ENCODED {} INPUTS", encoded_inputs.len());
@@ -265,13 +282,13 @@ impl<'a> Compiler {
     }
 
     /// Get the file sources for a vec of PathBufs
-    pub fn fetch_sources(paths: &Vec<PathBuf>) -> Vec<Arc<FileSource>> {
-        let files: Vec<Arc<FileSource>> = paths
+    pub fn fetch_sources(paths: Vec<PathBuf>) -> Vec<Result<Arc<FileSource>, CompilerError<'a>>> {
+        paths
             .into_par_iter()
             .map(|pb| {
                 let file_loc = String::from(pb.to_string_lossy());
                 match std::fs::read_to_string(&file_loc) {
-                    Ok(source) => Some(Arc::new(FileSource {
+                    Ok(source) => Ok(Arc::new(FileSource {
                         id: Uuid::new_v4(),
                         path: file_loc,
                         source: Some(source),
@@ -280,15 +297,11 @@ impl<'a> Compiler {
                     })),
                     Err(_) => {
                         tracing::error!(target: "core", "FILE READ FAILED: \"{}\"!", file_loc);
-                        None
+                        Err(CompilerError::FileUnpackError(UnpackError::MissingFile(file_loc)))
                     }
                 }
             })
-            .filter(|f| f.is_some())
-            .map(|f| f.unwrap_or_default())
-            .collect();
-        tracing::info!(target: "core", "COMPILER FETCHED {} FILE SOURCES", files.len());
-        files
+            .collect()
     }
 
     /// Recurses file dependencies
@@ -327,7 +340,12 @@ impl<'a> Compiler {
             tracing::info!(target: "core", "LOCALIZED IMPORTS {:?}", localized_imports);
         }
         let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&localized_imports)?;
-        let mut file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&import_bufs);
+        let potentials: Result<Vec<Arc<FileSource>>, CompilerError> =
+            Compiler::fetch_sources(import_bufs).into_iter().collect();
+        let mut file_sources = match potentials {
+            Ok(p) => p,
+            Err(e) => return Err(Arc::new(e)),
+        };
         if !file_sources.is_empty() {
             tracing::info!(target: "core", "FETCHED {} FILE SOURCES", file_sources.len());
         }
@@ -355,17 +373,32 @@ impl<'a> Compiler {
     /// 1. Cleans any previous artifacts in the output directory.
     /// 2. Exports artifacts in parallel as serialized json `Artifact` objects.
     pub fn export_artifacts(artifacts: &Vec<Arc<Artifact>>, output: &OutputLocation) {
+        // Exit if empty output location
+        if output.0.is_empty() {
+            tracing::warn!(target: "core", "Exiting artifact export with empty output location!");
+            return
+        }
+
         // Clean the Output Directory
         tracing::warn!(target: "core", "REMOVING DIRECTORY: \"{}\"", output.0);
         if !output.0.is_empty() && fs::remove_dir_all(&output.0).is_ok() {
             tracing::info!(target: "core", "OUTPUT DIRECTORY DELETED!");
         }
 
+        // Is the output a directory or a file?
+        let is_file = std::path::PathBuf::from(&output.0).extension().is_some();
+
         // Export the artifacts with parallelized io
         artifacts.into_par_iter().for_each(|a| {
-            let json_out =
-                format!("{}/{}.json", output.0, a.file.path.to_uppercase().replacen("./", "", 1));
-            tracing::debug!(target: "core", "JSON OUTPUT: {:?}", json_out);
+            // If it's a file type, we just export to `output.0`
+            let json_out = match is_file {
+                true => output.0.clone(),
+                false => format!(
+                    "{}/{}.json",
+                    output.0,
+                    a.file.path.to_uppercase().replacen("./", "", 1)
+                ),
+            };
 
             if let Err(e) = a.export(&json_out) {
                 tracing::error!(target: "core", "ARTIFACT EXPORT FAILED!\nError: {:?}", e);

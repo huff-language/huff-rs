@@ -5,9 +5,12 @@ use huff_utils::files::FileSource;
 
 #[test]
 fn test_recursing_fs_dependencies() {
-    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![PathBuf::from(
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-    )]);
+    )])
+    .iter()
+    .map(|p| p.clone().unwrap())
+    .collect();
     assert_eq!(file_sources.len(), 1);
     let erc20_file_source = file_sources[0].clone();
     let res = Compiler::recurse_deps(Arc::clone(&erc20_file_source));
@@ -22,9 +25,12 @@ fn test_recursing_fs_dependencies() {
 
 #[test]
 fn test_recursing_external_dependencies() {
-    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(&vec![PathBuf::from(
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-    )]);
+    )])
+    .iter()
+    .map(|p| p.clone().unwrap())
+    .collect();
     assert_eq!(file_sources.len(), 1);
     let erc20_file_source = file_sources[0].clone();
     let res = Compiler::recurse_deps(Arc::clone(&erc20_file_source));

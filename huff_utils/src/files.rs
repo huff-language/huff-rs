@@ -5,15 +5,8 @@ use uuid::Uuid;
 #[allow(clippy::to_string_in_format_args)]
 
 /// An aliased output location to derive from the cli arguments.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Default)]
 pub struct OutputLocation(pub String);
-
-impl Default for OutputLocation {
-    fn default() -> Self {
-        Self("./artifacts/".to_string())
-    }
-}
-
 /// Full File Source
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct FullFileSource<'a> {
@@ -68,7 +61,7 @@ impl FileSource {
     pub fn fully_flatten(self_ref: Arc<FileSource>) -> (String, Vec<(Arc<FileSource>, Span)>) {
         // First grab the parent file source
         let mut full_source =
-            if let Some(s) = &self_ref.source { s.clone() } else { "".to_string() };
+            if let Some(s) = &self_ref.source { s.clone() } else { String::default() };
         let span = Span::new(0..full_source.len(), None);
         let mut relative_positions = vec![(Arc::clone(&self_ref), span)];
 
