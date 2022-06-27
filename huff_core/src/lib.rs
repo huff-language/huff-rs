@@ -229,11 +229,10 @@ impl<'a> Compiler {
                 e.span = AstSpan(
                     e.span
                         .0
-                        .iter()
-                        .map(|s| {
-                            let mut n_s = s.clone();
-                            n_s.file = Some(Arc::clone(&file));
-                            n_s
+                        .into_iter()
+                        .map(|mut s| {
+                            s.file = Some(Arc::clone(&file));
+                            s
                         })
                         .collect::<Vec<Span>>(),
                 );
@@ -242,29 +241,32 @@ impl<'a> Compiler {
             }
         };
         tracing::info!(target: "core", "MAIN BYTECODE GENERATED [{}]", main_bytecode);
+        let inputs = self.get_constructor_args();
         let constructor_bytecode = match Codegen::generate_constructor_bytecode(&contract) {
             Ok(mb) => mb,
             Err(mut e) => {
-                // Add File Source to Span
-                e.span = AstSpan(
-                    e.span
-                        .0
-                        .iter()
-                        .map(|s| {
-                            let mut n_s = s.clone();
-                            n_s.file = Some(Arc::clone(&file));
-                            n_s
-                        })
-                        .collect::<Vec<Span>>(),
-                );
-                tracing::error!(target: "codegen", "Construct Failed with CodegenError: {:?}", e);
-                return Err(CompilerError::CodegenError(e))
+                if !inputs.is_empty() {
+                    // Add File Source to Span
+                    e.span = AstSpan(
+                        e.span
+                            .0
+                            .into_iter()
+                            .map(|mut s| {
+                                s.file = Some(Arc::clone(&file));
+                                s
+                            })
+                            .collect::<Vec<Span>>(),
+                    );
+                    tracing::error!(target: "codegen", "Constructor inputs provided, but contract missing \"CONSTRUCTOR\" macro!");
+                    return Err(CompilerError::CodegenError(e))
+                }
+                tracing::warn!(target: "codegen", "Contract has no \"CONSTRUCTOR\" macro definition!");
+                "".to_string()
             }
         };
 
         // Encode Constructor Arguments
         tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
-        let inputs = self.get_constructor_args();
         tracing::info!(target: "core", "ENCODING {} INPUTS", inputs.len());
         let encoded_inputs = Codegen::encode_constructor_args(inputs);
         tracing::info!(target: "core", "ENCODED {} INPUTS", encoded_inputs.len());
@@ -385,17 +387,32 @@ impl<'a> Compiler {
     /// 1. Cleans any previous artifacts in the output directory.
     /// 2. Exports artifacts in parallel as serialized json `Artifact` objects.
     pub fn export_artifacts(artifacts: &Vec<Arc<Artifact>>, output: &OutputLocation) {
+        // Exit if empty output location
+        if output.0.is_empty() {
+            tracing::warn!(target: "core", "Exiting artifact export with empty output location!");
+            return
+        }
+
         // Clean the Output Directory
         tracing::warn!(target: "core", "REMOVING DIRECTORY: \"{}\"", output.0);
         if !output.0.is_empty() && fs::remove_dir_all(&output.0).is_ok() {
             tracing::info!(target: "core", "OUTPUT DIRECTORY DELETED!");
         }
 
+        // Is the output a directory or a file?
+        let is_file = std::path::PathBuf::from(&output.0).extension().is_some();
+
         // Export the artifacts with parallelized io
         artifacts.into_par_iter().for_each(|a| {
-            let json_out =
-                format!("{}/{}.json", output.0, a.file.path.to_uppercase().replacen("./", "", 1));
-            tracing::debug!(target: "core", "JSON OUTPUT: {:?}", json_out);
+            // If it's a file type, we just export to `output.0`
+            let json_out = match is_file {
+                true => output.0.clone(),
+                false => format!(
+                    "{}/{}.json",
+                    output.0,
+                    a.file.path.to_uppercase().replacen("./", "", 1)
+                ),
+            };
 
             if let Err(e) = a.export(&json_out) {
                 tracing::error!(target: "core", "ARTIFACT EXPORT FAILED!\nError: {:?}", e);
