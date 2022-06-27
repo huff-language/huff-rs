@@ -27,6 +27,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout stage branch if Nightly
+        if: ${{ env.IS_NIGHTLY }}
+        run: |
+          git checkout stage
+
       - name: Compute release name and tag
         id: release_info
         run: |
