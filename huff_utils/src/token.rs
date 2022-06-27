@@ -1,5 +1,5 @@
-use crate::{span::Span, types::PrimitiveEVMType};
-use logos::{Lexer, Logos};
+use crate::span::Span;
+use logos::Logos;
 use std::fmt;
 
 /// A token
@@ -211,6 +211,18 @@ pub enum TokenKind<'a> {
     /// Jump Label
     #[regex(r"[a-zA-Z0-9_\\-]+:")]
     Label(&'a str),
+    /// A Jump table
+    #[token("jumptable")]
+    JumpTable,
+    /// A Packed jump table
+    #[token("jumptable__packed")]
+    JumpTablePacked,
+    /// A code table
+    #[token("table")]
+    CodeTable,
+    /// A built-in function
+    #[regex(r"__(codesize|tablesize|tablestart)")]
+    BuiltinFunction(&'a str),
     /// A Comment
     #[regex(r"//.*")] // single line comment
     #[regex("/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/")] // multi line comment
@@ -264,6 +276,10 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::ArrayType(value) => return write!(f, "{}", value),
             TokenKind::Opcode(o) => return write!(f, "{}", o),
             TokenKind::Label(label) => return write!(f, "{}", label),
+            TokenKind::JumpTable => "jumptable",
+            TokenKind::JumpTablePacked => "jumptable__packed",
+            TokenKind::CodeTable => "table",
+            TokenKind::BuiltinFunction(s) => return write!(f, "BuiltinFunction({})", s),
             TokenKind::Error => "<error>",
         };
 
