@@ -135,6 +135,7 @@ impl<'a> Compiler {
         let mut artifacts: Vec<Arc<Artifact>> = vec![];
 
         // Get Cached or Generate Artifacts
+        tracing::debug!(target: "core", "Output directory: {}", output.0);
         match cache::get_cached_artifacts(&files, &output) {
             Some(arts) => artifacts = arts,
             None => {

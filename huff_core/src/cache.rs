@@ -25,7 +25,7 @@ pub fn resolve_existing_artifacts(
 
     // Transform file sources into a hashmap of path to file source
     let mut file_sources: std::collections::HashMap<String, Arc<FileSource>> =
-        files.iter().map(|f| (f.path.clone(), Arc::clone(f))).collect();
+        files.iter().map(|f| (f.path.clone().to_lowercase(), Arc::clone(f))).collect();
 
     // For each file, check if the artifact file exists at the location
     tracing::debug!(target: "core", "Traversing output directory {}", output.0);
@@ -34,10 +34,15 @@ pub fn resolve_existing_artifacts(
         .filter_map(Result::ok)
         .filter(|e| !e.file_type().is_dir())
     {
-        println!("Existing Artifact: {}", entry.path().display());
-
         // Are we expecting this file to be compiled
-        let expected = file_sources.remove(&entry.path().display().to_string());
+        let formatted_path = entry
+            .path()
+            .display()
+            .to_string()
+            .replace(".json", "")
+            .replace(&output.0, ".")
+            .to_lowercase();
+        let expected = file_sources.remove(&formatted_path);
 
         // Try to read the file into an artifact
         match serde_json::from_str::<Artifact>(&std::fs::read_to_string(entry.path()).unwrap()) {
@@ -45,7 +50,7 @@ pub fn resolve_existing_artifacts(
                 // If we expected compilation, the sources must match
                 match expected {
                     Some(expected_fs) => {
-                        if *artifact.file != *expected_fs {
+                        if (*artifact.file).source != (*expected_fs).source {
                             tracing::warn!(target: "core", "Cache Resolution Failed: \"{}\" Artifact Outdated", artifact.file.path);
                             return None
                         } else {
@@ -68,5 +73,11 @@ pub fn resolve_existing_artifacts(
         }
     }
 
-    Some(artifacts)
+    match file_sources.is_empty() {
+        true => Some(artifacts),
+        false => {
+            tracing::warn!(target: "core", "Cache Resolution Failed: Missing Artifact Files");
+            None
+        }
+    }
 }
