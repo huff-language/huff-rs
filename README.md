@@ -140,10 +140,5 @@ For breaking changes: make sure to edit the [excalidraw asset](https://excalidra
 
 ## Acknowledgements
 
-The original [Huff Language](https://github.com/huff-language) compiler: [`huffc`](https://github.com/huff-language/huffc).
-
-An exemplary, minimal rust compiler: [ripc](https://github.com/ibraheemdev/ripc).
-
-[Foundry](https://github.com/foundry-rs/foundry), for the many scripts, documentation, devops, and code on which [huff-rs](https://github.com/huff-language/huff-rs) is based on.
-
-All [huff-rs](https://github.com/huff-language/huff-rs) contributors, users, advocates, and enthusiasts!
+- [Huff Language](https://github.com/huff-language)
+- [dabit3](https://github.com/dabit3)'s Foundry [Cheatsheet](https://github.com/dabit3/foundry-cheatsheet)
