@@ -155,8 +155,8 @@ impl<'a> Compiler {
 
                 // Unpack recursed dependencies into FileSources
                 let files = recursed_file_sources
-                    .iter()
-                    .filter_map(|fs| fs.as_ref().map(Arc::clone).ok())
+                    .into_iter()
+                    .filter_map(|fs| fs.ok())
                     .collect::<Vec<Arc<FileSource>>>();
                 tracing::info!(target: "core", "COMPILER RECURSED {} FILE DEPENDENCIES", files.len());
 
