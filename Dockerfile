@@ -18,5 +18,5 @@ RUN apk add linux-headers gcompat
 RUN wget -q -O ${GLIBC_KEY_FILE} ${GLIBC_KEY} \
     && wget -O glibc.apk ${GLIBC_RELEASE} \
     && apk add glibc.apk --force
-COPY --from=build-environment /opt/huff-rs/target/release/huffc /usr/local/bin/hufc
+COPY --from=build-environment /opt/huff-rs/target/release/huffc /usr/local/bin/huffc
 ENTRYPOINT ["/bin/sh", "-c"]
