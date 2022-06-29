@@ -172,8 +172,8 @@ impl Parser {
         } else {
             tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED: {}, GOT: {}", kind, self.current_token.kind);
             Err(ParserError {
-                kind: ParserErrorKind::UnexpectedType(kind.clone()),
-                hint: Some(format!("Expected: {}. Got: {}", kind, self.current_token.kind)),
+                kind: ParserErrorKind::UnexpectedType(self.current_token.kind.clone()),
+                hint: Some(format!("Expected: \"{}\"", kind)),
                 spans: AstSpan(self.spans.clone()),
             })
         }
