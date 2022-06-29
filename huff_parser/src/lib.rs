@@ -102,9 +102,9 @@ impl Parser {
                         self.current_token.kind
                     );
                     return Err(ParserError {
-                        kind: ParserErrorKind::InvalidDefinition,
-                        hint: Some(format!("Definition must be one of: `function`, `event`, `constant`, or `macro`. Got: {}", self.current_token.kind)),
-                        spans: AstSpan(self.spans.clone()),
+                        kind: ParserErrorKind::InvalidDefinition(self.current_token.kind.clone()),
+                        hint: Some("Definition must be one of: `function`, `event`, `constant`, or `macro`.".to_string()),
+                        spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
             };
@@ -347,15 +347,13 @@ impl Parser {
             }
             kind => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED FreeStoragePointer OR Literal, GOT: {}", self.current_token.kind);
-                let new_spans = self.spans.clone();
-                self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidConstantValue(kind),
                     hint: Some(
                         "Expected constant value to be a literal or `FREE_STORAGE_POINTER()`"
                             .to_string(),
                     ),
-                    spans: AstSpan(new_spans),
+                    spans: AstSpan(vec![self.current_token.span.clone()]),
                 })
             }
         };

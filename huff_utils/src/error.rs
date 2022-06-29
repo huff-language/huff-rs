@@ -21,12 +21,10 @@ pub struct ParserError {
 /// A Type of Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum ParserErrorKind {
-    /// A general syntax error that accepts a message
-    SyntaxError(String),
     /// Unexpected type
     UnexpectedType(TokenKind),
     /// Invalid definition
-    InvalidDefinition,
+    InvalidDefinition(TokenKind),
     /// Invalid constant value
     InvalidConstantValue(TokenKind),
     /// Unexpected token in macro body
@@ -265,14 +263,6 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
             },
             CompilerError::ParserError(pe) => match &pe.kind {
-                ParserErrorKind::SyntaxError(se) => {
-                    write!(
-                        f,
-                        "\nError: Syntax Error: \"{}\" \n{}\n",
-                        se,
-                        pe.spans.error(pe.hint.as_ref())
-                    )
-                }
                 ParserErrorKind::UnexpectedType(ut) => {
                     write!(
                         f,
@@ -281,8 +271,13 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         pe.spans.error(pe.hint.as_ref())
                     )
                 }
-                ParserErrorKind::InvalidDefinition => {
-                    write!(f, "\nError: Invalid Defintiion\n{}\n", pe.spans.error(pe.hint.as_ref()))
+                ParserErrorKind::InvalidDefinition(k) => {
+                    write!(
+                        f,
+                        "\nError: Invalid Defintion \"{}\"\n{}\n",
+                        k,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
                 }
                 ParserErrorKind::InvalidConstantValue(cv) => {
                     write!(
