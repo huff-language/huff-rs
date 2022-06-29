@@ -40,6 +40,10 @@ struct Huff {
     #[clap(short = 'i', long = "inputs", multiple_values = true)]
     inputs: Option<Vec<String>>,
 
+    /// Interactively input the constructor args
+    #[clap(short = 'n', long = "interactive")]
+    interactive: bool,
+
     /// Whether to generate artifacts or not
     #[clap(short = 'a', long = "artifacts")]
     artifacts: bool,
