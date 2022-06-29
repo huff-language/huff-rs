@@ -67,7 +67,7 @@ struct Huff {
 
 fn main() {
     // Parse the command line arguments
-    let cli = Huff::parse();
+    let mut cli = Huff::parse();
 
     // Initiate Tracing if Verbose
     if cli.verbose {
@@ -82,6 +82,16 @@ fn main() {
             std::process::exit(1);
         }
     };
+
+    if cli.interactive {
+        // Don't accept configured inputs
+        cli.inputs = None;
+        // Don't export artifacts are compile
+        // Have to first generate artifacts, prompt user for args,
+        // and finally save artifacts with the new constructor args.
+        cli.artifacts = false;
+    }
+
     let compiler: Compiler = Compiler {
         sources: Arc::clone(&sources),
         output: match (&cli.output, cli.artifacts) {
@@ -136,6 +146,15 @@ fn main() {
                 std::process::exit(1);
             }
             if cli.bytecode {
+                if cli.interactive {
+                    tracing::info!(target: "core", "ENTERING INTERACTIVE MODE");
+                    for _ in &artifacts {
+                        // TODO: prompt user for constructor args based on each artifact
+                        //
+                    }
+                    // TODO: re-export the artifacts
+                    tracing::info!(target: "core", "RE-EXPORTED INTERACTIVE ARTIFACTS");
+                }
                 match sources.len() {
                     1 => print!("{}", artifacts[0].bytecode),
                     _ => artifacts
