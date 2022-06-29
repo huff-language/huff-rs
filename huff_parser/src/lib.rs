@@ -103,6 +103,7 @@ impl Parser {
                     );
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidDefinition,
+                        hint: Some(format!("Definition must be one of: `function`, `event`, `constant`, or `macro`. Got: {}", self.current_token.kind)),
                         spans: AstSpan(self.spans.clone()),
                     })
                 }
@@ -128,6 +129,7 @@ impl Parser {
                 self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidName(tok),
+                    hint: Some(format!("Expected import string. Got: \"{}\"", tok)),
                     spans: AstSpan(new_spans),
                 })
             }
@@ -153,6 +155,7 @@ impl Parser {
             self.spans = vec![];
             return Err(ParserError {
                 kind: ParserErrorKind::InvalidImportPath(p),
+                hint: None,
                 spans: AstSpan(new_spans),
             })
         }
@@ -170,6 +173,7 @@ impl Parser {
             tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED: {}, GOT: {}", kind, self.current_token.kind);
             Err(ParserError {
                 kind: ParserErrorKind::UnexpectedType(kind),
+                hint: Some(format!("Expected: {}. Got: {}", kind, self.current_token.kind)),
                 spans: AstSpan(self.spans.clone()),
             })
         }
@@ -231,6 +235,7 @@ impl Parser {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidName(tok),
+                    hint: Some(format!("Expected function name, found: \"{}\"", tok)),
                     spans: AstSpan(self.spans.clone()),
                 })
             }
@@ -247,6 +252,9 @@ impl Parser {
             tok => {
                 return Err(ParserError {
                     kind: ParserErrorKind::UnexpectedType(tok),
+                    hint: Some(
+                        "Expected one of: `view`, `pure`, `payable`, `nonpayable`.".to_string(),
+                    ),
                     spans: AstSpan(vec![self.current_token.span.clone()]),
                 })
             }
@@ -291,6 +299,7 @@ impl Parser {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidName(tok),
+                    hint: Some(format!("Expected event name, found: \"{}\"", tok)),
                     spans: AstSpan(self.spans.clone()),
                 })
             }
@@ -318,6 +327,7 @@ impl Parser {
                 self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::UnexpectedType(tok),
+                    hint: Some(format!("Expected constant name, found: \"{}\"", tok)),
                     spans: AstSpan(new_spans),
                 })
             }
@@ -341,6 +351,10 @@ impl Parser {
                 self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidConstantValue(kind),
+                    hint: Some(
+                        "Expected constant value to be a literal or `FREE_STORAGE_POINTER()`"
+                            .to_string(),
+                    ),
                     spans: AstSpan(new_spans),
                 })
             }
@@ -489,6 +503,7 @@ impl Parser {
                     tracing::error!(target: "parser", "TOKEN MISMATCH - MACRO BODY: {}", kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTokenInMacroBody(kind),
+                        hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
@@ -588,6 +603,7 @@ impl Parser {
                     tracing::error!(target: "parser", "TOKEN MISMATCH - LABEL BODY: {}", kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTokenInLabelDefinition(kind),
+                        hint: None,
                         spans: AstSpan(curr_spans),
                     })
                 }
@@ -665,6 +681,7 @@ impl Parser {
             _ => {
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidSingleArg(self.current_token.kind.clone()),
+                    hint: Some("Expected number representing stack item count.".to_string()),
                     spans: AstSpan(single_arg_span),
                 })
             }
@@ -712,6 +729,10 @@ impl Parser {
                     self.spans = vec![];
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidMacroArgs(arg),
+                        hint: Some(
+                            "Expected literal, identifier (string), or an argument call"
+                                .to_string(),
+                        ),
                         spans: AstSpan(new_spans),
                     })
                 }
@@ -794,6 +815,7 @@ impl Parser {
                     tracing::error!("Invalid Table Body Token: {:?}", self.current_token.kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTableBodyToken(kind.clone()),
+                        hint: Some("Expected an identifier string.".to_string()),
                         spans: AstSpan(new_spans),
                     })
                 }
@@ -820,6 +842,7 @@ impl Parser {
                 self.spans = vec![];
                 Err(ParserError {
                     kind: ParserErrorKind::InvalidConstant(kind),
+                    hint: None,
                     spans: AstSpan(new_spans),
                 })
             }
@@ -851,6 +874,7 @@ impl Parser {
                 self.spans = vec![];
                 Err(ParserError {
                     kind: ParserErrorKind::InvalidArgCallIdent(kind),
+                    hint: None,
                     spans: AstSpan(new_spans),
                 })
             }
@@ -879,6 +903,7 @@ impl Parser {
             }
             kind => Err(ParserError {
                 kind: ParserErrorKind::InvalidArgs(kind),
+                hint: None,
                 spans: AstSpan(vec![self.current_token.span.clone()]),
             }),
         }
@@ -895,6 +920,7 @@ impl Parser {
                 if !(8..=256).contains(&size) || size % 8 != 0 {
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidUint256(size),
+                        hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
@@ -904,6 +930,7 @@ impl Parser {
                 if !(1..=32).contains(&size) {
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidBytes(size),
+                        hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
@@ -917,6 +944,7 @@ impl Parser {
                 if !(8..=256).contains(&size) || size % 8 != 0 {
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidInt(size),
+                        hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
