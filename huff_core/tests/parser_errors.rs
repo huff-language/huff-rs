@@ -1,7 +1,7 @@
-use huff_codegen::*;
 use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
+use rand::prelude::*;
 
 #[test]
 fn test_invalid_macro_statement() {
@@ -148,6 +148,139 @@ fn test_invalid_constant_value() {
                             end: source.find(value).unwrap_or(0) + value.len(),
                             file: None
                         }]),
+                    }
+                )
+            }
+        }
+    }
+}
+
+#[test]
+fn test_invalid_token_in_macro_body() {
+    let invalids = vec![
+        ("{", TokenKind::OpenBrace),
+        ("(", TokenKind::OpenParen),
+        (":", TokenKind::Colon),
+        (",", TokenKind::Comma),
+        ("+", TokenKind::Add),
+        ("-", TokenKind::Sub),
+        ("/", TokenKind::Div),
+    ];
+
+    for (value, kind) in invalids {
+        let source = &format!(
+            r#"#define macro CONSTANT() = takes (0) returns (0) {{
+            {}
+        }}"#,
+            value
+        );
+
+        let full_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(full_source);
+        let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+        let mut parser = Parser::new(tokens, Some("".to_string()));
+
+        match parser.parse() {
+            Ok(_) => panic!("moose"),
+            Err(e) => {
+                assert_eq!(
+                    e,
+                    ParserError {
+                        kind: ParserErrorKind::InvalidTokenInMacroBody(kind),
+                        hint: None,
+                        spans: AstSpan(vec![Span {
+                            start: source.rfind(value).unwrap_or(0),
+                            end: source.rfind(value).unwrap_or(0) + value.len(),
+                            file: None
+                        }]),
+                    }
+                )
+            }
+        }
+    }
+}
+
+#[test]
+fn test_invalid_token_in_label_definition() {
+    let invalids = vec![
+        ("{", TokenKind::OpenBrace),
+        ("(", TokenKind::OpenParen),
+        (":", TokenKind::Colon),
+        (",", TokenKind::Comma),
+        ("+", TokenKind::Add),
+        ("-", TokenKind::Sub),
+        ("/", TokenKind::Div),
+    ];
+
+    for (value, kind) in invalids {
+        let source = &format!(
+            r#"#define macro CONSTANT() = takes (0) returns (0) {{
+            lab:
+                {}
+        }}"#,
+            value
+        );
+
+        let full_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(full_source);
+        let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+        let mut parser = Parser::new(tokens, Some("".to_string()));
+
+        match parser.parse() {
+            Ok(_) => panic!("moose"),
+            Err(e) => {
+                assert_eq!(
+                    e,
+                    ParserError {
+                        kind: ParserErrorKind::InvalidTokenInLabelDefinition(kind),
+                        hint: None,
+                        spans: AstSpan(vec![Span {
+                            start: source.rfind(value).unwrap_or(0),
+                            end: source.rfind(value).unwrap_or(0) + value.len(),
+                            file: None
+                        }]),
+                    }
+                )
+            }
+        }
+    }
+}
+
+#[test]
+fn test_invalid_single_arg() {
+    for _ in [0..10_000] {
+        let random_char = rand::random::<u8>() as char;
+        if random_char.is_numeric() || !random_char.is_alphabetic() {
+            continue
+        }
+        let source =
+            &format!("#define macro CONSTANT() = takes ({}) returns (0) {{}}", random_char);
+
+        let full_source = FullFileSource { source, file: None, spans: vec![] };
+        let lexer = Lexer::new(full_source);
+        let tokens = lexer
+            .into_iter()
+            .map(|x| match x {
+                Ok(t) => t,
+                Err(_) => {
+                    Token { kind: TokenKind::Add, span: Span { start: 0, end: 0, file: None } }
+                }
+            })
+            .collect::<Vec<Token>>();
+        let mut parser = Parser::new(tokens, Some("".to_string()));
+
+        match parser.parse() {
+            Ok(_) => panic!("moose"),
+            Err(e) => {
+                assert_eq!(
+                    e,
+                    ParserError {
+                        kind: ParserErrorKind::InvalidSingleArg(TokenKind::Ident(format!(
+                            "{}",
+                            random_char
+                        ))),
+                        hint: Some("Expected number representing stack item count.".to_string()),
+                        spans: AstSpan(vec![Span { start: 34, end: 35, file: None }]),
                     }
                 )
             }

@@ -512,7 +512,6 @@ impl Parser {
         Ok(statements)
     }
 
-    // TODO: Better label scoping
     /// Parse the body of a label.
     ///
     /// ## Examples
@@ -597,12 +596,11 @@ impl Parser {
                     });
                 }
                 kind => {
-                    let curr_spans = vec![self.current_token.span.clone()];
                     tracing::error!(target: "parser", "TOKEN MISMATCH - LABEL BODY: {}", kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTokenInLabelDefinition(kind),
                         hint: None,
-                        spans: AstSpan(curr_spans),
+                        spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
             };

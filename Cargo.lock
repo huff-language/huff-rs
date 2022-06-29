@@ -688,6 +688,7 @@ dependencies = [
  "huff_parser",
  "huff_utils",
  "proptest",
+ "rand",
  "rayon",
  "serde_json",
  "tracing",

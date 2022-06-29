@@ -28,6 +28,7 @@ walkdir = "2"
 
 [dev-dependencies]
 criterion = "0.3.5"
+rand = "0.8.5"
 
 [[bench]]
 name = "huff_benchmark"
