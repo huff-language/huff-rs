@@ -28,7 +28,7 @@ pub struct AstSpan(pub Vec<Span>);
 
 impl AstSpan {
     /// Coalesce Multiple Spans Into an error string
-    pub fn error(&self, hint: Option<String>) -> String {
+    pub fn error(&self, hint: Option<&String>) -> String {
         let file_to_source_map =
             self.0.iter().fold(BTreeMap::<String, Vec<&Span>>::new(), |mut m, s| {
                 let file_name =
@@ -65,10 +65,9 @@ impl AstSpan {
             },
         );
         // Add in optional hint message
-        println!("Creating hint...");
         format!(
             "{}{}",
-            hint.map(|msg| format!("{}{}\n", " ".repeat(7), msg)).unwrap_or_default(),
+            hint.map(|msg| format!("{}\n", /* " ".repeat(7), */ msg)).unwrap_or_default(),
             source_str
         )
     }

@@ -266,25 +266,30 @@ impl<'a> fmt::Display for CompilerError<'a> {
             },
             CompilerError::ParserError(pe) => match &pe.kind {
                 ParserErrorKind::SyntaxError(se) => {
-                    write!(f, "\nError: Syntax Error: \"{}\" \n{}\n", se, pe.spans.error(pe.hint))
+                    write!(
+                        f,
+                        "\nError: Syntax Error: \"{}\" \n{}\n",
+                        se,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
                 }
                 ParserErrorKind::UnexpectedType(ut) => {
                     write!(
                         f,
                         "\nError: Unexpected Type: \"{}\" \n{}\n",
                         ut,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidDefinition => {
-                    write!(f, "\nError: Invalid Defintiion\n{}\n", pe.spans.error(pe.hint))
+                    write!(f, "\nError: Invalid Defintiion\n{}\n", pe.spans.error(pe.hint.as_ref()))
                 }
                 ParserErrorKind::InvalidConstantValue(cv) => {
                     write!(
                         f,
                         "\nError: Invalid Constant Value: \"{}\" \n{}\n",
                         cv,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidTokenInMacroBody(tmb) => {
@@ -292,7 +297,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Token In Macro Body: \"{}\" \n{}\n",
                         tmb,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidTokenInLabelDefinition(tlb) => {
@@ -300,7 +305,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Token In Label Defintiion: \"{}\" \n{}\n",
                         tlb,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidSingleArg(sa) => {
@@ -308,7 +313,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Argument: \"{}\" \n{}\n",
                         sa,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidTableBodyToken(tbt) => {
@@ -316,7 +321,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Token In Table Body: \"{}\" \n{}\n",
                         tbt,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidConstant(constant) => {
@@ -324,7 +329,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Constant: \"{}\" \n{}\n",
                         constant,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidArgCallIdent(aci) => {
@@ -332,18 +337,23 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Argument Call Identifier: \"{}\" \n{}\n",
                         aci,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidName(name) => {
-                    write!(f, "\nError: Invalid Name: \"{}\" \n{}\n", name, pe.spans.error(pe.hint))
+                    write!(
+                        f,
+                        "\nError: Invalid Name: \"{}\" \n{}\n",
+                        name,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
                 }
                 ParserErrorKind::InvalidArgs(args) => {
                     write!(
                         f,
                         "\nError: Invalid Argument Type: \"{}\" \n{}\n",
                         args,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidUint256(v) => {
@@ -351,7 +361,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Uint256 Value: \"{}\" \n{}\n",
                         v,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidBytes(b) => {
@@ -359,7 +369,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Bytes Value: \"{}\" \n{}\n",
                         b,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidInt(i) => {
@@ -367,7 +377,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Int Value: \"{}\" \n{}\n",
                         i,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidMacroArgs(ma) => {
@@ -375,18 +385,22 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Macro Arguments: \"{}\" \n{}\n",
                         ma,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidReturnArgs => {
-                    write!(f, "\nError: Invalid Return Arguments\n{}\n", pe.spans.error(pe.hint))
+                    write!(
+                        f,
+                        "\nError: Invalid Return Arguments\n{}\n",
+                        pe.spans.error(pe.hint.as_ref())
+                    )
                 }
                 ParserErrorKind::InvalidImportPath(ip) => {
                     write!(
                         f,
                         "\nError: Invalid Import Path: \"{}\" \n{}\n",
                         ip,
-                        pe.spans.error(pe.hint)
+                        pe.spans.error(pe.hint.as_ref())
                     )
                 }
             },

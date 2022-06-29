@@ -128,7 +128,7 @@ impl Parser {
                 let new_spans = self.spans.clone();
                 self.spans = vec![];
                 return Err(ParserError {
-                    kind: ParserErrorKind::InvalidName(tok),
+                    kind: ParserErrorKind::InvalidName(tok.clone()),
                     hint: Some(format!("Expected import string. Got: \"{}\"", tok)),
                     spans: AstSpan(new_spans),
                 })
@@ -172,7 +172,7 @@ impl Parser {
         } else {
             tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED: {}, GOT: {}", kind, self.current_token.kind);
             Err(ParserError {
-                kind: ParserErrorKind::UnexpectedType(kind),
+                kind: ParserErrorKind::UnexpectedType(kind.clone()),
                 hint: Some(format!("Expected: {}. Got: {}", kind, self.current_token.kind)),
                 spans: AstSpan(self.spans.clone()),
             })
@@ -234,7 +234,7 @@ impl Parser {
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError {
-                    kind: ParserErrorKind::InvalidName(tok),
+                    kind: ParserErrorKind::InvalidName(tok.clone()),
                     hint: Some(format!("Expected function name, found: \"{}\"", tok)),
                     spans: AstSpan(self.spans.clone()),
                 })
@@ -298,7 +298,7 @@ impl Parser {
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError {
-                    kind: ParserErrorKind::InvalidName(tok),
+                    kind: ParserErrorKind::InvalidName(tok.clone()),
                     hint: Some(format!("Expected event name, found: \"{}\"", tok)),
                     spans: AstSpan(self.spans.clone()),
                 })
@@ -327,7 +327,7 @@ impl Parser {
                 self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::UnexpectedType(tok),
-                    hint: Some(format!("Expected constant name, found: \"{}\"", tok)),
+                    hint: Some("Expected constant name.".to_string()),
                     spans: AstSpan(new_spans),
                 })
             }

@@ -154,6 +154,7 @@ fn test_invalid_macro_statement() {
                 e,
                 ParserError {
                     kind: ParserErrorKind::InvalidTokenInMacroBody(TokenKind::FreeStoragePointer),
+                    hint: None,
                     spans: AstSpan(vec![Span { start: const_start, end: const_end, file: None }]),
                 }
             )
