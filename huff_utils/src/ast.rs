@@ -28,7 +28,7 @@ pub struct AstSpan(pub Vec<Span>);
 
 impl AstSpan {
     /// Coalesce Multiple Spans Into an error string
-    pub fn error(&self) -> String {
+    pub fn error(&self, hint: Option<&String>) -> String {
         let file_to_source_map =
             self.0.iter().fold(BTreeMap::<String, Vec<&Span>>::new(), |mut m, s| {
                 let file_name =
@@ -38,29 +38,38 @@ impl AstSpan {
                 m.insert(file_name, new_vec);
                 m
             });
-        file_to_source_map.iter().filter(|fs| !fs.0.is_empty()).fold("".to_string(), |s, fs| {
-            let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
-            let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
-            let newline_s = if s.is_empty() { "".to_string() } else { format!("{}\n", s) };
-            if start.eq(&0) && end.eq(&0) {
-                format!("{}-> {}:{}\n   > 0|", newline_s, fs.0, start)
-            } else {
-                format!(
-                    "{}-> {}:{}-{}{}",
-                    newline_s,
-                    fs.0,
-                    start,
-                    end,
-                    fs.1.iter()
-                        .map(|sp| sp.source_seg())
-                        .filter(|ss| !ss.is_empty())
-                        .collect::<Vec<String>>()
-                        .into_iter()
-                        .unique()
-                        .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
-                )
-            }
-        })
+        let source_str = file_to_source_map.iter().filter(|fs| !fs.0.is_empty()).fold(
+            "".to_string(),
+            |s, fs| {
+                let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
+                let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
+                let newline_s = if s.is_empty() { "".to_string() } else { format!("{}\n", s) };
+                if start.eq(&0) && end.eq(&0) {
+                    format!("{}-> {}:{}\n   > 0|", newline_s, fs.0, start)
+                } else {
+                    format!(
+                        "{}-> {}:{}-{}{}",
+                        newline_s,
+                        fs.0,
+                        start,
+                        end,
+                        fs.1.iter()
+                            .map(|sp| sp.source_seg())
+                            .filter(|ss| !ss.is_empty())
+                            .collect::<Vec<String>>()
+                            .into_iter()
+                            .unique()
+                            .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
+                    )
+                }
+            },
+        );
+        // Add in optional hint message
+        format!(
+            "{}{}",
+            hint.map(|msg| format!("{}\n", /* " ".repeat(7), */ msg)).unwrap_or_default(),
+            source_str
+        )
     }
 
     /// Print just the file for missing

@@ -138,7 +138,7 @@ fn parses_constant_keyword() {
 
 #[test]
 fn parses_takes_and_returns_keywords() {
-    let source = "#define macro TEST() = takes (0) returns (0)";
+    let source = "#define macro TEST() = takes   (0)   returns   (0)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let mut lexer = Lexer::new(flattened_source);
 
@@ -170,7 +170,7 @@ fn parses_takes_and_returns_keywords() {
     // Lex Returns
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    let returns_span = Span::new(33..40, None);
+    let returns_span = Span::new(37..44, None);
     assert_eq!(unwrapped, Token::new(TokenKind::Returns, returns_span.clone()));
     assert_eq!(lexer.current_span().deref(), &returns_span);
 

@@ -185,6 +185,15 @@ impl<'a> Lexer<'a> {
         chars.iter().collect()
     }
 
+    /// Dynamically peeks until with last chec and checks
+    pub fn checked_lookforward(&mut self, ch: char) -> bool {
+        let mut current_pos = self.current_span().end;
+        while self.nth_peek(current_pos).map(|c| c.is_ascii_whitespace()).unwrap_or(false) {
+            current_pos += 1;
+        }
+        self.nth_peek(current_pos).map(|x| x == ch).unwrap_or(false)
+    }
+
     /// Try to peek at the nth character from the source
     pub fn nth_peek(&mut self, n: usize) -> Option<char> {
         self.reference_chars.clone().nth(n)
@@ -294,8 +303,8 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Takes) => self.checked_lookback(TokenKind::Assign),
             Some(TokenKind::Returns) => {
                 let cur_span_end = self.current_span().end;
-                // Allow for loose and tight syntax (e.g. `returns (0)` & `returns(0)`)
-                self.peek_n_chars_from(2, cur_span_end).trim().starts_with('(') &&
+                // Allow for loose and tight syntax (e.g. `returns   (0)`, `returns(0)`, ...)
+                self.checked_lookforward('(') &&
                     !self.checked_lookback(TokenKind::Function) &&
                     self.peek_n_chars_from(1, cur_span_end) != ":"
             }
@@ -678,6 +687,7 @@ impl<'a> Iterator for Lexer<'a> {
                 Some(s) => s,
                 None => {
                     tracing::warn!(target: "lexer", "UNABLE TO RELATIVIZE SPAN FOR \"{}\"", kind);
+                    tracing::warn!(target: "lexer", "Current Span: {:?}", self.current_span());
                     self.current_span().clone()
                 }
             };
