@@ -678,6 +678,7 @@ impl<'a> Iterator for Lexer<'a> {
                 Some(s) => s,
                 None => {
                     tracing::warn!(target: "lexer", "UNABLE TO RELATIVIZE SPAN FOR \"{}\"", kind);
+                    tracing::warn!(target: "lexer", "Current Span: {:?}", self.current_span());
                     self.current_span().clone()
                 }
             };

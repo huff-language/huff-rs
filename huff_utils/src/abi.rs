@@ -32,7 +32,6 @@
 //!
 //! // Create an ABI using that generate contract
 //! let abi: Abi = contract.into();
-//! println!("Abi instant: {:?}", abi);
 //! ```
 
 use serde::{Deserialize, Serialize};

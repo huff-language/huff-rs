@@ -247,7 +247,7 @@ impl Parser {
             tok => {
                 return Err(ParserError {
                     kind: ParserErrorKind::UnexpectedType(tok),
-                    spans: AstSpan(self.spans.clone()),
+                    spans: AstSpan(vec![self.current_token.span.clone()]),
                 })
             }
         };
