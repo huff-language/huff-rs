@@ -41,7 +41,6 @@ fn test_codesize_builtin() {
 
     // Have the Codegen create the constructor bytecode
     let cbytes = Codegen::generate_constructor_bytecode(&contract).unwrap();
-    println!("Constructor Bytecode Result: {:?}", cbytes);
     assert_eq!(cbytes, String::from("6004"));
 }
 
@@ -173,7 +172,6 @@ fn test_tablestart_builtin() {
 
     // Have the Codegen create the constructor bytecode
     let cbytes = Codegen::generate_constructor_bytecode(&contract).unwrap();
-    println!("Constructor Bytecode Result: {:?}", cbytes);
     assert_eq!(cbytes, String::from("61001e6100265b60006000f35b60006000f35b60006000f35b60006000f30006000c001200180000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000018"));
 }
 
@@ -406,7 +404,6 @@ fn test_func_sig_builtin() {
 
     // Have the Codegen create the constructor bytecode
     let cbytes = Codegen::generate_main_bytecode(&contract).unwrap();
-    println!("Main Bytecode Result: {:?}", cbytes);
     assert_eq!(&cbytes[16..24], "a9059cbb"); // `transfer(address,uint256) signature = 0xa9059cbb
     assert_eq!(cbytes, String::from("60003560e01c8063a9059cbb14610011575b"));
 }
@@ -442,7 +439,6 @@ fn test_event_hash_builtin() {
 
     // Have the Codegen create the constructor bytecode
     let cbytes = Codegen::generate_main_bytecode(&contract).unwrap();
-    println!("Main Bytecode Result: {:?}", cbytes);
     assert_eq!(&cbytes[2..66], "beabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8"); // `transfer(address,address,uint256) signature =
                                                                                                     // 0xbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8
     assert_eq!(

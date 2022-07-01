@@ -118,7 +118,7 @@ pub fn statement_gen(
                             kind: CodegenErrorKind::MissingMacroDefinition(
                                 bf.args[0].name.as_ref().unwrap().to_string(), /* yuck */
                             ),
-                            span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
+                            span: bf.span.clone(),
                             token: None,
                         })
                     };
@@ -165,7 +165,7 @@ pub fn statement_gen(
                             kind: CodegenErrorKind::MissingMacroDefinition(
                                 bf.args[0].name.as_ref().unwrap().to_string(), /* yuck */
                             ),
-                            span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
+                            span: bf.span.clone(),
                             token: None,
                         })
                     };
@@ -206,7 +206,7 @@ pub fn statement_gen(
                             kind: CodegenErrorKind::MissingFunctionInterface(
                                 bf.args[0].name.as_ref().unwrap().to_string(),
                             ),
-                            span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
+                            span: bf.span.clone(),
                             token: None,
                         })
                     }
@@ -231,7 +231,7 @@ pub fn statement_gen(
                             kind: CodegenErrorKind::MissingEventInterface(
                                 bf.args[0].name.as_ref().unwrap().to_string(),
                             ),
-                            span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
+                            span: bf.span.clone(),
                             token: None,
                         })
                     }
