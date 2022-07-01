@@ -412,12 +412,12 @@ fn test_func_sig_builtin() {
 }
 
 #[test]
-fn test_event_sig_builtin() {
+fn test_event_hash_builtin() {
     let source: &str = r#"
         #define event transfer(address,address,uint256)
 
         #define macro MAIN() = takes(0) returns (0) {
-            __EVENT_SIG(transfer)
+            __EVENT_HASH(transfer)
             0x00 sstore
         }
     "#;

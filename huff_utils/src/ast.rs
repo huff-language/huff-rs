@@ -345,8 +345,8 @@ pub struct Event {
     pub parameters: Vec<Argument>,
     /// The event span
     pub span: AstSpan,
-    /// The event signature
-    pub signature: Literal,
+    /// The event hash
+    pub hash: Literal,
 }
 
 /// A Table Definition
@@ -601,8 +601,8 @@ pub enum BuiltinFunctionKind {
     Tablestart,
     /// Function signature function
     FunctionSignature,
-    /// Event signature function
-    EventSignature,
+    /// Event hash function
+    EventHash,
 }
 
 impl From<&str> for BuiltinFunctionKind {
@@ -612,7 +612,7 @@ impl From<&str> for BuiltinFunctionKind {
             "__codesize" => BuiltinFunctionKind::Codesize,
             "__tablestart" => BuiltinFunctionKind::Tablestart,
             "__FUNC_SIG" => BuiltinFunctionKind::FunctionSignature,
-            "__EVENT_SIG" => BuiltinFunctionKind::EventSignature,
+            "__EVENT_HASH" => BuiltinFunctionKind::EventHash,
             _ => panic!("Invalid Builtin Function Kind"), // TODO: Better error handling
         }
     }
