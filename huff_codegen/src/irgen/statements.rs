@@ -1,4 +1,5 @@
 use huff_utils::prelude::*;
+use tiny_keccak::{Hasher, Keccak};
 
 use crate::Codegen;
 
@@ -187,12 +188,40 @@ pub fn statement_gen(
                     *offset += 3;
                 }
                 BuiltinFunctionKind::FunctionSignature => {
+                    if bf.args.len() != 1 {
+                        tracing::error!(
+                            target: "codegen",
+                            "Incorrect number of arguments passed to __FUNC_SIG, should be 1: {}",
+                            bf.args.len()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidArguments(
+                                format!(
+                                    "Incorrect number of arguments passed to __FUNC_SIG, should be 1: {}",
+                                    bf.args.len()
+                                )
+                            ),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+
                     if let Some(func) = contract
                         .functions
                         .iter()
                         .find(|f| bf.args[0].name.as_ref().unwrap().eq(&f.name))
                     {
                         let sig = hex::encode(func.signature);
+                        let push_bytes = format!("{:02x}{}", 95 + sig.len() / 2, sig);
+                        *offset += push_bytes.len() / 2;
+                        bytes.push((starting_offset, Bytes(push_bytes)));
+                    } else if let Some(s) = &bf.args[0].name {
+                        let mut signature = [0u8; 4]; // Only keep first 4 bytes
+                        let mut hasher = Keccak::v256();
+                        hasher.update(s.as_bytes());
+                        hasher.finalize(&mut signature);
+
+                        let sig = hex::encode(signature);
                         let push_bytes = format!("{:02x}{}", 95 + sig.len() / 2, sig);
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
@@ -212,12 +241,40 @@ pub fn statement_gen(
                     }
                 }
                 BuiltinFunctionKind::EventHash => {
+                    if bf.args.len() != 1 {
+                        tracing::error!(
+                            target: "codegen",
+                            "Incorrect number of arguments passed to __EVENT_HASH, should be 1: {}",
+                            bf.args.len()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidArguments(
+                                format!(
+                                    "Incorrect number of arguments passed to __EVENT_HASH, should be 1: {}",
+                                    bf.args.len()
+                                )
+                            ),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+
                     if let Some(event) = contract
                         .events
                         .iter()
                         .find(|e| bf.args[0].name.as_ref().unwrap().eq(&e.name))
                     {
                         let hash = bytes32_to_string(&event.hash, false);
+                        let push_bytes = format!("{:02x}{}", 95 + hash.len() / 2, hash);
+                        *offset += push_bytes.len() / 2;
+                        bytes.push((starting_offset, Bytes(push_bytes)));
+                    } else if let Some(s) = &bf.args[0].name {
+                        let mut hash = [0u8; 32];
+                        let mut hasher = Keccak::v256();
+                        hasher.update(s.as_bytes());
+                        hasher.finalize(&mut hash);
+
+                        let hash = hex::encode(hash);
                         let push_bytes = format!("{:02x}{}", 95 + hash.len() / 2, hash);
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));

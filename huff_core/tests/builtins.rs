@@ -377,6 +377,8 @@ fn test_func_sig_builtin() {
         #define macro MAIN() = takes(0) returns (0) {
             // Identify which function is being called.
             0x00 calldataload 0xE0 shr
+            dup1 __FUNC_SIG("transfer(address,uint256)") eq transfer jumpi
+            dup1 __FUNC_SIG('transfer(address,uint256)') eq transfer jumpi
             dup1 __FUNC_SIG(transfer) eq transfer jumpi
 
             transfer:
@@ -404,8 +406,16 @@ fn test_func_sig_builtin() {
 
     // Have the Codegen create the constructor bytecode
     let cbytes = Codegen::generate_main_bytecode(&contract).unwrap();
-    assert_eq!(&cbytes[16..24], "a9059cbb"); // `transfer(address,uint256) signature = 0xa9059cbb
-    assert_eq!(cbytes, String::from("60003560e01c8063a9059cbb14610011575b"));
+    // `transfer(address,uint256) signature = 0xa9059cbb
+    assert_eq!(&cbytes[16..24], "a9059cbb");
+    assert_eq!(&cbytes[38..46], "a9059cbb");
+    assert_eq!(&cbytes[60..68], "a9059cbb");
+    assert_eq!(
+        cbytes,
+        String::from(
+            "60003560e01c8063a9059cbb14610027578063a9059cbb14610027578063a9059cbb14610027575b"
+        )
+    );
 }
 
 #[test]
@@ -414,6 +424,8 @@ fn test_event_hash_builtin() {
         #define event transfer(address,address,uint256)
 
         #define macro MAIN() = takes(0) returns (0) {
+            __EVENT_HASH("transfer(address,address,uint256)")
+            __EVENT_HASH('transfer(address,address,uint256)')
             __EVENT_HASH(transfer)
             0x00 sstore
         }
@@ -439,10 +451,19 @@ fn test_event_hash_builtin() {
 
     // Have the Codegen create the constructor bytecode
     let cbytes = Codegen::generate_main_bytecode(&contract).unwrap();
-    assert_eq!(&cbytes[2..66], "beabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8"); // `transfer(address,address,uint256) signature =
-                                                                                                    // 0xbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8
+    // `transfer(address,address,uint256) signature =
+    // 0xbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8
+    assert_eq!(&cbytes[2..66], "beabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8");
+    assert_eq!(
+        &cbytes[68..132],
+        "beabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8"
+    );
+    assert_eq!(
+        &cbytes[134..198],
+        "beabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8"
+    );
     assert_eq!(
         cbytes,
-        String::from("7fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8600055")
+        String::from("7fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a87fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a87fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8600055")
     );
 }

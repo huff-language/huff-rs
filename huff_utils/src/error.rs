@@ -155,6 +155,8 @@ pub enum CodegenErrorKind {
     InvalidMacroInvocation(String),
     /// Conversion Error for usize
     UsizeConversion(String),
+    /// Invalid Arguments
+    InvalidArguments(String),
 }
 
 impl Spanned for CodegenError {
@@ -194,6 +196,9 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::UsizeConversion(input) => {
                 write!(f.out, "Usize Conversion Failed for \"{}\"", input)
+            }
+            CodegenErrorKind::InvalidArguments(msg) => {
+                write!(f.out, "Invalid arguments: \"{}\"", msg)
             }
         }
     }
@@ -480,6 +485,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
                 CodegenErrorKind::UsizeConversion(_) => {
                     write!(f, "\nError: Usize Conversion\n{}\n", ce.span.error(None))
+                }
+                CodegenErrorKind::InvalidArguments(_) => {
+                    write!(f, "\nError: Invalid Arguments\n{}\n", ce.span.error(None))
                 }
             },
             CompilerError::FailedCompiles(v) => {

@@ -242,7 +242,7 @@ impl Parser {
         };
 
         // function inputs should be next
-        let inputs: Vec<Argument> = self.parse_args(true, true, false)?;
+        let inputs: Vec<Argument> = self.parse_args(true, true, false, false)?;
         // function type should be next
         let fn_type = match self.current_token.kind.clone() {
             TokenKind::View => FunctionType::View,
@@ -265,7 +265,7 @@ impl Parser {
         // next token should be of `TokenKind::Returns`
         self.match_kind(TokenKind::Returns)?;
         // function outputs should be next
-        let outputs: Vec<Argument> = self.parse_args(true, true, false)?;
+        let outputs: Vec<Argument> = self.parse_args(true, true, false, false)?;
 
         let mut signature = [0u8; 4]; // Only keep first 4 bytes
         let mut hasher = Keccak::v256();
@@ -306,7 +306,7 @@ impl Parser {
         };
 
         // Parse the event's parameters
-        let parameters: Vec<Argument> = self.parse_args(true, true, true)?;
+        let parameters: Vec<Argument> = self.parse_args(true, true, true, false)?;
 
         let mut hash = [0u8; 32];
         let mut hasher = Keccak::v256();
@@ -382,7 +382,7 @@ impl Parser {
             self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?.to_string();
         tracing::info!(target: "parser", "PARSING MACRO: \"{}\"", macro_name);
 
-        let macro_arguments: Vec<Argument> = self.parse_args(true, false, false)?;
+        let macro_arguments: Vec<Argument> = self.parse_args(true, false, false, false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
         let macro_takes: usize = self.parse_single_arg()?;
@@ -492,7 +492,7 @@ impl Parser {
                 TokenKind::BuiltinFunction(f) => {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.match_kind(TokenKind::BuiltinFunction(String::default()))?;
-                    let args = self.parse_args(true, false, false)?;
+                    let args = self.parse_args(true, false, false, true)?;
                     args.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [BUILTIN FN: {}({:?})]", f, args);
                     statements.push(Statement {
@@ -636,10 +636,33 @@ impl Parser {
         select_name: bool,
         select_type: bool,
         has_indexed: bool,
+        is_builtin: bool,
     ) -> Result<Vec<Argument>, ParserError> {
         let mut args: Vec<Argument> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
+            // The builtin functions `__FUNC_SIG` and `__EVENT_HASH` can accept a single string as
+            // input. If the `is_builtin` flag was passed, check to see if a single
+            // string is present.
+            if let TokenKind::Str(s) = &self.current_token.kind {
+                if !is_builtin {
+                    return Err(ParserError {
+                        kind: ParserErrorKind::InvalidArgs(self.current_token.kind.clone()),
+                        hint: None,
+                        spans: AstSpan(vec![self.current_token.span.clone()]),
+                    })
+                }
+
+                args.push(Argument {
+                    name: Some(s.to_owned()), // Place the string in the "name" field
+                    arg_type: None,
+                    indexed: false,
+                    span: AstSpan(vec![self.current_token.span.clone()]),
+                });
+                self.consume();
+                continue
+            }
+
             let mut arg = Argument::default();
             let mut arg_spans = vec![];
 
