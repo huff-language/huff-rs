@@ -186,6 +186,31 @@ pub fn statement_gen(
                     bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
                     *offset += 3;
                 }
+                BuiltinFunctionKind::FunctionSignature => {
+                    if let Some(func) = contract
+                        .functions
+                        .iter()
+                        .find(|f| bf.args[0].name.as_ref().unwrap().eq(&f.name))
+                    {
+                        let sig = hex::encode(func.signature);
+                        let push_bytes = format!("{:02x}{}", 95 + sig.len() / 2, sig);
+                        *offset += push_bytes.len() / 2;
+                        bytes.push((starting_offset, Bytes(push_bytes)));
+                    } else {
+                        tracing::error!(
+                            target: "codegen",
+                            "MISSING FUNCTION INTERFACE PASSED TO __SIG: \"{}\"",
+                            bf.args[0].name.as_ref().unwrap()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::MissingFunctionInterface(
+                                bf.args[0].name.as_ref().unwrap().to_string(),
+                            ),
+                            span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
+                            token: None,
+                        })
+                    }
+                }
             }
         }
         sty => {

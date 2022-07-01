@@ -597,6 +597,8 @@ pub enum BuiltinFunctionKind {
     Codesize,
     /// Table start function
     Tablestart,
+    /// Function signature function
+    FunctionSignature,
 }
 
 impl From<&str> for BuiltinFunctionKind {
@@ -605,6 +607,7 @@ impl From<&str> for BuiltinFunctionKind {
             "__tablesize" => BuiltinFunctionKind::Tablesize,
             "__codesize" => BuiltinFunctionKind::Codesize,
             "__tablestart" => BuiltinFunctionKind::Tablestart,
+            "__SIG" => BuiltinFunctionKind::FunctionSignature,
             _ => panic!("Invalid Builtin Function Kind"), // TODO: Better error handling
         }
     }

@@ -366,3 +366,47 @@ fn test_label_clashing() {
     let mbytes = Codegen::generate_main_bytecode(&contract).unwrap();
     assert_eq!(mbytes, String::from("600861004960003961012861005160003960003560e01c8063a9059cbb14610022575b60208703516202ffe016806020015b60206020015b60206020015b60206020015b602060200100310037003d004300000000000000000000000000000000000000000000000000000000000000310000000000000000000000000000000000000000000000000000000000000037000000000000000000000000000000000000000000000000000000000000003d0000000000000000000000000000000000000000000000000000000000000043"));
 }
+
+#[test]
+fn test_sig_builtin() {
+    let source: &str = r#"
+        #define function transfer(address,uint256) nonpayable returns ()
+
+        #define macro TRANSFER() = takes (0) returns (0) {
+            // ...
+        }
+
+        #define macro MAIN() = takes(0) returns (0) {
+            // Identify which function is being called.
+            0x00 calldataload 0xE0 shr
+            dup1 __SIG(transfer) eq transfer jumpi
+
+            transfer:
+                TRANSFER()
+        }
+    "#;
+
+    // Parse tokens
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Parse the AST
+    let mut contract = parser.parse().unwrap();
+
+    // Derive storage pointers
+    contract.derive_storage_pointers();
+
+    // Instantiate Codegen
+    let cg = Codegen::new();
+
+    // The codegen instance should have no artifact
+    assert!(cg.artifact.is_none());
+
+    // Have the Codegen create the constructor bytecode
+    let cbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    println!("Main Bytecode Result: {:?}", cbytes);
+    assert_eq!(&cbytes[16..24], "a9059cbb"); // `transfer(address,uint256) signature = 0xa9059cbb
+    assert_eq!(cbytes, String::from("60003560e01c8063a9059cbb14610011575b"));
+}

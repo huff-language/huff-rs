@@ -135,6 +135,8 @@ pub enum CodegenErrorKind {
     InvalidMacroStatement,
     /// The Macro Definition is Missing
     MissingMacroDefinition(String),
+    /// The Function Interface is Missing
+    MissingFunctionInterface(String),
     /// Missing Constant Definition
     MissingConstantDefinition(String),
     /// Abi Generation Failure
@@ -171,6 +173,9 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::MissingMacroDefinition(str) => {
                 write!(f.out, "Missing Macro \"{}\" Definition!", str)
+            }
+            CodegenErrorKind::MissingFunctionInterface(str) => {
+                write!(f.out, "Missing Function Interface for \"{}\"!", str)
             }
             CodegenErrorKind::MissingConstantDefinition(cd) => {
                 write!(f.out, "Missing Constant Definition for \"{}\"!", cd)
@@ -426,6 +431,14 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Missing Macro Definition For Invocation: \"{}\"\n{}\n",
                         mmi,
+                        ce.span.error(None)
+                    )
+                }
+                CodegenErrorKind::MissingFunctionInterface(func) => {
+                    write!(
+                        f,
+                        "\nError: Missing Function Interface: \"{}\"\n{}\n",
+                        func,
                         ce.span.error(None)
                     )
                 }

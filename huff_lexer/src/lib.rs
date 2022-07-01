@@ -552,7 +552,7 @@ impl<'a> Iterator for Lexer<'a> {
                         if self.context == Context::MacroBody &&
                             matches!(
                                 slice.as_ref(),
-                                "__codesize" | "__tablesize" | "__tablestart"
+                                "__codesize" | "__tablesize" | "__tablestart" | "__SIG" /* TODO: Clean this process up */
                             )
                         {
                             TokenKind::BuiltinFunction(slice)
