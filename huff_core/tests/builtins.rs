@@ -368,7 +368,7 @@ fn test_label_clashing() {
 }
 
 #[test]
-fn test_sig_builtin() {
+fn test_func_sig_builtin() {
     let source: &str = r#"
         #define function transfer(address,uint256) nonpayable returns ()
 
@@ -379,7 +379,7 @@ fn test_sig_builtin() {
         #define macro MAIN() = takes(0) returns (0) {
             // Identify which function is being called.
             0x00 calldataload 0xE0 shr
-            dup1 __SIG(transfer) eq transfer jumpi
+            dup1 __FUNC_SIG(transfer) eq transfer jumpi
 
             transfer:
                 TRANSFER()
@@ -409,4 +409,44 @@ fn test_sig_builtin() {
     println!("Main Bytecode Result: {:?}", cbytes);
     assert_eq!(&cbytes[16..24], "a9059cbb"); // `transfer(address,uint256) signature = 0xa9059cbb
     assert_eq!(cbytes, String::from("60003560e01c8063a9059cbb14610011575b"));
+}
+
+#[test]
+fn test_event_sig_builtin() {
+    let source: &str = r#"
+        #define event transfer(address,address,uint256)
+
+        #define macro MAIN() = takes(0) returns (0) {
+            __EVENT_SIG(transfer)
+            0x00 sstore
+        }
+    "#;
+
+    // Parse tokens
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Parse the AST
+    let mut contract = parser.parse().unwrap();
+
+    // Derive storage pointers
+    contract.derive_storage_pointers();
+
+    // Instantiate Codegen
+    let cg = Codegen::new();
+
+    // The codegen instance should have no artifact
+    assert!(cg.artifact.is_none());
+
+    // Have the Codegen create the constructor bytecode
+    let cbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    println!("Main Bytecode Result: {:?}", cbytes);
+    assert_eq!(&cbytes[2..66], "beabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8"); // `transfer(address,address,uint256) signature =
+                                                                                                    // 0xbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8
+    assert_eq!(
+        cbytes,
+        String::from("7fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8600055")
+    );
 }

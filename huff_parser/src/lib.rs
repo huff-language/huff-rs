@@ -308,7 +308,14 @@ impl Parser {
         // Parse the event's parameters
         let parameters: Vec<Argument> = self.parse_args(true, true, true)?;
 
-        Ok(Event { name, parameters, span: AstSpan(self.spans.clone()) })
+        let mut signature = [0u8; 32];
+        let mut hasher = Keccak::v256();
+        let input_types =
+            parameters.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
+        hasher.update(format!("{}({})", name, input_types.join(",")).as_bytes());
+        hasher.finalize(&mut signature);
+
+        Ok(Event { name, parameters, span: AstSpan(self.spans.clone()), signature })
     }
 
     /// Parse a constant.

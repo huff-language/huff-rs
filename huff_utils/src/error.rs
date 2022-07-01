@@ -137,6 +137,8 @@ pub enum CodegenErrorKind {
     MissingMacroDefinition(String),
     /// The Function Interface is Missing
     MissingFunctionInterface(String),
+    /// The Event Interface is Missing
+    MissingEventInterface(String),
     /// Missing Constant Definition
     MissingConstantDefinition(String),
     /// Abi Generation Failure
@@ -176,6 +178,9 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::MissingFunctionInterface(str) => {
                 write!(f.out, "Missing Function Interface for \"{}\"!", str)
+            }
+            CodegenErrorKind::MissingEventInterface(str) => {
+                write!(f.out, "Missing Event Interface for \"{}\"!", str)
             }
             CodegenErrorKind::MissingConstantDefinition(cd) => {
                 write!(f.out, "Missing Constant Definition for \"{}\"!", cd)
@@ -439,6 +444,14 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Missing Function Interface: \"{}\"\n{}\n",
                         func,
+                        ce.span.error(None)
+                    )
+                }
+                CodegenErrorKind::MissingEventInterface(event) => {
+                    write!(
+                        f,
+                        "\nError: Missing Event Interface: \"{}\"\n{}\n",
+                        event,
                         ce.span.error(None)
                     )
                 }
