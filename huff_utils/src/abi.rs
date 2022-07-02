@@ -100,7 +100,7 @@ impl From<ast::Contract> for Abi {
                             .iter()
                             .map(|argument| FunctionParam {
                                 name: argument.name.clone().unwrap_or_default(),
-                                kind: argument.arg_type.clone().unwrap_or_default().into(),
+                                kind: argument.name.clone().unwrap_or_default().into(),
                                 internal_type: None,
                             })
                             .collect(),

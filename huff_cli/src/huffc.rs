@@ -22,13 +22,13 @@ use yansi::Paint;
 
 /// The Huff CLI Args
 #[derive(ClapParser, Debug, Clone)]
-#[clap(version, about, long_about = None)]
+#[clap(name = "huffc", version, about, long_about = None)]
 struct Huff {
     /// The main path
     pub path: Option<String>,
 
     /// The contracts source path.
-    #[clap(short = 's', long = "source-path", default_value = "./src")]
+    #[clap(short = 's', long = "source-path", default_value = "./contracts")]
     source: String,
 
     /// The output file path.
@@ -51,7 +51,7 @@ struct Huff {
     #[clap(short = 'a', long = "artifacts")]
     artifacts: bool,
 
-    /// Optimize compilation.
+    /// Optimize compilation [WIP]
     #[clap(short = 'z', long = "optimize")]
     optimize: bool,
 
