@@ -14,7 +14,7 @@ use huff_utils::prelude::{
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
-use std::{path::Path, sync::Arc};
+use std::{path::Path, sync::Arc, io::Write};
 use yansi::Paint;
 
 /// The Huff CLI Args
@@ -63,6 +63,18 @@ struct Huff {
     /// Verbose output.
     #[clap(short = 'v', long = "verbose")]
     verbose: bool,
+}
+
+pub fn get_input(prompt: &str) -> String{
+    println!("{}",prompt);
+    let mut input = String::new();
+    let _ = std::io::stdout().flush();
+    match std::io::stdin().read_line(&mut input) {
+        Ok(_goes_into_input_above) => {},
+        Err(_no_updates_is_fine) => {},
+    }
+    println!("Read input: {}", input);
+    input.trim().to_string()
 }
 
 fn main() {
@@ -148,10 +160,23 @@ fn main() {
             if cli.bytecode {
                 if cli.interactive {
                     tracing::info!(target: "core", "ENTERING INTERACTIVE MODE");
-                    for _ in &artifacts {
-                        // TODO: prompt user for constructor args based on each artifact
-                        //
+                    for artifact in &artifacts {
+                        match artifact.abi {
+                            Some(ref abi) => match abi.constructor {
+                                Some(ref args) => {
+                                    println!("{}", Paint::blue(format!("Enter Constructor Arguments for Contract: \"{}\"", artifact.file.path)));
+                                    println!("Inputs: {:?}", args.inputs);
+                                    for input in &args.inputs {
+                                        let arg_input = get_input(&format!("Enter a {:?} for constructor param \"{}\":", input.kind, input.name));
+                                        println!("Got arg input: {}", arg_input);
+                                    }
+                                }
+                                None => tracing::warn!(target: "core", "NO CONSTRUCTOR FOR ABI: {:?}", abi),
+                            }
+                            None => tracing::warn!(target: "core", "NO ABI FOR ARTIFACT: {:?}", artifact),
+                        }
                     }
+                    println!("Re-exporting {} artifacts...", artifacts.len());
                     // TODO: re-export the artifacts
                     tracing::info!(target: "core", "RE-EXPORTED INTERACTIVE ARTIFACTS");
                 }

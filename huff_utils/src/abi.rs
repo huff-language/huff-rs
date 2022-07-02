@@ -66,13 +66,48 @@ impl Abi {
 // Allows for simple ABI Generation by directly translating the AST
 impl From<ast::Contract> for Abi {
     fn from(contract: ast::Contract) -> Self {
-        let constructors = contract
-            .macros
+
+        // Try to get the constructor inputs from an overriden function
+        // Otherwise, use the CONSTRUCTOR macro if one exists
+        let constructor = contract
+            .functions
             .iter()
-            .filter(|m| m.name == "CONSTRUCTOR")
+            .filter(|m| m.name.to_lowercase() == "constructor")
             .cloned()
-            .collect::<Vec<ast::MacroDefinition>>();
-        let constructor: Option<&ast::MacroDefinition> = constructors.get(0);
+            .collect::<Vec<ast::Function>>()
+            .get(0)
+            .map(|func| Constructor {
+                inputs: func
+                    .inputs
+                    .iter()
+                    .map(|argument| {
+                    FunctionParam {
+                        name: argument.name.clone().unwrap_or_default(),
+                        kind: argument.arg_type.clone().unwrap_or_default().into(),
+                        internal_type: None,
+                    }})
+                    .collect(),
+            }).or_else(|| {
+                contract
+                .macros
+                .iter()
+                .filter(|m| m.name == "CONSTRUCTOR")
+                .cloned()
+                .collect::<Vec<ast::MacroDefinition>>()
+                .get(0)
+                .map(|func| Constructor {
+                    inputs: func
+                        .parameters
+                        .iter()
+                        .map(|argument| {
+                        FunctionParam {
+                            name: argument.name.clone().unwrap_or_default(),
+                            kind: argument.arg_type.clone().unwrap_or_default().into(),
+                            internal_type: None,
+                        }})
+                        .collect(),
+                })
+            });
 
         // Instantiate functions and events
         let mut functions = BTreeMap::new();
@@ -143,17 +178,7 @@ impl From<ast::Contract> for Abi {
             });
 
         Self {
-            constructor: constructor.map(|c| Constructor {
-                inputs: c
-                    .parameters
-                    .iter()
-                    .map(|argument| FunctionParam {
-                        name: argument.name.clone().unwrap_or_default(),
-                        kind: argument.arg_type.clone().unwrap_or_default().into(),
-                        internal_type: None,
-                    })
-                    .collect(),
-            }),
+            constructor,
             functions,
             events,
             receive: false,

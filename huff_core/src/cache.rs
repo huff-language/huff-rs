@@ -50,7 +50,7 @@ pub fn resolve_existing_artifacts(
                 // If we expected compilation, the sources must match
                 match expected {
                     Some(expected_fs) => {
-                        if (*artifact.file).source != (*expected_fs).source {
+                        if artifact.file.source != expected_fs.source {
                             tracing::warn!(target: "core", "Cache Resolution Failed: \"{}\" Artifact Outdated", artifact.file.path);
                             return None
                         } else {

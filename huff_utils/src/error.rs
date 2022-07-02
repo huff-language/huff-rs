@@ -135,6 +135,10 @@ pub enum CodegenErrorKind {
     InvalidMacroStatement,
     /// The Macro Definition is Missing
     MissingMacroDefinition(String),
+    /// The Function Interface is Missing
+    MissingFunctionInterface(String),
+    /// The Event Interface is Missing
+    MissingEventInterface(String),
     /// Missing Constant Definition
     MissingConstantDefinition(String),
     /// Abi Generation Failure
@@ -151,6 +155,8 @@ pub enum CodegenErrorKind {
     InvalidMacroInvocation(String),
     /// Conversion Error for usize
     UsizeConversion(String),
+    /// Invalid Arguments
+    InvalidArguments(String),
 }
 
 impl Spanned for CodegenError {
@@ -172,6 +178,12 @@ impl<W: Write> Report<W> for CodegenError {
             CodegenErrorKind::MissingMacroDefinition(str) => {
                 write!(f.out, "Missing Macro \"{}\" Definition!", str)
             }
+            CodegenErrorKind::MissingFunctionInterface(str) => {
+                write!(f.out, "Missing Function Interface for \"{}\"!", str)
+            }
+            CodegenErrorKind::MissingEventInterface(str) => {
+                write!(f.out, "Missing Event Interface for \"{}\"!", str)
+            }
             CodegenErrorKind::MissingConstantDefinition(cd) => {
                 write!(f.out, "Missing Constant Definition for \"{}\"!", cd)
             }
@@ -184,6 +196,9 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::UsizeConversion(input) => {
                 write!(f.out, "Usize Conversion Failed for \"{}\"", input)
+            }
+            CodegenErrorKind::InvalidArguments(msg) => {
+                write!(f.out, "Invalid arguments: \"{}\"", msg)
             }
         }
     }
@@ -429,6 +444,22 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         ce.span.error(None)
                     )
                 }
+                CodegenErrorKind::MissingFunctionInterface(func) => {
+                    write!(
+                        f,
+                        "\nError: Missing Function Interface: \"{}\"\n{}\n",
+                        func,
+                        ce.span.error(None)
+                    )
+                }
+                CodegenErrorKind::MissingEventInterface(event) => {
+                    write!(
+                        f,
+                        "\nError: Missing Event Interface: \"{}\"\n{}\n",
+                        event,
+                        ce.span.error(None)
+                    )
+                }
                 CodegenErrorKind::MissingConstantDefinition(_) => {
                     write!(f, "\nError: Missing Constant Definition\n{}\n", ce.span.error(None))
                 }
@@ -454,6 +485,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
                 CodegenErrorKind::UsizeConversion(_) => {
                     write!(f, "\nError: Usize Conversion\n{}\n", ce.span.error(None))
+                }
+                CodegenErrorKind::InvalidArguments(_) => {
+                    write!(f, "\nError: Invalid Arguments\n{}\n", ce.span.error(None))
                 }
             },
             CompilerError::FailedCompiles(v) => {

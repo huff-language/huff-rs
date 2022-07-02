@@ -673,6 +673,7 @@ dependencies = [
  "huff_utils",
  "proptest",
  "serde_json",
+ "tiny-keccak",
  "tracing",
  "uuid",
 ]
