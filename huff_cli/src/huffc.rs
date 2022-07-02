@@ -8,13 +8,16 @@
 #![allow(deprecated)]
 
 use clap::Parser as ClapParser;
+use ethers_core::utils::hex;
+use huff_codegen::Codegen;
 use huff_core::Compiler;
 use huff_utils::prelude::{
-    unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError, FileSource, Span,
+    unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError, FileSource,
+    OutputLocation, Span,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
-use std::{path::Path, sync::Arc, io::Write};
+use std::{io::Write, path::Path, sync::Arc};
 use yansi::Paint;
 
 /// The Huff CLI Args
@@ -65,15 +68,18 @@ struct Huff {
     verbose: bool,
 }
 
-pub fn get_input(prompt: &str) -> String{
-    println!("{}",prompt);
+/// Helper function to read an stdin input
+pub(crate) fn get_input(prompt: &str) -> String {
+    // let mut sp = Spinner::new(Spinners::Line, format!("{}{}",
+    // Paint::blue("[INTERACTIVE]".to_string()), prompt));
+    print!("{} {} ", Paint::blue("[INTERACTIVE]".to_string()), prompt);
     let mut input = String::new();
     let _ = std::io::stdout().flush();
     match std::io::stdin().read_line(&mut input) {
-        Ok(_goes_into_input_above) => {},
-        Err(_no_updates_is_fine) => {},
+        Ok(_goes_into_input_above) => {}
+        Err(_no_updates_is_fine) => {}
     }
-    println!("Read input: {}", input);
+    // sp.stop();
     input.trim().to_string()
 }
 
@@ -104,20 +110,22 @@ fn main() {
         cli.artifacts = false;
     }
 
+    let output = match (&cli.output, cli.artifacts) {
+        (Some(o), true) => Some(o.clone()),
+        (None, true) => Some(cli.outputdir.clone()),
+        _ => None,
+    };
+
     let compiler: Compiler = Compiler {
         sources: Arc::clone(&sources),
-        output: match (&cli.output, cli.artifacts) {
-            (Some(o), true) => Some(o.clone()),
-            (None, true) => Some(cli.outputdir.clone()),
-            _ => None,
-        },
+        output,
         construct_args: cli.inputs,
         optimize: cli.optimize,
         bytecode: cli.bytecode,
     };
 
     // Create compiling spinner
-    tracing::debug!(target: "core", "[⠔] COMPILING");
+    tracing::debug!(target: "cli", "[⠔] COMPILING");
     let mut sp: Option<Spinner> = None;
     // If stdout is a TTY, create a spinner
     if stdout_isatty() {
@@ -131,7 +139,7 @@ fn main() {
         println!(" ");
     }
     match compile_res {
-        Ok(artifacts) => {
+        Ok(mut artifacts) => {
             if artifacts.is_empty() {
                 let e = CompilerError::CodegenError(CodegenError {
                     kind: CodegenErrorKind::AbiGenerationFailure,
@@ -153,32 +161,68 @@ fn main() {
                     ),
                     token: None,
                 });
-                tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
+                tracing::error!(target: "cli", "COMPILER ERRORED: {:?}", e);
                 eprintln!("{}", Paint::red(format!("{}", e)));
                 std::process::exit(1);
             }
             if cli.bytecode {
                 if cli.interactive {
-                    tracing::info!(target: "core", "ENTERING INTERACTIVE MODE");
-                    for artifact in &artifacts {
+                    tracing::info!(target: "cli", "ENTERING INTERACTIVE MODE");
+                    // let mut new_artifacts = vec![];
+                    for artifact in &mut artifacts {
+                        let mut appended_args = String::default();
                         match artifact.abi {
                             Some(ref abi) => match abi.constructor {
                                 Some(ref args) => {
-                                    println!("{}", Paint::blue(format!("Enter Constructor Arguments for Contract: \"{}\"", artifact.file.path)));
-                                    println!("Inputs: {:?}", args.inputs);
+                                    println!(
+                                        "{} Constructor Arguments for Contract: \"{}\"",
+                                        Paint::blue("[INTERACTIVE]".to_string()),
+                                        artifact.file.path
+                                    );
                                     for input in &args.inputs {
-                                        let arg_input = get_input(&format!("Enter a {:?} for constructor param \"{}\":", input.kind, input.name));
-                                        println!("Got arg input: {}", arg_input);
+                                        let arg_input = get_input(&format!(
+                                            "Enter a {:?} for constructor param{}:",
+                                            input.kind,
+                                            (!input.name.is_empty())
+                                                .then(|| format!(" \"{}\"", input.name))
+                                                .unwrap_or_default()
+                                        ));
+                                        let encoded =
+                                            Codegen::encode_constructor_args(vec![arg_input])
+                                                .iter()
+                                                .fold("".to_string(), |acc, str| {
+                                                    let inner: Vec<u8> =
+                                                        ethers_core::abi::encode(&[str.clone()]);
+                                                    let hex_args: String =
+                                                        hex::encode(inner.as_slice());
+                                                    format!("{}{}", acc, hex_args)
+                                                });
+                                        appended_args.push_str(&encoded);
                                     }
                                 }
-                                None => tracing::warn!(target: "core", "NO CONSTRUCTOR FOR ABI: {:?}", abi),
+                                None => {
+                                    tracing::warn!(target: "cli", "NO CONSTRUCTOR FOR ABI: {:?}", abi)
+                                }
+                            },
+                            None => {
+                                tracing::warn!(target: "cli", "NO ABI FOR ARTIFACT: {:?}", artifact)
                             }
-                            None => tracing::warn!(target: "core", "NO ABI FOR ARTIFACT: {:?}", artifact),
+                        }
+                        match Arc::get_mut(artifact) {
+                            Some(art) => {
+                                art.bytecode = format!("{}{}", art.bytecode, appended_args);
+                            }
+                            None => {
+                                tracing::warn!(target: "cli", "FAILED TO ACQUIRE MUTABLE REF TO ARTIFACT")
+                            }
                         }
                     }
-                    println!("Re-exporting {} artifacts...", artifacts.len());
-                    // TODO: re-export the artifacts
-                    tracing::info!(target: "core", "RE-EXPORTED INTERACTIVE ARTIFACTS");
+                    tracing::debug!(target: "cli", "Re-exporting artifacts...");
+                    Compiler::export_artifacts(
+                        &artifacts,
+                        &OutputLocation(cli.output.unwrap_or_else(|| cli.outputdir.clone())),
+                    );
+                    tracing::info!(target: "cli", "RE-EXPORTED INTERACTIVE ARTIFACTS");
                 }
                 match sources.len() {
                     1 => print!("{}", artifacts[0].bytecode),
@@ -189,7 +233,7 @@ fn main() {
             }
         }
         Err(e) => {
-            tracing::error!(target: "core", "COMPILER ERRORED: {:?}", e);
+            tracing::error!(target: "cli", "COMPILER ERRORED: {:?}", e);
             eprintln!("{}", Paint::red(format!("{}", e)));
             std::process::exit(1);
         }

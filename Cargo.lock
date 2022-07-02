@@ -655,6 +655,7 @@ version = "0.1.0"
 dependencies = [
  "clap 3.2.1",
  "ethers-core",
+ "huff_codegen",
  "huff_core",
  "huff_utils",
  "isatty",
