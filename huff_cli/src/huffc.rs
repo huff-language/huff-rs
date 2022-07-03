@@ -12,8 +12,8 @@ use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
 use huff_utils::prelude::{
-    unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError, FileSource,
-    OutputLocation, Span,
+    gen_sol_interfaces, unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError,
+    FileSource, OutputLocation, Span,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
@@ -54,6 +54,10 @@ struct Huff {
     /// Optimize compilation [WIP]
     #[clap(short = 'z', long = "optimize")]
     optimize: bool,
+
+    /// Generate solidity interface for a Huff artifact
+    #[clap(short = 'g', long = "interface")]
+    interface: bool,
 
     /// Generate and log bytecode.
     #[clap(short = 'b', long = "bytecode")]
@@ -162,6 +166,12 @@ fn main() {
                 eprintln!("{}", Paint::red(format!("{}", e)));
                 std::process::exit(1);
             }
+
+            if cli.interface {
+                tracing::info!(target: "cli", "GENERATING SOLIDITY INTERFACES FROM ARTIFACTS");
+                gen_sol_interfaces(&artifacts).iter().for_each(|i| println!("{}", i));
+            }
+
             if cli.bytecode {
                 if cli.interactive {
                     tracing::info!(target: "cli", "ENTERING INTERACTIVE MODE");

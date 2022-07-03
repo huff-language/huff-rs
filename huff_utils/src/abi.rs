@@ -269,6 +269,20 @@ pub enum FunctionParamType {
     Tuple(Vec<FunctionParamType>),
 }
 
+impl FunctionParamType {
+    /// Checks if the param type should be designated as "memory" for solidity interface
+    /// generation.
+    pub fn is_memory_type(&self) -> bool {
+        matches!(
+            self,
+            FunctionParamType::Bytes |
+                FunctionParamType::String |
+                FunctionParamType::Tuple(_) |
+                FunctionParamType::Array(_, _)
+        )
+    }
+}
+
 impl fmt::Debug for FunctionParamType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.display(f)
