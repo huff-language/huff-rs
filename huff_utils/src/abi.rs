@@ -164,7 +164,7 @@ impl From<ast::Contract> for Abi {
                             .map(|argument| EventParam {
                                 name: argument.name.clone().unwrap_or_default(),
                                 kind: argument.arg_type.clone().unwrap_or_default().into(),
-                                indexed: false, // TODO: This is not present in `argument`
+                                indexed: argument.indexed,
                             })
                             .collect(),
                         anonymous: false,
@@ -267,6 +267,20 @@ pub enum FunctionParamType {
     FixedBytes(usize),
     /// A tuple of parameters
     Tuple(Vec<FunctionParamType>),
+}
+
+impl FunctionParamType {
+    /// Checks if the param type should be designated as "memory" for solidity interface
+    /// generation.
+    pub fn is_memory_type(&self) -> bool {
+        matches!(
+            self,
+            FunctionParamType::Bytes |
+                FunctionParamType::String |
+                FunctionParamType::Tuple(_) |
+                FunctionParamType::Array(_, _)
+        )
+    }
 }
 
 impl fmt::Debug for FunctionParamType {

@@ -336,6 +336,18 @@ pub enum FunctionType {
     Pure,
 }
 
+impl FunctionType {
+    /// Get the string representation of the function type for usage in Solidity interface
+    /// generation.
+    pub fn interface_mutability(&self) -> &str {
+        match self {
+            FunctionType::View => " view",
+            FunctionType::Pure => " pure",
+            _ => "", // payable / nonpayable types not valid in Solidity interfaces
+        }
+    }
+}
+
 /// An Event Signature
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Event {
