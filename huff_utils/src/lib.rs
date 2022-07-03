@@ -42,10 +42,13 @@ pub mod types;
 /// Bytes Util Module
 pub mod bytes_util;
 
+/// Solidity Interface Generator
+pub mod sol_interface;
+
 /// Prelude wraps common utilities.
 pub mod prelude {
     pub use crate::{
         abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, evm::*, files::*, io::*,
-        report::*, token::*, types::*,
+        report::*, sol_interface::*, token::*, types::*,
     };
 }
