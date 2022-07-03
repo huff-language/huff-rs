@@ -164,7 +164,7 @@ impl From<ast::Contract> for Abi {
                             .map(|argument| EventParam {
                                 name: argument.name.clone().unwrap_or_default(),
                                 kind: argument.arg_type.clone().unwrap_or_default().into(),
-                                indexed: false, // TODO: This is not present in `argument`
+                                indexed: argument.indexed,
                             })
                             .collect(),
                         anonymous: false,
