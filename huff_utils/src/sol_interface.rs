@@ -1,11 +1,15 @@
 use crate::prelude::Artifact;
-use std::{fs, path::Path, sync::Arc};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 /// Generate solidity interfaces from a vector of artifacts.
 ///
 /// @param artifacts The vector of artifacts to generate interfaces from.
 /// @return The vector of generated interfaces.
-pub fn gen_sol_interfaces(artifacts: &Vec<Arc<Artifact>>) -> Vec<(&str, String)> {
+pub fn gen_sol_interfaces(artifacts: &Vec<Arc<Artifact>>) -> Vec<(PathBuf, &str, String)> {
     let mut interfaces = Vec::new();
 
     for artifact in artifacts {
@@ -70,6 +74,7 @@ pub fn gen_sol_interfaces(artifacts: &Vec<Arc<Artifact>>) -> Vec<(&str, String)>
             let interface_name =
                 artifact.file.path.split('/').last().unwrap().split('.').next().unwrap();
             interfaces.push((
+                Path::new(&artifact.file.path).parent().unwrap().to_path_buf(),
                 interface_name,
                 format!("interface I{} {{\n{}\n}}", interface_name, defs.join("\n"),),
             ));
@@ -83,9 +88,9 @@ pub fn gen_sol_interfaces(artifacts: &Vec<Arc<Artifact>>) -> Vec<(&str, String)>
 ///
 /// @param interfaces The vector of generated interfaces.
 /// @return Unit type if success, error if failure.
-pub fn export_interfaces(interfaces: &Vec<(&str, String)>) -> Result<(), std::io::Error> {
-    for (name, interface) in interfaces {
-        let path_str = format!("./I{}.sol", name);
+pub fn export_interfaces(interfaces: &Vec<(PathBuf, &str, String)>) -> Result<(), std::io::Error> {
+    for (path, name, interface) in interfaces {
+        let path_str = format!("{}/I{}.sol", path.to_str().unwrap_or(""), name);
         let file_path = Path::new(&path_str);
         fs::write(file_path, interface)?;
     }

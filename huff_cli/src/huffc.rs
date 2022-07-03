@@ -177,7 +177,7 @@ fn main() {
                         Paint::blue(
                             interfaces
                                 .into_iter()
-                                .map(|(i, _)| format!("I{}.sol", i))
+                                .map(|(_, i, _)| format!("I{}.sol", i))
                                 .collect::<Vec<_>>()
                                 .join(", ")
                         )
