@@ -12,8 +12,8 @@ use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
 use huff_utils::prelude::{
-    gen_sol_interfaces, unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError,
-    FileSource, OutputLocation, Span,
+    export_interfaces, gen_sol_interfaces, unpack_files, AstSpan, CodegenError, CodegenErrorKind,
+    CompilerError, FileSource, OutputLocation, Span,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
@@ -169,7 +169,26 @@ fn main() {
 
             if cli.interface {
                 tracing::info!(target: "cli", "GENERATING SOLIDITY INTERFACES FROM ARTIFACTS");
-                gen_sol_interfaces(&artifacts).iter().for_each(|i| println!("{}", i));
+                let interfaces = gen_sol_interfaces(&artifacts);
+                if export_interfaces(&interfaces).is_ok() {
+                    tracing::info!(target: "cli", "GENERATED SOLIDITY INTERFACES FROM ARTIFACTS SUCCESSFULLY");
+                    println!(
+                        "Exported Solidity Interfaces: {}",
+                        Paint::blue(
+                            interfaces
+                                .into_iter()
+                                .map(|(i, _)| format!("I{}.sol", i))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    );
+                } else {
+                    tracing::error!(target: "cli", "FAILED TO GENERATE SOLIDITY INTERFACES FROM ARTIFACTS");
+                    eprintln!(
+                        "{}",
+                        Paint::red("FAILED TO GENERATE SOLIDITY INTERFACES FROM ARTIFACTS")
+                    );
+                }
             }
 
             if cli.bytecode {
