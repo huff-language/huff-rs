@@ -27,9 +27,12 @@ pub fn resolve_existing_artifacts(
     let mut file_sources: std::collections::HashMap<String, Arc<FileSource>> =
         files.iter().map(|f| (f.path.clone().to_lowercase(), Arc::clone(f))).collect();
 
+    // If outputdir is not specified, use the default "./artifacts/" directory
+    let output_dir = (!output.0.is_empty()).then(|| output.0.clone()).unwrap_or_else(|| "./artifacts".to_string());
+
     // For each file, check if the artifact file exists at the location
-    tracing::debug!(target: "core", "Traversing output directory {}", output.0);
-    for entry in WalkDir::new(&output.0)
+    tracing::debug!(target: "core", "Traversing output directory {}", output_dir);
+    for entry in WalkDir::new(&output_dir)
         .into_iter()
         .filter_map(Result::ok)
         .filter(|e| !e.file_type().is_dir())
@@ -40,13 +43,14 @@ pub fn resolve_existing_artifacts(
             .display()
             .to_string()
             .replace(".json", "")
-            .replace(&output.0, ".")
+            .replace(&output_dir, ".")
             .to_lowercase();
         let expected = file_sources.remove(&formatted_path);
 
         // Try to read the file into an artifact
         match serde_json::from_str::<Artifact>(&std::fs::read_to_string(entry.path()).unwrap()) {
             Ok(artifact) => {
+                tracing::debug!(target: "core", "Found artifact constructor {:?}", artifact.clone().abi.map(|abi| abi.constructor).clone());
                 // If we expected compilation, the sources must match
                 match expected {
                     Some(expected_fs) => {

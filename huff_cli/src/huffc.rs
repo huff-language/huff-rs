@@ -130,6 +130,7 @@ fn main() {
     }
 
     let compile_res = compiler.execute();
+
     // Stop spinner animation if it exists
     if let Some(mut sp) = sp {
         sp.stop();
