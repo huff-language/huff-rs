@@ -75,10 +75,7 @@ pub(crate) fn get_input(prompt: &str) -> String {
     print!("{} {} ", Paint::blue("[INTERACTIVE]".to_string()), prompt);
     let mut input = String::new();
     let _ = std::io::stdout().flush();
-    match std::io::stdin().read_line(&mut input) {
-        Ok(_goes_into_input_above) => {}
-        Err(_no_updates_is_fine) => {}
-    }
+    let _ = std::io::stdin().read_line(&mut input);
     // sp.stop();
     input.trim().to_string()
 }
@@ -190,7 +187,7 @@ fn main() {
                                         let encoded =
                                             Codegen::encode_constructor_args(vec![arg_input])
                                                 .iter()
-                                                .fold("".to_string(), |acc, str| {
+                                                .fold(String::default(), |acc, str| {
                                                     let inner: Vec<u8> =
                                                         ethers_core::abi::encode(&[str.clone()]);
                                                     let hex_args: String =
