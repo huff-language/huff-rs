@@ -24,7 +24,7 @@ use yansi::Paint;
 #[derive(ClapParser, Debug, Clone)]
 #[clap(name = "huffc", version, about, long_about = None)]
 struct Huff {
-    /// The main path
+    /// The contract(s) to compile.
     pub path: Option<String>,
 
     /// The contracts source path.

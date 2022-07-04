@@ -13,18 +13,19 @@ USAGE:
     huffc [OPTIONS] [--] [PATH]
 
 ARGS:
-    <PATH>    The main path
+    <PATH>    The contract(s) to compile
 
 OPTIONS:
     -a, --artifacts                       Whether to generate artifacts or not
     -b, --bytecode                        Generate and log bytecode
     -d, --output-directory <OUTPUTDIR>    The output directory [default: ./artifacts]
+    -g, --interface                       Generate solidity interface for a Huff artifact
     -h, --help                            Print help information
     -i, --inputs <INPUTS>...              The input constructor arguments
     -n, --interactive                     Interactively input the constructor args
     -o, --output <OUTPUT>                 The output file path
     -p, --print                           Prints out to the terminal
-    -s, --source-path <SOURCE>            The contracts source path [default: ./src]
+    -s, --source-path <SOURCE>            The contracts source path [default: ./contracts]
     -v, --verbose                         Verbose output
     -V, --version                         Print version information
     -z, --optimize                        Optimize compilation [WIP]
@@ -133,6 +134,7 @@ $ huffc -b -i 100, 0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef ./contracts/exampl
 - `-v` or `--verbose`: Outputs detailed logs to the terminal using the [tracing](https://crates.io/crates/tracing) crate.
 - `-V` or `--version`: Prints the version of `huffc`.
 - `-z` or `--optimize`: Optimizes the contract compilation - a work in progress.
+- `-g` or `--interface`: Generates a solidity interface for the contract.
 
 
 ## Building huffc from source
