@@ -260,6 +260,33 @@ impl Codegen {
                     tracing::debug!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                     bytes.push((starting_offset, Bytes(push_bytes)));
                 }
+                IRByteType::Immutable(s) => {
+                    match mis.get(0) {
+                        Some((_, MacroInvocation { macro_name, .. })) => {
+                            /* The top-level macro is CONSTRUCTOR */
+                            if !macro_name.eq("CONSTRUCTOR") {
+                                return Err(CodegenError {
+                                    kind: CodegenErrorKind::MisplacedImmutable(s),
+                                    span: ir_byte.span.clone(),
+                                    token: None,
+                                })
+                            }
+                        }
+                        _ => {
+                            if !macro_def.name.eq("CONSTRUCTOR") {
+                                return Err(CodegenError {
+                                    kind: CodegenErrorKind::MisplacedImmutable(s),
+                                    span: ir_byte.span.clone(),
+                                    token: None,
+                                })
+                            }
+                        }
+                    }
+                    let push_bytes = immutable_gen(&s, contract, ir_byte.span)?;
+                    offset += push_bytes.len() / 2;
+                    tracing::debug!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
+                    bytes.push((starting_offset, Bytes(push_bytes)));
+                }
                 IRByteType::Statement(s) => {
                     let mut push_bytes = statement_gen(
                         &s,

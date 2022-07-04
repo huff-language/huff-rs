@@ -30,6 +30,8 @@ pub enum IRByteType {
     Statement(Statement),
     /// A Constant to be referenced
     Constant(String),
+    /// An Immutable to be referenced
+    Immutable(String),
     /// An Arg Call needs to use the calling macro context
     ArgCall(String),
 }

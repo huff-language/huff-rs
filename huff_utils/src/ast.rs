@@ -97,6 +97,8 @@ pub struct Contract {
     pub imports: Vec<FilePath>,
     /// Constants
     pub constants: Vec<ConstantDefinition>,
+    /// Immutables
+    pub immutables: Vec<ImmutableDefinition>,
     /// Functions
     pub functions: Vec<Function>,
     /// Events
@@ -486,6 +488,13 @@ impl MacroDefinition {
                         span: statement.span.clone(),
                     });
                 }
+                StatementType::Immutable(name) => {
+                    // Constant needs to be evaluated at the top-level
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Immutable(name.to_string()),
+                        span: statement.span.clone(),
+                    });
+                }
                 StatementType::ArgCall(arg_name) => {
                     // Arg call needs to use a destination defined in the calling macro context
                     inner_irbytes.push(IRBytes {
@@ -578,6 +587,17 @@ pub struct ConstantDefinition {
     pub span: AstSpan,
 }
 
+/// An Immutable Definition
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ImmutableDefinition {
+    /// The name
+    pub name: String,
+    /// The value - can only be set once
+    pub value: Option<ConstVal>,
+    /// The Span of the def
+    pub span: AstSpan,
+}
+
 /// A Jump Destination
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Label {
@@ -650,6 +670,8 @@ pub enum StatementType {
     MacroInvocation(MacroInvocation),
     /// A Constant Push
     Constant(String),
+    /// An Immutable
+    Immutable(String),
     /// An Arg Call
     ArgCall(String),
     /// A Label
@@ -669,6 +691,7 @@ impl Display for StatementType {
                 write!(f, "MACRO INVOCATION: {}", m.macro_name)
             }
             StatementType::Constant(c) => write!(f, "CONSTANT: {}", c),
+            StatementType::Immutable(c) => write!(f, "IMMUTABLE: {}", c),
             StatementType::ArgCall(c) => write!(f, "ARG CALL: {}", c),
             StatementType::Label(l) => write!(f, "LABEL: {}", l.name),
             StatementType::LabelCall(l) => write!(f, "LABEL CALL: {}", l),

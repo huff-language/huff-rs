@@ -278,6 +278,7 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Macro) |
             Some(TokenKind::Function) |
             Some(TokenKind::Constant) |
+            Some(TokenKind::Immutable) |
             Some(TokenKind::Event) |
             Some(TokenKind::JumpTable) |
             Some(TokenKind::JumpTablePacked) |
@@ -379,6 +380,7 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Macro,
                         TokenKind::Function,
                         TokenKind::Constant,
+                        TokenKind::Immutable,
                         TokenKind::Takes,
                         TokenKind::Returns,
                         TokenKind::Event,

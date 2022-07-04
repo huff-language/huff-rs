@@ -87,6 +87,11 @@ impl Parser {
                     tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {}", c.name);
                     contract.constants.push(c);
                 }
+                TokenKind::Immutable => {
+                    let i = self.parse_immutable()?;
+                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED IMMUTABLE {}", i.name);
+                    contract.immutables.push(i);
+                }
                 TokenKind::Macro => {
                     let m = self.parse_macro()?;
                     tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
@@ -316,6 +321,34 @@ impl Parser {
         hasher.finalize(&mut hash);
 
         Ok(Event { name, parameters, span: AstSpan(self.spans.clone()), hash })
+    }
+
+    /// Parse an immutable
+    pub fn parse_immutable(&mut self) -> Result<ImmutableDefinition, ParserError> {
+        // Immutable Identifier
+        self.match_kind(TokenKind::Immutable)?;
+
+        // Parse the immutable name
+        self.match_kind(TokenKind::Ident("x".to_string()))?;
+        let tok = self.peek_behind().unwrap().kind;
+        let name = match tok {
+            TokenKind::Ident(imut_name) => imut_name,
+            _ => {
+                tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
+                return Err(ParserError {
+                    kind: ParserErrorKind::UnexpectedType(tok),
+                    hint: Some("Expected constant name.".to_string()),
+                    spans: AstSpan(self.spans.clone()),
+                })
+            }
+        };
+
+        // Clone spans and set to nothing
+        let new_spans = self.spans.clone();
+        self.spans = vec![];
+
+        // Return the Immutable Definition
+        Ok(ImmutableDefinition { name, value: None, span: AstSpan(new_spans) })
     }
 
     /// Parse a constant.

@@ -18,6 +18,7 @@
 //!     invocations: vec![],
 //!     imports: vec![],
 //!     constants: vec![],
+//!     immutables: vec![],
 //!     functions: vec![huff_utils::ast::Function {
 //!         name: "CONSTRUCTOR".to_string(),
 //!         signature: [0u8, 0u8, 0u8, 0u8],

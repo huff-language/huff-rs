@@ -41,6 +41,8 @@ pub enum TokenKind {
     Event,
     /// "constant" keyword
     Constant,
+    /// "immutable" keyword
+    Immutable,
     /// "takes" keyword
     Takes,
     /// "returns" keyword
@@ -129,6 +131,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Function => "function",
             TokenKind::Event => "event",
             TokenKind::Constant => "constant",
+            TokenKind::Immutable => "immutable",
             TokenKind::View => "view",
             TokenKind::Pure => "pure",
             TokenKind::Payable => "payable",

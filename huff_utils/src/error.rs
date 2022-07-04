@@ -141,6 +141,10 @@ pub enum CodegenErrorKind {
     MissingEventInterface(String),
     /// Missing Constant Definition
     MissingConstantDefinition(String),
+    /// Missing Immutable Definition
+    MissingImmutableDefinition(String),
+    /// Misplaced Immutable
+    MisplacedImmutable(String),
     /// Abi Generation Failure
     AbiGenerationFailure,
     /// Unmatched Jump
@@ -186,6 +190,12 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::MissingConstantDefinition(cd) => {
                 write!(f.out, "Missing Constant Definition for \"{}\"!", cd)
+            }
+            CodegenErrorKind::MissingImmutableDefinition(id) => {
+                write!(f.out, "Missing Immutable Definition for \"{}\"!", id)
+            }
+            CodegenErrorKind::MisplacedImmutable(id) => {
+                write!(f.out, "Misplaced Immutable \"{}\" - Outside Constructor!", id)
             }
             CodegenErrorKind::AbiGenerationFailure => write!(f.out, "Abi generation failure!"),
             CodegenErrorKind::UnmatchedJumpLabel => write!(f.out, "Unmatched jump label!"),
@@ -462,6 +472,16 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
                 CodegenErrorKind::MissingConstantDefinition(_) => {
                     write!(f, "\nError: Missing Constant Definition\n{}\n", ce.span.error(None))
+                }
+                CodegenErrorKind::MissingImmutableDefinition(_) => {
+                    write!(f, "\nError: Missing Immutable Definition\n{}\n", ce.span.error(None))
+                }
+                CodegenErrorKind::MisplacedImmutable(_) => {
+                    write!(
+                        f,
+                        "\nError: Immutable Defined Outside Constructor\n{}\n",
+                        ce.span.error(None)
+                    )
                 }
                 CodegenErrorKind::AbiGenerationFailure => {
                     write!(f, "\nError: ABI Generation Failed\n{}\n", ce.span.error(None))
