@@ -118,8 +118,8 @@ impl<'a> Lexer<'a> {
                     }
 
                     // Then we should have an import path between quotes
-                    match peekable_source.peek() {
-                        Some(char) => match char {
+                    if let Some(char) = peekable_source.peek() {
+                        match char {
                             '"' | '\'' => {
                                 peekable_source.next();
                                 let mut import = String::new();
@@ -134,8 +134,7 @@ impl<'a> Lexer<'a> {
                                 }
                             }
                             _ => { /* Ignore non-include tokens */ }
-                        },
-                        None => { /* EOF */ }
+                        }
                     }
                 } else if nc.ne(&include_chars_iterator.next().unwrap()) {
                     include_chars_iterator = "#include".chars().peekable();
@@ -619,7 +618,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('"') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str((&str[1..str.len() - 1]).to_string())
+                            break TokenKind::Str((str[1..str.len() - 1]).to_string())
                         }
                         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('"')) => {
                             self.consume();
@@ -642,7 +641,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('\'') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str((&str[1..str.len() - 1]).to_string())
+                            break TokenKind::Str((str[1..str.len() - 1]).to_string())
                         }
                         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('\'')) => {
                             self.consume();
