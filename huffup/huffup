@@ -14,6 +14,21 @@ main() {
   need_cmd git
   need_cmd curl
 
+  # Uninstall npm typescript compiler if npm list doesn't contain empty for huffc
+  if ! [[ "$(npm list -g huffc)" =~ "empty" ]]; then
+    warn "It appears your system has an outdated installation of huffc via npm."
+    warn "Uninstalling huffc with npm to allow huffup to take precedence..."
+    npm uninstall -g huffc
+  fi
+
+  # Uninstall yarn typescript compiler if yarn list contains a huffc entry
+  if [[ "$(yarn global list)" =~ "huffc" ]]; then
+    warn "It appears your system has an outdated installation of huffc via yarn."
+    warn "Uninstalling huffc with yarn to allow huffup to take precedence..."
+    yarn global remove huffc
+  fi
+
+  # Otherwise, continue with huffup script
   while [[ $1 ]]; do
     case $1 in
       --)               shift; break;;
@@ -133,7 +148,7 @@ main() {
     say "done"
 
     if [[ $(which huffc) =~ "cargo" ]]; then
-      warn "it appears your system has already has huff-rs installed via cargo. you may need to run 'rm $(which huffc)' to allow huffup to take precedence!"
+      warn "it appears your system already has huff-rs installed via cargo. you may need to run 'rm $(which huffc)' to allow huffup to take precedence!"
     fi
   else
     need_cmd cargo
