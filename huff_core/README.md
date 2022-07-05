@@ -21,7 +21,7 @@ use huff_utils::artifact::Artifact;
 use std::sync::Arc;
 
 // Instantiate the Compiler Instance
-let mut compiler = Compiler::new(Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]), None, None, false);
+let mut compiler = Compiler::new(Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]), None, None, false, false);
 
 // Execute the compiler
 let res: Result<Vec<Arc<Artifact>>, Arc<CompilerError<'_>>> = compiler.execute();

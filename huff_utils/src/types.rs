@@ -151,6 +151,15 @@ impl TryFrom<String> for EToken {
         }
         if input.chars().all(|x| x.is_alphanumeric()) {
             Ok(EToken(Token::String(input)))
+        } else if input.contains(',') {
+            // Try to unwrap something like "100,0x123,20" without brackets
+            let e_tokens: Result<Vec<EToken>, _> = input
+                .split(',')
+                .map(|x| x.replace(' ', "").replace('"', "").replace('\'', ""))
+                .map(EToken::try_from)
+                .collect();
+            let tokens: Vec<Token> = e_tokens?.into_iter().map(|x| x.0).collect();
+            Ok(EToken(Token::Array(tokens)))
         } else {
             Err(format!("Invalid input: {}", input))
         }
