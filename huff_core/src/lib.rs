@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
+use ethers_core::utils::hex;
 use huff_codegen::*;
 use huff_lexer::*;
 use huff_parser::*;
@@ -41,6 +42,7 @@ pub(crate) mod cache;
 ///     Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]),
 ///     Some("./artifacts".to_string()),
 ///     None,
+///     false,
 ///     false
 /// );
 /// ```
@@ -56,6 +58,8 @@ pub struct Compiler {
     pub optimize: bool,
     /// Generate and log bytecode
     pub bytecode: bool,
+    /// Whether to check cached artifacts
+    pub cached: bool,
 }
 
 impl<'a> Compiler {
@@ -65,11 +69,12 @@ impl<'a> Compiler {
         output: Option<String>,
         construct_args: Option<Vec<String>>,
         verbose: bool,
+        cached: bool,
     ) -> Self {
         if cfg!(feature = "verbose") || verbose {
             Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
-        Self { sources, output, construct_args, optimize: false, bytecode: false }
+        Self { sources, output, construct_args, optimize: false, bytecode: false, cached }
     }
 
     /// Tracing
@@ -134,9 +139,16 @@ impl<'a> Compiler {
 
         let mut artifacts: Vec<Arc<Artifact>> = vec![];
 
+        // Get our constructor arguments as a hex encoded string to compare to the cache
+        let inputs = self.get_constructor_args();
+        let encoded_inputs = Codegen::encode_constructor_args(inputs);
+        let encoded: Vec<Vec<u8>> =
+            encoded_inputs.iter().map(|tok| ethers_core::abi::encode(&[tok.clone()])).collect();
+        let constructor_args = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
+
         // Get Cached or Generate Artifacts
         tracing::debug!(target: "core", "Output directory: {}", output.0);
-        match cache::get_cached_artifacts(&files, &output) {
+        match cache::get_cached_artifacts(&files, &output, constructor_args) {
             Some(arts) => artifacts = arts,
             None => {
                 // Parallel Dependency Resolution

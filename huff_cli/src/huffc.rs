@@ -102,6 +102,7 @@ fn main() {
         }
     };
 
+    let mut use_cache = true;
     if cli.interactive {
         // Don't accept configured inputs
         cli.inputs = None;
@@ -109,6 +110,8 @@ fn main() {
         // Have to first generate artifacts, prompt user for args,
         // and finally save artifacts with the new constructor args.
         cli.artifacts = false;
+        // Don't use cache if interactive since there's no way constructor arguments can match
+        use_cache = false;
     }
 
     let output = match (&cli.output, cli.artifacts) {
@@ -123,6 +126,7 @@ fn main() {
         construct_args: cli.inputs,
         optimize: cli.optimize,
         bytecode: cli.bytecode,
+        cached: use_cache,
     };
 
     // Create compiling spinner
@@ -134,6 +138,7 @@ fn main() {
     }
 
     let compile_res = compiler.execute();
+
     // Stop spinner animation if it exists
     if let Some(mut sp) = sp {
         sp.stop();
