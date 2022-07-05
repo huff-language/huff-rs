@@ -17,14 +17,14 @@ main() {
   # Uninstall npm typescript compiler if npm list doesn't contain empty for huffc
   if ! [[ "$(npm list -g huffc)" =~ "empty" ]]; then
     warn "It appears your system has an outdated installation of huffc via npm."
-    warn "Uninstalling huffc with to allow huffup to take precedence..."
+    warn "Uninstalling huffc with npm to allow huffup to take precedence..."
     npm uninstall -g huffc
   fi
 
   # Uninstall yarn typescript compiler if yarn list contains a huffc entry
   if [[ "$(yarn global list)" =~ "huffc" ]]; then
     warn "It appears your system has an outdated installation of huffc via yarn."
-    warn "Uninstalling huffc with to allow huffup to take precedence..."
+    warn "Uninstalling huffc with yarn to allow huffup to take precedence..."
     yarn global remove huffc
   fi
 

@@ -7,10 +7,12 @@ use walkdir::WalkDir;
 pub fn get_cached_artifacts(
     files: &[Arc<FileSource>],
     out: &OutputLocation,
+    constructor_args: String,
 ) -> Option<Vec<Arc<Artifact>>> {
     // Check if the file artifacts are already generated the the default "./artifacts/" directory or
     // the specified output dir
-    let artifacts: Vec<(Arc<FileSource>, Artifact)> = resolve_existing_artifacts(files, out)?;
+    let artifacts: Vec<(Arc<FileSource>, Artifact)> =
+        resolve_existing_artifacts(files, out, constructor_args)?;
 
     // Return the artifacts if cached
     Some(artifacts.into_iter().map(|(_, artifact)| Arc::new(artifact)).collect())
@@ -20,6 +22,7 @@ pub fn get_cached_artifacts(
 pub fn resolve_existing_artifacts(
     files: &[Arc<FileSource>],
     output: &OutputLocation,
+    constructor_args: String,
 ) -> Option<Vec<(Arc<FileSource>, Artifact)>> {
     let mut artifacts: Vec<(Arc<FileSource>, Artifact)> = Vec::new();
 
@@ -27,9 +30,12 @@ pub fn resolve_existing_artifacts(
     let mut file_sources: std::collections::HashMap<String, Arc<FileSource>> =
         files.iter().map(|f| (f.path.clone().to_lowercase(), Arc::clone(f))).collect();
 
+    // If outputdir is not specified, use the default "./artifacts/" directory
+    let output_dir = (!output.0.is_empty()).then(|| &*output.0).unwrap_or("./artifacts");
+
     // For each file, check if the artifact file exists at the location
-    tracing::debug!(target: "core", "Traversing output directory {}", output.0);
-    for entry in WalkDir::new(&output.0)
+    tracing::debug!(target: "core", "Traversing output directory {}", output_dir);
+    for entry in WalkDir::new(&output_dir)
         .into_iter()
         .filter_map(Result::ok)
         .filter(|e| !e.file_type().is_dir())
@@ -40,7 +46,7 @@ pub fn resolve_existing_artifacts(
             .display()
             .to_string()
             .replace(".json", "")
-            .replace(&output.0, ".")
+            .replace(&output_dir, ".")
             .to_lowercase();
         let expected = file_sources.remove(&formatted_path);
 
@@ -50,6 +56,10 @@ pub fn resolve_existing_artifacts(
                 // If we expected compilation, the sources must match
                 match expected {
                     Some(expected_fs) => {
+                        if !artifact.bytecode.ends_with(&constructor_args) {
+                            tracing::warn!(target: "core", "Mismatched Constructor Args for Cached Artifact \"{}\"", artifact.file.path);
+                            return None
+                        }
                         if artifact.file.source != expected_fs.source {
                             tracing::warn!(target: "core", "Cache Resolution Failed: \"{}\" Artifact Outdated", artifact.file.path);
                             return None
