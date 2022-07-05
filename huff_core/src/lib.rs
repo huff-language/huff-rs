@@ -144,8 +144,7 @@ impl<'a> Compiler {
         let encoded_inputs = Codegen::encode_constructor_args(inputs);
         let encoded: Vec<Vec<u8>> =
             encoded_inputs.iter().map(|tok| ethers_core::abi::encode(&[tok.clone()])).collect();
-        let hex_args: Vec<String> = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
-        let constructor_args = hex_args.join("");
+        let constructor_args = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
 
         // Get Cached or Generate Artifacts
         tracing::debug!(target: "core", "Output directory: {}", output.0);
