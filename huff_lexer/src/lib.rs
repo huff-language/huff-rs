@@ -39,7 +39,7 @@ pub enum Context {
 /// The lexer encapsulated in a struct.
 pub struct Lexer<'a> {
     /// The source code as peekable chars.
-    /// SHOULD NOT BE MODIFIED EVER!
+    /// WARN: SHOULD NEVER BE MODIFIED!
     pub reference_chars: Peekable<Chars<'a>>,
     /// The source code as peekable chars.
     pub chars: Peekable<Chars<'a>>,
@@ -48,7 +48,7 @@ pub struct Lexer<'a> {
     /// The current lexing span.
     pub span: RefCell<Span>,
     /// The previous lexed Token.
-    /// Cannot be a whitespace.
+    /// NOTE: Cannot be a whitespace.
     pub lookback: Option<Token>,
     /// If the lexer has reached the end of file.
     pub eof: bool,
@@ -73,8 +73,8 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    // `// #include "./Utils.huff"`
     /// Lex all imports
+    /// Example import: `// #include "./Utils.huff"`
     pub fn lex_imports(source: &str) -> Vec<String> {
         let mut imports = vec![];
         let mut peekable_source = source.chars().peekable();

@@ -7,7 +7,9 @@ _Forked from [foundry](https://github.com/foundry-rs/foundry/tree/master/foundry
 
 ## Installing
 
-`curl -L https://get.huff.sh | bash`
+`curl -L get.huff.sh | bash` (installs the `huffup` installer)
+
+Run `huffup` to install the latest version of `huffc`.
 
 
 ## Usage
