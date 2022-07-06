@@ -8,6 +8,7 @@ env:
   REGISTRY: ghcr.io
   # Will resolve to huff-language/huff-rs
   IMAGE_NAME: ${{ github.repository }}
+  IS_NIGHTLY: ${{ github.event_name == 'schedule' }}
 
 
 jobs:
