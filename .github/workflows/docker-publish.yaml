@@ -19,8 +19,10 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout sources
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.IS_NIGHTLY && 'stage' || 'main' }}
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
