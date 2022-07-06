@@ -2,7 +2,10 @@
 
 Lexical analyzer for the Huff Language.
 
-The Huff Lexer is instantiable with a `FullFileSource` containing the source code, a `FileSource`, and "spans" (a `Vec<(FileSource, Span)>`).
+The Huff Lexer is instantiable with a `FullFileSource`. `FullFileSource` is composed of
+- the file source code
+- a `FileSource`
+- `spans` == (`Vec<(FileSource, Span)>`).
 
 Once instantiated, the lexer can be used to iterate over the tokens in the source code.
 It also exposes a number of practical methods for accessing information about the source code

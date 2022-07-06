@@ -111,6 +111,11 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
+      - name: Checkout stage branch if Nightly
+        if: ${{ env.IS_NIGHTLY }}
+        run: |
+          git checkout stage
+
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -215,6 +220,11 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+
+      - name: Checkout stage branch if Nightly
+        if: ${{ env.IS_NIGHTLY }}
+        run: |
+          git checkout stage
 
       # Moves the `nightly` tag to `HEAD`
       - name: Move nightly tag

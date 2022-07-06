@@ -101,7 +101,6 @@ pub fn statement_gen(
         StatementType::BuiltinFunctionCall(bf) => {
             // Generate code for a `BuiltinFunctionCall`
             // __codesize, __tablesize, or __tablestart
-            // TODO: Inline docs
             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT BUILTIN FUNCTION CALL: {:?}", bf);
             match bf.kind {
                 BuiltinFunctionKind::Codesize => {
