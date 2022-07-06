@@ -32,11 +32,10 @@
 //!
 //! // Create an ABI using that generate contract
 //! let abi: Abi = contract.into();
-//! println!("Abi instant: {:?}", abi);
 //! ```
 
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fmt};
 
 use crate::ast::{self, FunctionType};
 
@@ -67,13 +66,46 @@ impl Abi {
 // Allows for simple ABI Generation by directly translating the AST
 impl From<ast::Contract> for Abi {
     fn from(contract: ast::Contract) -> Self {
-        let constructors = contract
-            .macros
+        // Try to get the constructor inputs from an overriden function
+        // Otherwise, use the CONSTRUCTOR macro if one exists
+        let constructor = contract
+            .functions
             .iter()
-            .filter(|m| m.name == "CONSTRUCTOR")
+            .filter(|m| m.name.to_lowercase() == "constructor")
             .cloned()
-            .collect::<Vec<ast::MacroDefinition>>();
-        let constructor: Option<&ast::MacroDefinition> = constructors.get(0);
+            .collect::<Vec<ast::Function>>()
+            .get(0)
+            .map(|func| Constructor {
+                inputs: func
+                    .inputs
+                    .iter()
+                    .map(|argument| FunctionParam {
+                        name: argument.name.clone().unwrap_or_default(),
+                        kind: argument.arg_type.clone().unwrap_or_default().into(),
+                        internal_type: None,
+                    })
+                    .collect(),
+            })
+            .or_else(|| {
+                contract
+                    .macros
+                    .iter()
+                    .filter(|m| m.name == "CONSTRUCTOR")
+                    .cloned()
+                    .collect::<Vec<ast::MacroDefinition>>()
+                    .get(0)
+                    .map(|func| Constructor {
+                        inputs: func
+                            .parameters
+                            .iter()
+                            .map(|argument| FunctionParam {
+                                name: argument.name.clone().unwrap_or_default(),
+                                kind: argument.name.clone().unwrap_or_default().into(),
+                                internal_type: None,
+                            })
+                            .collect(),
+                    })
+            });
 
         // Instantiate functions and events
         let mut functions = BTreeMap::new();
@@ -132,7 +164,7 @@ impl From<ast::Contract> for Abi {
                             .map(|argument| EventParam {
                                 name: argument.name.clone().unwrap_or_default(),
                                 kind: argument.arg_type.clone().unwrap_or_default().into(),
-                                indexed: false, // TODO: This is not present in `argument`
+                                indexed: argument.indexed,
                             })
                             .collect(),
                         anonymous: false,
@@ -143,23 +175,7 @@ impl From<ast::Contract> for Abi {
                 let _ = events.insert(val.0, val.1);
             });
 
-        Self {
-            constructor: constructor.map(|c| Constructor {
-                inputs: c
-                    .parameters
-                    .iter()
-                    .map(|argument| FunctionParam {
-                        name: argument.name.clone().unwrap_or_default(),
-                        kind: argument.arg_type.clone().unwrap_or_default().into(),
-                        internal_type: None,
-                    })
-                    .collect(),
-            }),
-            functions,
-            events,
-            receive: false,
-            fallback: false,
-        }
+        Self { constructor, functions, events, receive: false, fallback: false }
     }
 }
 
@@ -231,7 +247,7 @@ pub struct FunctionParam {
 /// #### FunctionParamType
 ///
 /// The type of a function parameter
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum FunctionParamType {
     /// An address
     Address,
@@ -254,6 +270,62 @@ pub enum FunctionParamType {
 }
 
 impl FunctionParamType {
+    /// Checks if the param type should be designated as "memory" for solidity interface
+    /// generation.
+    pub fn is_memory_type(&self) -> bool {
+        matches!(
+            self,
+            FunctionParamType::Bytes |
+                FunctionParamType::String |
+                FunctionParamType::Tuple(_) |
+                FunctionParamType::Array(_, _)
+        )
+    }
+}
+
+impl fmt::Debug for FunctionParamType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.display(f)
+    }
+}
+
+impl fmt::Display for FunctionParamType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.display(f)
+    }
+}
+
+impl FunctionParamType {
+    /// Print a function parameter type to a formatter
+    pub fn display(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &self {
+            FunctionParamType::Address => write!(f, "address"),
+            FunctionParamType::Bytes => write!(f, "bytes"),
+            FunctionParamType::Int(size) => write!(f, "int{}", size),
+            FunctionParamType::Uint(size) => write!(f, "uint{}", size),
+            FunctionParamType::Bool => write!(f, "bool"),
+            FunctionParamType::String => write!(f, "string"),
+            FunctionParamType::Array(fpt, sizes) => write!(
+                f,
+                "{}{}",
+                fpt,
+                sizes
+                    .iter()
+                    .map(|s| (!s.eq(&0))
+                        .then(|| format!("[{}]", s))
+                        .unwrap_or_else(|| "[]".to_string()))
+                    .collect::<Vec<_>>()
+                    .join("")
+            ),
+            FunctionParamType::FixedBytes(size) => write!(f, "bytes{}", size),
+            FunctionParamType::Tuple(inner) => write!(
+                f,
+                "({})",
+                inner.iter().map(|fpt| fpt.to_string()).collect::<Vec<_>>().join(", ")
+            ),
+        }
+    }
+
     /// Convert string to type
     pub fn convert_string_to_type(string: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let input = string.to_string().to_lowercase();

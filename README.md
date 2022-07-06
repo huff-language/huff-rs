@@ -4,14 +4,6 @@
 
 > `huff-rs` is a [Huff](https://github.com/huff-language) compiler built in rust.
 
-<br />
-<hr />
-
-> **Warning**
->
-> This repo contains highly experimental code. Expect rapid iteration. **Use at your own risk.**
-
-<hr />
 
 ## What is a Huff?
 
@@ -147,6 +139,21 @@ Here is an example PR template - not strictly required, but will greatly improve
 When the PR checklist isn't complete, it is **highly** recommended to make it a draft PR. NOTE: if your PR is not complete, it will likely be changed to a draft by one of the repository admins.
 
 For breaking changes: make sure to edit the [excalidraw asset](https://excalidraw.com/#json=9YvTZp-rY9NOQnX9TC8Dz,sVM8vpgvQqGiXNXrBNshTg) and export the file to [./assets/huffc.excalidraw](./assets/huffc.excalidraw) along with an image to [./assets/huffc.png](./assets/huffc.png).
+
+
+## Safety
+
+> **Warning**
+>
+> This is **experimental software** and is provided on an "as is" and "as available" basis.
+> Expect rapid iteration and **use at your own risk**.
+>
+> This code is **not designed for safety**.
+> - There are untested invariants in the code that may break.
+> - **You can easily shoot yourself in the foot if you're not careful.**
+> - You should thoroughly read the documentation and examples.
+>
+> We **do not give any warranties** and **will not be liable for any loss** incurred through any use of this codebase.
 
 
 ## Acknowledgements

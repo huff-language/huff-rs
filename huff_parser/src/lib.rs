@@ -102,8 +102,9 @@ impl Parser {
                         self.current_token.kind
                     );
                     return Err(ParserError {
-                        kind: ParserErrorKind::InvalidDefinition,
-                        spans: AstSpan(self.spans.clone()),
+                        kind: ParserErrorKind::InvalidDefinition(self.current_token.kind.clone()),
+                        hint: Some("Definition must be one of: `function`, `event`, `constant`, or `macro`.".to_string()),
+                        spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
             };
@@ -127,7 +128,8 @@ impl Parser {
                 let new_spans = self.spans.clone();
                 self.spans = vec![];
                 return Err(ParserError {
-                    kind: ParserErrorKind::InvalidName(tok),
+                    kind: ParserErrorKind::InvalidName(tok.clone()),
+                    hint: Some(format!("Expected import string. Got: \"{}\"", tok)),
                     spans: AstSpan(new_spans),
                 })
             }
@@ -153,6 +155,7 @@ impl Parser {
             self.spans = vec![];
             return Err(ParserError {
                 kind: ParserErrorKind::InvalidImportPath(p),
+                hint: None,
                 spans: AstSpan(new_spans),
             })
         }
@@ -169,7 +172,8 @@ impl Parser {
         } else {
             tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED: {}, GOT: {}", kind, self.current_token.kind);
             Err(ParserError {
-                kind: ParserErrorKind::UnexpectedType(kind),
+                kind: ParserErrorKind::UnexpectedType(self.current_token.kind.clone()),
+                hint: Some(format!("Expected: \"{}\"", kind)),
                 spans: AstSpan(self.spans.clone()),
             })
         }
@@ -230,14 +234,15 @@ impl Parser {
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError {
-                    kind: ParserErrorKind::InvalidName(tok),
+                    kind: ParserErrorKind::InvalidName(tok.clone()),
+                    hint: Some(format!("Expected function name, found: \"{}\"", tok)),
                     spans: AstSpan(self.spans.clone()),
                 })
             }
         };
 
         // function inputs should be next
-        let inputs: Vec<Argument> = self.parse_args(true, true, false)?;
+        let inputs: Vec<Argument> = self.parse_args(true, true, false, false)?;
         // function type should be next
         let fn_type = match self.current_token.kind.clone() {
             TokenKind::View => FunctionType::View,
@@ -247,7 +252,10 @@ impl Parser {
             tok => {
                 return Err(ParserError {
                     kind: ParserErrorKind::UnexpectedType(tok),
-                    spans: AstSpan(self.spans.clone()),
+                    hint: Some(
+                        "Expected one of: `view`, `pure`, `payable`, `nonpayable`.".to_string(),
+                    ),
+                    spans: AstSpan(vec![self.current_token.span.clone()]),
                 })
             }
         };
@@ -257,7 +265,7 @@ impl Parser {
         // next token should be of `TokenKind::Returns`
         self.match_kind(TokenKind::Returns)?;
         // function outputs should be next
-        let outputs: Vec<Argument> = self.parse_args(true, true, false)?;
+        let outputs: Vec<Argument> = self.parse_args(true, true, false, false)?;
 
         let mut signature = [0u8; 4]; // Only keep first 4 bytes
         let mut hasher = Keccak::v256();
@@ -290,16 +298,24 @@ impl Parser {
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError {
-                    kind: ParserErrorKind::InvalidName(tok),
+                    kind: ParserErrorKind::InvalidName(tok.clone()),
+                    hint: Some(format!("Expected event name, found: \"{}\"", tok)),
                     spans: AstSpan(self.spans.clone()),
                 })
             }
         };
 
         // Parse the event's parameters
-        let parameters: Vec<Argument> = self.parse_args(true, true, true)?;
+        let parameters: Vec<Argument> = self.parse_args(true, true, true, false)?;
 
-        Ok(Event { name, parameters, span: AstSpan(self.spans.clone()) })
+        let mut hash = [0u8; 32];
+        let mut hasher = Keccak::v256();
+        let input_types =
+            parameters.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
+        hasher.update(format!("{}({})", name, input_types.join(",")).as_bytes());
+        hasher.finalize(&mut hash);
+
+        Ok(Event { name, parameters, span: AstSpan(self.spans.clone()), hash })
     }
 
     /// Parse a constant.
@@ -318,6 +334,7 @@ impl Parser {
                 self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::UnexpectedType(tok),
+                    hint: Some("Expected constant name.".to_string()),
                     spans: AstSpan(new_spans),
                 })
             }
@@ -337,11 +354,13 @@ impl Parser {
             }
             kind => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED FreeStoragePointer OR Literal, GOT: {}", self.current_token.kind);
-                let new_spans = self.spans.clone();
-                self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidConstantValue(kind),
-                    spans: AstSpan(new_spans),
+                    hint: Some(
+                        "Expected constant value to be a literal or `FREE_STORAGE_POINTER()`"
+                            .to_string(),
+                    ),
+                    spans: AstSpan(vec![self.current_token.span.clone()]),
                 })
             }
         };
@@ -363,7 +382,7 @@ impl Parser {
             self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?.to_string();
         tracing::info!(target: "parser", "PARSING MACRO: \"{}\"", macro_name);
 
-        let macro_arguments: Vec<Argument> = self.parse_args(true, false, false)?;
+        let macro_arguments: Vec<Argument> = self.parse_args(true, false, false, false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
         let macro_takes: usize = self.parse_single_arg()?;
@@ -473,7 +492,7 @@ impl Parser {
                 TokenKind::BuiltinFunction(f) => {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.match_kind(TokenKind::BuiltinFunction(String::default()))?;
-                    let args = self.parse_args(true, false, false)?;
+                    let args = self.parse_args(true, false, false, true)?;
                     args.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [BUILTIN FN: {}({:?})]", f, args);
                     statements.push(Statement {
@@ -489,6 +508,7 @@ impl Parser {
                     tracing::error!(target: "parser", "TOKEN MISMATCH - MACRO BODY: {}", kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTokenInMacroBody(kind),
+                        hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
@@ -499,7 +519,6 @@ impl Parser {
         Ok(statements)
     }
 
-    // TODO: Better label scoping
     /// Parse the body of a label.
     ///
     /// ## Examples
@@ -584,11 +603,11 @@ impl Parser {
                     });
                 }
                 kind => {
-                    let curr_spans = vec![self.current_token.span.clone()];
                     tracing::error!(target: "parser", "TOKEN MISMATCH - LABEL BODY: {}", kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTokenInLabelDefinition(kind),
-                        spans: AstSpan(curr_spans),
+                        hint: None,
+                        spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
             };
@@ -617,10 +636,33 @@ impl Parser {
         select_name: bool,
         select_type: bool,
         has_indexed: bool,
+        is_builtin: bool,
     ) -> Result<Vec<Argument>, ParserError> {
         let mut args: Vec<Argument> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
         while !self.check(TokenKind::CloseParen) {
+            // The builtin functions `__FUNC_SIG` and `__EVENT_HASH` can accept a single string as
+            // input. If the `is_builtin` flag was passed, check to see if a single
+            // string is present.
+            if let TokenKind::Str(s) = &self.current_token.kind {
+                if !is_builtin {
+                    return Err(ParserError {
+                        kind: ParserErrorKind::InvalidArgs(self.current_token.kind.clone()),
+                        hint: None,
+                        spans: AstSpan(vec![self.current_token.span.clone()]),
+                    })
+                }
+
+                args.push(Argument {
+                    name: Some(s.to_owned()), // Place the string in the "name" field
+                    arg_type: None,
+                    indexed: false,
+                    span: AstSpan(vec![self.current_token.span.clone()]),
+                });
+                self.consume();
+                continue
+            }
+
             let mut arg = Argument::default();
             let mut arg_spans = vec![];
 
@@ -665,6 +707,7 @@ impl Parser {
             _ => {
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidSingleArg(self.current_token.kind.clone()),
+                    hint: Some("Expected number representing stack item count.".to_string()),
                     spans: AstSpan(single_arg_span),
                 })
             }
@@ -712,6 +755,10 @@ impl Parser {
                     self.spans = vec![];
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidMacroArgs(arg),
+                        hint: Some(
+                            "Expected literal, identifier (string), or an argument call"
+                                .to_string(),
+                        ),
                         spans: AstSpan(new_spans),
                     })
                 }
@@ -794,6 +841,7 @@ impl Parser {
                     tracing::error!("Invalid Table Body Token: {:?}", self.current_token.kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTableBodyToken(kind.clone()),
+                        hint: Some("Expected an identifier string.".to_string()),
                         spans: AstSpan(new_spans),
                     })
                 }
@@ -820,6 +868,7 @@ impl Parser {
                 self.spans = vec![];
                 Err(ParserError {
                     kind: ParserErrorKind::InvalidConstant(kind),
+                    hint: None,
                     spans: AstSpan(new_spans),
                 })
             }
@@ -851,6 +900,7 @@ impl Parser {
                 self.spans = vec![];
                 Err(ParserError {
                     kind: ParserErrorKind::InvalidArgCallIdent(kind),
+                    hint: None,
                     spans: AstSpan(new_spans),
                 })
             }
@@ -879,6 +929,7 @@ impl Parser {
             }
             kind => Err(ParserError {
                 kind: ParserErrorKind::InvalidArgs(kind),
+                hint: None,
                 spans: AstSpan(vec![self.current_token.span.clone()]),
             }),
         }
@@ -895,6 +946,7 @@ impl Parser {
                 if !(8..=256).contains(&size) || size % 8 != 0 {
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidUint256(size),
+                        hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
@@ -904,6 +956,7 @@ impl Parser {
                 if !(1..=32).contains(&size) {
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidBytes(size),
+                        hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
@@ -917,6 +970,7 @@ impl Parser {
                 if !(8..=256).contains(&size) || size % 8 != 0 {
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidInt(size),
+                        hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }

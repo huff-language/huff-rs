@@ -1,4 +1,40 @@
-use huff_utils::files::FileSource;
+use std::sync::Arc;
+
+use huff_utils::{files::FileSource, prelude::Span};
+
+#[test]
+fn test_source_seg() {
+    let span = Span {
+        start: 59,
+        end: 67,
+        file: Some(Arc::new(
+            FileSource {
+                id: uuid::Uuid::nil(),
+                path: "./huff-examples/errors/error.huff".to_string(),
+                source: Some("#include \"./import.huff\"\n\n#define function addressGetter() internal returns (address)".to_string()),
+                access: None,
+                dependencies: Some(vec![
+                    Arc::new(FileSource {
+                        id: uuid::Uuid::nil(),
+                        path: "./huff-examples/errors/import.huff".to_string(),
+                        source: Some("#define macro SOME_RANDOM_MACRO() = takes(2) returns (1) {\n    // Store the keys in memory\n    dup1 0x00 mstore\n    swap1 dup1 0x00 mstore\n\n    // Hash the data, generating a key.\n    0x40 sha3\n}\n".to_string()),
+                        access: None,
+                        dependencies: Some(vec![])
+                    })
+                ])
+            }
+        ))
+    };
+
+    let source_seg = span.source_seg();
+    assert_eq!(
+        source_seg,
+        format!(
+            "\n     {}|\n  > {} | {}\n     {}|",
+            " ", 3, "#define function addressGetter() internal returns (address)", " ",
+        )
+    );
+}
 
 #[test]
 fn test_derive_dir() {

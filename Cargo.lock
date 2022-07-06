@@ -651,10 +651,11 @@ dependencies = [
 
 [[package]]
 name = "huff_cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap 3.2.1",
  "ethers-core",
+ "huff_codegen",
  "huff_core",
  "huff_utils",
  "isatty",
@@ -673,6 +674,7 @@ dependencies = [
  "huff_utils",
  "proptest",
  "serde_json",
+ "tiny-keccak",
  "tracing",
  "uuid",
 ]
@@ -688,12 +690,14 @@ dependencies = [
  "huff_parser",
  "huff_utils",
  "proptest",
+ "rand",
  "rayon",
  "serde_json",
  "tracing",
  "tracing-subscriber",
  "tracing-test",
  "uuid",
+ "walkdir",
 ]
 
 [[package]]

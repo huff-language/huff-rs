@@ -39,7 +39,7 @@ pub enum Context {
 /// The lexer encapsulated in a struct.
 pub struct Lexer<'a> {
     /// The source code as peekable chars.
-    /// SHOULD NOT BE MODIFIED EVER!
+    /// WARN: SHOULD NEVER BE MODIFIED!
     pub reference_chars: Peekable<Chars<'a>>,
     /// The source code as peekable chars.
     pub chars: Peekable<Chars<'a>>,
@@ -48,7 +48,7 @@ pub struct Lexer<'a> {
     /// The current lexing span.
     pub span: RefCell<Span>,
     /// The previous lexed Token.
-    /// Cannot be a whitespace.
+    /// NOTE: Cannot be a whitespace.
     pub lookback: Option<Token>,
     /// If the lexer has reached the end of file.
     pub eof: bool,
@@ -73,8 +73,8 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    // `// #include "./Utils.huff"`
     /// Lex all imports
+    /// Example import: `// #include "./Utils.huff"`
     pub fn lex_imports(source: &str) -> Vec<String> {
         let mut imports = vec![];
         let mut peekable_source = source.chars().peekable();
@@ -124,12 +124,13 @@ impl<'a> Lexer<'a> {
                                 peekable_source.next();
                                 let mut import = String::new();
                                 while peekable_source.peek().is_some() {
-                                    match peekable_source.next().unwrap() {
-                                        '"' | '\'' => {
+                                    if let Some(c) = peekable_source.next() {
+                                        if matches!(c, '"' | '\'') {
                                             imports.push(import);
                                             break
+                                        } else {
+                                            import.push(c);
                                         }
-                                        c => import.push(c),
                                     }
                                 }
                             }
@@ -182,6 +183,15 @@ impl<'a> Lexer<'a> {
             current_pos += 1;
         }
         chars.iter().collect()
+    }
+
+    /// Dynamically peeks until with last chec and checks
+    pub fn checked_lookforward(&mut self, ch: char) -> bool {
+        let mut current_pos = self.current_span().end;
+        while self.nth_peek(current_pos).map(|c| c.is_ascii_whitespace()).unwrap_or(false) {
+            current_pos += 1;
+        }
+        self.nth_peek(current_pos).map(|x| x == ch).unwrap_or(false)
     }
 
     /// Try to peek at the nth character from the source
@@ -293,8 +303,8 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Takes) => self.checked_lookback(TokenKind::Assign),
             Some(TokenKind::Returns) => {
                 let cur_span_end = self.current_span().end;
-                // Allow for loose and tight syntax (e.g. `returns (0)` & `returns(0)`)
-                self.peek_n_chars_from(2, cur_span_end).trim().starts_with('(') &&
+                // Allow for loose and tight syntax (e.g. `returns   (0)`, `returns(0)`, ...)
+                self.checked_lookforward('(') &&
                     !self.checked_lookback(TokenKind::Function) &&
                     self.peek_n_chars_from(1, cur_span_end) != ":"
             }
@@ -542,7 +552,11 @@ impl<'a> Iterator for Lexer<'a> {
                         if self.context == Context::MacroBody &&
                             matches!(
                                 slice.as_ref(),
-                                "__codesize" | "__tablesize" | "__tablestart"
+                                "__codesize" |
+                                    "__tablesize" |
+                                    "__tablestart" |
+                                    "__FUNC_SIG" |
+                                    "__EVENT_HASH" /* TODO: Clean this process up */
                             )
                         {
                             TokenKind::BuiltinFunction(slice)
@@ -677,6 +691,7 @@ impl<'a> Iterator for Lexer<'a> {
                 Some(s) => s,
                 None => {
                     tracing::warn!(target: "lexer", "UNABLE TO RELATIVIZE SPAN FOR \"{}\"", kind);
+                    tracing::warn!(target: "lexer", "Current Span: {:?}", self.current_span());
                     self.current_span().clone()
                 }
             };

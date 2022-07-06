@@ -28,7 +28,7 @@ pub struct AstSpan(pub Vec<Span>);
 
 impl AstSpan {
     /// Coalesce Multiple Spans Into an error string
-    pub fn error(&self) -> String {
+    pub fn error(&self, hint: Option<&String>) -> String {
         let file_to_source_map =
             self.0.iter().fold(BTreeMap::<String, Vec<&Span>>::new(), |mut m, s| {
                 let file_name =
@@ -38,29 +38,38 @@ impl AstSpan {
                 m.insert(file_name, new_vec);
                 m
             });
-        file_to_source_map.iter().filter(|fs| !fs.0.is_empty()).fold("".to_string(), |s, fs| {
-            let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
-            let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
-            let newline_s = if s.is_empty() { "".to_string() } else { format!("{}\n", s) };
-            if start.eq(&0) && end.eq(&0) {
-                format!("{}-> {}:{}\n   > 0|", newline_s, fs.0, start)
-            } else {
-                format!(
-                    "{}-> {}:{}-{}{}",
-                    newline_s,
-                    fs.0,
-                    start,
-                    end,
-                    fs.1.iter()
-                        .map(|sp| sp.source_seg())
-                        .filter(|ss| !ss.is_empty())
-                        .collect::<Vec<String>>()
-                        .into_iter()
-                        .unique()
-                        .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
-                )
-            }
-        })
+        let source_str = file_to_source_map.iter().filter(|fs| !fs.0.is_empty()).fold(
+            "".to_string(),
+            |s, fs| {
+                let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
+                let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
+                let newline_s = if s.is_empty() { "".to_string() } else { format!("{}\n", s) };
+                if start.eq(&0) && end.eq(&0) {
+                    format!("{}-> {}:{}\n   > 0|", newline_s, fs.0, start)
+                } else {
+                    format!(
+                        "{}-> {}:{}-{}{}",
+                        newline_s,
+                        fs.0,
+                        start,
+                        end,
+                        fs.1.iter()
+                            .map(|sp| sp.source_seg())
+                            .filter(|ss| !ss.is_empty())
+                            .collect::<Vec<String>>()
+                            .into_iter()
+                            .unique()
+                            .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
+                    )
+                }
+            },
+        );
+        // Add in optional hint message
+        format!(
+            "{}{}",
+            hint.map(|msg| format!("{}\n", /* " ".repeat(7), */ msg)).unwrap_or_default(),
+            source_str
+        )
     }
 
     /// Print just the file for missing
@@ -327,6 +336,18 @@ pub enum FunctionType {
     Pure,
 }
 
+impl FunctionType {
+    /// Get the string representation of the function type for usage in Solidity interface
+    /// generation.
+    pub fn interface_mutability(&self) -> &str {
+        match self {
+            FunctionType::View => " view",
+            FunctionType::Pure => " pure",
+            _ => "", // payable / nonpayable types not valid in Solidity interfaces
+        }
+    }
+}
+
 /// An Event Signature
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Event {
@@ -336,6 +357,8 @@ pub struct Event {
     pub parameters: Vec<Argument>,
     /// The event span
     pub span: AstSpan,
+    /// The event hash
+    pub hash: Literal,
 }
 
 /// A Table Definition
@@ -588,6 +611,10 @@ pub enum BuiltinFunctionKind {
     Codesize,
     /// Table start function
     Tablestart,
+    /// Function signature function
+    FunctionSignature,
+    /// Event hash function
+    EventHash,
 }
 
 impl From<&str> for BuiltinFunctionKind {
@@ -596,6 +623,8 @@ impl From<&str> for BuiltinFunctionKind {
             "__tablesize" => BuiltinFunctionKind::Tablesize,
             "__codesize" => BuiltinFunctionKind::Codesize,
             "__tablestart" => BuiltinFunctionKind::Tablestart,
+            "__FUNC_SIG" => BuiltinFunctionKind::FunctionSignature,
+            "__EVENT_HASH" => BuiltinFunctionKind::EventHash,
             _ => panic!("Invalid Builtin Function Kind"), // TODO: Better error handling
         }
     }

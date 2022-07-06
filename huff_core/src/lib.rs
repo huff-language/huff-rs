@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
+use ethers_core::utils::hex;
 use huff_codegen::*;
 use huff_lexer::*;
 use huff_parser::*;
@@ -18,6 +19,8 @@ use std::{
 };
 use tracing_subscriber::{filter::Directive, EnvFilter};
 use uuid::Uuid;
+
+pub(crate) mod cache;
 
 /// ## The Core Huff Compiler
 ///
@@ -39,6 +42,7 @@ use uuid::Uuid;
 ///     Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]),
 ///     Some("./artifacts".to_string()),
 ///     None,
+///     false,
 ///     false
 /// );
 /// ```
@@ -54,6 +58,8 @@ pub struct Compiler {
     pub optimize: bool,
     /// Generate and log bytecode
     pub bytecode: bool,
+    /// Whether to check cached artifacts
+    pub cached: bool,
 }
 
 impl<'a> Compiler {
@@ -63,11 +69,12 @@ impl<'a> Compiler {
         output: Option<String>,
         construct_args: Option<Vec<String>>,
         verbose: bool,
+        cached: bool,
     ) -> Self {
         if cfg!(feature = "verbose") || verbose {
             Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
-        Self { sources, output, construct_args, optimize: false, bytecode: false }
+        Self { sources, output, construct_args, optimize: false, bytecode: false, cached }
     }
 
     /// Tracing
@@ -120,54 +127,74 @@ impl<'a> Compiler {
             .filter_map(|fs| fs.as_ref().map(Arc::clone).ok())
             .collect::<Vec<Arc<FileSource>>>();
 
-        // Parallel Dependency Resolution
-        let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
-            files.into_par_iter().map(Compiler::recurse_deps).collect();
-
-        // Collect Recurse Deps errors and try to resolve to the first one
-        let mut errors = recursed_file_sources
-            .iter()
-            .filter_map(|rfs| rfs.as_ref().err())
-            .collect::<Vec<&Arc<CompilerError>>>();
-        if !errors.is_empty() {
-            let error = errors.remove(0);
-            return Err(Arc::clone(error))
-        }
-
-        // Unpack recursed dependencies into FileSources
-        let files = recursed_file_sources
-            .iter()
-            .filter_map(|fs| fs.as_ref().map(Arc::clone).ok())
-            .collect::<Vec<Arc<FileSource>>>();
-        tracing::info!(target: "core", "COMPILER RECURSED {} FILE DEPENDENCIES", files.len());
-
-        // Parallel Compilation
-        let potential_artifacts: Vec<Result<Artifact, CompilerError<'a>>> =
-            files.into_par_iter().map(|f| self.gen_artifact(f)).collect();
-
-        // Output errors + return OR print # of successfully compiled files
-        let mut errors: Vec<CompilerError<'a>> = vec![];
-        let mut artifacts: Vec<Arc<Artifact>> = vec![];
-        for r in potential_artifacts {
-            match r {
-                Ok(a) => artifacts.push(Arc::new(a)),
-                Err(ce) => errors.push(ce),
-            }
-        }
-        if !errors.is_empty() {
-            tracing::error!(target: "core", "{} FILES FAILED TO COMPILE", errors.len());
-            return Err(Arc::new(CompilerError::FailedCompiles(errors)))
-        }
-        match artifacts.len() {
-            0 => tracing::warn!(target: "core", "NO FILES COMPILED SUCCESSFULLY"),
-            num => tracing::info!(target: "core", "{} FILES COMPILED SUCCESSFULLY", num),
-        }
-
         // Grab the output
         let output = self.get_outputs();
 
-        // Export
-        Compiler::export_artifacts(&artifacts, &output);
+        // TODO: Parallelize Artifact Caching
+        // rayon::spawn({
+        //     let cloned_files: Vec<Arc<FileSource>> = files.iter().map(Arc::clone).collect();
+        //     let ol: OutputLocation = output.clone();
+        //     || cache::get_cached_artifacts(cloned_files, ol)
+        // });
+
+        let mut artifacts: Vec<Arc<Artifact>> = vec![];
+
+        // Get our constructor arguments as a hex encoded string to compare to the cache
+        let inputs = self.get_constructor_args();
+        let encoded_inputs = Codegen::encode_constructor_args(inputs);
+        let encoded: Vec<Vec<u8>> =
+            encoded_inputs.iter().map(|tok| ethers_core::abi::encode(&[tok.clone()])).collect();
+        let constructor_args = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
+
+        // Get Cached or Generate Artifacts
+        tracing::debug!(target: "core", "Output directory: {}", output.0);
+        match cache::get_cached_artifacts(&files, &output, constructor_args) {
+            Some(arts) => artifacts = arts,
+            None => {
+                // Parallel Dependency Resolution
+                let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
+                    files.into_par_iter().map(Compiler::recurse_deps).collect();
+
+                // Collect Recurse Deps errors and try to resolve to the first one
+                let mut errors = recursed_file_sources
+                    .iter()
+                    .filter_map(|rfs| rfs.as_ref().err())
+                    .collect::<Vec<&Arc<CompilerError>>>();
+                if !errors.is_empty() {
+                    let error = errors.remove(0);
+                    return Err(Arc::clone(error))
+                }
+
+                // Unpack recursed dependencies into FileSources
+                let files = recursed_file_sources
+                    .into_iter()
+                    .filter_map(|fs| fs.ok())
+                    .collect::<Vec<Arc<FileSource>>>();
+                tracing::info!(target: "core", "COMPILER RECURSED {} FILE DEPENDENCIES", files.len());
+
+                // Parallel Compilation
+                let potential_artifacts: Vec<Result<Artifact, CompilerError<'a>>> =
+                    files.into_par_iter().map(|f| self.gen_artifact(f)).collect();
+
+                let mut gen_errors: Vec<CompilerError<'a>> = vec![];
+
+                // Output errors + return OR print # of successfully compiled files
+                for r in potential_artifacts {
+                    match r {
+                        Ok(a) => artifacts.push(Arc::new(a)),
+                        Err(ce) => gen_errors.push(ce),
+                    }
+                }
+
+                if !gen_errors.is_empty() {
+                    tracing::error!(target: "core", "{} FILES FAILED TO COMPILE", gen_errors.len());
+                    return Err(Arc::new(CompilerError::FailedCompiles(gen_errors)))
+                }
+
+                // Export
+                Compiler::export_artifacts(&artifacts, &output);
+            }
+        }
 
         Ok(artifacts)
     }

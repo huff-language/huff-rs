@@ -1,6 +1,6 @@
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::{evm::Opcode, prelude::*};
+use huff_utils::prelude::*;
 
 #[test]
 fn not_mistaken_as_opcode() {
@@ -29,7 +29,7 @@ fn not_mistaken_as_opcode() {
         let actual_label = tokens[tokens.len() - 5].kind.clone();
         let mut parser = Parser::new(tokens, None);
         // parsing to ensure tokens syntax is valid
-        let contract = parser.parse().unwrap();
+        let _contract = parser.parse().unwrap();
         assert_eq!(actual_label_arg, TokenKind::Ident(label.clone()));
         assert_eq!(actual_label, TokenKind::Label(label));
     }
