@@ -160,6 +160,7 @@ fn multiline_labels() {
             // "}"
             Span { start: 158, end: 159, file: None },
         ]),
+        outlined: false,
     };
     assert_eq!(macro_definition.name, md_expected.name);
     assert_eq!(macro_definition.parameters, md_expected.parameters);

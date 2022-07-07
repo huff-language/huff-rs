@@ -74,10 +74,28 @@ pub fn statement_gen(
             table_instances.extend(res.table_instances);
             label_indices.extend(res.label_indices);
 
-            // Increase offset by byte length of recursed macro
-            *offset += res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
-            // Add the macro's bytecode to the final result
-            bytes = [bytes, res.bytes].concat()
+            // If macro is outlined, insert a jump to the macro's code and a jumpdest to return to.
+            // Otherwise, insert the macro's code at the current offset.
+            if ir_macro.outlined {
+                // Insert a jump to the outlined macro's code
+                jump_table.insert(
+                    *offset,
+                    vec![Jump {
+                        label: format!("goto_{}", &ir_macro.name),
+                        bytecode_index: 0,
+                        span: s.span.clone(),
+                    }],
+                );
+                // Add return label
+                label_indices.insert(format!("return_from_{}", &ir_macro.name), *offset + 3);
+                bytes.push((*offset, Bytes(format!("{}xxxx{}", Opcode::Push2, Opcode::Jumpdest))));
+                *offset += 4;
+            } else {
+                // Increase offset by byte length of recursed macro
+                *offset += res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
+                // Add the macro's bytecode to the final result
+                bytes = [bytes, res.bytes].concat()
+            }
         }
         StatementType::Label(label) => {
             // Add JUMPDEST opcode to final result and add to label_indices
@@ -88,8 +106,7 @@ pub fn statement_gen(
         }
         StatementType::LabelCall(label) => {
             // Generate code for a `LabelCall`
-            // PUSH2 + 2 byte destination (placeholder for now, filled at the bottom
-            // of this function)
+            // PUSH2 + 2 byte destination (placeholder for now, filled in `Codegen::fill_unmatched`
             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL CALL: {}", label);
             jump_table.insert(
                 *offset,

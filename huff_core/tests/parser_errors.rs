@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
-use rand::prelude::*;
 
 #[test]
 fn test_invalid_macro_statement() {

@@ -36,6 +36,7 @@ fn empty_macro() {
             Span { start: 50, end: 51, file: None },
             Span { start: 51, end: 52, file: None },
         ]),
+        outlined: false,
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
@@ -102,6 +103,7 @@ fn macro_with_simple_body() {
             Span { start: 75, end: 78, file: None },
             Span { start: 79, end: 80, file: None },
         ]),
+        outlined: false,
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
@@ -280,6 +282,7 @@ fn macro_with_arg_calls() {
             Span { start: 1028, end: 1029, file: None },
             Span { start: 1055, end: 1056, file: None },
         ]),
+        outlined: false,
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
@@ -453,6 +456,7 @@ fn macro_labels() {
             Span { start: 205, end: 211, file: None },
             Span { start: 216, end: 217, file: None },
         ]),
+        outlined: false,
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
@@ -595,6 +599,7 @@ fn macro_invocation_with_arg_call() {
             Span { start: 173, end: 179, file: None },
             Span { start: 184, end: 185, file: None },
         ]),
+        outlined: false,
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
@@ -663,6 +668,7 @@ fn macro_with_builtin_fn_call() {
             Span { start: 81, end: 82, file: None },
             Span { start: 87, end: 88, file: None },
         ]),
+        outlined: false,
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
