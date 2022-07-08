@@ -45,8 +45,48 @@ pub fn statement_gen(
             scope.push(ir_macro.clone());
             mis.push((*offset, mi.clone()));
 
-            let mut res: BytecodeRes =
-                match Codegen::macro_to_bytecode(ir_macro.clone(), contract, scope, *offset, mis) {
+            // If invoked macro is outlined, insert a jump to the macro's code and a jumpdest to
+            // return to. If it is inlined, insert the macro's code at the current offset.
+            if ir_macro.outlined {
+                // Insert a jump to the outlined macro's code
+                jump_table.insert(
+                    *offset + 7, // PUSH2 + 2 bytes + PUSH2 + 2 bytes + MSTORE
+                    vec![Jump {
+                        label: format!("goto_{}", &ir_macro.name),
+                        bytecode_index: 0,
+                        span: s.span.clone(),
+                    }],
+                );
+
+                // Store return JUMPDEST offset (`*offset + 11`) in memory @ 0x1000
+                bytes.push((
+                    *offset,
+                    Bytes(format!(
+                        "{}{:04x}{}{:04x}{}",
+                        Opcode::Push2,
+                        *offset + 11,
+                        Opcode::Push2,
+                        4096, /* TODO: Lots of memory expansion. Should either use the offset at
+                               *       MSIZE or determine a reserved mem pointer when outlined
+                               *       macros are used in a contract. */
+                        Opcode::Mstore
+                    )),
+                ));
+                // Insert jump to outlined macro + jumpdest to return to
+                bytes.push((
+                    *offset + 7, // PUSH2 + 2 bytes + PUSH2 + 2 bytes + MSTORE
+                    Bytes(format!("{}xxxx{}{}", Opcode::Push2, Opcode::Jump, Opcode::Jumpdest)),
+                ));
+                // PUSH2 + 2 bytes + PUSH2 + 2 bytes + MSTORE + PUSH2 + 2 bytes + JUMP + JUMPDEST
+                *offset += 12;
+            } else {
+                let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
+                    ir_macro.clone(),
+                    contract,
+                    scope,
+                    *offset,
+                    mis,
+                ) {
                     Ok(r) => r,
                     Err(e) => {
                         tracing::error!(
@@ -58,39 +98,22 @@ pub fn statement_gen(
                     }
                 };
 
-            // Set jump table values
-            tracing::debug!(target: "codegen", "Unmatched jumps: {:?}", res.unmatched_jumps.iter().map(|uj| uj.label.clone()).collect::<Vec<String>>());
-            for j in res.unmatched_jumps.iter_mut() {
-                let new_index = j.bytecode_index;
-                j.bytecode_index = 0;
-                let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index) {
-                    jumps.clone()
-                } else {
-                    vec![]
-                };
-                new_jumps.push(j.clone());
-                jump_table.insert(new_index, new_jumps);
-            }
-            table_instances.extend(res.table_instances);
-            label_indices.extend(res.label_indices);
+                // Set jump table values
+                tracing::debug!(target: "codegen", "Unmatched jumps: {:?}", res.unmatched_jumps.iter().map(|uj| uj.label.clone()).collect::<Vec<String>>());
+                for j in res.unmatched_jumps.iter_mut() {
+                    let new_index = j.bytecode_index;
+                    j.bytecode_index = 0;
+                    let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index) {
+                        jumps.clone()
+                    } else {
+                        vec![]
+                    };
+                    new_jumps.push(j.clone());
+                    jump_table.insert(new_index, new_jumps);
+                }
+                table_instances.extend(res.table_instances);
+                label_indices.extend(res.label_indices);
 
-            // If macro is outlined, insert a jump to the macro's code and a jumpdest to return to.
-            // Otherwise, insert the macro's code at the current offset.
-            if ir_macro.outlined {
-                // Insert a jump to the outlined macro's code
-                jump_table.insert(
-                    *offset,
-                    vec![Jump {
-                        label: format!("goto_{}", &ir_macro.name),
-                        bytecode_index: 0,
-                        span: s.span.clone(),
-                    }],
-                );
-                // Add return label
-                label_indices.insert(format!("return_from_{}", &ir_macro.name), *offset + 3);
-                bytes.push((*offset, Bytes(format!("{}xxxx{}", Opcode::Push2, Opcode::Jumpdest))));
-                *offset += 4;
-            } else {
                 // Increase offset by byte length of recursed macro
                 *offset += res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
                 // Add the macro's bytecode to the final result

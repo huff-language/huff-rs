@@ -302,8 +302,9 @@ impl Codegen {
         // TODO: Remove bad hack to detect end of recursion. Also possibly move this logic?
         if macro_def.name == "MAIN" {
             for macro_def in contract.macros.iter().filter(|m| m.outlined) {
+                // Add 1 to starting offset to account for the JUMPDEST opcode
                 if let Ok(res) =
-                    Codegen::macro_to_bytecode(macro_def.clone(), contract, scope, offset, mis)
+                    Codegen::macro_to_bytecode(macro_def.clone(), contract, scope, offset + 1, mis)
                 {
                     let macro_code_len =
                         res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
@@ -315,22 +316,20 @@ impl Codegen {
                         res.bytes,
                         vec![(
                             offset + macro_code_len + 1,
-                            Bytes(format!("{}xxxx", Opcode::Push2)),
+                            Bytes(format!(
+                                "{}{:04x}{}{}",
+                                Opcode::Push2,
+                                4096,
+                                Opcode::Mload,
+                                Opcode::Jump
+                            )), // Load the return jumpdest offset stored at 0x1000
                         )],
                     ]
                     .concat();
                     // Add the jumpdest to the beginning of the outlined macro.
                     label_indices.insert(format!("goto_{}", macro_def.name.clone()), offset);
-                    // Add the jump back to the position after it was called
-                    jump_table.insert(
-                        offset + macro_code_len + 1,
-                        vec![Jump {
-                            label: format!("return_from_{}", macro_def.name.clone()),
-                            bytecode_index: 0,
-                            span: macro_def.span.clone(), // TODO: Not the right span
-                        }],
-                    );
-                    offset += macro_code_len + 4;
+                    offset += macro_code_len + 6; // JUMPDEST + MACRO_CODE_LEN + PUSH2 + 2 bytes +
+                                                  // MLOAD + JUMP
                 } else {
                     tracing::error!(target: "codegen", "Failed to generate bytecode for macro: {}", macro_def.name);
                     return Err(CodegenError {
