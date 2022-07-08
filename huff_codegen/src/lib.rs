@@ -303,41 +303,38 @@ impl Codegen {
         if macro_def.name == "MAIN" {
             for macro_def in contract.macros.iter().filter(|m| m.outlined) {
                 // Add 1 to starting offset to account for the JUMPDEST opcode
-                if let Ok(res) =
-                    Codegen::macro_to_bytecode(macro_def.clone(), contract, scope, offset + 1, mis)
-                {
-                    let macro_code_len =
-                        res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
+                let res = Codegen::macro_to_bytecode(
+                    macro_def.clone(),
+                    contract,
+                    scope,
+                    offset + 1,
+                    mis,
+                )?;
+                let macro_code_len = res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
 
-                    // TODO: Clean up.
-                    bytes = [
-                        bytes,
-                        vec![(offset, Bytes(Opcode::Jumpdest.to_string()))],
-                        res.bytes,
-                        vec![(
-                            offset + macro_code_len + 1,
-                            Bytes(format!(
-                                "{}{:04x}{}{}",
-                                Opcode::Push2,
-                                4096,
-                                Opcode::Mload,
-                                Opcode::Jump
-                            )), // Load the return jumpdest offset stored at 0x1000
-                        )],
-                    ]
-                    .concat();
-                    // Add the jumpdest to the beginning of the outlined macro.
-                    label_indices.insert(format!("goto_{}", macro_def.name.clone()), offset);
-                    offset += macro_code_len + 6; // JUMPDEST + MACRO_CODE_LEN + PUSH2 + 2 bytes +
-                                                  // MLOAD + JUMP
-                } else {
-                    tracing::error!(target: "codegen", "Failed to generate bytecode for macro: {}", macro_def.name);
-                    return Err(CodegenError {
-                        kind: CodegenErrorKind::MissingMacroDefinition(macro_def.name.clone()),
-                        span: macro_def.span.clone(),
-                        token: None,
-                    })
-                }
+                // TODO: Clean up.
+                bytes = [
+                    bytes,
+                    vec![(offset, Bytes(Opcode::Jumpdest.to_string()))],
+                    res.bytes,
+                    vec![(
+                        offset + macro_code_len + 1,
+                        Bytes(format!(
+                            "{}{:04x}{}{}",
+                            Opcode::Push2,
+                            4096, /* TODO: Lots of memory expansion. Should either use the
+                                   *       offset at MSIZE or determine a reserved mem pointer
+                                   *       when outlined macros are used in a contract. */
+                            Opcode::Mload,
+                            Opcode::Jump
+                        )), // Load the return jumpdest offset stored at 0x1000
+                    )],
+                ]
+                .concat();
+                // Add the jumpdest to the beginning of the outlined macro.
+                label_indices.insert(format!("goto_{}", macro_def.name.clone()), offset);
+                offset += macro_code_len + 6; // JUMPDEST + MACRO_CODE_LEN + PUSH2 + 2 bytes + MLOAD
+                                              // + JUMP
             }
         }
 

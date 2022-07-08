@@ -673,3 +673,111 @@ fn macro_with_builtin_fn_call() {
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
+
+// Outlined macros are parsed the same way as inlined macros, so there should be no difference
+// besides the spans as well as the outlined flag.
+#[test]
+fn empty_outlined_macro() {
+    let source = "#define fn HELLO_WORLD() = takes(0) returns(4) {}";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    let expected = MacroDefinition {
+        name: "HELLO_WORLD".to_string(),
+        parameters: vec![],
+        statements: vec![],
+        takes: 0,
+        returns: 4,
+        span: AstSpan(vec![
+            Span { start: 0, end: 7, file: None },
+            Span { start: 8, end: 10, file: None },
+            Span { start: 11, end: 22, file: None },
+            Span { start: 22, end: 23, file: None },
+            Span { start: 23, end: 24, file: None },
+            Span { start: 25, end: 26, file: None },
+            Span { start: 27, end: 32, file: None },
+            Span { start: 32, end: 33, file: None },
+            Span { start: 33, end: 34, file: None },
+            Span { start: 34, end: 35, file: None },
+            Span { start: 36, end: 43, file: None },
+            Span { start: 43, end: 44, file: None },
+            Span { start: 44, end: 45, file: None },
+            Span { start: 45, end: 46, file: None },
+            Span { start: 47, end: 48, file: None },
+            Span { start: 48, end: 49, file: None },
+        ]),
+        outlined: true,
+    };
+    assert_eq!(macro_definition, expected);
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
+
+#[test]
+fn outlined_macro_with_simple_body() {
+    let source = "#define fn HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    let expected = MacroDefinition {
+        name: "HELLO_WORLD".to_string(),
+        parameters: vec![],
+        statements: vec![
+            Statement {
+                ty: StatementType::Literal(str_to_bytes32("00")),
+                span: AstSpan(vec![Span { start: 51, end: 53, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Mstore),
+                span: AstSpan(vec![Span { start: 54, end: 60, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Literal(str_to_bytes32("01")),
+                span: AstSpan(vec![Span { start: 64, end: 66, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Literal(str_to_bytes32("02")),
+                span: AstSpan(vec![Span { start: 69, end: 71, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Add),
+                span: AstSpan(vec![Span { start: 72, end: 75, file: None }]),
+            },
+        ],
+        takes: 3,
+        returns: 0,
+        span: AstSpan(vec![
+            Span { start: 0, end: 7, file: None },
+            Span { start: 8, end: 10, file: None },
+            Span { start: 11, end: 22, file: None },
+            Span { start: 22, end: 23, file: None },
+            Span { start: 23, end: 24, file: None },
+            Span { start: 25, end: 26, file: None },
+            Span { start: 27, end: 32, file: None },
+            Span { start: 32, end: 33, file: None },
+            Span { start: 33, end: 34, file: None },
+            Span { start: 34, end: 35, file: None },
+            Span { start: 36, end: 43, file: None },
+            Span { start: 43, end: 44, file: None },
+            Span { start: 44, end: 45, file: None },
+            Span { start: 45, end: 46, file: None },
+            Span { start: 47, end: 48, file: None },
+            Span { start: 51, end: 53, file: None },
+            Span { start: 54, end: 60, file: None },
+            Span { start: 64, end: 66, file: None },
+            Span { start: 69, end: 71, file: None },
+            Span { start: 72, end: 75, file: None },
+            Span { start: 76, end: 77, file: None },
+        ]),
+        outlined: true,
+    };
+    assert_eq!(macro_definition, expected);
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
