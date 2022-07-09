@@ -674,8 +674,8 @@ fn macro_with_builtin_fn_call() {
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
 
-// Outlined macros are parsed the same way as inlined macros, so there should be no difference
-// besides the spans as well as the outlined flag.
+// Outlined macros (functions) are parsed the same way as inlined macros, so there should be no
+// difference besides the spans as well as the outlined flag.
 #[test]
 fn empty_outlined_macro() {
     let source = "#define fn HELLO_WORLD() = takes(0) returns(4) {}";

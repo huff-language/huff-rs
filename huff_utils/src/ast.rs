@@ -427,7 +427,7 @@ pub struct MacroDefinition {
     pub returns: usize,
     /// The Span of the Macro Definition
     pub span: AstSpan,
-    /// Is the macro outlined?
+    /// Is the macro a function (outlined)?
     pub outlined: bool,
 }
 

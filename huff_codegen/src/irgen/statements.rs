@@ -45,12 +45,20 @@ pub fn statement_gen(
             scope.push(ir_macro.clone());
             mis.push((*offset, mi.clone()));
 
-            // If invoked macro is outlined, insert a jump to the macro's code and a jumpdest to
-            // return to. If it is inlined, insert the macro's code at the current offset.
+            // If invoked macro is a function (outlined), insert a jump to the function's code and a
+            // jumpdest to return to. If it is inlined, insert the macro's code at the
+            // current offset.
             if ir_macro.outlined {
+                // Get necessary swap ops to reorder stack
+                // PC of the return jumpdest should be below the function's stack inputs
+                let stack_swaps = (0..ir_macro.takes)
+                    .rev()
+                    .map(|i| format!("{:02x}", 0x90 + i))
+                    .collect::<Vec<_>>();
+
                 // Insert a jump to the outlined macro's code
                 jump_table.insert(
-                    *offset + 7, // PUSH2 + 2 bytes + PUSH2 + 2 bytes + MSTORE
+                    *offset + stack_swaps.len() + 3, // PUSH2 + 2 bytes + stack_swaps.len()
                     vec![Jump {
                         label: format!("goto_{}", &ir_macro.name),
                         bytecode_index: 0,
@@ -58,27 +66,24 @@ pub fn statement_gen(
                     }],
                 );
 
-                // Store return JUMPDEST offset (`*offset + 11`) in memory @ 0x1000
+                // Store return JUMPDEST PC on the stack and re-order the stack so that
+                // the return JUMPDEST PC is below the function's stack inputs
                 bytes.push((
                     *offset,
                     Bytes(format!(
-                        "{}{:04x}{}{:04x}{}",
+                        "{}{:04x}{}",
                         Opcode::Push2,
-                        *offset + 11,
-                        Opcode::Push2,
-                        4096, /* TODO: Lots of memory expansion. Should either use the offset at
-                               *       MSIZE or determine a reserved mem pointer when outlined
-                               *       macros are used in a contract. */
-                        Opcode::Mstore
+                        *offset + stack_swaps.len() + 7,
+                        stack_swaps.join("")
                     )),
                 ));
                 // Insert jump to outlined macro + jumpdest to return to
                 bytes.push((
-                    *offset + 7, // PUSH2 + 2 bytes + PUSH2 + 2 bytes + MSTORE
+                    *offset + stack_swaps.len() + 3, // PUSH2 + 2 bytes + stack_swaps.len()
                     Bytes(format!("{}xxxx{}{}", Opcode::Push2, Opcode::Jump, Opcode::Jumpdest)),
                 ));
-                // PUSH2 + 2 bytes + PUSH2 + 2 bytes + MSTORE + PUSH2 + 2 bytes + JUMP + JUMPDEST
-                *offset += 12;
+                // PUSH2 + 2 bytes + stack_swaps.len() + PUSH2 + 2 bytes + JUMP + JUMPDEST
+                *offset += stack_swaps.len() + 8;
             } else {
                 let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
                     ir_macro.clone(),

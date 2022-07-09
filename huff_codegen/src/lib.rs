@@ -298,19 +298,39 @@ impl Codegen {
             tracing::warn!(target: "codegen", "ATTEMPTED MACRO INVOCATION POP FAILED AT SCOPE: {}", scope.len());
         }
 
-        // Add outlined macros to the end of the bytecode
+        // Add functions (outlined macros) to the end of the bytecode
         // TODO: Remove bad hack to detect end of recursion. Also possibly move this logic?
         if macro_def.name == "MAIN" {
             for macro_def in contract.macros.iter().filter(|m| m.outlined) {
                 // Add 1 to starting offset to account for the JUMPDEST opcode
-                let res = Codegen::macro_to_bytecode(
+                let mut res = Codegen::macro_to_bytecode(
                     macro_def.clone(),
                     contract,
                     scope,
                     offset + 1,
                     mis,
                 )?;
+
+                for j in res.unmatched_jumps.iter_mut() {
+                    let new_index = j.bytecode_index;
+                    j.bytecode_index = 0;
+                    let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index) {
+                        jumps.clone()
+                    } else {
+                        vec![]
+                    };
+                    new_jumps.push(j.clone());
+                    jump_table.insert(new_index, new_jumps);
+                }
+                table_instances.extend(res.table_instances);
+                label_indices.extend(res.label_indices);
+
                 let macro_code_len = res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
+
+                // Get necessary swap ops to reorder stack
+                // PC of the return jumpdest should be above the function's outputs on the stack
+                let stack_swaps =
+                    (0..macro_def.returns).map(|i| format!("{:02x}", 0x90 + i)).collect::<Vec<_>>();
 
                 // TODO: Clean up.
                 bytes = [
@@ -320,21 +340,17 @@ impl Codegen {
                     vec![(
                         offset + macro_code_len + 1,
                         Bytes(format!(
-                            "{}{:04x}{}{}",
-                            Opcode::Push2,
-                            4096, /* TODO: Lots of memory expansion. Should either use the
-                                   *       offset at MSIZE or determine a reserved mem pointer
-                                   *       when outlined macros are used in a contract. */
-                            Opcode::Mload,
+                            "{}{}",
+                            stack_swaps.join(""),
                             Opcode::Jump
-                        )), // Load the return jumpdest offset stored at 0x1000
+                        )),
                     )],
                 ]
                 .concat();
                 // Add the jumpdest to the beginning of the outlined macro.
                 label_indices.insert(format!("goto_{}", macro_def.name.clone()), offset);
-                offset += macro_code_len + 6; // JUMPDEST + MACRO_CODE_LEN + PUSH2 + 2 bytes + MLOAD
-                                              // + JUMP
+                offset += macro_code_len + stack_swaps.len() + 2; // JUMPDEST + MACRO_CODE_LEN +
+                                                                  // stack_swaps.len() + JUMP
             }
         }
 
