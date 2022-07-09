@@ -299,59 +299,18 @@ impl Codegen {
         }
 
         // Add functions (outlined macros) to the end of the bytecode
-        // TODO: Remove bad hack to detect end of recursion. Also possibly move this logic?
+        // TODO: Remove bad hack to detect end of recursion.
         if macro_def.name == "MAIN" {
-            for macro_def in contract.macros.iter().filter(|m| m.outlined) {
-                // Add 1 to starting offset to account for the JUMPDEST opcode
-                let mut res = Codegen::macro_to_bytecode(
-                    macro_def.clone(),
-                    contract,
-                    scope,
-                    offset + 1,
-                    mis,
-                )?;
-
-                for j in res.unmatched_jumps.iter_mut() {
-                    let new_index = j.bytecode_index;
-                    j.bytecode_index = 0;
-                    let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index) {
-                        jumps.clone()
-                    } else {
-                        vec![]
-                    };
-                    new_jumps.push(j.clone());
-                    jump_table.insert(new_index, new_jumps);
-                }
-                table_instances.extend(res.table_instances);
-                label_indices.extend(res.label_indices);
-
-                let macro_code_len = res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
-
-                // Get necessary swap ops to reorder stack
-                // PC of the return jumpdest should be above the function's outputs on the stack
-                let stack_swaps =
-                    (0..macro_def.returns).map(|i| format!("{:02x}", 0x90 + i)).collect::<Vec<_>>();
-
-                // TODO: Clean up.
-                bytes = [
-                    bytes,
-                    vec![(offset, Bytes(Opcode::Jumpdest.to_string()))],
-                    res.bytes,
-                    vec![(
-                        offset + macro_code_len + 1,
-                        Bytes(format!(
-                            "{}{}",
-                            stack_swaps.join(""),
-                            Opcode::Jump
-                        )),
-                    )],
-                ]
-                .concat();
-                // Add the jumpdest to the beginning of the outlined macro.
-                label_indices.insert(format!("goto_{}", macro_def.name.clone()), offset);
-                offset += macro_code_len + stack_swaps.len() + 2; // JUMPDEST + MACRO_CODE_LEN +
-                                                                  // stack_swaps.len() + JUMP
-            }
+            bytes = Codegen::append_functions(
+                contract,
+                scope,
+                &mut offset,
+                mis,
+                &mut jump_table,
+                &mut label_indices,
+                &mut table_instances,
+                bytes,
+            )?;
         }
 
         // Fill JUMPDEST placeholders
@@ -425,6 +384,67 @@ impl Codegen {
             });
 
         Ok((bytes, unmatched_jumps))
+    }
+
+    /// Helper associated function to append functions to the end of the bytecode.
+    ///
+    /// ## Overview
+    ///
+    /// Iterates over the contract's functions, generates their bytecode, fills unmatched jumps &
+    /// label indices, and appends the functions' bytecode to the end of the contract's bytecode.
+    ///
+    /// On success, passes ownership of `bytes` back to the caller.
+    /// On failure, returns a CodegenError.
+    #[allow(clippy::too_many_arguments)]
+    pub fn append_functions(
+        contract: &Contract,
+        scope: &mut Vec<MacroDefinition>,
+        offset: &mut usize,
+        mis: &mut Vec<(usize, MacroInvocation)>,
+        jump_table: &mut JumpTable,
+        label_indices: &mut LabelIndices,
+        table_instances: &mut Jumps,
+        mut bytes: Vec<(usize, Bytes)>,
+    ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
+        for macro_def in contract.macros.iter().filter(|m| m.outlined) {
+            // Add 1 to starting offset to account for the JUMPDEST opcode
+            let mut res =
+                Codegen::macro_to_bytecode(macro_def.clone(), contract, scope, *offset + 1, mis)?;
+
+            for j in res.unmatched_jumps.iter_mut() {
+                let new_index = j.bytecode_index;
+                j.bytecode_index = 0;
+                let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index) {
+                    jumps.clone()
+                } else {
+                    vec![]
+                };
+                new_jumps.push(j.clone());
+                jump_table.insert(new_index, new_jumps);
+            }
+            table_instances.extend(res.table_instances);
+            label_indices.extend(res.label_indices);
+
+            let macro_code_len = res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
+
+            // Get necessary swap ops to reorder stack
+            // PC of the return jumpdest should be above the function's outputs on the stack
+            let stack_swaps =
+                (0..macro_def.returns).map(|i| format!("{:02x}", 0x90 + i)).collect::<Vec<_>>();
+
+            // Insert JUMPDEST, stack swaps, and final JUMP back to the location of invocation.
+            bytes.push((*offset, Bytes(Opcode::Jumpdest.to_string())));
+            res.bytes.push((
+                *offset + macro_code_len + 1,
+                Bytes(format!("{}{}", stack_swaps.join(""), Opcode::Jump)),
+            ));
+            bytes = [bytes, res.bytes].concat();
+            // Add the jumpdest to the beginning of the outlined macro.
+            label_indices.insert(format!("goto_{}", macro_def.name.clone()), *offset);
+            *offset += macro_code_len + stack_swaps.len() + 2; // JUMPDEST + MACRO_CODE_LEN +
+                                                               // stack_swaps.len() + JUMP
+        }
+        Ok(bytes)
     }
 
     /// Generate a codegen artifact
