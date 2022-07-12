@@ -162,7 +162,7 @@ pub fn statement_gen(
                             bf.args[0].name.as_ref().unwrap()
                         );
                         return Err(CodegenError {
-                            kind: CodegenErrorKind::MissingMacroDefinition(
+                            kind: CodegenErrorKind::InvalidMacroInvocation(
                                 bf.args[0].name.as_ref().unwrap().to_string(), /* yuck */
                             ),
                             span: bf.span.clone(),
@@ -177,6 +177,22 @@ pub fn statement_gen(
                     bytes.push((starting_offset, Bytes(push_bytes)));
                 }
                 BuiltinFunctionKind::Tablestart => {
+                    // Make sure the table exists
+                    if contract.find_table_by_name(bf.args[0].name.as_ref().unwrap()).is_none() {
+                        tracing::error!(
+                            target: "codegen",
+                            "MISSING TABLE PASSED TO __tablestart \"{}\"",
+                            bf.args[0].name.as_ref().unwrap()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidMacroInvocation(
+                                bf.args[0].name.as_ref().unwrap().to_string(),
+                            ),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    };
+
                     table_instances.push(Jump {
                         label: bf.args[0].name.as_ref().unwrap().to_owned(),
                         bytecode_index: *offset,
