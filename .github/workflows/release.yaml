@@ -25,12 +25,8 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
         with:
+          ref: ${{ env.IS_NIGHTLY && 'stage' || 'main' }}
           fetch-depth: 0
-
-      - name: Checkout stage branch if Nightly
-        if: ${{ env.IS_NIGHTLY }}
-        run: |
-          git checkout stage
 
       - name: Compute release name and tag
         id: release_info
@@ -110,11 +106,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-
-      - name: Checkout stage branch if Nightly
-        if: ${{ env.IS_NIGHTLY }}
-        run: |
-          git checkout stage
+        with:
+          ref: ${{ env.IS_NIGHTLY && 'stage' || 'main' }}
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -220,11 +213,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-
-      - name: Checkout stage branch if Nightly
-        if: ${{ env.IS_NIGHTLY }}
-        run: |
-          git checkout stage
+        with:
+          ref: ${{ env.IS_NIGHTLY && 'stage' || 'main' }}
 
       # Moves the `nightly` tag to `HEAD`
       - name: Move nightly tag

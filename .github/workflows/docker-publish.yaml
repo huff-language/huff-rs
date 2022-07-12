@@ -8,6 +8,7 @@ env:
   REGISTRY: ghcr.io
   # Will resolve to huff-language/huff-rs
   IMAGE_NAME: ${{ github.repository }}
+  IS_NIGHTLY: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
 
 jobs:
@@ -19,8 +20,10 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout sources
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.IS_NIGHTLY && 'stage' || 'main' }}
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
