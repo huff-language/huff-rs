@@ -470,6 +470,12 @@ impl MacroDefinition {
                         span: statement.span.clone(),
                     });
                 }
+                StatementType::Code(c) => {
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Bytes(Bytes(c.to_owned())),
+                        span: statement.span.clone(),
+                    });
+                }
                 StatementType::MacroInvocation(mi) => {
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Statement(Statement {
@@ -482,14 +488,14 @@ impl MacroDefinition {
                 StatementType::Constant(name) => {
                     // Constant needs to be evaluated at the top-level
                     inner_irbytes.push(IRBytes {
-                        ty: IRByteType::Constant(name.to_string()),
+                        ty: IRByteType::Constant(name.to_owned()),
                         span: statement.span.clone(),
                     });
                 }
                 StatementType::ArgCall(arg_name) => {
                     // Arg call needs to use a destination defined in the calling macro context
                     inner_irbytes.push(IRBytes {
-                        ty: IRByteType::ArgCall(arg_name.to_string()),
+                        ty: IRByteType::ArgCall(arg_name.to_owned()),
                         span: statement.span.clone(),
                     });
                 }
@@ -646,6 +652,8 @@ pub enum StatementType {
     Literal(Literal),
     /// An Opcode Statement
     Opcode(Opcode),
+    /// A Code Statement
+    Code(String),
     /// A Macro Invocation Statement
     MacroInvocation(MacroInvocation),
     /// A Constant Push
@@ -665,6 +673,7 @@ impl Display for StatementType {
         match self {
             StatementType::Literal(l) => write!(f, "LITERAL: {}", bytes32_to_string(l, true)),
             StatementType::Opcode(o) => write!(f, "OPCODE: {}", o),
+            StatementType::Code(s) => write!(f, "CODE: {}", s),
             StatementType::MacroInvocation(m) => {
                 write!(f, "MACRO INVOCATION: {}", m.macro_name)
             }

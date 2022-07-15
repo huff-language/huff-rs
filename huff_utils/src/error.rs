@@ -157,6 +157,8 @@ pub enum CodegenErrorKind {
     UsizeConversion(String),
     /// Invalid Arguments
     InvalidArguments(String),
+    /// Invalid Table Statement
+    InvalidTableStatement(String),
 }
 
 impl Spanned for CodegenError {
@@ -199,6 +201,9 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::InvalidArguments(msg) => {
                 write!(f.out, "Invalid arguments: \"{}\"", msg)
+            }
+            CodegenErrorKind::InvalidTableStatement(msg) => {
+                write!(f.out, "Invalid table statement: \"{}\"", msg)
             }
         }
     }
@@ -488,6 +493,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
                 CodegenErrorKind::InvalidArguments(_) => {
                     write!(f, "\nError: Invalid Arguments\n{}\n", ce.span.error(None))
+                }
+                CodegenErrorKind::InvalidTableStatement(_) => {
+                    write!(f, "\nError: Invalid Table Statement\n{}\n", ce.span.error(None))
                 }
             },
             CompilerError::FailedCompiles(v) => {

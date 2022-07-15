@@ -155,28 +155,40 @@ impl Codegen {
                 .statements
                 .iter()
                 .try_for_each(|s| {
-                    if let StatementType::LabelCall(label) = &s.ty {
-                        let offset = match res.label_indices.get(label) {
-                            Some(l) => l,
-                            None => {
-                                tracing::error!(
+                    match &s.ty {
+                        StatementType::LabelCall(label) => {
+                            let offset = match res.label_indices.get(label) {
+                                Some(l) => l,
+                                None => {
+                                    tracing::error!(
                                     target: "codegen",
                                     "Definition not found for Jump Table Label: \"{}\"",
                                     label
                                 );
-                                return Err(CodegenError {
-                                    kind: CodegenErrorKind::UnmatchedJumpLabel,
-                                    span: s.span.clone(),
-                                    token: None,
-                                });
-                            }
-                        };
-                        let hex = format_even_bytes(format!("{:02x}", offset));
+                                    return Err(CodegenError {
+                                        kind: CodegenErrorKind::UnmatchedJumpLabel,
+                                        span: s.span.clone(),
+                                        token: None,
+                                    });
+                                }
+                            };
+                            let hex = format_even_bytes(format!("{:02x}", offset));
 
-                        table_code = format!("{}{}", table_code, pad_n_bytes(
-                            hex.as_str(),
-                            if matches!(jt.kind, TableKind::JumpTablePacked) { 0x02 } else { 0x20 },
-                        ));
+                            table_code = format!("{}{}", table_code, pad_n_bytes(
+                                hex.as_str(),
+                                if matches!(jt.kind, TableKind::JumpTablePacked) { 0x02 } else { 0x20 },
+                            ));
+                        }
+                        StatementType::Code(code) => {
+                            table_code = format!("{}{}", table_code, code);
+                        }
+                        _ => {
+                            return Err(CodegenError {
+                                kind: CodegenErrorKind::InvalidMacroStatement,
+                                span: jt.span.clone(),
+                                token: None
+                            })
+                        }
                     }
                     Ok(())
                 });
