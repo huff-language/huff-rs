@@ -85,8 +85,7 @@ impl Codegen {
             &mut Vec::default(),
         )?;
 
-        // Generate the bytecode return string
-        Codegen::gen_table_bytecode(bytecode_res, contract)
+        Ok(bytecode_res.bytes.into_iter().fold(String::default(), |acc, (_, b)| acc + &b.0))
     }
 
     /// Helper function to find a macro or generate a CodegenError
@@ -180,6 +179,15 @@ impl Codegen {
                             ));
                         }
                         StatementType::Code(code) => {
+                            // Check if code length is even
+                            if code.len() % 2 != 0 {
+                                return Err(CodegenError {
+                                    kind: CodegenErrorKind::InvalidCodeLength(code.len()),
+                                    span: s.span.clone(),
+                                    token: None,
+                                });
+                            }
+
                             table_code = format!("{}{}", table_code, code);
                         }
                         _ => {

@@ -159,6 +159,8 @@ pub enum CodegenErrorKind {
     InvalidArguments(String),
     /// Invalid Table Statement
     InvalidTableStatement(String),
+    /// Invalid Code Length
+    InvalidCodeLength(usize),
 }
 
 impl Spanned for CodegenError {
@@ -204,6 +206,9 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::InvalidTableStatement(msg) => {
                 write!(f.out, "Invalid table statement: \"{}\"", msg)
+            }
+            CodegenErrorKind::InvalidCodeLength(len) => {
+                write!(f.out, "Invalid code length: {}", len)
             }
         }
     }
@@ -496,6 +501,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
                 CodegenErrorKind::InvalidTableStatement(_) => {
                     write!(f, "\nError: Invalid Table Statement\n{}\n", ce.span.error(None))
+                }
+                CodegenErrorKind::InvalidCodeLength(_) => {
+                    write!(f, "\nError: Invalid Code Length\n{}\n", ce.span.error(None))
                 }
             },
             CompilerError::FailedCompiles(v) => {

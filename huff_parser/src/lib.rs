@@ -827,7 +827,7 @@ impl Parser {
     /// Only `LabelCall` and `Code` Statements should be authorized.
     pub fn parse_table_body(&mut self, is_code_table: bool) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
-        let code_statement_regex = Regex::new(r"[\da-fA-F]+").unwrap();
+        let code_statement_regex = Regex::new(r"^([a-fA-F\d]+)$").unwrap();
 
         self.match_kind(TokenKind::OpenBrace)?;
         while !self.check(TokenKind::CloseBrace) {
