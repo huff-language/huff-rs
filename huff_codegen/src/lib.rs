@@ -68,7 +68,7 @@ impl Codegen {
         )?;
 
         // Generate the fully baked bytecode
-        Codegen::gen_table_bytecode(bytecode_res, contract)
+        Codegen::gen_table_bytecode(bytecode_res)
     }
 
     /// Generates constructor bytecode from a Contract AST
@@ -85,7 +85,7 @@ impl Codegen {
             &mut Vec::default(),
         )?;
 
-        Ok(bytecode_res.bytes.into_iter().fold(String::default(), |acc, (_, b)| acc + &b.0))
+        Codegen::gen_table_bytecode(bytecode_res)
     }
 
     /// Helper function to find a macro or generate a CodegenError
@@ -107,10 +107,7 @@ impl Codegen {
 
     /// Appends table bytecode to the end of the BytecodeRes output.
     /// Fills table JUMPDEST placeholders.
-    pub(crate) fn gen_table_bytecode(
-        res: BytecodeRes,
-        contract: &Contract,
-    ) -> Result<String, CodegenError> {
+    pub(crate) fn gen_table_bytecode(res: BytecodeRes) -> Result<String, CodegenError> {
         if !res.unmatched_jumps.is_empty() {
             tracing::error!(
                 target: "codegen",
@@ -135,7 +132,7 @@ impl Codegen {
         let mut table_offsets: HashMap<String, usize> = HashMap::new(); // table name -> bytecode offset
         let mut table_offset = bytecode.len() / 2;
 
-        if let Err(e) = contract.tables.iter().try_for_each(|jt| {
+        if let Err(e) = res.utilized_tables.iter().try_for_each(|jt| {
             table_offsets.insert(jt.name.to_string(), table_offset);
             let size = match bytes32_to_string(&jt.size, false).parse::<usize>() {
                 Ok(s) => s,
@@ -265,6 +262,7 @@ impl Codegen {
         let mut jump_table = JumpTable::new();
         let mut label_indices = LabelIndices::new();
         let mut table_instances = Jumps::new();
+        let mut utilized_tables: Vec<TableDefinition> = Vec::new();
 
         // Loop through all intermediate bytecode representations generated from the AST
         for (_ir_bytes_index, ir_byte) in ir_bytes.into_iter().enumerate() {
@@ -291,6 +289,7 @@ impl Codegen {
                         &mut jump_table,
                         &mut label_indices,
                         &mut table_instances,
+                        &mut utilized_tables,
                         starting_offset,
                     )?;
                     bytes.append(&mut push_bytes);
@@ -323,7 +322,7 @@ impl Codegen {
         // Fill JUMPDEST placeholders
         let (bytes, unmatched_jumps) = Codegen::fill_unmatched(bytes, &jump_table, &label_indices)?;
 
-        Ok(BytecodeRes { bytes, label_indices, unmatched_jumps, table_instances })
+        Ok(BytecodeRes { bytes, label_indices, unmatched_jumps, table_instances, utilized_tables })
     }
 
     /// Helper associated function to fill unmatched jump dests.
