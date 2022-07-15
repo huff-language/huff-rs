@@ -802,7 +802,7 @@ impl Parser {
                             // TODO: Throw an error here.
                             tracing::error!(
                                 target: "parser",
-                                "Invalid table statement. Must be a label call. Got: {:?}",
+                                "Invalid table statement. Must be valid hex bytecode. Got: {:?}",
                                 s
                             );
                             0_usize
@@ -817,7 +817,7 @@ impl Parser {
             table_name,
             kind,
             table_statements,
-            str_to_bytes32(size.to_string().as_str()),
+            str_to_bytes32(format!("{:02x}", size).as_str()),
             AstSpan(self.spans.clone()),
         ))
     }

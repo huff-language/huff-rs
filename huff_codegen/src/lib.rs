@@ -134,7 +134,7 @@ impl Codegen {
 
         if let Err(e) = res.utilized_tables.iter().try_for_each(|jt| {
             table_offsets.insert(jt.name.to_string(), table_offset);
-            let size = match bytes32_to_string(&jt.size, false).parse::<usize>() {
+            let size = match usize::from_str_radix(bytes32_to_string(&jt.size, false).as_str(), 16) {
                 Ok(s) => s,
                 Err(_) => return Err(CodegenError {
                     kind: CodegenErrorKind::UsizeConversion(format!("{:?}", jt.size)),

@@ -43,7 +43,7 @@ fn table_with_no_body() {
 #[test]
 fn table_with_body() {
     // TODO: Code tables are not yet supported
-    let table_kinds = [(TokenKind::JumpTable, "96"), (TokenKind::JumpTablePacked, "06")];
+    let table_kinds = [(TokenKind::JumpTable, "60"), (TokenKind::JumpTablePacked, "06")];
 
     for (kind, expected_size) in table_kinds {
         let source = &format!(
