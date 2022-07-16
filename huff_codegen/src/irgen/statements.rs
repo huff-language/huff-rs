@@ -119,6 +119,7 @@ pub fn statement_gen(
                 }
                 table_instances.extend(res.table_instances);
                 label_indices.extend(res.label_indices);
+                utilized_tables.extend(res.utilized_tables);
 
                 // Increase offset by byte length of recursed macro
                 *offset += res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
