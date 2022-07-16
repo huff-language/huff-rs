@@ -68,7 +68,7 @@ impl Codegen {
         )?;
 
         // Generate the fully baked bytecode
-        Codegen::gen_table_bytecode(bytecode_res, contract)
+        Codegen::gen_table_bytecode(bytecode_res)
     }
 
     /// Generates constructor bytecode from a Contract AST
@@ -85,8 +85,7 @@ impl Codegen {
             &mut Vec::default(),
         )?;
 
-        // Generate the bytecode return string
-        Codegen::gen_table_bytecode(bytecode_res, contract)
+        Codegen::gen_table_bytecode(bytecode_res)
     }
 
     /// Helper function to find a macro or generate a CodegenError
@@ -108,10 +107,7 @@ impl Codegen {
 
     /// Appends table bytecode to the end of the BytecodeRes output.
     /// Fills table JUMPDEST placeholders.
-    pub(crate) fn gen_table_bytecode(
-        res: BytecodeRes,
-        contract: &Contract,
-    ) -> Result<String, CodegenError> {
+    pub(crate) fn gen_table_bytecode(res: BytecodeRes) -> Result<String, CodegenError> {
         if !res.unmatched_jumps.is_empty() {
             tracing::error!(
                 target: "codegen",
@@ -136,9 +132,9 @@ impl Codegen {
         let mut table_offsets: HashMap<String, usize> = HashMap::new(); // table name -> bytecode offset
         let mut table_offset = bytecode.len() / 2;
 
-        if let Err(e) = contract.tables.iter().try_for_each(|jt| {
+        if let Err(e) = res.utilized_tables.iter().try_for_each(|jt| {
             table_offsets.insert(jt.name.to_string(), table_offset);
-            let size = match bytes32_to_string(&jt.size, false).parse::<usize>() {
+            let size = match bytes32_to_string(&jt.size, false).as_str().parse::<usize>() {
                 Ok(s) => s,
                 Err(_) => return Err(CodegenError {
                     kind: CodegenErrorKind::UsizeConversion(format!("{:?}", jt.size)),
@@ -155,28 +151,49 @@ impl Codegen {
                 .statements
                 .iter()
                 .try_for_each(|s| {
-                    if let StatementType::LabelCall(label) = &s.ty {
-                        let offset = match res.label_indices.get(label) {
-                            Some(l) => l,
-                            None => {
-                                tracing::error!(
+                    match &s.ty {
+                        StatementType::LabelCall(label) => {
+                            let offset = match res.label_indices.get(label) {
+                                Some(l) => l,
+                                None => {
+                                    tracing::error!(
                                     target: "codegen",
                                     "Definition not found for Jump Table Label: \"{}\"",
                                     label
                                 );
+                                    return Err(CodegenError {
+                                        kind: CodegenErrorKind::UnmatchedJumpLabel,
+                                        span: s.span.clone(),
+                                        token: None,
+                                    });
+                                }
+                            };
+                            let hex = format_even_bytes(format!("{:02x}", offset));
+
+                            table_code = format!("{}{}", table_code, pad_n_bytes(
+                                hex.as_str(),
+                                if matches!(jt.kind, TableKind::JumpTablePacked) { 0x02 } else { 0x20 },
+                            ));
+                        }
+                        StatementType::Code(code) => {
+                            // Check if code length is even
+                            if code.len() % 2 != 0 {
                                 return Err(CodegenError {
-                                    kind: CodegenErrorKind::UnmatchedJumpLabel,
+                                    kind: CodegenErrorKind::InvalidCodeLength(code.len()),
                                     span: s.span.clone(),
                                     token: None,
                                 });
                             }
-                        };
-                        let hex = format_even_bytes(format!("{:02x}", offset));
 
-                        table_code = format!("{}{}", table_code, pad_n_bytes(
-                            hex.as_str(),
-                            if matches!(jt.kind, TableKind::JumpTablePacked) { 0x02 } else { 0x20 },
-                        ));
+                            table_code = format!("{}{}", table_code, code);
+                        }
+                        _ => {
+                            return Err(CodegenError {
+                                kind: CodegenErrorKind::InvalidMacroStatement,
+                                span: jt.span.clone(),
+                                token: None
+                            })
+                        }
                     }
                     Ok(())
                 });
@@ -245,6 +262,7 @@ impl Codegen {
         let mut jump_table = JumpTable::new();
         let mut label_indices = LabelIndices::new();
         let mut table_instances = Jumps::new();
+        let mut utilized_tables: Vec<TableDefinition> = Vec::new();
 
         // Loop through all intermediate bytecode representations generated from the AST
         for (_ir_bytes_index, ir_byte) in ir_bytes.into_iter().enumerate() {
@@ -271,6 +289,7 @@ impl Codegen {
                         &mut jump_table,
                         &mut label_indices,
                         &mut table_instances,
+                        &mut utilized_tables,
                         starting_offset,
                     )?;
                     bytes.append(&mut push_bytes);
@@ -303,7 +322,7 @@ impl Codegen {
         // Fill JUMPDEST placeholders
         let (bytes, unmatched_jumps) = Codegen::fill_unmatched(bytes, &jump_table, &label_indices)?;
 
-        Ok(BytecodeRes { bytes, label_indices, unmatched_jumps, table_instances })
+        Ok(BytecodeRes { bytes, label_indices, unmatched_jumps, table_instances, utilized_tables })
     }
 
     /// Helper associated function to fill unmatched jump dests.

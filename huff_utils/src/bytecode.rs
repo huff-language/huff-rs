@@ -2,7 +2,7 @@
 //!
 //! Abstract translating state into bytecode.
 
-use crate::prelude::{AstSpan, Statement};
+use crate::prelude::{AstSpan, Statement, TableDefinition};
 use std::{
     collections::BTreeMap,
     fmt::{self, Display},
@@ -76,6 +76,8 @@ pub struct BytecodeRes {
     pub unmatched_jumps: Jumps,
     /// Table Instances
     pub table_instances: Jumps,
+    /// Utilized Tables
+    pub utilized_tables: Vec<TableDefinition>,
 }
 
 impl Display for BytecodeRes {
