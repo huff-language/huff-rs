@@ -41,10 +41,6 @@ pub fn statement_gen(
 
             tracing::info!(target: "codegen", "FOUND INNER MACRO: {}", ir_macro.name);
 
-            // Recurse into macro invocation
-            scope.push(ir_macro.clone());
-            mis.push((*offset, mi.clone()));
-
             // If invoked macro is a function (outlined), insert a jump to the function's code and a
             // jumpdest to return to. If it is inlined, insert the macro's code at the
             // current offset.
@@ -85,6 +81,10 @@ pub fn statement_gen(
                 // PUSH2 + 2 bytes + stack_swaps.len() + PUSH2 + 2 bytes + JUMP + JUMPDEST
                 *offset += stack_swaps.len() + 8;
             } else {
+                // Recurse into macro invocation
+                scope.push(ir_macro.clone());
+                mis.push((*offset, mi.clone()));
+
                 let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
                     ir_macro.clone(),
                     contract,

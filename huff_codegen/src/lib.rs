@@ -298,9 +298,9 @@ impl Codegen {
             tracing::warn!(target: "codegen", "ATTEMPTED MACRO INVOCATION POP FAILED AT SCOPE: {}", scope.len());
         }
 
-        // Add functions (outlined macros) to the end of the bytecode
-        // TODO: Remove bad hack to detect end of recursion.
-        if macro_def.name == "MAIN" {
+        // Add functions (outlined macros) to the end of the bytecode if the scope length == 1
+        // (i.e., we're at the top level of recursion)
+        if scope.len() == 1 {
             bytes = Codegen::append_functions(
                 contract,
                 scope,
@@ -311,6 +311,10 @@ impl Codegen {
                 &mut table_instances,
                 bytes,
             )?;
+        } else {
+            // If the scope length is > 1, we're processing a child macro. Since we're done
+            // with it, it can be popped.
+            scope.pop();
         }
 
         // Fill JUMPDEST placeholders
@@ -407,6 +411,9 @@ impl Codegen {
         mut bytes: Vec<(usize, Bytes)>,
     ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
         for macro_def in contract.macros.iter().filter(|m| m.outlined) {
+            // Push the function to the scope
+            scope.push(macro_def.clone());
+
             // Add 1 to starting offset to account for the JUMPDEST opcode
             let mut res =
                 Codegen::macro_to_bytecode(macro_def.clone(), contract, scope, *offset + 1, mis)?;
