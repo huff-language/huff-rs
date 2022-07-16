@@ -32,6 +32,8 @@ pub enum Context {
     AbiArgs,
     /// constant context
     Constant,
+    /// Code table context
+    CodeTableBody,
 }
 
 /// ## Lexer
@@ -424,6 +426,7 @@ impl<'a> Iterator for Lexer<'a> {
                             }
                             TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
                             TokenKind::Constant => self.context = Context::Constant,
+                            TokenKind::CodeTable => self.context = Context::CodeTableBody,
                             _ => (),
                         }
                     }
@@ -579,7 +582,15 @@ impl<'a> Iterator for Lexer<'a> {
                             matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
                     });
                     self.current_span_mut().start += 2; // Ignore the "0x"
-                    TokenKind::Literal(str_to_bytes32(self.slice().as_ref()))
+
+                    if self.context == Context::CodeTableBody {
+                        // In codetables, the bytecode provided is of arbitrary length. We pass
+                        // the code as an Ident, and it is appended to the end of the runtime
+                        // bytecode in codegen.
+                        TokenKind::Ident(self.slice())
+                    } else {
+                        TokenKind::Literal(str_to_bytes32(self.slice().as_ref()))
+                    }
                 }
                 '=' => TokenKind::Assign,
                 '(' => {
@@ -607,7 +618,7 @@ impl<'a> Iterator for Lexer<'a> {
                     TokenKind::OpenBrace
                 }
                 '}' => {
-                    if self.context == Context::MacroBody {
+                    if matches!(self.context, Context::MacroBody | Context::CodeTableBody) {
                         self.context = Context::Global;
                     }
                     TokenKind::CloseBrace

@@ -238,6 +238,7 @@ impl<'a> Compiler {
         let main_bytecode = match Codegen::generate_main_bytecode(&contract) {
             Ok(mb) => mb,
             Err(mut e) => {
+                tracing::error!(target: "codegen", "FAILED TO GENERATE MAIN BYTECODE FOR CONTRACT");
                 // Add File Source to Span
                 e.span = AstSpan(
                     e.span
@@ -258,21 +259,28 @@ impl<'a> Compiler {
         let constructor_bytecode = match Codegen::generate_constructor_bytecode(&contract) {
             Ok(mb) => mb,
             Err(mut e) => {
-                if !inputs.is_empty() {
+                // Return any errors except if the inputs is empty and the constructor definition is
+                // missing
+                if e.kind != CodegenErrorKind::MissingMacroDefinition("CONSTRUCTOR".to_string()) ||
+                    !inputs.is_empty()
+                {
                     // Add File Source to Span
-                    e.span = AstSpan(
-                        e.span
-                            .0
-                            .into_iter()
-                            .map(|mut s| {
-                                s.file = Some(Arc::clone(&file));
-                                s
-                            })
-                            .collect::<Vec<Span>>(),
-                    );
+                    let mut errs = e
+                        .span
+                        .0
+                        .into_iter()
+                        .map(|mut s| {
+                            s.file = Some(Arc::clone(&file));
+                            s
+                        })
+                        .collect::<Vec<Span>>();
+                    errs.dedup();
+                    e.span = AstSpan(errs);
                     tracing::error!(target: "codegen", "Constructor inputs provided, but contract missing \"CONSTRUCTOR\" macro!");
                     return Err(CompilerError::CodegenError(e))
                 }
+
+                // If the kind is a missing constructor we can ignore it
                 tracing::warn!(target: "codegen", "Contract has no \"CONSTRUCTOR\" macro definition!");
                 "".to_string()
             }

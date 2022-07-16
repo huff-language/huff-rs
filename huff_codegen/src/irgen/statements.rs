@@ -15,6 +15,7 @@ pub fn statement_gen(
     jump_table: &mut JumpTable,
     label_indices: &mut LabelIndices,
     table_instances: &mut Jumps,
+    utilized_tables: &mut Vec<TableDefinition>,
     starting_offset: usize,
 ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
     let mut bytes = vec![];
@@ -207,7 +208,7 @@ pub fn statement_gen(
                             bf.args[0].name.as_ref().unwrap()
                         );
                         return Err(CodegenError {
-                            kind: CodegenErrorKind::MissingMacroDefinition(
+                            kind: CodegenErrorKind::InvalidMacroInvocation(
                                 bf.args[0].name.as_ref().unwrap().to_string(), /* yuck */
                             ),
                             span: bf.span.clone(),
@@ -218,18 +219,42 @@ pub fn statement_gen(
                     let size = bytes32_to_string(&ir_table.size, false);
                     let push_bytes = format!("{:02x}{}", 95 + size.len() / 2, size);
 
+                    if !utilized_tables.contains(&ir_table) {
+                        utilized_tables.push(ir_table);
+                    }
+
                     *offset += push_bytes.len() / 2;
                     bytes.push((starting_offset, Bytes(push_bytes)));
                 }
                 BuiltinFunctionKind::Tablestart => {
-                    table_instances.push(Jump {
-                        label: bf.args[0].name.as_ref().unwrap().to_owned(),
-                        bytecode_index: *offset,
-                        span: bf.span.clone(),
-                    });
+                    // Make sure the table exists
+                    if let Some(t) = contract.find_table_by_name(bf.args[0].name.as_ref().unwrap())
+                    {
+                        table_instances.push(Jump {
+                            label: bf.args[0].name.as_ref().unwrap().to_owned(),
+                            bytecode_index: *offset,
+                            span: bf.span.clone(),
+                        });
+                        if !utilized_tables.contains(&t) {
+                            utilized_tables.push(t);
+                        }
 
-                    bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
-                    *offset += 3;
+                        bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
+                        *offset += 3;
+                    } else {
+                        tracing::error!(
+                            target: "codegen",
+                            "MISSING TABLE PASSED TO __tablestart \"{}\"",
+                            bf.args[0].name.as_ref().unwrap()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidMacroInvocation(
+                                bf.args[0].name.as_ref().unwrap().to_string(),
+                            ),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
                 }
                 BuiltinFunctionKind::FunctionSignature => {
                     if bf.args.len() != 1 {

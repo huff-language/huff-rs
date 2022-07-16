@@ -11,6 +11,7 @@ use huff_utils::{
     token::{Token, TokenKind},
     types::*,
 };
+use regex::Regex;
 use std::path::Path;
 use tiny_keccak::{Hasher, Keccak};
 
@@ -778,6 +779,7 @@ impl Parser {
     ///
     /// It should parse the following : (jumptable|jumptable__packed|table) NAME() {...}
     pub fn parse_table(&mut self) -> Result<TableDefinition, ParserError> {
+        let is_code_table = self.current_token.kind == TokenKind::CodeTable;
         let kind = TableKind::from(self.match_kind(self.current_token.kind.clone())?);
         let table_name: String =
             self.match_kind(TokenKind::Ident("TABLE_NAME".to_string()))?.to_string();
@@ -788,7 +790,7 @@ impl Parser {
         let _ = self.match_kind(TokenKind::Assign);
 
         // Parse the core table
-        let table_statements: Vec<Statement> = self.parse_table_body()?;
+        let table_statements: Vec<Statement> = self.parse_table_body(is_code_table)?;
         let size = match kind {
             TableKind::JumpTablePacked => table_statements.len() * 0x02,
             TableKind::JumpTable => table_statements.len() * 0x20,
@@ -796,13 +798,13 @@ impl Parser {
                 table_statements
                     .iter()
                     .map(|s| {
-                        if let StatementType::LabelCall(l) = &s.ty {
-                            l.len()
+                        if let StatementType::Code(c) = &s.ty {
+                            c.len()
                         } else {
                             // TODO: Throw an error here.
                             tracing::error!(
                                 target: "parser",
-                                "Invalid table statement. Must be a label call. Got: {:?}",
+                                "Invalid table statement. Must be valid hex bytecode. Got: {:?}",
                                 s
                             );
                             0_usize
@@ -817,30 +819,49 @@ impl Parser {
             table_name,
             kind,
             table_statements,
-            str_to_bytes32(size.to_string().as_str()),
+            str_to_bytes32(format!("{:02x}", size).as_str()),
             AstSpan(self.spans.clone()),
         ))
     }
 
     /// Parse the body of a table.
     ///
-    /// Only `LabelCall`s should be authorized.
-    /// TODO: Code tables are not yet supported.
-    pub fn parse_table_body(&mut self) -> Result<Vec<Statement>, ParserError> {
+    /// Only `LabelCall` and `Code` Statements should be authorized.
+    pub fn parse_table_body(&mut self, is_code_table: bool) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
+        let code_statement_regex = Regex::new(r"^([a-fA-F\d]+)$").unwrap();
+
         self.match_kind(TokenKind::OpenBrace)?;
         while !self.check(TokenKind::CloseBrace) {
             let new_spans = vec![self.current_token.span.clone()];
             match &self.current_token.kind {
                 TokenKind::Ident(ident_str) => {
                     statements.push(Statement {
-                        ty: StatementType::LabelCall(ident_str.to_string()),
+                        ty: if is_code_table {
+                            if code_statement_regex.is_match(ident_str) {
+                                StatementType::Code(ident_str.to_string())
+                            } else {
+                                tracing::error!(
+                                    "Invalid CodeTable Body Token: {:?}",
+                                    self.current_token.kind
+                                );
+                                return Err(ParserError {
+                                    kind: ParserErrorKind::InvalidTableBodyToken(
+                                        self.current_token.kind.clone(),
+                                    ),
+                                    hint: Some("Expected valid hex bytecode.".to_string()),
+                                    spans: AstSpan(new_spans),
+                                })
+                            }
+                        } else {
+                            StatementType::LabelCall(ident_str.to_string())
+                        },
                         span: AstSpan(new_spans),
                     });
                     self.consume();
                 }
                 kind => {
-                    tracing::error!("Invalid Table Body Token: {:?}", self.current_token.kind);
+                    tracing::error!("Invalid Table Body Token: {:?}", kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTableBodyToken(kind.clone()),
                         hint: Some("Expected an identifier string.".to_string()),

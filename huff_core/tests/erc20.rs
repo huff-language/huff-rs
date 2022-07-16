@@ -18,9 +18,7 @@ fn test_erc20_compile() {
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
     let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source)).unwrap();
-    println!("Recursed file source: {:?}", recursed_file_source);
     let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
-    println!("File source path: {}", flattened.0);
     let full_source = FullFileSource {
         source: &flattened.0,
         file: Some(Arc::clone(file_source)),
