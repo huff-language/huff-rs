@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
-use rand::prelude::*;
 
 #[test]
 fn test_invalid_macro_statement() {
@@ -96,7 +95,7 @@ fn test_invalid_definition() {
                 ParserError {
                     kind: ParserErrorKind::InvalidDefinition(TokenKind::Ident("test".to_string())),
                     hint: Some(
-                        "Definition must be one of: `function`, `event`, `constant`, or `macro`."
+                        "Definition must be one of: `function`, `event`, `constant`, `macro`, or `fn`."
                             .to_string()
                     ),
                     spans: AstSpan(vec![Span {

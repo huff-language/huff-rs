@@ -35,6 +35,38 @@ fn parses_macro_keyword() {
 }
 
 #[test]
+fn parses_fn_keyword() {
+    let source = "#define fn";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let mut lexer = Lexer::new(flattened_source);
+
+    // Define Identifier first
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let define_span = Span::new(0..7, None);
+    assert_eq!(unwrapped, Token::new(TokenKind::Define, define_span.clone()));
+    assert_eq!(lexer.current_span().deref(), &define_span);
+
+    // The next token should be the whitespace
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let whitespace_span = Span::new(7..8, None);
+    assert_eq!(unwrapped, Token::new(TokenKind::Whitespace, whitespace_span.clone()));
+    assert_eq!(lexer.current_span().deref(), &whitespace_span);
+
+    // Lastly we should parse the fn keyword
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let macro_span = Span::new(8..10, None);
+    assert_eq!(unwrapped, Token::new(TokenKind::Fn, macro_span.clone()));
+    assert_eq!(lexer.current_span().deref(), &macro_span);
+
+    // We covered the whole source
+    assert_eq!(lexer.current_span().end, source.len());
+    assert!(lexer.eof);
+}
+
+#[test]
 fn parses_function_keyword() {
     let source = "#define function";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
@@ -270,6 +302,7 @@ fn parses_function_type_keywords() {
 fn parses_function_definition_with_keyword_name() {
     let key_words = [
         "macro",
+        "fn",
         "function",
         "constant",
         "takes",
@@ -332,6 +365,7 @@ fn parses_function_definition_with_keyword_name() {
 fn parses_label_with_keyword_name() {
     let key_words = [
         "macro",
+        "fn",
         "function",
         "constant",
         "takes",
@@ -389,6 +423,7 @@ fn parses_label_with_keyword_name() {
 fn parses_function_with_keyword_name() {
     let key_words = [
         "macro",
+        "fn",
         "function",
         "constant",
         "takes",
@@ -437,6 +472,7 @@ fn parses_function_with_keyword_name() {
 fn parses_function_with_keyword_name_in_macro() {
     let key_words = [
         "macro",
+        "fn",
         "function",
         "constant",
         "takes",
@@ -536,6 +572,7 @@ fn parses_keyword_arbitrary_whitespace() {
     // Macro, constant, and function keywords first- they are all preceded by "#define"
     let key_words = [
         ("macro", TokenKind::Macro),
+        ("fn", TokenKind::Fn),
         ("constant", TokenKind::Constant),
         ("function", TokenKind::Function),
     ];

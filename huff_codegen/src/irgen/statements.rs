@@ -42,12 +42,57 @@ pub fn statement_gen(
 
             tracing::info!(target: "codegen", "FOUND INNER MACRO: {}", ir_macro.name);
 
-            // Recurse into macro invocation
-            scope.push(ir_macro.clone());
-            mis.push((*offset, mi.clone()));
+            // If invoked macro is a function (outlined), insert a jump to the function's code and a
+            // jumpdest to return to. If it is inlined, insert the macro's code at the
+            // current offset.
+            if ir_macro.outlined {
+                // Get necessary swap ops to reorder stack
+                // PC of the return jumpdest should be below the function's stack inputs
+                let stack_swaps = (0..ir_macro.takes)
+                    .rev()
+                    .map(|i| format!("{:02x}", 0x90 + i))
+                    .collect::<Vec<_>>();
 
-            let mut res: BytecodeRes =
-                match Codegen::macro_to_bytecode(ir_macro.clone(), contract, scope, *offset, mis) {
+                // Insert a jump to the outlined macro's code
+                jump_table.insert(
+                    *offset + stack_swaps.len() + 3, // PUSH2 + 2 bytes + stack_swaps.len()
+                    vec![Jump {
+                        label: format!("goto_{}", &ir_macro.name),
+                        bytecode_index: 0,
+                        span: s.span.clone(),
+                    }],
+                );
+
+                // Store return JUMPDEST PC on the stack and re-order the stack so that
+                // the return JUMPDEST PC is below the function's stack inputs
+                bytes.push((
+                    *offset,
+                    Bytes(format!(
+                        "{}{:04x}{}",
+                        Opcode::Push2,
+                        *offset + stack_swaps.len() + 7,
+                        stack_swaps.join("")
+                    )),
+                ));
+                // Insert jump to outlined macro + jumpdest to return to
+                bytes.push((
+                    *offset + stack_swaps.len() + 3, // PUSH2 + 2 bytes + stack_swaps.len()
+                    Bytes(format!("{}xxxx{}{}", Opcode::Push2, Opcode::Jump, Opcode::Jumpdest)),
+                ));
+                // PUSH2 + 2 bytes + stack_swaps.len() + PUSH2 + 2 bytes + JUMP + JUMPDEST
+                *offset += stack_swaps.len() + 8;
+            } else {
+                // Recurse into macro invocation
+                scope.push(ir_macro.clone());
+                mis.push((*offset, mi.clone()));
+
+                let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
+                    ir_macro.clone(),
+                    contract,
+                    scope,
+                    *offset,
+                    mis,
+                ) {
                     Ok(r) => r,
                     Err(e) => {
                         tracing::error!(
@@ -59,27 +104,28 @@ pub fn statement_gen(
                     }
                 };
 
-            // Set jump table values
-            tracing::debug!(target: "codegen", "Unmatched jumps: {:?}", res.unmatched_jumps.iter().map(|uj| uj.label.clone()).collect::<Vec<String>>());
-            for j in res.unmatched_jumps.iter_mut() {
-                let new_index = j.bytecode_index;
-                j.bytecode_index = 0;
-                let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index) {
-                    jumps.clone()
-                } else {
-                    vec![]
-                };
-                new_jumps.push(j.clone());
-                jump_table.insert(new_index, new_jumps);
-            }
-            table_instances.extend(res.table_instances);
-            label_indices.extend(res.label_indices);
-            utilized_tables.extend(res.utilized_tables);
+                // Set jump table values
+                tracing::debug!(target: "codegen", "Unmatched jumps: {:?}", res.unmatched_jumps.iter().map(|uj| uj.label.clone()).collect::<Vec<String>>());
+                for j in res.unmatched_jumps.iter_mut() {
+                    let new_index = j.bytecode_index;
+                    j.bytecode_index = 0;
+                    let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index) {
+                        jumps.clone()
+                    } else {
+                        vec![]
+                    };
+                    new_jumps.push(j.clone());
+                    jump_table.insert(new_index, new_jumps);
+                }
+                table_instances.extend(res.table_instances);
+                label_indices.extend(res.label_indices);
+                utilized_tables.extend(res.utilized_tables);
 
-            // Increase offset by byte length of recursed macro
-            *offset += res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
-            // Add the macro's bytecode to the final result
-            bytes = [bytes, res.bytes].concat()
+                // Increase offset by byte length of recursed macro
+                *offset += res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
+                // Add the macro's bytecode to the final result
+                bytes = [bytes, res.bytes].concat()
+            }
         }
         StatementType::Label(label) => {
             // Add JUMPDEST opcode to final result and add to label_indices
@@ -90,8 +136,7 @@ pub fn statement_gen(
         }
         StatementType::LabelCall(label) => {
             // Generate code for a `LabelCall`
-            // PUSH2 + 2 byte destination (placeholder for now, filled at the bottom
-            // of this function)
+            // PUSH2 + 2 byte destination (placeholder for now, filled in `Codegen::fill_unmatched`
             tracing::info!(target: "codegen", "RECURSE BYTECODE GOT LABEL CALL: {}", label);
             jump_table.insert(
                 *offset,

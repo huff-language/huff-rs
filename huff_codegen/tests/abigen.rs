@@ -12,6 +12,7 @@ fn constructs_valid_abi() {
         takes: 0,
         returns: 0,
         span: AstSpan(vec![]),
+        outlined: false,
     };
     let contract = Contract {
         macros: vec![constructor],
@@ -47,6 +48,7 @@ fn missing_constructor_fails() {
         takes: 0,
         returns: 0,
         span: AstSpan(vec![]),
+        outlined: false,
     };
     let contract = Contract {
         macros: vec![],

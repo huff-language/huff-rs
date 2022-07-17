@@ -88,7 +88,7 @@ impl Parser {
                     tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {}", c.name);
                     contract.constants.push(c);
                 }
-                TokenKind::Macro => {
+                TokenKind::Macro | TokenKind::Fn => {
                     let m = self.parse_macro()?;
                     tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
                     contract.macros.push(m);
@@ -104,7 +104,7 @@ impl Parser {
                     );
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidDefinition(self.current_token.kind.clone()),
-                        hint: Some("Definition must be one of: `function`, `event`, `constant`, or `macro`.".to_string()),
+                        hint: Some("Definition must be one of: `function`, `event`, `constant`, `macro`, or `fn`.".to_string()),
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                     })
                 }
@@ -378,7 +378,8 @@ impl Parser {
     ///
     /// It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
     pub fn parse_macro(&mut self) -> Result<MacroDefinition, ParserError> {
-        self.match_kind(TokenKind::Macro)?;
+        let outlined = self.check(TokenKind::Fn);
+        self.match_kind(if outlined { TokenKind::Fn } else { TokenKind::Macro })?;
         let macro_name: String =
             self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?.to_string();
         tracing::info!(target: "parser", "PARSING MACRO: \"{}\"", macro_name);
@@ -398,6 +399,7 @@ impl Parser {
             macro_takes,
             macro_returns,
             self.spans.clone(),
+            outlined,
         ))
     }
 

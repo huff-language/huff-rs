@@ -268,7 +268,7 @@ impl<'a> Lexer<'a> {
     /// `TokenKind::Ident`.
     ///
     /// Rules:
-    /// - The `macro`, `function`, `constant`, `event`, `jumptable`, `jumptable__packed`, and
+    /// - The `macro`, `fn`, `function`, `constant`, `event`, `jumptable`, `jumptable__packed`, and
     ///   `table` keywords must be preceded by a `#define` keyword.
     /// - The `takes` keyword must be preceded by an assignment operator: `=`.
     /// - The `nonpayable`, `payable`, `view`, and `pure` keywords must be preceeded by one of these
@@ -278,6 +278,7 @@ impl<'a> Lexer<'a> {
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
         match found_kind {
             Some(TokenKind::Macro) |
+            Some(TokenKind::Fn) |
             Some(TokenKind::Function) |
             Some(TokenKind::Constant) |
             Some(TokenKind::Event) |
@@ -379,6 +380,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     let keys = [
                         TokenKind::Macro,
+                        TokenKind::Fn,
                         TokenKind::Function,
                         TokenKind::Constant,
                         TokenKind::Takes,
@@ -419,7 +421,9 @@ impl<'a> Iterator for Lexer<'a> {
 
                     if let Some(kind) = &found_kind {
                         match kind {
-                            TokenKind::Macro => self.context = Context::MacroDefinition,
+                            TokenKind::Macro | TokenKind::Fn => {
+                                self.context = Context::MacroDefinition
+                            }
                             TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
                             TokenKind::Constant => self.context = Context::Constant,
                             TokenKind::CodeTable => self.context = Context::CodeTableBody,

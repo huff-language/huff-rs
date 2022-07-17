@@ -427,6 +427,8 @@ pub struct MacroDefinition {
     pub returns: usize,
     /// The Span of the Macro Definition
     pub span: AstSpan,
+    /// Is the macro a function (outlined)?
+    pub outlined: bool,
 }
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
@@ -445,8 +447,17 @@ impl MacroDefinition {
         takes: usize,
         returns: usize,
         spans: Vec<Span>,
+        outlined: bool,
     ) -> Self {
-        MacroDefinition { name, parameters, statements, takes, returns, span: AstSpan(spans) }
+        MacroDefinition {
+            name,
+            parameters,
+            statements,
+            takes,
+            returns,
+            span: AstSpan(spans),
+            outlined,
+        }
     }
 
     /// Translate statements into IRBytes
@@ -500,7 +511,7 @@ impl MacroDefinition {
                     });
                 }
                 StatementType::LabelCall(jump_to) => {
-                    /* Jump To doesn't translate directly to bytecode ? */
+                    /* Jump To doesn't translate directly to bytecode */
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Statement(Statement {
                             ty: StatementType::LabelCall(jump_to.to_string()),
@@ -510,7 +521,7 @@ impl MacroDefinition {
                     });
                 }
                 StatementType::Label(l) => {
-                    /* Jump Dests don't translate directly to bytecode ? */
+                    /* Jump Dests don't translate directly to bytecode */
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Statement(Statement {
                             ty: StatementType::Label(l.clone()),

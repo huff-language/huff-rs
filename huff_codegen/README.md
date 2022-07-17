@@ -81,6 +81,7 @@ let contract = Contract {
       takes: 0,
       returns: 0,
       span: AstSpan(vec![]),
+      outlined: false,
     }
   ],
   invocations: vec![],
@@ -132,6 +133,7 @@ let contract = Contract {
       takes: 0,
       returns: 0,
       span: AstSpan(vec![]),
+      outlined: false,
     }
   ],
   invocations: vec![],
