@@ -454,7 +454,7 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
-                    let pot_op = self.dyn_peek(|c| c.is_alphanumeric());
+                    let pot_op = self.dyn_peek(|c| c.is_alphanumeric() || c == &'_');
 
                     // Syntax sugar: true evaluates to 0x01, false evaluates to 0x00
                     if matches!(pot_op.as_str(), "true" | "false") {
