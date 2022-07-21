@@ -72,7 +72,7 @@ struct Huff {
     verbose: bool,
 
     /// Override / set constants for the compilation environment.
-    #[clap(short = 'c', long = "c", multiple_values = true)]
+    #[clap(short = 'c', long = "constants", multiple_values = true)]
     constants: Option<Vec<String>>,
 }
 
@@ -110,11 +110,25 @@ fn main() {
     let constants: Option<BTreeMap<&str, Literal>> = cli.constants.as_ref().map(|_constants| {
         _constants
             .iter()
-            .map(move |c: &String| {
-                let mut parts = c.as_str().trim().split('=');
-                let key = parts.next().unwrap();
-                let value = parts.next().unwrap();
-                (key, str_to_bytes32(&value[2..]))
+            .map(|c: &String| {
+                let parts = c.as_str().split('=').collect::<Vec<_>>();
+
+                // Check that constant override argument is valid
+                // Key rule: Alphabetic chars + underscore
+                // Value rule: Valid literal string (0x...)
+                if parts.len() != 2 ||
+                    parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_')) ||
+                    !parts[1].starts_with("0x") ||
+                    parts[1][2..].chars().any(|c| {
+                        !(c.is_numeric() ||
+                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
+                    })
+                {
+                    eprintln!("Invalid constant override argument: {}", Paint::red(c.to_string()));
+                    std::process::exit(1);
+                }
+
+                (parts[0], str_to_bytes32(&parts[1][2..]))
             })
             .collect()
     });
