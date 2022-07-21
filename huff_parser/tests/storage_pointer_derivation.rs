@@ -67,7 +67,13 @@ fn derives_storage_pointers() {
     contract.derive_storage_pointers();
 
     // Ensure that the storage pointers were set for the FSP constants in the AST
-    assert_eq!(contract.constants.borrow()[0].value, ConstVal::FreeStoragePointer(FreeStoragePointer));
-    assert_eq!(contract.constants.borrow()[1].value, ConstVal::FreeStoragePointer(FreeStoragePointer));
+    assert_eq!(
+        contract.constants.borrow()[0].value,
+        ConstVal::FreeStoragePointer(FreeStoragePointer)
+    );
+    assert_eq!(
+        contract.constants.borrow()[1].value,
+        ConstVal::FreeStoragePointer(FreeStoragePointer)
+    );
     assert_eq!(contract.constants.borrow()[2].value, ConstVal::Literal(str_to_bytes32("a57B")));
 }

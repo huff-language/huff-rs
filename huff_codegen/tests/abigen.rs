@@ -1,6 +1,4 @@
-use std::cell::RefCell;
-use std::collections::BTreeMap;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use huff_codegen::Codegen;
 use huff_utils::{ast, prelude::*};

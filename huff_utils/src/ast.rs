@@ -305,9 +305,7 @@ impl Contract {
         if let Some(override_constants) = override_constants {
             for (name, value) in override_constants {
                 let mut constants = self.constants.borrow_mut();
-                if let Some(c) =
-                    constants.iter_mut().find(|c| c.name.as_str().eq(*name))
-                {
+                if let Some(c) = constants.iter_mut().find(|c| c.name.as_str().eq(*name)) {
                     c.value = ConstVal::Literal(*value);
                 } else {
                     constants.push(ConstantDefinition {
