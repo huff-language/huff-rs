@@ -12,12 +12,12 @@ use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
 use huff_utils::prelude::{
-    export_interfaces, gen_sol_interfaces, unpack_files, AstSpan, CodegenError, CodegenErrorKind,
-    CompilerError, FileSource, OutputLocation, Span,
+    export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
+    CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
-use std::{io::Write, path::Path, sync::Arc};
+use std::{collections::BTreeMap, io::Write, path::Path, sync::Arc};
 use yansi::Paint;
 
 /// The Huff CLI Args
@@ -70,6 +70,10 @@ struct Huff {
     /// Verbose output.
     #[clap(short = 'v', long = "verbose")]
     verbose: bool,
+
+    /// Override / set constants for the compilation environment.
+    #[clap(short = 'c', long = "c", multiple_values = true)]
+    constants: Option<Vec<String>>,
 }
 
 /// Helper function to read an stdin input
@@ -102,6 +106,19 @@ fn main() {
         }
     };
 
+    // If constant overrides were passed, create a map of their names and values
+    let constants: Option<BTreeMap<&str, Literal>> = cli.constants.as_ref().map(|_constants| {
+        _constants
+            .iter()
+            .map(move |c: &String| {
+                let mut parts = c.as_str().trim().split('=');
+                let key = parts.next().unwrap();
+                let value = parts.next().unwrap();
+                (key, str_to_bytes32(&value[2..]))
+            })
+            .collect()
+    });
+
     let mut use_cache = true;
     if cli.interactive {
         // Don't accept configured inputs
@@ -124,6 +141,7 @@ fn main() {
         sources: Arc::clone(&sources),
         output,
         construct_args: cli.inputs,
+        constant_overrides: constants,
         optimize: cli.optimize,
         bytecode: cli.bytecode,
         cached: use_cache,

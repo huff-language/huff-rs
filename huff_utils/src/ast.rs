@@ -9,9 +9,11 @@ use crate::{
     prelude::{Span, TokenKind},
 };
 use std::{
+    cell::RefCell,
     collections::BTreeMap,
     fmt::{Display, Formatter},
     path::PathBuf,
+    rc::Rc,
 };
 
 /// A contained literal
@@ -96,7 +98,7 @@ pub struct Contract {
     /// File Imports
     pub imports: Vec<FilePath>,
     /// Constants
-    pub constants: Vec<ConstantDefinition>,
+    pub constants: Rc<RefCell<Vec<ConstantDefinition>>>,
     /// Functions
     pub functions: Vec<Function>,
     /// Events
@@ -159,7 +161,7 @@ impl Contract {
         tracing::debug!(target: "ast", "ALL AST CONSTANTS: {:?}", storage_pointers);
 
         // Set all the constants to their new values
-        for c in &mut self.constants {
+        for c in self.constants.borrow_mut().iter_mut() {
             match storage_pointers
                 .iter()
                 .filter(|pointer| pointer.0.eq(&c.name))
@@ -217,6 +219,7 @@ impl Contract {
                         // Get the associated constant
                         match self
                             .constants
+                            .borrow()
                             .iter()
                             .filter(|c| c.name.eq(const_name))
                             .collect::<Vec<&ConstantDefinition>>()
@@ -290,6 +293,31 @@ impl Contract {
         //     let next_md = macros_to_recurse.remove(0);
         //     self.recurse_ast_constants(next_md, storage_pointers, last_p, macros_to_recurse);
         // }
+    }
+
+    /// Add override constants to the AST
+    ///
+    /// ## Overview
+    ///
+    /// For each override constant, add it to the AST if it doesn't already exist. Override
+    /// constants can be passed in via the CLI.
+    pub fn add_override_constants(&self, override_constants: &Option<BTreeMap<&str, Literal>>) {
+        if let Some(override_constants) = override_constants {
+            for (name, value) in override_constants {
+                let mut constants = self.constants.borrow_mut();
+                if let Some(c) =
+                    constants.iter_mut().find(|c| c.name.as_str().eq(*name))
+                {
+                    c.value = ConstVal::Literal(*value);
+                } else {
+                    constants.push(ConstantDefinition {
+                        name: name.to_string(),
+                        value: ConstVal::Literal(*value),
+                        span: AstSpan::default(),
+                    });
+                }
+            }
+        }
     }
 }
 

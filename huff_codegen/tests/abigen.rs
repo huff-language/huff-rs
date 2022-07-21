@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::rc::Rc;
 
 use huff_codegen::Codegen;
 use huff_utils::{ast, prelude::*};
@@ -18,7 +20,7 @@ fn constructs_valid_abi() {
         macros: vec![constructor],
         invocations: vec![],
         imports: vec![],
-        constants: vec![],
+        constants: Rc::new(RefCell::new(vec![])),
         functions: vec![],
         events: vec![],
         tables: vec![],
@@ -41,7 +43,7 @@ fn constructs_valid_abi() {
 
 #[test]
 fn missing_constructor_fails() {
-    let _constructor = ast::MacroDefinition {
+    let _constructor = MacroDefinition {
         name: "CONSTRUCTOR".to_string(),
         parameters: vec![],
         statements: vec![],
@@ -54,7 +56,7 @@ fn missing_constructor_fails() {
         macros: vec![],
         invocations: vec![],
         imports: vec![],
-        constants: vec![],
+        constants: Rc::new(RefCell::new(vec![])),
         functions: vec![],
         events: vec![],
         tables: vec![],
