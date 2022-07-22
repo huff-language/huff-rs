@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use huff_codegen::Codegen;
 use huff_utils::{ast, prelude::*};
@@ -12,12 +12,13 @@ fn constructs_valid_abi() {
         takes: 0,
         returns: 0,
         span: AstSpan(vec![]),
+        outlined: false,
     };
     let contract = Contract {
         macros: vec![constructor],
         invocations: vec![],
         imports: vec![],
-        constants: vec![],
+        constants: Rc::new(RefCell::new(vec![])),
         functions: vec![],
         events: vec![],
         tables: vec![],
@@ -40,19 +41,20 @@ fn constructs_valid_abi() {
 
 #[test]
 fn missing_constructor_fails() {
-    let _constructor = ast::MacroDefinition {
+    let _constructor = MacroDefinition {
         name: "CONSTRUCTOR".to_string(),
         parameters: vec![],
         statements: vec![],
         takes: 0,
         returns: 0,
         span: AstSpan(vec![]),
+        outlined: false,
     };
     let contract = Contract {
         macros: vec![],
         invocations: vec![],
         imports: vec![],
-        constants: vec![],
+        constants: Rc::new(RefCell::new(vec![])),
         functions: vec![],
         events: vec![],
         tables: vec![],

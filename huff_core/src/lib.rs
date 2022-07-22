@@ -11,6 +11,7 @@ use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
 use std::{
+    collections::BTreeMap,
     ffi::OsString,
     fs,
     path::{Path, PathBuf},
@@ -42,18 +43,21 @@ pub(crate) mod cache;
 ///     Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]),
 ///     Some("./artifacts".to_string()),
 ///     None,
+///     None,
 ///     false,
 ///     false
 /// );
 /// ```
 #[derive(Default, Debug, Clone)]
-pub struct Compiler {
+pub struct Compiler<'a> {
     /// The location of the files to compile
     pub sources: Arc<Vec<String>>,
     /// The output location
     pub output: Option<String>,
     /// Constructor Input Arguments
     pub construct_args: Option<Vec<String>>,
+    /// Constant Overrides
+    pub constant_overrides: Option<BTreeMap<&'a str, Literal>>,
     /// Whether to optimize compilation or not.
     pub optimize: bool,
     /// Generate and log bytecode
@@ -62,19 +66,28 @@ pub struct Compiler {
     pub cached: bool,
 }
 
-impl<'a> Compiler {
+impl<'a> Compiler<'a> {
     /// Public associated function to instantiate a new compiler.
     pub fn new(
         sources: Arc<Vec<String>>,
         output: Option<String>,
         construct_args: Option<Vec<String>>,
+        constant_overrides: Option<BTreeMap<&'a str, Literal>>,
         verbose: bool,
         cached: bool,
     ) -> Self {
         if cfg!(feature = "verbose") || verbose {
             Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
-        Self { sources, output, construct_args, optimize: false, bytecode: false, cached }
+        Self {
+            sources,
+            output,
+            construct_args,
+            constant_overrides,
+            optimize: false,
+            bytecode: false,
+            cached,
+        }
     }
 
     /// Tracing
@@ -230,6 +243,7 @@ impl<'a> Compiler {
         let parse_res = parser.parse().map_err(CompilerError::ParserError);
         let mut contract = parse_res?;
         contract.derive_storage_pointers();
+        contract.add_override_constants(&self.constant_overrides);
         tracing::info!(target: "core", "PARSED CONTRACT [{}]", file.path);
 
         // Primary Bytecode Generation
@@ -238,6 +252,7 @@ impl<'a> Compiler {
         let main_bytecode = match Codegen::generate_main_bytecode(&contract) {
             Ok(mb) => mb,
             Err(mut e) => {
+                tracing::error!(target: "codegen", "FAILED TO GENERATE MAIN BYTECODE FOR CONTRACT");
                 // Add File Source to Span
                 e.span = AstSpan(
                     e.span
@@ -258,21 +273,28 @@ impl<'a> Compiler {
         let constructor_bytecode = match Codegen::generate_constructor_bytecode(&contract) {
             Ok(mb) => mb,
             Err(mut e) => {
-                if !inputs.is_empty() {
+                // Return any errors except if the inputs is empty and the constructor definition is
+                // missing
+                if e.kind != CodegenErrorKind::MissingMacroDefinition("CONSTRUCTOR".to_string()) ||
+                    !inputs.is_empty()
+                {
                     // Add File Source to Span
-                    e.span = AstSpan(
-                        e.span
-                            .0
-                            .into_iter()
-                            .map(|mut s| {
-                                s.file = Some(Arc::clone(&file));
-                                s
-                            })
-                            .collect::<Vec<Span>>(),
-                    );
+                    let mut errs = e
+                        .span
+                        .0
+                        .into_iter()
+                        .map(|mut s| {
+                            s.file = Some(Arc::clone(&file));
+                            s
+                        })
+                        .collect::<Vec<Span>>();
+                    errs.dedup();
+                    e.span = AstSpan(errs);
                     tracing::error!(target: "codegen", "Constructor inputs provided, but contract missing \"CONSTRUCTOR\" macro!");
                     return Err(CompilerError::CodegenError(e))
                 }
+
+                // If the kind is a missing constructor we can ignore it
                 tracing::warn!(target: "codegen", "Contract has no \"CONSTRUCTOR\" macro definition!");
                 "".to_string()
             }

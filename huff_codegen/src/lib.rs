@@ -10,6 +10,7 @@ use huff_utils::{
     ast::*,
     bytecode::*,
     error::CodegenError,
+    evm::Opcode,
     prelude::{
         bytes32_to_string, format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span,
     },
@@ -68,7 +69,7 @@ impl Codegen {
         )?;
 
         // Generate the fully baked bytecode
-        Codegen::gen_table_bytecode(bytecode_res, contract)
+        Codegen::gen_table_bytecode(bytecode_res)
     }
 
     /// Generates constructor bytecode from a Contract AST
@@ -85,8 +86,7 @@ impl Codegen {
             &mut Vec::default(),
         )?;
 
-        // Generate the bytecode return string
-        Codegen::gen_table_bytecode(bytecode_res, contract)
+        Codegen::gen_table_bytecode(bytecode_res)
     }
 
     /// Helper function to find a macro or generate a CodegenError
@@ -108,10 +108,7 @@ impl Codegen {
 
     /// Appends table bytecode to the end of the BytecodeRes output.
     /// Fills table JUMPDEST placeholders.
-    pub(crate) fn gen_table_bytecode(
-        res: BytecodeRes,
-        contract: &Contract,
-    ) -> Result<String, CodegenError> {
+    pub(crate) fn gen_table_bytecode(res: BytecodeRes) -> Result<String, CodegenError> {
         if !res.unmatched_jumps.is_empty() {
             tracing::error!(
                 target: "codegen",
@@ -136,9 +133,9 @@ impl Codegen {
         let mut table_offsets: HashMap<String, usize> = HashMap::new(); // table name -> bytecode offset
         let mut table_offset = bytecode.len() / 2;
 
-        if let Err(e) = contract.tables.iter().try_for_each(|jt| {
+        res.utilized_tables.iter().try_for_each(|jt| {
             table_offsets.insert(jt.name.to_string(), table_offset);
-            let size = match bytes32_to_string(&jt.size, false).parse::<usize>() {
+            let size = match bytes32_to_string(&jt.size, false).as_str().parse::<usize>() {
                 Ok(s) => s,
                 Err(_) => return Err(CodegenError {
                     kind: CodegenErrorKind::UsizeConversion(format!("{:?}", jt.size)),
@@ -155,40 +152,57 @@ impl Codegen {
                 .statements
                 .iter()
                 .try_for_each(|s| {
-                    if let StatementType::LabelCall(label) = &s.ty {
-                        let offset = match res.label_indices.get(label) {
-                            Some(l) => l,
-                            None => {
-                                tracing::error!(
+                    match &s.ty {
+                        StatementType::LabelCall(label) => {
+                            let offset = match res.label_indices.get(label) {
+                                Some(l) => l,
+                                None => {
+                                    tracing::error!(
                                     target: "codegen",
                                     "Definition not found for Jump Table Label: \"{}\"",
                                     label
                                 );
+                                    return Err(CodegenError {
+                                        kind: CodegenErrorKind::UnmatchedJumpLabel,
+                                        span: s.span.clone(),
+                                        token: None,
+                                    });
+                                }
+                            };
+                            let hex = format_even_bytes(format!("{:02x}", offset));
+
+                            table_code = format!("{}{}", table_code, pad_n_bytes(
+                                hex.as_str(),
+                                if matches!(jt.kind, TableKind::JumpTablePacked) { 0x02 } else { 0x20 },
+                            ));
+                        }
+                        StatementType::Code(code) => {
+                            // Check if code length is even
+                            if code.len() % 2 != 0 {
                                 return Err(CodegenError {
-                                    kind: CodegenErrorKind::UnmatchedJumpLabel,
+                                    kind: CodegenErrorKind::InvalidCodeLength(code.len()),
                                     span: s.span.clone(),
                                     token: None,
                                 });
                             }
-                        };
-                        let hex = format_even_bytes(format!("{:02x}", offset));
 
-                        table_code = format!("{}{}", table_code, pad_n_bytes(
-                            hex.as_str(),
-                            if matches!(jt.kind, TableKind::JumpTablePacked) { 0x02 } else { 0x20 },
-                        ));
+                            table_code = format!("{}{}", table_code, code);
+                        }
+                        _ => {
+                            return Err(CodegenError {
+                                kind: CodegenErrorKind::InvalidMacroStatement,
+                                span: jt.span.clone(),
+                                token: None
+                            })
+                        }
                     }
                     Ok(())
                 });
-            if let Err(e) = collected {
-                return Err(e);
-            }
+            collected?;
             tracing::info!(target: "codegen", "SUCCESSFULLY GENERATED BYTECODE FOR TABLE: \"{}\"", jt.name);
             bytecode = format!("{}{}", bytecode, table_code);
             Ok(())
-        }) {
-            return Err(e);
-        }
+        })?;
 
         res.table_instances.iter().for_each(|jump| {
             if let Some(o) = table_offsets.get(&jump.label) {
@@ -245,6 +259,7 @@ impl Codegen {
         let mut jump_table = JumpTable::new();
         let mut label_indices = LabelIndices::new();
         let mut table_instances = Jumps::new();
+        let mut utilized_tables: Vec<TableDefinition> = Vec::new();
 
         // Loop through all intermediate bytecode representations generated from the AST
         for (_ir_bytes_index, ir_byte) in ir_bytes.into_iter().enumerate() {
@@ -271,6 +286,7 @@ impl Codegen {
                         &mut jump_table,
                         &mut label_indices,
                         &mut table_instances,
+                        &mut utilized_tables,
                         starting_offset,
                     )?;
                     bytes.append(&mut push_bytes);
@@ -297,13 +313,29 @@ impl Codegen {
             tracing::warn!(target: "codegen", "ATTEMPTED MACRO INVOCATION POP FAILED AT SCOPE: {}", scope.len());
         }
 
-        let bytecode: String = bytes.iter().map(|byte| byte.0.to_string()).collect();
-        tracing::info!(target: "codegen", "MACRO \"{}\" GENERATED BYTECODE EXCLUDING JUMPS: {}", macro_def.name, bytecode);
+        // Add functions (outlined macros) to the end of the bytecode if the scope length == 1
+        // (i.e., we're at the top level of recursion)
+        if scope.len() == 1 {
+            bytes = Codegen::append_functions(
+                contract,
+                scope,
+                &mut offset,
+                mis,
+                &mut jump_table,
+                &mut label_indices,
+                &mut table_instances,
+                bytes,
+            )?;
+        } else {
+            // If the scope length is > 1, we're processing a child macro. Since we're done
+            // with it, it can be popped.
+            scope.pop();
+        }
 
         // Fill JUMPDEST placeholders
         let (bytes, unmatched_jumps) = Codegen::fill_unmatched(bytes, &jump_table, &label_indices)?;
 
-        Ok(BytecodeRes { bytes, label_indices, unmatched_jumps, table_instances })
+        Ok(BytecodeRes { bytes, label_indices, unmatched_jumps, table_instances, utilized_tables })
     }
 
     /// Helper associated function to fill unmatched jump dests.
@@ -371,6 +403,70 @@ impl Codegen {
             });
 
         Ok((bytes, unmatched_jumps))
+    }
+
+    /// Helper associated function to append functions to the end of the bytecode.
+    ///
+    /// ## Overview
+    ///
+    /// Iterates over the contract's functions, generates their bytecode, fills unmatched jumps &
+    /// label indices, and appends the functions' bytecode to the end of the contract's bytecode.
+    ///
+    /// On success, passes ownership of `bytes` back to the caller.
+    /// On failure, returns a CodegenError.
+    #[allow(clippy::too_many_arguments)]
+    pub fn append_functions(
+        contract: &Contract,
+        scope: &mut Vec<MacroDefinition>,
+        offset: &mut usize,
+        mis: &mut Vec<(usize, MacroInvocation)>,
+        jump_table: &mut JumpTable,
+        label_indices: &mut LabelIndices,
+        table_instances: &mut Jumps,
+        mut bytes: Vec<(usize, Bytes)>,
+    ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
+        for macro_def in contract.macros.iter().filter(|m| m.outlined) {
+            // Push the function to the scope
+            scope.push(macro_def.clone());
+
+            // Add 1 to starting offset to account for the JUMPDEST opcode
+            let mut res =
+                Codegen::macro_to_bytecode(macro_def.clone(), contract, scope, *offset + 1, mis)?;
+
+            for j in res.unmatched_jumps.iter_mut() {
+                let new_index = j.bytecode_index;
+                j.bytecode_index = 0;
+                let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index) {
+                    jumps.clone()
+                } else {
+                    vec![]
+                };
+                new_jumps.push(j.clone());
+                jump_table.insert(new_index, new_jumps);
+            }
+            table_instances.extend(res.table_instances);
+            label_indices.extend(res.label_indices);
+
+            let macro_code_len = res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
+
+            // Get necessary swap ops to reorder stack
+            // PC of the return jumpdest should be above the function's outputs on the stack
+            let stack_swaps =
+                (0..macro_def.returns).map(|i| format!("{:02x}", 0x90 + i)).collect::<Vec<_>>();
+
+            // Insert JUMPDEST, stack swaps, and final JUMP back to the location of invocation.
+            bytes.push((*offset, Bytes(Opcode::Jumpdest.to_string())));
+            res.bytes.push((
+                *offset + macro_code_len + 1,
+                Bytes(format!("{}{}", stack_swaps.join(""), Opcode::Jump)),
+            ));
+            bytes = [bytes, res.bytes].concat();
+            // Add the jumpdest to the beginning of the outlined macro.
+            label_indices.insert(format!("goto_{}", macro_def.name.clone()), *offset);
+            *offset += macro_code_len + stack_swaps.len() + 2; // JUMPDEST + MACRO_CODE_LEN +
+                                                               // stack_swaps.len() + JUMP
+        }
+        Ok(bytes)
     }
 
     /// Generate a codegen artifact
@@ -518,10 +614,8 @@ impl Codegen {
 
         // If an output's specified, write the artifact out
         if let Some(o) = output {
-            if let Err(e) = Codegen::export(o, art) {
-                // Error message is sent to tracing in `export` if an error occurs
-                return Err(e)
-            }
+            // Error message is sent to tracing in `export` if an error occurs
+            Codegen::export(o, art)?;
         }
 
         // Return the abi

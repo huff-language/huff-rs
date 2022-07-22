@@ -27,6 +27,8 @@ Below we showcase generating a compile artifact from compiled bytecode using `hu
 use huff_codegen::*;
 use huff_utils::files::FileSource;
 use std::sync::Arc;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 // Instantiate an empty Codegen
 let mut cg = Codegen::new();
@@ -53,6 +55,8 @@ Let's say you have a [Contract](../huff_utils/ast/struct.Contract.html) instance
 use huff_codegen::*;
 use huff_utils::prelude::*;
 use std::sync::Arc;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 // Mock contract with a main macro
 let contract = Contract {
@@ -81,11 +85,12 @@ let contract = Contract {
       takes: 0,
       returns: 0,
       span: AstSpan(vec![]),
+      outlined: false,
     }
   ],
   invocations: vec![],
   imports: vec![],
-  constants: vec![],
+  constants: Rc::new(RefCell::new(vec![])),
   functions: vec![],
   events: vec![],
   tables: vec![],
@@ -104,6 +109,8 @@ Similarly, once you have a [Contract](../huff_utils/ast/struct.Contract.html) in
 use huff_codegen::*;
 use huff_utils::prelude::*;
 use std::sync::Arc;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 // Mock contract with a constructor macro
 let contract = Contract {
@@ -132,11 +139,12 @@ let contract = Contract {
       takes: 0,
       returns: 0,
       span: AstSpan(vec![]),
+      outlined: false,
     }
   ],
   invocations: vec![],
   imports: vec![],
-  constants: vec![],
+  constants: Rc::new(RefCell::new(vec![])),
   functions: vec![],
   events: vec![],
   tables: vec![],

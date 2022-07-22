@@ -170,7 +170,7 @@ impl Span {
 
     /// Converts a span to a range.
     pub fn range(&self) -> Option<Range<usize>> {
-        (*self != Self::EOF).then(|| self.start..self.end)
+        (*self != Self::EOF).then_some(self.start..self.end)
     }
 
     /// Produces a file identifier string for errors

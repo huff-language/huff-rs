@@ -9,9 +9,11 @@ use crate::{
     prelude::{Span, TokenKind},
 };
 use std::{
+    cell::RefCell,
     collections::BTreeMap,
     fmt::{Display, Formatter},
     path::PathBuf,
+    rc::Rc,
 };
 
 /// A contained literal
@@ -96,7 +98,7 @@ pub struct Contract {
     /// File Imports
     pub imports: Vec<FilePath>,
     /// Constants
-    pub constants: Vec<ConstantDefinition>,
+    pub constants: Rc<RefCell<Vec<ConstantDefinition>>>,
     /// Functions
     pub functions: Vec<Function>,
     /// Events
@@ -159,7 +161,7 @@ impl Contract {
         tracing::debug!(target: "ast", "ALL AST CONSTANTS: {:?}", storage_pointers);
 
         // Set all the constants to their new values
-        for c in &mut self.constants {
+        for c in self.constants.borrow_mut().iter_mut() {
             match storage_pointers
                 .iter()
                 .filter(|pointer| pointer.0.eq(&c.name))
@@ -217,6 +219,7 @@ impl Contract {
                         // Get the associated constant
                         match self
                             .constants
+                            .borrow()
                             .iter()
                             .filter(|c| c.name.eq(const_name))
                             .collect::<Vec<&ConstantDefinition>>()
@@ -290,6 +293,29 @@ impl Contract {
         //     let next_md = macros_to_recurse.remove(0);
         //     self.recurse_ast_constants(next_md, storage_pointers, last_p, macros_to_recurse);
         // }
+    }
+
+    /// Add override constants to the AST
+    ///
+    /// ## Overview
+    ///
+    /// For each override constant, add it to the AST if it doesn't already exist. Override
+    /// constants can be passed in via the CLI.
+    pub fn add_override_constants(&self, override_constants: &Option<BTreeMap<&str, Literal>>) {
+        if let Some(override_constants) = override_constants {
+            for (name, value) in override_constants {
+                let mut constants = self.constants.borrow_mut();
+                if let Some(c) = constants.iter_mut().find(|c| c.name.as_str().eq(*name)) {
+                    c.value = ConstVal::Literal(*value);
+                } else {
+                    constants.push(ConstantDefinition {
+                        name: name.to_string(),
+                        value: ConstVal::Literal(*value),
+                        span: AstSpan::default(),
+                    });
+                }
+            }
+        }
     }
 }
 
@@ -427,6 +453,8 @@ pub struct MacroDefinition {
     pub returns: usize,
     /// The Span of the Macro Definition
     pub span: AstSpan,
+    /// Is the macro a function (outlined)?
+    pub outlined: bool,
 }
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
@@ -445,8 +473,17 @@ impl MacroDefinition {
         takes: usize,
         returns: usize,
         spans: Vec<Span>,
+        outlined: bool,
     ) -> Self {
-        MacroDefinition { name, parameters, statements, takes, returns, span: AstSpan(spans) }
+        MacroDefinition {
+            name,
+            parameters,
+            statements,
+            takes,
+            returns,
+            span: AstSpan(spans),
+            outlined,
+        }
     }
 
     /// Translate statements into IRBytes
@@ -470,6 +507,12 @@ impl MacroDefinition {
                         span: statement.span.clone(),
                     });
                 }
+                StatementType::Code(c) => {
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Bytes(Bytes(c.to_owned())),
+                        span: statement.span.clone(),
+                    });
+                }
                 StatementType::MacroInvocation(mi) => {
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Statement(Statement {
@@ -482,19 +525,19 @@ impl MacroDefinition {
                 StatementType::Constant(name) => {
                     // Constant needs to be evaluated at the top-level
                     inner_irbytes.push(IRBytes {
-                        ty: IRByteType::Constant(name.to_string()),
+                        ty: IRByteType::Constant(name.to_owned()),
                         span: statement.span.clone(),
                     });
                 }
                 StatementType::ArgCall(arg_name) => {
                     // Arg call needs to use a destination defined in the calling macro context
                     inner_irbytes.push(IRBytes {
-                        ty: IRByteType::ArgCall(arg_name.to_string()),
+                        ty: IRByteType::ArgCall(arg_name.to_owned()),
                         span: statement.span.clone(),
                     });
                 }
                 StatementType::LabelCall(jump_to) => {
-                    /* Jump To doesn't translate directly to bytecode ? */
+                    /* Jump To doesn't translate directly to bytecode */
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Statement(Statement {
                             ty: StatementType::LabelCall(jump_to.to_string()),
@@ -504,7 +547,7 @@ impl MacroDefinition {
                     });
                 }
                 StatementType::Label(l) => {
-                    /* Jump Dests don't translate directly to bytecode ? */
+                    /* Jump Dests don't translate directly to bytecode */
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Statement(Statement {
                             ty: StatementType::Label(l.clone()),
@@ -646,6 +689,8 @@ pub enum StatementType {
     Literal(Literal),
     /// An Opcode Statement
     Opcode(Opcode),
+    /// A Code Statement
+    Code(String),
     /// A Macro Invocation Statement
     MacroInvocation(MacroInvocation),
     /// A Constant Push
@@ -665,6 +710,7 @@ impl Display for StatementType {
         match self {
             StatementType::Literal(l) => write!(f, "LITERAL: {}", bytes32_to_string(l, true)),
             StatementType::Opcode(o) => write!(f, "OPCODE: {}", o),
+            StatementType::Code(s) => write!(f, "CODE: {}", s),
             StatementType::MacroInvocation(m) => {
                 write!(f, "MACRO INVOCATION: {}", m.macro_name)
             }

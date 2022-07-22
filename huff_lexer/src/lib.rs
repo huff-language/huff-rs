@@ -32,6 +32,8 @@ pub enum Context {
     AbiArgs,
     /// constant context
     Constant,
+    /// Code table context
+    CodeTableBody,
 }
 
 /// ## Lexer
@@ -266,7 +268,7 @@ impl<'a> Lexer<'a> {
     /// `TokenKind::Ident`.
     ///
     /// Rules:
-    /// - The `macro`, `function`, `constant`, `event`, `jumptable`, `jumptable__packed`, and
+    /// - The `macro`, `fn`, `function`, `constant`, `event`, `jumptable`, `jumptable__packed`, and
     ///   `table` keywords must be preceded by a `#define` keyword.
     /// - The `takes` keyword must be preceded by an assignment operator: `=`.
     /// - The `nonpayable`, `payable`, `view`, and `pure` keywords must be preceeded by one of these
@@ -276,6 +278,7 @@ impl<'a> Lexer<'a> {
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
         match found_kind {
             Some(TokenKind::Macro) |
+            Some(TokenKind::Fn) |
             Some(TokenKind::Function) |
             Some(TokenKind::Constant) |
             Some(TokenKind::Event) |
@@ -377,6 +380,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     let keys = [
                         TokenKind::Macro,
+                        TokenKind::Fn,
                         TokenKind::Function,
                         TokenKind::Constant,
                         TokenKind::Takes,
@@ -417,9 +421,12 @@ impl<'a> Iterator for Lexer<'a> {
 
                     if let Some(kind) = &found_kind {
                         match kind {
-                            TokenKind::Macro => self.context = Context::MacroDefinition,
+                            TokenKind::Macro | TokenKind::Fn => {
+                                self.context = Context::MacroDefinition
+                            }
                             TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
                             TokenKind::Constant => self.context = Context::Constant,
+                            TokenKind::CodeTable => self.context = Context::CodeTableBody,
                             _ => (),
                         }
                     }
@@ -454,7 +461,7 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
-                    let pot_op = self.dyn_peek(|c| c.is_alphanumeric());
+                    let pot_op = self.dyn_peek(|c| c.is_alphanumeric() || c == &'_');
 
                     // Syntax sugar: true evaluates to 0x01, false evaluates to 0x00
                     if matches!(pot_op.as_str(), "true" | "false") {
@@ -575,7 +582,15 @@ impl<'a> Iterator for Lexer<'a> {
                             matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}')
                     });
                     self.current_span_mut().start += 2; // Ignore the "0x"
-                    TokenKind::Literal(str_to_bytes32(self.slice().as_ref()))
+
+                    if self.context == Context::CodeTableBody {
+                        // In codetables, the bytecode provided is of arbitrary length. We pass
+                        // the code as an Ident, and it is appended to the end of the runtime
+                        // bytecode in codegen.
+                        TokenKind::Ident(self.slice())
+                    } else {
+                        TokenKind::Literal(str_to_bytes32(self.slice().as_ref()))
+                    }
                 }
                 '=' => TokenKind::Assign,
                 '(' => {
@@ -603,7 +618,7 @@ impl<'a> Iterator for Lexer<'a> {
                     TokenKind::OpenBrace
                 }
                 '}' => {
-                    if self.context == Context::MacroBody {
+                    if matches!(self.context, Context::MacroBody | Context::CodeTableBody) {
                         self.context = Context::Global;
                     }
                     TokenKind::CloseBrace

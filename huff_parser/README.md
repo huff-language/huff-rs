@@ -19,6 +19,8 @@ definition.
 use huff_utils::prelude::*;
 use huff_lexer::{Lexer};
 use huff_parser::{Parser};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 // Create a Lexer from the source code
 let source = "#define macro HELLO_WORLD() = takes(0) returns(0) {}";
@@ -45,11 +47,12 @@ let expected_contract = Contract {
       takes: 0,
       returns: 0,
       span: AstSpan(vec![Span { start: 0, end: 7, file: None }, Span { start: 8, end: 13, file: None }, Span { start: 14, end: 25, file: None }, Span { start: 25, end: 26, file: None }, Span { start: 26, end: 27, file: None }, Span { start: 28, end: 29, file: None }, Span { start: 30, end: 35, file: None }, Span { start: 35, end: 36, file: None }, Span { start: 36, end: 37, file: None }, Span { start: 37, end: 38, file: None }, Span { start: 39, end: 46, file: None }, Span { start: 46, end: 47, file: None }, Span { start: 47, end: 48, file: None }, Span { start: 48, end: 49, file: None }, Span { start: 50, end: 51, file: None }, Span { start: 51, end: 52, file: None }]),
+      outlined: false,
     }
   ],
   invocations: vec![],
   imports: vec![],
-  constants: vec![],
+  constants: Rc::new(RefCell::new(vec![])),
   functions: vec![],
   events: vec![],
   tables: vec![],

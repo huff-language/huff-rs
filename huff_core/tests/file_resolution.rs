@@ -5,7 +5,7 @@ use huff_utils::prelude::{CompilerError, OutputLocation, UnpackError};
 
 #[test]
 fn test_get_outputs_no_output() {
-    let compiler: Compiler = Compiler::new(Arc::new(vec![]), None, None, false, false);
+    let compiler: Compiler = Compiler::new(Arc::new(vec![]), None, None, None, false, false);
     let ol: OutputLocation = compiler.get_outputs();
     assert_eq!(ol, OutputLocation::default());
 }
@@ -13,7 +13,7 @@ fn test_get_outputs_no_output() {
 #[test]
 fn test_get_outputs_with_output() {
     let compiler: Compiler =
-        Compiler::new(Arc::new(vec![]), Some("./test_out/".to_string()), None, false, false);
+        Compiler::new(Arc::new(vec![]), Some("./test_out/".to_string()), None, None, false, false);
     let ol: OutputLocation = compiler.get_outputs();
     assert_eq!(ol, OutputLocation("./test_out/".to_string()));
 }
@@ -21,7 +21,7 @@ fn test_get_outputs_with_output() {
 #[test]
 fn test_transform_paths() {
     let _compiler: Compiler =
-        Compiler::new(Arc::new(vec![]), Some("./test_out/".to_string()), None, false, false);
+        Compiler::new(Arc::new(vec![]), Some("./test_out/".to_string()), None, None, false, false);
     let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> = Compiler::transform_paths(&vec![
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
         "../huff-examples/erc20/contracts/utils/".to_string(),
@@ -55,7 +55,7 @@ fn test_transform_paths() {
 #[test]
 fn test_transform_paths_non_huff() {
     let _compiler: Compiler =
-        Compiler::new(Arc::new(vec![]), Some("./test_out/".to_string()), None, false, false);
+        Compiler::new(Arc::new(vec![]), Some("./test_out/".to_string()), None, None, false, false);
     let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> =
         Compiler::transform_paths(&vec!["./ERC20.txt".to_string()]);
     assert!(path_bufs.is_err());
@@ -72,7 +72,7 @@ fn test_transform_paths_non_huff() {
 #[test]
 fn test_transform_paths_no_dir() {
     let _compiler: Compiler =
-        Compiler::new(Arc::new(vec![]), Some("./test_out/".to_string()), None, false, false);
+        Compiler::new(Arc::new(vec![]), Some("./test_out/".to_string()), None, None, false, false);
     let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> =
         Compiler::transform_paths(&vec!["./examples/random_dir/".to_string()]);
     assert!(path_bufs.is_err());

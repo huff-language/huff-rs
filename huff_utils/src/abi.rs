@@ -9,6 +9,8 @@
 //! instance like so:
 //!
 //! ```rust
+//! use std::cell::RefCell;
+//! use std::rc::Rc;
 //! use huff_utils::prelude::*;
 //!
 //! // Generate a default contract for demonstrative purposes.
@@ -17,7 +19,7 @@
 //!     macros: vec![],
 //!     invocations: vec![],
 //!     imports: vec![],
-//!     constants: vec![],
+//!     constants: Rc::new(RefCell::new(vec![])),
 //!     functions: vec![huff_utils::ast::Function {
 //!         name: "CONSTRUCTOR".to_string(),
 //!         signature: [0u8, 0u8, 0u8, 0u8],
