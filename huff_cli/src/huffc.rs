@@ -12,12 +12,12 @@ use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
 use huff_utils::prelude::{
-    export_interfaces, gen_sol_interfaces, unpack_files, AstSpan, CodegenError, CodegenErrorKind,
-    CompilerError, FileSource, OutputLocation, Span,
+    export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
+    CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
-use std::{io::Write, path::Path, sync::Arc};
+use std::{collections::BTreeMap, io::Write, path::Path, sync::Arc};
 use yansi::Paint;
 
 /// The Huff CLI Args
@@ -70,6 +70,10 @@ struct Huff {
     /// Verbose output.
     #[clap(short = 'v', long = "verbose")]
     verbose: bool,
+
+    /// Override / set constants for the compilation environment.
+    #[clap(short = 'c', long = "constants", multiple_values = true)]
+    constants: Option<Vec<String>>,
 }
 
 /// Helper function to read an stdin input
@@ -102,6 +106,33 @@ fn main() {
         }
     };
 
+    // If constant overrides were passed, create a map of their names and values
+    let constants: Option<BTreeMap<&str, Literal>> = cli.constants.as_ref().map(|_constants| {
+        _constants
+            .iter()
+            .map(|c: &String| {
+                let parts = c.as_str().split('=').collect::<Vec<_>>();
+
+                // Check that constant override argument is valid
+                // Key rule: Alphabetic chars + underscore
+                // Value rule: Valid literal string (0x...)
+                if parts.len() != 2 ||
+                    parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_')) ||
+                    !parts[1].starts_with("0x") ||
+                    parts[1][2..].chars().any(|c| {
+                        !(c.is_numeric() ||
+                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
+                    })
+                {
+                    eprintln!("Invalid constant override argument: {}", Paint::red(c.to_string()));
+                    std::process::exit(1);
+                }
+
+                (parts[0], str_to_bytes32(&parts[1][2..]))
+            })
+            .collect()
+    });
+
     let mut use_cache = true;
     if cli.interactive {
         // Don't accept configured inputs
@@ -124,6 +155,7 @@ fn main() {
         sources: Arc::clone(&sources),
         output,
         construct_args: cli.inputs,
+        constant_overrides: constants,
         optimize: cli.optimize,
         bytecode: cli.bytecode,
         cached: use_cache,

@@ -86,7 +86,7 @@ impl Parser {
                 TokenKind::Constant => {
                     let c = self.parse_constant()?;
                     tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {}", c.name);
-                    contract.constants.push(c);
+                    contract.constants.borrow_mut().push(c);
                 }
                 TokenKind::Macro | TokenKind::Fn => {
                     let m = self.parse_macro()?;

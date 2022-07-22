@@ -22,7 +22,8 @@ pub fn bubble_arg_call(
     let starting_offset = *offset;
 
     // Check Constant Definitions
-    if let Some(constant) = contract.constants.iter().find(|const_def| const_def.name.eq(arg_name))
+    if let Some(constant) =
+        contract.constants.borrow().iter().find(|const_def| const_def.name.eq(arg_name))
     {
         tracing::info!(target: "codegen", "ARGCALL IS CONSTANT: {:?}", constant);
         let push_bytes = match &constant.value {

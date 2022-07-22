@@ -19,6 +19,8 @@ definition.
 use huff_utils::prelude::*;
 use huff_lexer::{Lexer};
 use huff_parser::{Parser};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 // Create a Lexer from the source code
 let source = "#define macro HELLO_WORLD() = takes(0) returns(0) {}";
@@ -50,7 +52,7 @@ let expected_contract = Contract {
   ],
   invocations: vec![],
   imports: vec![],
-  constants: vec![],
+  constants: Rc::new(RefCell::new(vec![])),
   functions: vec![],
   events: vec![],
   tables: vec![],

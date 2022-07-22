@@ -9,18 +9,18 @@ pub fn constant_gen(
     ir_byte_span: AstSpan,
 ) -> Result<String, CodegenError> {
     // Get the first `ConstantDefinition` that matches the constant's name
-    let constant =
-        if let Some(m) = contract.constants.iter().find(|const_def| const_def.name.eq(&name)) {
-            m
-        } else {
-            tracing::error!(target: "codegen", "MISSING CONSTANT DEFINITION \"{}\"", name);
+    let constants = contract.constants.borrow();
+    let constant = if let Some(m) = constants.iter().find(|const_def| const_def.name.eq(&name)) {
+        m
+    } else {
+        tracing::error!(target: "codegen", "MISSING CONSTANT DEFINITION \"{}\"", name);
 
-            return Err(CodegenError {
-                kind: CodegenErrorKind::MissingConstantDefinition(name.to_string()),
-                span: ir_byte_span,
-                token: None,
-            })
-        };
+        return Err(CodegenError {
+            kind: CodegenErrorKind::MissingConstantDefinition(name.to_string()),
+            span: ir_byte_span,
+            token: None,
+        })
+    };
 
     // Generate bytecode for the constant
     // Should always be a `Literal` if storage pointers were derived in the AST
