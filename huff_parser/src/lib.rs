@@ -413,10 +413,10 @@ impl Parser {
             }
         };
 
-        let mut signature = [0u8; 4]; // Only keep first 4 bytes
+        let mut selector = [0u8; 4]; // Only keep first 4 bytes
         let mut hasher = Keccak::v256();
         hasher.update(format!("{}()", name).as_bytes());
-        hasher.finalize(&mut signature);
+        hasher.finalize(&mut selector);
 
         // Match empty parenthesis
         self.match_kind(TokenKind::OpenParen)?;
@@ -426,7 +426,7 @@ impl Parser {
         let new_spans = self.spans.clone();
         self.spans = vec![];
 
-        Ok(ErrorDefinition { name, selector: signature, span: AstSpan(new_spans) })
+        Ok(ErrorDefinition { name, selector, span: AstSpan(new_spans) })
     }
 
     /// Parses a macro.

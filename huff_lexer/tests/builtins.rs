@@ -4,7 +4,8 @@ use std::ops::Deref;
 
 #[test]
 fn parses_builtin_function_in_macro_body() {
-    let builtin_funcs = ["__codesize", "__tablesize", "__tablestart", "__FUNC_SIG", "__EVENT_HASH"];
+    let builtin_funcs =
+        ["__codesize", "__tablesize", "__tablestart", "__FUNC_SIG", "__EVENT_HASH", "__ERROR"];
 
     for builtin in builtin_funcs {
         let source = &format!(
@@ -69,7 +70,8 @@ fn parses_builtin_function_in_macro_body() {
 #[test]
 #[should_panic]
 fn fails_to_parse_builtin_outside_macro_body() {
-    let builtin_funcs = ["__codesize", "__tablesize", "__tablestart", "__FUNC_SIG", "__EVENT_HASH"];
+    let builtin_funcs =
+        ["__codesize", "__tablesize", "__tablestart", "__FUNC_SIG", "__EVENT_HASH", "__ERROR"];
 
     for builtin in builtin_funcs {
         let source = &format!("{}(MAIN)", builtin);

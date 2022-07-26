@@ -363,6 +363,38 @@ pub fn statement_gen(
                         })
                     }
                 }
+                BuiltinFunctionKind::Error => {
+                    if bf.args.len() != 1 {
+                        tracing::error!(
+                            target: "codegen",
+                            "Incorrect number of arguments passed to __ERROR, should be 1: {}",
+                            bf.args.len()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidArguments(format!(
+                                "Incorrect number of arguments passed to __ERROR, should be 1: {}",
+                                bf.args.len()
+                            )),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+
+                    if let Some(error) = contract
+                        .errors
+                        .iter()
+                        .find(|e| bf.args[0].name.as_ref().unwrap().eq(&e.name))
+                    {
+                        // Add 28 bytes to left-pad the 4 byte selector
+                        let mut selector = format!(
+                            "{}00000000000000000000000000000000000000000000000000000000",
+                            hex::encode(error.selector)
+                        );
+                        let push_bytes = format!("{:02x}{}", 95 + selector.len() / 2, selector);
+                        *offset += push_bytes.len() / 2;
+                        bytes.push((starting_offset, Bytes(push_bytes)));
+                    }
+                }
             }
         }
         sty => {

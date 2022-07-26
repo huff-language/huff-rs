@@ -477,3 +477,43 @@ fn test_event_hash_builtin() {
         String::from("7fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a87fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a87fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8600055")
     );
 }
+
+#[test]
+fn test_error_selector_builtin() {
+    let source: &str = r#"
+        #define error TestError()
+
+        #define macro MAIN() = takes(0) returns (0) {
+            __ERROR(TestError)
+            0x00 mstore
+            0x01 0x04 mstore
+            revert
+        }
+    "#;
+
+    // Parse tokens
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Parse the AST
+    let mut contract = parser.parse().unwrap();
+
+    // Derive storage pointers
+    contract.derive_storage_pointers();
+
+    // Instantiate Codegen
+    let cg = Codegen::new();
+
+    // The codegen instance should have no artifact
+    assert!(cg.artifact.is_none());
+
+    // Have Codegen create the runtime bytecode
+    let r_bytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    assert_eq!(&r_bytes[2..66], "0d5e708200000000000000000000000000000000000000000000000000000000");
+    assert_eq!(
+        r_bytes,
+        String::from("7f0d5e7082000000000000000000000000000000000000000000000000000000006000526001600452fd")
+    );
+}

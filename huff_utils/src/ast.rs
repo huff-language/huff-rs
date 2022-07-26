@@ -652,7 +652,7 @@ pub struct BuiltinFunctionCall {
     pub kind: BuiltinFunctionKind,
     /// Arguments for the builtin function call.
     /// TODO: Maybe make a better type for this other than `Argument`? Would be nice if it pointed
-    /// directly to the macro/table.
+    ///       directly to the macro/table.
     pub args: Vec<Argument>,
     /// The builtin function call span
     pub span: AstSpan,
@@ -671,6 +671,8 @@ pub enum BuiltinFunctionKind {
     FunctionSignature,
     /// Event hash function
     EventHash,
+    /// Error selector function
+    Error,
 }
 
 impl From<&str> for BuiltinFunctionKind {
@@ -681,6 +683,7 @@ impl From<&str> for BuiltinFunctionKind {
             "__tablestart" => BuiltinFunctionKind::Tablestart,
             "__FUNC_SIG" => BuiltinFunctionKind::FunctionSignature,
             "__EVENT_HASH" => BuiltinFunctionKind::EventHash,
+            "__ERROR" => BuiltinFunctionKind::Error,
             _ => panic!("Invalid Builtin Function Kind"), // TODO: Better error handling
         }
     }
