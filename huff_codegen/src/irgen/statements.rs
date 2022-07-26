@@ -386,13 +386,26 @@ pub fn statement_gen(
                         .find(|e| bf.args[0].name.as_ref().unwrap().eq(&e.name))
                     {
                         // Add 28 bytes to left-pad the 4 byte selector
-                        let mut selector = format!(
+                        let selector = format!(
                             "{}00000000000000000000000000000000000000000000000000000000",
                             hex::encode(error.selector)
                         );
                         let push_bytes = format!("{:02x}{}", 95 + selector.len() / 2, selector);
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
+                    } else {
+                        tracing::error!(
+                            target: "codegen",
+                            "MISSING ERROR DEFINITION PASSED TO __ERROR: \"{}\"",
+                            bf.args[0].name.as_ref().unwrap()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::MissingErrorDefinition(
+                                bf.args[0].name.as_ref().unwrap().to_string(),
+                            ),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
                     }
                 }
             }
