@@ -548,7 +548,7 @@ impl Parser {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [BUILTIN FN: {}({:?})]", f, args);
                     statements.push(Statement {
                         ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
-                            kind: BuiltinFunctionKind::from(f.as_str()),
+                            kind: BuiltinFunctionKind::from(f),
                             args,
                             span: AstSpan(curr_spans.clone()),
                         }),

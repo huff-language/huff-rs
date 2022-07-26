@@ -559,15 +559,7 @@ impl<'a> Iterator for Lexer<'a> {
                         let slice = self.slice();
                         // Check for built-in function calls
                         if self.context == Context::MacroBody &&
-                            matches!(
-                                slice.as_ref(),
-                                "__codesize" |
-                                    "__tablesize" |
-                                    "__tablestart" |
-                                    "__FUNC_SIG" |
-                                    "__EVENT_HASH" |
-                                    "__ERROR" /* TODO: Clean this process up */
-                            )
+                            BuiltinFunctionKind::try_from(&slice).is_ok()
                         {
                             TokenKind::BuiltinFunction(slice)
                         } else {

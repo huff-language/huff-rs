@@ -675,16 +675,34 @@ pub enum BuiltinFunctionKind {
     Error,
 }
 
-impl From<&str> for BuiltinFunctionKind {
-    fn from(s: &str) -> Self {
-        match s {
+impl From<String> for BuiltinFunctionKind {
+    fn from(value: String) -> Self {
+        match value.as_str() {
             "__tablesize" => BuiltinFunctionKind::Tablesize,
             "__codesize" => BuiltinFunctionKind::Codesize,
             "__tablestart" => BuiltinFunctionKind::Tablestart,
             "__FUNC_SIG" => BuiltinFunctionKind::FunctionSignature,
             "__EVENT_HASH" => BuiltinFunctionKind::EventHash,
             "__ERROR" => BuiltinFunctionKind::Error,
-            _ => panic!("Invalid Builtin Function Kind"), // TODO: Better error handling
+            _ => panic!("Invalid Builtin Function Kind"), /* This should never be reached,
+                                                           * builtins are validated with a
+                                                           * `try_from` call in the lexer. */
+        }
+    }
+}
+
+impl TryFrom<&String> for BuiltinFunctionKind {
+    type Error = ();
+
+    fn try_from(value: &String) -> Result<Self, <BuiltinFunctionKind as TryFrom<&String>>::Error> {
+        match value.as_str() {
+            "__tablesize" => Ok(BuiltinFunctionKind::Tablesize),
+            "__codesize" => Ok(BuiltinFunctionKind::Codesize),
+            "__tablestart" => Ok(BuiltinFunctionKind::Tablestart),
+            "__FUNC_SIG" => Ok(BuiltinFunctionKind::FunctionSignature),
+            "__EVENT_HASH" => Ok(BuiltinFunctionKind::EventHash),
+            "__ERROR" => Ok(BuiltinFunctionKind::Error),
+            _ => Err(()),
         }
     }
 }
