@@ -1,3 +1,5 @@
+use tiny_keccak::{Hasher, Keccak};
+
 /// Convert a string slice to a `[u8; 32]`
 /// Pads zeros to the left of significant bytes in the `[u8; 32]` slice.
 /// i.e. 0xa57b becomes `[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -51,4 +53,11 @@ pub fn str_to_vec(s: &str) -> Result<Vec<u8>, std::num::ParseIntError> {
     let bytes: Result<Vec<u8>, _> =
         (0..s.len()).step_by(2).map(|c| u8::from_str_radix(&s[c..c + 2], 16)).collect();
     bytes
+}
+
+/// Hash a string with Keccak256
+pub fn hash_bytes(dest: &mut [u8], to_hash: &String) {
+    let mut hasher = Keccak::v256();
+    hasher.update(to_hash.as_bytes());
+    hasher.finalize(dest);
 }

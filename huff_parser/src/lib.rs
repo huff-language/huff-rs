@@ -7,13 +7,12 @@
 use huff_utils::{
     ast::*,
     error::*,
-    prelude::{str_to_bytes32, FileSource, Span},
+    prelude::{hash_bytes, str_to_bytes32, FileSource, Span},
     token::{Token, TokenKind},
     types::*,
 };
 use regex::Regex;
 use std::path::Path;
-use tiny_keccak::{Hasher, Keccak};
 
 /// The Parser
 #[derive(Debug, Clone)]
@@ -286,11 +285,9 @@ impl Parser {
         let outputs: Vec<Argument> = self.parse_args(true, true, false, false)?;
 
         let mut signature = [0u8; 4]; // Only keep first 4 bytes
-        let mut hasher = Keccak::v256();
         let input_types =
             inputs.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
-        hasher.update(format!("{}({})", name, input_types.join(",")).as_bytes());
-        hasher.finalize(&mut signature);
+        hash_bytes(&mut signature, &format!("{}({})", name, input_types.join(",")));
 
         Ok(Function {
             name,
@@ -327,11 +324,9 @@ impl Parser {
         let parameters: Vec<Argument> = self.parse_args(true, true, true, false)?;
 
         let mut hash = [0u8; 32];
-        let mut hasher = Keccak::v256();
         let input_types =
             parameters.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
-        hasher.update(format!("{}({})", name, input_types.join(",")).as_bytes());
-        hasher.finalize(&mut hash);
+        hash_bytes(&mut hash, &format!("{}({})", name, input_types.join(",")));
 
         Ok(Event { name, parameters, span: AstSpan(self.spans.clone()), hash })
     }
@@ -414,9 +409,7 @@ impl Parser {
         };
 
         let mut selector = [0u8; 4]; // Only keep first 4 bytes
-        let mut hasher = Keccak::v256();
-        hasher.update(format!("{}()", name).as_bytes());
-        hasher.finalize(&mut selector);
+        hash_bytes(&mut selector, &format!("{}()", name));
 
         // Match empty parenthesis
         self.match_kind(TokenKind::OpenParen)?;

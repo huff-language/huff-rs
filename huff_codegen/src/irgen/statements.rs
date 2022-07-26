@@ -1,5 +1,4 @@
 use huff_utils::prelude::*;
-use tiny_keccak::{Hasher, Keccak};
 
 use crate::Codegen;
 
@@ -287,9 +286,7 @@ pub fn statement_gen(
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else if let Some(s) = &bf.args[0].name {
                         let mut signature = [0u8; 4]; // Only keep first 4 bytes
-                        let mut hasher = Keccak::v256();
-                        hasher.update(s.as_bytes());
-                        hasher.finalize(&mut signature);
+                        hash_bytes(&mut signature, s);
 
                         let sig = hex::encode(signature);
                         let push_bytes = format!("{:02x}{}", 95 + sig.len() / 2, sig);
@@ -340,9 +337,7 @@ pub fn statement_gen(
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else if let Some(s) = &bf.args[0].name {
                         let mut hash = [0u8; 32];
-                        let mut hasher = Keccak::v256();
-                        hasher.update(s.as_bytes());
-                        hasher.finalize(&mut hash);
+                        hash_bytes(&mut hash, s);
 
                         let hash = hex::encode(hash);
                         let push_bytes = format!("{:02x}{}", 95 + hash.len() / 2, hash);
