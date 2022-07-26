@@ -481,13 +481,38 @@ fn test_event_hash_builtin() {
 #[test]
 fn test_error_selector_builtin() {
     let source: &str = r#"
-        #define error TestError()
+        // Define our custom error
+        #define error PanicError(uint256 panicCode)
+        #define error Error(string)
 
-        #define macro MAIN() = takes(0) returns (0) {
-            __ERROR(TestError)
-            0x00 mstore
-            0x01 0x04 mstore
-            revert
+        #define macro PANIC() = takes (1) returns (0) {
+            // Input stack:          [panic_code]
+            __ERROR(PanicError)   // [panic_error_selector, panic_code]
+            0x00 mstore           // [panic_code]
+            0x04 mstore           // []
+            0x24 0x00 revert
+        }
+
+        #define macro REQUIRE() = takes (3) returns (0) {
+            // Input stack:          [condition, message_length, message]
+            continue jumpi        // [message]
+
+            __ERROR(Error)        // [error_selector, message_length, message]
+            0x00 mstore           // [message_length, message]
+            0x20 0x04 mstore      // [message_length, message]
+            0x24 mstore           // [message]
+            0x44 mstore           // []
+
+            0x64 0x00 revert
+
+            continue:
+                pop               // []
+        }
+
+        #define macro MAIN() = takes (0) returns (0) {
+            // dummy macro invocations so they're included in the runtime bytecode
+            PANIC()
+            REQUIRE()
         }
     "#;
 
@@ -511,11 +536,15 @@ fn test_error_selector_builtin() {
 
     // Have Codegen create the runtime bytecode
     let r_bytes = Codegen::generate_main_bytecode(&contract).unwrap();
-    assert_eq!(&r_bytes[2..66], "0d5e708200000000000000000000000000000000000000000000000000000000");
+    assert_eq!(&r_bytes[2..66], "be20788c00000000000000000000000000000000000000000000000000000000");
+    assert_eq!(
+        &r_bytes[98..162],
+        "08c379a000000000000000000000000000000000000000000000000000000000"
+    );
     assert_eq!(
         r_bytes,
         String::from(
-            "7f0d5e7082000000000000000000000000000000000000000000000000000000006000526001600452fd"
+            "7fbe20788c0000000000000000000000000000000000000000000000000000000060005260045260246000fd610064577f08c379a000000000000000000000000000000000000000000000000000000000600052602060045260245260445260646000fd5b50"
         )
     );
 }

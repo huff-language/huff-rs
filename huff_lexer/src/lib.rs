@@ -426,7 +426,9 @@ impl<'a> Iterator for Lexer<'a> {
                             TokenKind::Macro | TokenKind::Fn => {
                                 self.context = Context::MacroDefinition
                             }
-                            TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
+                            TokenKind::Function | TokenKind::Event | TokenKind::Error => {
+                                self.context = Context::Abi
+                            }
                             TokenKind::Constant => self.context = Context::Constant,
                             TokenKind::CodeTable => self.context = Context::CodeTableBody,
                             _ => (),

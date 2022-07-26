@@ -4,7 +4,7 @@ use huff_utils::prelude::*;
 
 #[test]
 fn test_parses_custom_error() {
-    let source = "#define error TestError()";
+    let source = "#define error TestError(uint256)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
@@ -17,13 +17,14 @@ fn test_parses_custom_error() {
         custom_error,
         ErrorDefinition {
             name: String::from("TestError"),
-            selector: [13, 94, 112, 130],
+            selector: [124, 104, 44, 83],
             span: AstSpan(vec![
                 Span { start: 0, end: 7, file: None },
                 Span { start: 8, end: 13, file: None },
                 Span { start: 14, end: 23, file: None },
                 Span { start: 23, end: 24, file: None },
-                Span { start: 24, end: 25, file: None }
+                Span { start: 24, end: 31, file: None },
+                Span { start: 31, end: 32, file: None }
             ])
         }
     );

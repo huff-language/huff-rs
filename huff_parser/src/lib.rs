@@ -259,7 +259,7 @@ impl Parser {
         };
 
         // function inputs should be next
-        let inputs: Vec<Argument> = self.parse_args(true, true, false, false)?;
+        let inputs = self.parse_args(true, true, false, false)?;
         // function type should be next
         let fn_type = match self.current_token.kind.clone() {
             TokenKind::View => FunctionType::View,
@@ -282,7 +282,7 @@ impl Parser {
         // next token should be of `TokenKind::Returns`
         self.match_kind(TokenKind::Returns)?;
         // function outputs should be next
-        let outputs: Vec<Argument> = self.parse_args(true, true, false, false)?;
+        let outputs = self.parse_args(true, true, false, false)?;
 
         let mut signature = [0u8; 4]; // Only keep first 4 bytes
         let input_types =
@@ -321,7 +321,7 @@ impl Parser {
         };
 
         // Parse the event's parameters
-        let parameters: Vec<Argument> = self.parse_args(true, true, true, false)?;
+        let parameters = self.parse_args(true, true, true, false)?;
 
         let mut hash = [0u8; 32];
         let input_types =
@@ -408,12 +408,13 @@ impl Parser {
             }
         };
 
-        let mut selector = [0u8; 4]; // Only keep first 4 bytes
-        hash_bytes(&mut selector, &format!("{}()", name));
+        // Get arguments for signature
+        let inputs = self.parse_args(true, true, false, false)?;
 
-        // Match empty parenthesis
-        self.match_kind(TokenKind::OpenParen)?;
-        self.match_kind(TokenKind::CloseParen)?;
+        let mut selector = [0u8; 4]; // Only keep first 4 bytes
+        let input_types =
+            inputs.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
+        hash_bytes(&mut selector, &format!("{}({})", name, input_types.join(",")));
 
         // Clone spans and set to nothing
         let new_spans = self.spans.clone();
@@ -432,7 +433,7 @@ impl Parser {
             self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?.to_string();
         tracing::info!(target: "parser", "PARSING MACRO: \"{}\"", macro_name);
 
-        let macro_arguments: Vec<Argument> = self.parse_args(true, false, false, false)?;
+        let macro_arguments = self.parse_args(true, false, false, false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
         let macro_takes: usize = self.parse_single_arg()?;
