@@ -57,58 +57,70 @@ impl Parser {
         // Initialize an empty Contract
         let mut contract = Contract::default();
 
-        // First iterate over imports
-        while !self.check(TokenKind::Eof) && !self.check(TokenKind::Define) {
-            contract.imports.push(self.parse_imports()?);
-            tracing::info!(target: "parser", "SUCCESSFULLY PARSED IMPORTS");
-        }
-
         // Iterate over tokens and construct the Contract aka AST
         while !self.check(TokenKind::Eof) {
             // Reset our spans
             self.spans = vec![];
 
-            // first token should be keyword "#define"
-            self.match_kind(TokenKind::Define)?;
+            // Check for imports with the "#include" keyword
+            if self.check(TokenKind::Include) {
+                contract.imports.push(self.parse_imports()?);
+            }
+            // Check for a defition with the "#define" keyword
+            else if self.check(TokenKind::Define) {
+                // Consume the definition token
+                self.match_kind(TokenKind::Define)?;
 
-            // match to fucntion, constant, macro, or event
-            match self.current_token.kind {
-                TokenKind::Function => {
-                    let func = self.parse_function()?;
-                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED FUNCTION {}", func.name);
-                    contract.functions.push(func);
-                }
-                TokenKind::Event => {
-                    let ev = self.parse_event()?;
-                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED EVENT {}", ev.name);
-                    contract.events.push(ev);
-                }
-                TokenKind::Constant => {
-                    let c = self.parse_constant()?;
-                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {}", c.name);
-                    contract.constants.borrow_mut().push(c);
-                }
-                TokenKind::Macro | TokenKind::Fn => {
-                    let m = self.parse_macro()?;
-                    tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
-                    contract.macros.push(m);
-                }
-                TokenKind::JumpTable | TokenKind::JumpTablePacked | TokenKind::CodeTable => {
-                    contract.tables.push(self.parse_table()?);
-                }
-                _ => {
-                    tracing::error!(
-                        target: "parser",
-                        "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
-                        self.current_token.kind
-                    );
-                    return Err(ParserError {
-                        kind: ParserErrorKind::InvalidDefinition(self.current_token.kind.clone()),
-                        hint: Some("Definition must be one of: `function`, `event`, `constant`, `macro`, or `fn`.".to_string()),
-                        spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
-                }
-            };
+                // match to fucntion, constant, macro, or event
+                match self.current_token.kind {
+                    TokenKind::Function => {
+                        let func = self.parse_function()?;
+                        tracing::info!(target: "parser", "SUCCESSFULLY PARSED FUNCTION {}", func.name);
+                        contract.functions.push(func);
+                    }
+                    TokenKind::Event => {
+                        let ev = self.parse_event()?;
+                        tracing::info!(target: "parser", "SUCCESSFULLY PARSED EVENT {}", ev.name);
+                        contract.events.push(ev);
+                    }
+                    TokenKind::Constant => {
+                        let c = self.parse_constant()?;
+                        tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {}", c.name);
+                        contract.constants.borrow_mut().push(c);
+                    }
+                    TokenKind::Macro | TokenKind::Fn => {
+                        let m = self.parse_macro()?;
+                        tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
+                        contract.macros.push(m);
+                    }
+                    TokenKind::JumpTable | TokenKind::JumpTablePacked | TokenKind::CodeTable => {
+                        contract.tables.push(self.parse_table()?);
+                    }
+                    _ => {
+                        tracing::error!(
+                            target: "parser",
+                            "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
+                            self.current_token.kind
+                        );
+                        return Err(ParserError {
+                            kind: ParserErrorKind::InvalidDefinition(self.current_token.kind.clone()),
+                            hint: Some("Definition must be one of: `function`, `event`, `constant`, `macro`, or `fn`.".to_string()),
+                            spans: AstSpan(vec![self.current_token.span.clone()]),
+                        })
+                    }
+                };
+            } else {
+                // If we don't have an "#include" or "#define" keyword, we have an invalid token
+                return Err(ParserError {
+                    kind: ParserErrorKind::UnexpectedType(self.current_token.kind.clone()),
+                    hint: Some(format!(
+                        "Expected either \"{}\" or \"{}\"",
+                        TokenKind::Define,
+                        TokenKind::Include
+                    )),
+                    spans: AstSpan(self.spans.clone()),
+                })
+            }
         }
 
         Ok(contract)
