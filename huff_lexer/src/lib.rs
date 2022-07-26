@@ -281,6 +281,7 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Fn) |
             Some(TokenKind::Function) |
             Some(TokenKind::Constant) |
+            Some(TokenKind::Error) |
             Some(TokenKind::Event) |
             Some(TokenKind::JumpTable) |
             Some(TokenKind::JumpTablePacked) |
@@ -383,6 +384,7 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Fn,
                         TokenKind::Function,
                         TokenKind::Constant,
+                        TokenKind::Error,
                         TokenKind::Takes,
                         TokenKind::Returns,
                         TokenKind::Event,

@@ -20,6 +20,7 @@
 //!     invocations: vec![],
 //!     imports: vec![],
 //!     constants: Rc::new(RefCell::new(vec![])),
+//!     errors: vec![],
 //!     functions: vec![huff_utils::ast::Function {
 //!         name: "CONSTRUCTOR".to_string(),
 //!         signature: [0u8, 0u8, 0u8, 0u8],

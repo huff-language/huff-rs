@@ -99,6 +99,8 @@ pub struct Contract {
     pub imports: Vec<FilePath>,
     /// Constants
     pub constants: Rc<RefCell<Vec<ConstantDefinition>>>,
+    /// Custom Errors
+    pub errors: Vec<ErrorDefinition>,
     /// Functions
     pub functions: Vec<Function>,
     /// Events
@@ -617,6 +619,17 @@ pub struct ConstantDefinition {
     pub name: String,
     /// The Constant value
     pub value: ConstVal,
+    /// The Span of the Constant Definition
+    pub span: AstSpan,
+}
+
+/// An Error Definition
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ErrorDefinition {
+    /// The Error name
+    pub name: String,
+    /// The Error's selector
+    pub selector: [u8; 4],
     /// The Span of the Constant Definition
     pub span: AstSpan,
 }

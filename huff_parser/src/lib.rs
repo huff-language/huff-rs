@@ -88,6 +88,11 @@ impl Parser {
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {}", c.name);
                         contract.constants.borrow_mut().push(c);
                     }
+                    TokenKind::Error => {
+                        let e = self.parse_custom_error()?;
+                        tracing::info!(target: "parser", "SUCCESSFULLY PARSED ERROR {}", e.name);
+                        contract.errors.push(e);
+                    }
                     TokenKind::Macro | TokenKind::Fn => {
                         let m = self.parse_macro()?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
@@ -384,6 +389,44 @@ impl Parser {
 
         // Return the Constant Definition
         Ok(ConstantDefinition { name, value, span: AstSpan(new_spans) })
+    }
+
+    /// Parse a custom error definition.
+    pub fn parse_custom_error(&mut self) -> Result<ErrorDefinition, ParserError> {
+        // Error Identifier
+        self.match_kind(TokenKind::Error)?;
+
+        // Parse the error name
+        self.match_kind(TokenKind::Ident("x".to_string()))?;
+        let tok = self.peek_behind().unwrap().kind;
+        let name = match tok {
+            TokenKind::Ident(err_name) => err_name,
+            _ => {
+                tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
+                let new_spans = self.spans.clone();
+                self.spans = vec![];
+                return Err(ParserError {
+                    kind: ParserErrorKind::UnexpectedType(tok),
+                    hint: Some("Expected error name.".to_string()),
+                    spans: AstSpan(new_spans),
+                })
+            }
+        };
+
+        let mut signature = [0u8; 4]; // Only keep first 4 bytes
+        let mut hasher = Keccak::v256();
+        hasher.update(format!("{}()", name).as_bytes());
+        hasher.finalize(&mut signature);
+
+        // Match empty parenthesis
+        self.match_kind(TokenKind::OpenParen)?;
+        self.match_kind(TokenKind::CloseParen)?;
+
+        // Clone spans and set to nothing
+        let new_spans = self.spans.clone();
+        self.spans = vec![];
+
+        Ok(ErrorDefinition { name, selector: signature, span: AstSpan(new_spans) })
     }
 
     /// Parses a macro.
