@@ -381,10 +381,8 @@ pub fn statement_gen(
                         .find(|e| bf.args[0].name.as_ref().unwrap().eq(&e.name))
                     {
                         // Add 28 bytes to left-pad the 4 byte selector
-                        let selector = format!(
-                            "{}00000000000000000000000000000000000000000000000000000000",
-                            hex::encode(error.selector)
-                        );
+                        let selector =
+                            format!("{}{}", hex::encode(error.selector), "00".repeat(28));
                         let push_bytes = format!("{:02x}{}", 95 + selector.len() / 2, selector);
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
