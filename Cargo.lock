@@ -671,7 +671,6 @@ dependencies = [
  "huff_utils",
  "proptest",
  "serde_json",
- "tiny-keccak",
  "tracing",
  "uuid",
 ]
@@ -716,7 +715,6 @@ dependencies = [
  "huff_utils",
  "proptest",
  "regex",
- "tiny-keccak",
  "tracing",
 ]
 
@@ -735,6 +733,7 @@ dependencies = [
  "serde_json",
  "strum",
  "strum_macros",
+ "tiny-keccak",
  "tracing",
  "uuid",
 ]

@@ -7,13 +7,12 @@
 use huff_utils::{
     ast::*,
     error::*,
-    prelude::{str_to_bytes32, FileSource, Span},
+    prelude::{hash_bytes, str_to_bytes32, FileSource, Span},
     token::{Token, TokenKind},
     types::*,
 };
 use regex::Regex;
 use std::path::Path;
-use tiny_keccak::{Hasher, Keccak};
 
 /// The Parser
 #[derive(Debug, Clone)]
@@ -87,6 +86,11 @@ impl Parser {
                         let c = self.parse_constant()?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {}", c.name);
                         contract.constants.borrow_mut().push(c);
+                    }
+                    TokenKind::Error => {
+                        let e = self.parse_custom_error()?;
+                        tracing::info!(target: "parser", "SUCCESSFULLY PARSED ERROR {}", e.name);
+                        contract.errors.push(e);
                     }
                     TokenKind::Macro | TokenKind::Fn => {
                         let m = self.parse_macro()?;
@@ -255,7 +259,7 @@ impl Parser {
         };
 
         // function inputs should be next
-        let inputs: Vec<Argument> = self.parse_args(true, true, false, false)?;
+        let inputs = self.parse_args(true, true, false, false)?;
         // function type should be next
         let fn_type = match self.current_token.kind.clone() {
             TokenKind::View => FunctionType::View,
@@ -278,14 +282,12 @@ impl Parser {
         // next token should be of `TokenKind::Returns`
         self.match_kind(TokenKind::Returns)?;
         // function outputs should be next
-        let outputs: Vec<Argument> = self.parse_args(true, true, false, false)?;
+        let outputs = self.parse_args(true, true, false, false)?;
 
         let mut signature = [0u8; 4]; // Only keep first 4 bytes
-        let mut hasher = Keccak::v256();
         let input_types =
             inputs.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
-        hasher.update(format!("{}({})", name, input_types.join(",")).as_bytes());
-        hasher.finalize(&mut signature);
+        hash_bytes(&mut signature, &format!("{}({})", name, input_types.join(",")));
 
         Ok(Function {
             name,
@@ -319,14 +321,12 @@ impl Parser {
         };
 
         // Parse the event's parameters
-        let parameters: Vec<Argument> = self.parse_args(true, true, true, false)?;
+        let parameters = self.parse_args(true, true, true, false)?;
 
         let mut hash = [0u8; 32];
-        let mut hasher = Keccak::v256();
         let input_types =
             parameters.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
-        hasher.update(format!("{}({})", name, input_types.join(",")).as_bytes());
-        hasher.finalize(&mut hash);
+        hash_bytes(&mut hash, &format!("{}({})", name, input_types.join(",")));
 
         Ok(Event { name, parameters, span: AstSpan(self.spans.clone()), hash })
     }
@@ -343,12 +343,10 @@ impl Parser {
             TokenKind::Ident(const_name) => const_name,
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
-                let new_spans = self.spans.clone();
-                self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::UnexpectedType(tok),
                     hint: Some("Expected constant name.".to_string()),
-                    spans: AstSpan(new_spans),
+                    spans: AstSpan(self.spans.clone()),
                 })
             }
         };
@@ -386,6 +384,41 @@ impl Parser {
         Ok(ConstantDefinition { name, value, span: AstSpan(new_spans) })
     }
 
+    /// Parse a custom error definition.
+    pub fn parse_custom_error(&mut self) -> Result<ErrorDefinition, ParserError> {
+        // Error Identifier
+        self.match_kind(TokenKind::Error)?;
+
+        // Parse the error name
+        self.match_kind(TokenKind::Ident("x".to_string()))?;
+        let tok = self.peek_behind().unwrap().kind;
+        let name = match tok {
+            TokenKind::Ident(err_name) => err_name,
+            _ => {
+                tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
+                return Err(ParserError {
+                    kind: ParserErrorKind::UnexpectedType(tok),
+                    hint: Some("Expected error name.".to_string()),
+                    spans: AstSpan(self.spans.clone()),
+                })
+            }
+        };
+
+        // Get arguments for signature
+        let inputs = self.parse_args(true, true, false, false)?;
+
+        let mut selector = [0u8; 4]; // Only keep first 4 bytes
+        let input_types =
+            inputs.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
+        hash_bytes(&mut selector, &format!("{}({})", name, input_types.join(",")));
+
+        // Clone spans and set to nothing
+        let new_spans = self.spans.clone();
+        self.spans = vec![];
+
+        Ok(ErrorDefinition { name, selector, span: AstSpan(new_spans) })
+    }
+
     /// Parses a macro.
     ///
     /// It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
@@ -396,7 +429,7 @@ impl Parser {
             self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?.to_string();
         tracing::info!(target: "parser", "PARSING MACRO: \"{}\"", macro_name);
 
-        let macro_arguments: Vec<Argument> = self.parse_args(true, false, false, false)?;
+        let macro_arguments = self.parse_args(true, false, false, false)?;
         self.match_kind(TokenKind::Assign)?;
         self.match_kind(TokenKind::Takes)?;
         let macro_takes: usize = self.parse_single_arg()?;
@@ -512,7 +545,7 @@ impl Parser {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [BUILTIN FN: {}({:?})]", f, args);
                     statements.push(Statement {
                         ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
-                            kind: BuiltinFunctionKind::from(f.as_str()),
+                            kind: BuiltinFunctionKind::from(f),
                             args,
                             span: AstSpan(curr_spans.clone()),
                         }),

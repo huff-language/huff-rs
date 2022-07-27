@@ -1,5 +1,4 @@
 use huff_utils::prelude::*;
-use tiny_keccak::{Hasher, Keccak};
 
 use crate::Codegen;
 
@@ -287,9 +286,7 @@ pub fn statement_gen(
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else if let Some(s) = &bf.args[0].name {
                         let mut signature = [0u8; 4]; // Only keep first 4 bytes
-                        let mut hasher = Keccak::v256();
-                        hasher.update(s.as_bytes());
-                        hasher.finalize(&mut signature);
+                        hash_bytes(&mut signature, s);
 
                         let sig = hex::encode(signature);
                         let push_bytes = format!("{:02x}{}", 95 + sig.len() / 2, sig);
@@ -340,9 +337,7 @@ pub fn statement_gen(
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else if let Some(s) = &bf.args[0].name {
                         let mut hash = [0u8; 32];
-                        let mut hasher = Keccak::v256();
-                        hasher.update(s.as_bytes());
-                        hasher.finalize(&mut hash);
+                        hash_bytes(&mut hash, s);
 
                         let hash = hex::encode(hash);
                         let push_bytes = format!("{:02x}{}", 95 + hash.len() / 2, hash);
@@ -356,6 +351,49 @@ pub fn statement_gen(
                         );
                         return Err(CodegenError {
                             kind: CodegenErrorKind::MissingEventInterface(
+                                bf.args[0].name.as_ref().unwrap().to_string(),
+                            ),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+                }
+                BuiltinFunctionKind::Error => {
+                    if bf.args.len() != 1 {
+                        tracing::error!(
+                            target: "codegen",
+                            "Incorrect number of arguments passed to __ERROR, should be 1: {}",
+                            bf.args.len()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidArguments(format!(
+                                "Incorrect number of arguments passed to __ERROR, should be 1: {}",
+                                bf.args.len()
+                            )),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+
+                    if let Some(error) = contract
+                        .errors
+                        .iter()
+                        .find(|e| bf.args[0].name.as_ref().unwrap().eq(&e.name))
+                    {
+                        // Add 28 bytes to left-pad the 4 byte selector
+                        let selector =
+                            format!("{}{}", hex::encode(error.selector), "00".repeat(28));
+                        let push_bytes = format!("{:02x}{}", 95 + selector.len() / 2, selector);
+                        *offset += push_bytes.len() / 2;
+                        bytes.push((starting_offset, Bytes(push_bytes)));
+                    } else {
+                        tracing::error!(
+                            target: "codegen",
+                            "MISSING ERROR DEFINITION PASSED TO __ERROR: \"{}\"",
+                            bf.args[0].name.as_ref().unwrap()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::MissingErrorDefinition(
                                 bf.args[0].name.as_ref().unwrap().to_string(),
                             ),
                             span: bf.span.clone(),

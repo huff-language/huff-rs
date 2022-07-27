@@ -281,6 +281,7 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Fn) |
             Some(TokenKind::Function) |
             Some(TokenKind::Constant) |
+            Some(TokenKind::Error) |
             Some(TokenKind::Event) |
             Some(TokenKind::JumpTable) |
             Some(TokenKind::JumpTablePacked) |
@@ -383,6 +384,7 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenKind::Fn,
                         TokenKind::Function,
                         TokenKind::Constant,
+                        TokenKind::Error,
                         TokenKind::Takes,
                         TokenKind::Returns,
                         TokenKind::Event,
@@ -424,7 +426,9 @@ impl<'a> Iterator for Lexer<'a> {
                             TokenKind::Macro | TokenKind::Fn => {
                                 self.context = Context::MacroDefinition
                             }
-                            TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
+                            TokenKind::Function | TokenKind::Event | TokenKind::Error => {
+                                self.context = Context::Abi
+                            }
                             TokenKind::Constant => self.context = Context::Constant,
                             TokenKind::CodeTable => self.context = Context::CodeTableBody,
                             _ => (),
@@ -557,14 +561,7 @@ impl<'a> Iterator for Lexer<'a> {
                         let slice = self.slice();
                         // Check for built-in function calls
                         if self.context == Context::MacroBody &&
-                            matches!(
-                                slice.as_ref(),
-                                "__codesize" |
-                                    "__tablesize" |
-                                    "__tablestart" |
-                                    "__FUNC_SIG" |
-                                    "__EVENT_HASH" /* TODO: Clean this process up */
-                            )
+                            BuiltinFunctionKind::try_from(&slice).is_ok()
                         {
                             TokenKind::BuiltinFunction(slice)
                         } else {

@@ -12,6 +12,7 @@ use std::{
     cell::RefCell,
     collections::BTreeMap,
     fmt::{Display, Formatter},
+    panic,
     path::PathBuf,
     rc::Rc,
 };
@@ -99,6 +100,8 @@ pub struct Contract {
     pub imports: Vec<FilePath>,
     /// Constants
     pub constants: Rc<RefCell<Vec<ConstantDefinition>>>,
+    /// Custom Errors
+    pub errors: Vec<ErrorDefinition>,
     /// Functions
     pub functions: Vec<Function>,
     /// Events
@@ -621,6 +624,17 @@ pub struct ConstantDefinition {
     pub span: AstSpan,
 }
 
+/// An Error Definition
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ErrorDefinition {
+    /// The Error name
+    pub name: String,
+    /// The Error's selector
+    pub selector: [u8; 4],
+    /// The Span of the Constant Definition
+    pub span: AstSpan,
+}
+
 /// A Jump Destination
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Label {
@@ -639,7 +653,7 @@ pub struct BuiltinFunctionCall {
     pub kind: BuiltinFunctionKind,
     /// Arguments for the builtin function call.
     /// TODO: Maybe make a better type for this other than `Argument`? Would be nice if it pointed
-    /// directly to the macro/table.
+    ///       directly to the macro/table.
     pub args: Vec<Argument>,
     /// The builtin function call span
     pub span: AstSpan,
@@ -658,17 +672,34 @@ pub enum BuiltinFunctionKind {
     FunctionSignature,
     /// Event hash function
     EventHash,
+    /// Error selector function
+    Error,
 }
 
-impl From<&str> for BuiltinFunctionKind {
-    fn from(s: &str) -> Self {
-        match s {
+impl From<String> for BuiltinFunctionKind {
+    fn from(value: String) -> Self {
+        match value.as_str() {
             "__tablesize" => BuiltinFunctionKind::Tablesize,
             "__codesize" => BuiltinFunctionKind::Codesize,
             "__tablestart" => BuiltinFunctionKind::Tablestart,
             "__FUNC_SIG" => BuiltinFunctionKind::FunctionSignature,
             "__EVENT_HASH" => BuiltinFunctionKind::EventHash,
-            _ => panic!("Invalid Builtin Function Kind"), // TODO: Better error handling
+            "__ERROR" => BuiltinFunctionKind::Error,
+            _ => panic!("Invalid Builtin Function Kind"), /* This should never be reached,
+                                                           * builtins are validated with a
+                                                           * `try_from` call in the lexer. */
+        }
+    }
+}
+
+impl TryFrom<&String> for BuiltinFunctionKind {
+    type Error = ();
+
+    fn try_from(value: &String) -> Result<Self, <BuiltinFunctionKind as TryFrom<&String>>::Error> {
+        if let Ok(kind) = panic::catch_unwind(|| BuiltinFunctionKind::from(value.to_owned())) {
+            Ok(kind)
+        } else {
+            Err(())
         }
     }
 }
