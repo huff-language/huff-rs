@@ -343,12 +343,10 @@ impl Parser {
             TokenKind::Ident(const_name) => const_name,
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
-                let new_spans = self.spans.clone();
-                self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::UnexpectedType(tok),
                     hint: Some("Expected constant name.".to_string()),
-                    spans: AstSpan(new_spans),
+                    spans: AstSpan(self.spans.clone()),
                 })
             }
         };
@@ -398,12 +396,10 @@ impl Parser {
             TokenKind::Ident(err_name) => err_name,
             _ => {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
-                let new_spans = self.spans.clone();
-                self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::UnexpectedType(tok),
                     hint: Some("Expected error name.".to_string()),
-                    spans: AstSpan(new_spans),
+                    spans: AstSpan(self.spans.clone()),
                 })
             }
         };
