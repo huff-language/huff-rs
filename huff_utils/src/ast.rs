@@ -12,7 +12,6 @@ use std::{
     cell::RefCell,
     collections::BTreeMap,
     fmt::{Display, Formatter},
-    panic,
     path::PathBuf,
     rc::Rc,
 };
@@ -696,10 +695,14 @@ impl TryFrom<&String> for BuiltinFunctionKind {
     type Error = ();
 
     fn try_from(value: &String) -> Result<Self, <BuiltinFunctionKind as TryFrom<&String>>::Error> {
-        if let Ok(kind) = panic::catch_unwind(|| BuiltinFunctionKind::from(value.to_owned())) {
-            Ok(kind)
-        } else {
-            Err(())
+        match value.as_str() {
+            "__tablesize" => Ok(BuiltinFunctionKind::Tablesize),
+            "__codesize" => Ok(BuiltinFunctionKind::Codesize),
+            "__tablestart" => Ok(BuiltinFunctionKind::Tablestart),
+            "__FUNC_SIG" => Ok(BuiltinFunctionKind::FunctionSignature),
+            "__EVENT_HASH" => Ok(BuiltinFunctionKind::EventHash),
+            "__ERROR" => Ok(BuiltinFunctionKind::Error),
+            _ => Err(()),
         }
     }
 }
