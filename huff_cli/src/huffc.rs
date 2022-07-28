@@ -199,7 +199,7 @@ fn main() {
                     ),
                     token: None,
                 });
-                tracing::error!(target: "cli", "COMPILER ERRORED: {:?}", e);
+                tracing::error!(target: "cli", "COMPILER ERRORED: {}", e);
                 eprintln!("{}", Paint::red(format!("{}", e)));
                 std::process::exit(1);
             }
@@ -296,7 +296,7 @@ fn main() {
             }
         }
         Err(e) => {
-            tracing::error!(target: "cli", "COMPILER ERRORED: {:?}", e);
+            tracing::error!(target: "cli", "COMPILER ERRORED: {}", e);
             eprintln!("{}", Paint::red(format!("{}", e)));
             std::process::exit(1);
         }

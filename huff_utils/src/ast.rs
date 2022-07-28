@@ -143,7 +143,8 @@ impl Contract {
                 &mut last_assigned_free_pointer,
             ),
             None => {
-                tracing::error!(target: "ast", "'CONSTRUCTOR' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
+                // The constructor is not required, so we can just warn
+                tracing::warn!(target: "ast", "'CONSTRUCTOR' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
             }
         }
 

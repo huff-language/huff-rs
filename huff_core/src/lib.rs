@@ -252,7 +252,7 @@ impl<'a> Compiler<'a> {
         let main_bytecode = match Codegen::generate_main_bytecode(&contract) {
             Ok(mb) => mb,
             Err(mut e) => {
-                tracing::error!(target: "codegen", "FAILED TO GENERATE MAIN BYTECODE FOR CONTRACT");
+                tracing::error!(target: "core", "FAILED TO GENERATE MAIN BYTECODE FOR CONTRACT");
                 // Add File Source to Span
                 e.span = AstSpan(
                     e.span
@@ -264,7 +264,7 @@ impl<'a> Compiler<'a> {
                         })
                         .collect::<Vec<Span>>(),
                 );
-                tracing::error!(target: "codegen", "Roll Failed with CodegenError: {:?}", e);
+                tracing::error!(target: "core", "Roll Failed with CodegenError: {:?}", e.kind);
                 return Err(CompilerError::CodegenError(e))
             }
         };

@@ -9,11 +9,10 @@ use huff_utils::{
     artifact::*,
     ast::*,
     bytecode::*,
+    bytes_util,
     error::CodegenError,
     evm::Opcode,
-    prelude::{
-        bytes32_to_string, format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span,
-    },
+    prelude::{format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span},
     types::EToken,
 };
 use std::{collections::HashMap, fs, path::Path, sync::Arc};
@@ -67,6 +66,8 @@ impl Codegen {
             0,
             &mut Vec::default(),
         )?;
+
+        tracing::debug!(target: "codegen", "Generated main bytecode. Appending table bytecode...");
 
         // Generate the fully baked bytecode
         Codegen::gen_table_bytecode(bytecode_res)
@@ -135,13 +136,16 @@ impl Codegen {
 
         res.utilized_tables.iter().try_for_each(|jt| {
             table_offsets.insert(jt.name.to_string(), table_offset);
-            let size = match bytes32_to_string(&jt.size, false).as_str().parse::<usize>() {
+            let size = match bytes_util::hex_to_usize(bytes_util::bytes32_to_string(&jt.size, false).as_str()) {
                 Ok(s) => s,
-                Err(_) => return Err(CodegenError {
-                    kind: CodegenErrorKind::UsizeConversion(format!("{:?}", jt.size)),
-                    span: jt.span.clone(),
-                    token: None
-                })
+                Err(e) => {
+                    tracing::error!(target: "codegen", "Errored converting bytes32 to str. Bytes {:?} with error: {:?}", jt.size, e);
+                    return Err(CodegenError {
+                        kind: CodegenErrorKind::UsizeConversion(format!("{:?}", jt.size)),
+                        span: jt.span.clone(),
+                        token: None
+                    })
+                }
             };
             table_offset += size;
 
