@@ -23,7 +23,9 @@ pub fn str_to_bytes32(s: &str) -> [u8; 32] {
 pub fn bytes32_to_string(bytes: &[u8; 32], prefixed: bool) -> String {
     let mut s = String::default();
     let start = bytes.iter().position(|b| *b != 0).unwrap_or(bytes.len() - 1);
+    tracing::debug!(target: "bytes_util", "got start: {}", start);
     for b in &bytes[start..bytes.len()] {
+        tracing::debug!(target: "bytes_util", "Converting byte: {}", b);
         s = format!("{}{:02x}", s, *b);
     }
     format!("{}{}", if prefixed { "0x" } else { "" }, s)

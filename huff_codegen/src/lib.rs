@@ -68,6 +68,8 @@ impl Codegen {
             &mut Vec::default(),
         )?;
 
+        tracing::debug!(target: "codegen", "Generated main bytecode. Appending table bytecode...");
+
         // Generate the fully baked bytecode
         Codegen::gen_table_bytecode(bytecode_res)
     }
@@ -137,11 +139,14 @@ impl Codegen {
             table_offsets.insert(jt.name.to_string(), table_offset);
             let size = match bytes32_to_string(&jt.size, false).as_str().parse::<usize>() {
                 Ok(s) => s,
-                Err(_) => return Err(CodegenError {
-                    kind: CodegenErrorKind::UsizeConversion(format!("{:?}", jt.size)),
-                    span: jt.span.clone(),
-                    token: None
-                })
+                Err(e) => {
+                    tracing::error!(target: "codegen", "Errored converting bytes32 to str. Bytes {:?} with error: {:?}", jt.size, e);
+                    return Err(CodegenError {
+                        kind: CodegenErrorKind::UsizeConversion(format!("{:?}", jt.size)),
+                        span: jt.span.clone(),
+                        token: None
+                    })
+                }
             };
             table_offset += size;
 
