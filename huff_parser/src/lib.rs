@@ -103,12 +103,12 @@ impl Parser {
                     _ => {
                         tracing::error!(
                             target: "parser",
-                            "Invalid definition. Must be a function, event, constant, or macro. Got: {}",
+                            "Invalid definition. Must be a function, event, constant, error, or macro. Got: {}",
                             self.current_token.kind
                         );
                         return Err(ParserError {
                             kind: ParserErrorKind::InvalidDefinition(self.current_token.kind.clone()),
-                            hint: Some("Definition must be one of: `function`, `event`, `constant`, `macro`, or `fn`.".to_string()),
+                            hint: Some("Definition must be one of: `function`, `event`, `constant`, `error`, `macro`, or `fn`.".to_string()),
                             spans: AstSpan(vec![self.current_token.span.clone()]),
                         })
                     }
