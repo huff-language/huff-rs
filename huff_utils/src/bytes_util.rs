@@ -1,3 +1,5 @@
+use std::num::ParseIntError;
+
 use tiny_keccak::{Hasher, Keccak};
 
 /// Convert a string slice to a `[u8; 32]`
@@ -27,8 +29,14 @@ pub fn bytes32_to_string(bytes: &[u8; 32], prefixed: bool) -> String {
     for b in &bytes[start..bytes.len()] {
         tracing::debug!(target: "bytes_util", "Converting byte: {}", b);
         s = format!("{}{:02x}", s, *b);
+        tracing::debug!(target: "bytes_util", "Converted byte: {} to string {}", b, s);
     }
     format!("{}{}", if prefixed { "0x" } else { "" }, s)
+}
+
+/// Wrapper to convert a hex string to a usize.
+pub fn hex_to_usize(s: &str) -> Result<usize, ParseIntError> {
+    usize::from_str_radix(s, 16)
 }
 
 /// Pad a hex string with n 0 bytes to the left. Will not pad a hex string that has a length
