@@ -9,12 +9,10 @@ use huff_utils::{
     artifact::*,
     ast::*,
     bytecode::*,
+    bytes_util,
     error::CodegenError,
     evm::Opcode,
-    prelude::{
-        format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span,
-    },
-    bytes_util,
+    prelude::{format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span},
     types::EToken,
 };
 use std::{collections::HashMap, fs, path::Path, sync::Arc};
