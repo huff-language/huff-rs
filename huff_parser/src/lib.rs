@@ -688,8 +688,7 @@ impl Parser {
     ) -> Result<Vec<Argument>, ParserError> {
         let mut args: Vec<Argument> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
-        tracing::debug!(target: "parser", "PARSING ARGS...");
-        tracing::debug!(target: "parser", "PARSING ARGs: {:?}", self.current_token);
+        tracing::debug!(target: "parser", "PARSING ARGs: {:?}", self.current_token.kind);
         while !self.check(TokenKind::CloseParen) {
             // The builtin functions `__FUNC_SIG` and `__EVENT_HASH` can accept a single string as
             // input. If the `is_builtin` flag was passed, check to see if a single
@@ -716,8 +715,6 @@ impl Parser {
             let mut arg = Argument::default();
             let mut arg_spans = vec![];
 
-            // tracing::debug!(target: "parser", "PARSING ARGUMENT TYPE");
-
             // type comes first
             if select_type {
                 arg_spans.push(self.current_token.span.clone());
@@ -741,7 +738,7 @@ impl Parser {
                 self.consume();
             }
 
-            // If both arg type and arg name are none, we error here
+            // If both arg type and arg name are none, we didn't consume anything
             if arg.arg_type.is_none() && arg.name.is_none() {
                 tracing::error!(target: "parser", "INVALID ARGUMENT TOKEN: {:?}", self.current_token.kind);
                 return Err(ParserError {
