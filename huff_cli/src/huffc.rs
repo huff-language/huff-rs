@@ -7,7 +7,8 @@
 #![forbid(where_clauses_object_safety)]
 #![allow(deprecated)]
 
-use clap::Parser as ClapParser;
+use clap::CommandFactory;
+use clap::{Parser as ClapParser, App};
 use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
@@ -56,8 +57,8 @@ struct Huff {
     optimize: bool,
 
     /// Generate solidity interface for a Huff artifact
-    #[clap(short = 'g', long = "interface")]
-    interface: bool,
+    #[clap(short = 'g', min_values=0, long = "interface")]
+    interface: Option<String>,
 
     /// Generate and log bytecode.
     #[clap(short = 'b', long = "bytecode")]
@@ -89,6 +90,9 @@ pub(crate) fn get_input(prompt: &str) -> String {
 }
 
 fn main() {
+    // Into App
+    let app: App = Huff::into_app();
+
     // Parse the command line arguments
     let mut cli = Huff::parse();
 
@@ -204,9 +208,29 @@ fn main() {
                 std::process::exit(1);
             }
 
-            if cli.interface {
+            // let cli_app: App = (cli as clap::Parser).into_app();
+            if app.get_matches().is_present("interface") {
+                let mut interface: Option<String> = None;
+                if artifacts.len() == 1 {
+                    let gen_interface: Option<String> = match artifacts[0].file.path.split('/').last() {
+                        Some(p) => match p.split('.').next() {
+                            Some(p) => Some(p.to_string()),
+                            None => {
+                                tracing::warn!(target: "cli", "No file name found for artifact");
+                                None
+                            }
+                        }
+                        None => {
+                            tracing::warn!(target: "cli", "No trailing string");
+                            None
+                        }
+                    };
+                    interface = Some(cli.interface.unwrap_or_else(|| gen_interface.unwrap_or_else(|| "Interface".to_string())));
+                } else if cli.interface.is_some() {
+                    tracing::warn!(target: "cli", "Interface override ignored since multiple artifacts were generated");
+                }
                 tracing::info!(target: "cli", "GENERATING SOLIDITY INTERFACES FROM ARTIFACTS");
-                let interfaces = gen_sol_interfaces(&artifacts);
+                let interfaces = gen_sol_interfaces(&artifacts, interface);
                 if export_interfaces(&interfaces).is_ok() {
                     tracing::info!(target: "cli", "GENERATED SOLIDITY INTERFACES FROM ARTIFACTS SUCCESSFULLY");
                     println!(
