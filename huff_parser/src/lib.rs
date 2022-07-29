@@ -703,6 +703,7 @@ impl Parser {
     ) -> Result<Vec<Argument>, ParserError> {
         let mut args: Vec<Argument> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
+        tracing::debug!(target: "parser", "PARSING ARGs: {:?}", self.current_token.kind);
         while !self.check(TokenKind::CloseParen) {
             // The builtin functions `__FUNC_SIG` and `__EVENT_HASH` can accept a single string as
             // input. If the `is_builtin` flag was passed, check to see if a single
@@ -750,6 +751,16 @@ impl Parser {
             // multiple args possible
             if self.check(TokenKind::Comma) {
                 self.consume();
+            }
+
+            // If both arg type and arg name are none, we didn't consume anything
+            if arg.arg_type.is_none() && arg.name.is_none() {
+                tracing::error!(target: "parser", "INVALID ARGUMENT TOKEN: {:?}", self.current_token.kind);
+                return Err(ParserError {
+                    kind: ParserErrorKind::InvalidArgs(self.current_token.kind.clone()),
+                    hint: None,
+                    spans: AstSpan(vec![self.current_token.span.clone()]),
+                })
             }
 
             arg.span = AstSpan(arg_spans);
