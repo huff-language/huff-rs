@@ -18,6 +18,12 @@ fn test_parses_custom_error() {
         ErrorDefinition {
             name: String::from("TestError"),
             selector: [124, 104, 44, 83],
+            parameters: vec![Argument {
+                arg_type: Some(String::from("uint256")),
+                name: None,
+                indexed: false,
+                span: AstSpan(vec![Span { start: 24, end: 31, file: None }])
+            }],
             span: AstSpan(vec![
                 Span { start: 0, end: 7, file: None },
                 Span { start: 8, end: 13, file: None },

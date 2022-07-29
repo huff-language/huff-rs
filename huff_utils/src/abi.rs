@@ -53,6 +53,8 @@ pub struct Abi {
     pub functions: BTreeMap<String, Function>,
     /// A list of events and their definitions
     pub events: BTreeMap<String, Event>,
+    /// A list of errors and their definitions
+    pub errors: BTreeMap<String, Error>,
     /// If the contract defines receive logic
     pub receive: bool,
     /// If the contract defines fallback logic
@@ -113,6 +115,7 @@ impl From<ast::Contract> for Abi {
         // Instantiate functions and events
         let mut functions = BTreeMap::new();
         let mut events = BTreeMap::new();
+        let mut errors = BTreeMap::new();
 
         // Translate contract functions
         // Excluding constructor
@@ -178,7 +181,32 @@ impl From<ast::Contract> for Abi {
                 let _ = events.insert(val.0, val.1);
             });
 
-        Self { constructor, functions, events, receive: false, fallback: false }
+        // Translate contract errors
+        contract
+            .errors
+            .iter()
+            .map(|error| {
+                (
+                    error.name.to_string(),
+                    Error {
+                        name: error.name.to_string(),
+                        inputs: error
+                            .parameters
+                            .iter()
+                            .map(|argument| FunctionParam {
+                                name: argument.name.clone().unwrap_or_default(),
+                                kind: argument.arg_type.clone().unwrap_or_default().into(),
+                                internal_type: None,
+                            })
+                            .collect(),
+                    },
+                )
+            })
+            .for_each(|val| {
+                let _ = errors.insert(val.0, val.1);
+            });
+
+        Self { constructor, functions, events, errors, receive: false, fallback: false }
     }
 }
 
@@ -223,6 +251,17 @@ pub struct EventParam {
     pub kind: FunctionParamType,
     /// If the parameter is indexed
     pub indexed: bool,
+}
+
+/// #### Error
+///
+/// An Error definition.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct Error {
+    /// The error name
+    pub name: String,
+    /// The error inputs
+    pub inputs: Vec<FunctionParam>,
 }
 
 /// #### Constructor
