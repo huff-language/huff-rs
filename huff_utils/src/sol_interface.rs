@@ -9,7 +9,10 @@ use std::{
 ///
 /// @param artifacts The vector of artifacts to generate interfaces from.
 /// @return The vector of generated interfaces.
-pub fn gen_sol_interfaces(artifacts: &Vec<Arc<Artifact>>, interface: Option<String>) -> Vec<(PathBuf, String, String)> {
+pub fn gen_sol_interfaces(
+    artifacts: &Vec<Arc<Artifact>>,
+    interface: Option<String>,
+) -> Vec<(PathBuf, String, String)> {
     let mut interfaces = Vec::new();
 
     for artifact in artifacts {
@@ -71,10 +74,14 @@ pub fn gen_sol_interfaces(artifacts: &Vec<Arc<Artifact>>, interface: Option<Stri
                 ));
             });
 
-            let interface_name = interface.clone().unwrap_or_else(||
-                artifact.file.path.split('/').last().unwrap().split('.').next().unwrap().to_string()
-            );
-            let formatted_str = format!("interface I{} {{\n{}\n}}", interface_name, defs.join("\n"));
+            let interface_name = interface.clone().unwrap_or_else(|| {
+                format!(
+                    "I{}",
+                    artifact.file.path.split('/').last().unwrap().split('.').next().unwrap()
+                )
+            });
+            let formatted_str =
+                format!("interface I{} {{\n{}\n}}", interface_name, defs.join("\n"));
             interfaces.push((
                 Path::new(&artifact.file.path).parent().unwrap().to_path_buf(),
                 interface_name,
@@ -90,9 +97,11 @@ pub fn gen_sol_interfaces(artifacts: &Vec<Arc<Artifact>>, interface: Option<Stri
 ///
 /// @param interfaces The vector of generated interfaces.
 /// @return Unit type if success, error if failure.
-pub fn export_interfaces(interfaces: &Vec<(PathBuf, String, String)>) -> Result<(), std::io::Error> {
+pub fn export_interfaces(
+    interfaces: &Vec<(PathBuf, String, String)>,
+) -> Result<(), std::io::Error> {
     for (path, name, interface) in interfaces {
-        let path_str = format!("{}/I{}.sol", path.to_str().unwrap_or(""), name);
+        let path_str = format!("{}/{}.sol", path.to_str().unwrap_or(""), name);
         let file_path = Path::new(&path_str);
         fs::write(file_path, interface)?;
     }

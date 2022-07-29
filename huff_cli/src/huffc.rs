@@ -7,8 +7,7 @@
 #![forbid(where_clauses_object_safety)]
 #![allow(deprecated)]
 
-use clap::CommandFactory;
-use clap::{Parser as ClapParser, App};
+use clap::{App, CommandFactory, Parser as ClapParser};
 use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
@@ -57,7 +56,7 @@ struct Huff {
     optimize: bool,
 
     /// Generate solidity interface for a Huff artifact
-    #[clap(short = 'g', min_values=0, long = "interface")]
+    #[clap(short = 'g', min_values = 0, long = "interface")]
     interface: Option<String>,
 
     /// Generate and log bytecode.
@@ -208,24 +207,30 @@ fn main() {
                 std::process::exit(1);
             }
 
-            // let cli_app: App = (cli as clap::Parser).into_app();
             if app.get_matches().is_present("interface") {
                 let mut interface: Option<String> = None;
                 if artifacts.len() == 1 {
-                    let gen_interface: Option<String> = match artifacts[0].file.path.split('/').last() {
+                    let gen_interface: Option<String> = match artifacts[0]
+                        .file
+                        .path
+                        .split('/')
+                        .last()
+                    {
                         Some(p) => match p.split('.').next() {
-                            Some(p) => Some(p.to_string()),
+                            Some(p) => Some(format!("I{}", p)),
                             None => {
                                 tracing::warn!(target: "cli", "No file name found for artifact");
                                 None
                             }
-                        }
+                        },
                         None => {
                             tracing::warn!(target: "cli", "No trailing string");
                             None
                         }
                     };
-                    interface = Some(cli.interface.unwrap_or_else(|| gen_interface.unwrap_or_else(|| "Interface".to_string())));
+                    interface = Some(cli.interface.unwrap_or_else(|| {
+                        gen_interface.unwrap_or_else(|| "Interface".to_string())
+                    }));
                 } else if cli.interface.is_some() {
                     tracing::warn!(target: "cli", "Interface override ignored since multiple artifacts were generated");
                 }
@@ -238,7 +243,7 @@ fn main() {
                         Paint::blue(
                             interfaces
                                 .into_iter()
-                                .map(|(_, i, _)| format!("I{}.sol", i))
+                                .map(|(_, i, _)| format!("{}.sol", i))
                                 .collect::<Vec<_>>()
                                 .join(", ")
                         )
