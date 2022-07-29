@@ -450,7 +450,7 @@ impl Parser {
 
     /// Parse the body of a macro.
     ///
-    /// Only HEX, OPCODES, labels and MACRO calls should be authorized.
+    /// Only HEX, OPCODES, labels, builtins, and MACRO calls should be authorized.
     pub fn parse_body(&mut self) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
         self.match_kind(TokenKind::OpenBrace)?;
@@ -648,6 +648,21 @@ impl Parser {
                     statements.push(Statement {
                         ty: StatementType::ArgCall(arg_call),
                         span: AstSpan(vec![arg_span]),
+                    });
+                }
+                TokenKind::BuiltinFunction(f) => {
+                    let mut curr_spans = vec![self.current_token.span.clone()];
+                    self.match_kind(TokenKind::BuiltinFunction(String::default()))?;
+                    let args = self.parse_args(true, false, false, true)?;
+                    args.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
+                    tracing::info!(target: "parser", "PARSING LABEL BODY: [BUILTIN FN: {}({:?})]", f, args);
+                    statements.push(Statement {
+                        ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
+                            kind: BuiltinFunctionKind::from(f),
+                            args,
+                            span: AstSpan(curr_spans.clone()),
+                        }),
+                        span: AstSpan(curr_spans),
                     });
                 }
                 kind => {
