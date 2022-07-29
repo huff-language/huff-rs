@@ -43,6 +43,8 @@ pub enum TokenKind {
     Event,
     /// "constant" keyword
     Constant,
+    /// "error" keyword
+    Error,
     /// "takes" keyword
     Takes,
     /// "returns" keyword
@@ -132,6 +134,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Function => "function",
             TokenKind::Event => "event",
             TokenKind::Constant => "constant",
+            TokenKind::Error => "error",
             TokenKind::View => "view",
             TokenKind::Pure => "pure",
             TokenKind::Payable => "payable",

@@ -19,6 +19,7 @@ fn constructs_valid_abi() {
         invocations: vec![],
         imports: vec![],
         constants: Rc::new(RefCell::new(vec![])),
+        errors: vec![],
         functions: vec![],
         events: vec![],
         tables: vec![],
@@ -33,6 +34,7 @@ fn constructs_valid_abi() {
             constructor: Some(Constructor { inputs: vec![] }),
             functions: BTreeMap::new(),
             events: BTreeMap::new(),
+            errors: BTreeMap::new(),
             receive: false,
             fallback: false
         }
@@ -55,6 +57,7 @@ fn missing_constructor_fails() {
         invocations: vec![],
         imports: vec![],
         constants: Rc::new(RefCell::new(vec![])),
+        errors: vec![],
         functions: vec![],
         events: vec![],
         tables: vec![],

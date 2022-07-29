@@ -53,6 +53,7 @@ let expected_contract = Contract {
   invocations: vec![],
   imports: vec![],
   constants: Rc::new(RefCell::new(vec![])),
+  errors: vec![],
   functions: vec![],
   events: vec![],
   tables: vec![],

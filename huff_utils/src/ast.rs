@@ -99,6 +99,8 @@ pub struct Contract {
     pub imports: Vec<FilePath>,
     /// Constants
     pub constants: Rc<RefCell<Vec<ConstantDefinition>>>,
+    /// Custom Errors
+    pub errors: Vec<ErrorDefinition>,
     /// Functions
     pub functions: Vec<Function>,
     /// Events
@@ -141,7 +143,8 @@ impl Contract {
                 &mut last_assigned_free_pointer,
             ),
             None => {
-                tracing::error!(target: "ast", "'CONSTRUCTOR' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
+                // The constructor is not required, so we can just warn
+                tracing::warn!(target: "ast", "'CONSTRUCTOR' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
             }
         }
 
@@ -621,6 +624,19 @@ pub struct ConstantDefinition {
     pub span: AstSpan,
 }
 
+/// An Error Definition
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ErrorDefinition {
+    /// The Error name
+    pub name: String,
+    /// The Error's selector
+    pub selector: [u8; 4],
+    /// The parameters of the error
+    pub parameters: Vec<Argument>,
+    /// The Span of the Constant Definition
+    pub span: AstSpan,
+}
+
 /// A Jump Destination
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Label {
@@ -639,7 +655,7 @@ pub struct BuiltinFunctionCall {
     pub kind: BuiltinFunctionKind,
     /// Arguments for the builtin function call.
     /// TODO: Maybe make a better type for this other than `Argument`? Would be nice if it pointed
-    /// directly to the macro/table.
+    ///       directly to the macro/table.
     pub args: Vec<Argument>,
     /// The builtin function call span
     pub span: AstSpan,
@@ -658,17 +674,38 @@ pub enum BuiltinFunctionKind {
     FunctionSignature,
     /// Event hash function
     EventHash,
+    /// Error selector function
+    Error,
 }
 
-impl From<&str> for BuiltinFunctionKind {
-    fn from(s: &str) -> Self {
-        match s {
+impl From<String> for BuiltinFunctionKind {
+    fn from(value: String) -> Self {
+        match value.as_str() {
             "__tablesize" => BuiltinFunctionKind::Tablesize,
             "__codesize" => BuiltinFunctionKind::Codesize,
             "__tablestart" => BuiltinFunctionKind::Tablestart,
             "__FUNC_SIG" => BuiltinFunctionKind::FunctionSignature,
             "__EVENT_HASH" => BuiltinFunctionKind::EventHash,
-            _ => panic!("Invalid Builtin Function Kind"), // TODO: Better error handling
+            "__ERROR" => BuiltinFunctionKind::Error,
+            _ => panic!("Invalid Builtin Function Kind"), /* This should never be reached,
+                                                           * builtins are validated with a
+                                                           * `try_from` call in the lexer. */
+        }
+    }
+}
+
+impl TryFrom<&String> for BuiltinFunctionKind {
+    type Error = ();
+
+    fn try_from(value: &String) -> Result<Self, <BuiltinFunctionKind as TryFrom<&String>>::Error> {
+        match value.as_str() {
+            "__tablesize" => Ok(BuiltinFunctionKind::Tablesize),
+            "__codesize" => Ok(BuiltinFunctionKind::Codesize),
+            "__tablestart" => Ok(BuiltinFunctionKind::Tablestart),
+            "__FUNC_SIG" => Ok(BuiltinFunctionKind::FunctionSignature),
+            "__EVENT_HASH" => Ok(BuiltinFunctionKind::EventHash),
+            "__ERROR" => Ok(BuiltinFunctionKind::Error),
+            _ => Err(()),
         }
     }
 }
