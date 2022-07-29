@@ -119,92 +119,79 @@ impl From<ast::Contract> for Abi {
 
         // Translate contract functions
         // Excluding constructor
-        contract
-            .functions
-            .iter()
-            .filter(|function: &&ast::Function| function.name != "CONSTRUCTOR")
-            .map(|function| {
-                (
-                    function.name.to_string(),
-                    Function {
-                        name: function.name.to_string(),
-                        inputs: function
-                            .inputs
-                            .iter()
-                            .map(|argument| FunctionParam {
-                                name: argument.name.clone().unwrap_or_default(),
-                                kind: argument.arg_type.clone().unwrap_or_default().into(),
-                                internal_type: None,
-                            })
-                            .collect(),
-                        outputs: function
-                            .outputs
-                            .iter()
-                            .map(|argument| FunctionParam {
-                                name: argument.name.clone().unwrap_or_default(),
-                                kind: argument.arg_type.clone().unwrap_or_default().into(),
-                                internal_type: None,
-                            })
-                            .collect(),
-                        constant: false,
-                        state_mutability: function.fn_type.clone(),
-                    },
-                )
-            })
-            .for_each(|val| {
-                let _ = functions.insert(val.0, val.1);
-            });
+        functions.extend(
+            contract
+                .functions
+                .iter()
+                .filter(|function: &&ast::Function| function.name != "CONSTRUCTOR")
+                .map(|function| {
+                    (
+                        function.name.to_string(),
+                        Function {
+                            name: function.name.to_string(),
+                            inputs: function
+                                .inputs
+                                .iter()
+                                .map(|argument| FunctionParam {
+                                    name: argument.name.clone().unwrap_or_default(),
+                                    kind: argument.arg_type.clone().unwrap_or_default().into(),
+                                    internal_type: None,
+                                })
+                                .collect(),
+                            outputs: function
+                                .outputs
+                                .iter()
+                                .map(|argument| FunctionParam {
+                                    name: argument.name.clone().unwrap_or_default(),
+                                    kind: argument.arg_type.clone().unwrap_or_default().into(),
+                                    internal_type: None,
+                                })
+                                .collect(),
+                            constant: false,
+                            state_mutability: function.fn_type.clone(),
+                        },
+                    )
+                }),
+        );
 
         // Translate contract events
-        contract
-            .events
-            .iter()
-            .map(|event| {
-                (
-                    event.name.to_string(),
-                    Event {
-                        name: event.name.to_string(),
-                        inputs: event
-                            .parameters
-                            .iter()
-                            .map(|argument| EventParam {
-                                name: argument.name.clone().unwrap_or_default(),
-                                kind: argument.arg_type.clone().unwrap_or_default().into(),
-                                indexed: argument.indexed,
-                            })
-                            .collect(),
-                        anonymous: false,
-                    },
-                )
-            })
-            .for_each(|val| {
-                let _ = events.insert(val.0, val.1);
-            });
+        events.extend(contract.events.iter().map(|event| {
+            (
+                event.name.to_string(),
+                Event {
+                    name: event.name.to_string(),
+                    inputs: event
+                        .parameters
+                        .iter()
+                        .map(|argument| EventParam {
+                            name: argument.name.clone().unwrap_or_default(),
+                            kind: argument.arg_type.clone().unwrap_or_default().into(),
+                            indexed: argument.indexed,
+                        })
+                        .collect(),
+                    anonymous: false,
+                },
+            )
+        }));
 
         // Translate contract errors
-        contract
-            .errors
-            .iter()
-            .map(|error| {
-                (
-                    error.name.to_string(),
-                    Error {
-                        name: error.name.to_string(),
-                        inputs: error
-                            .parameters
-                            .iter()
-                            .map(|argument| FunctionParam {
-                                name: argument.name.clone().unwrap_or_default(),
-                                kind: argument.arg_type.clone().unwrap_or_default().into(),
-                                internal_type: None,
-                            })
-                            .collect(),
-                    },
-                )
-            })
-            .for_each(|val| {
-                let _ = errors.insert(val.0, val.1);
-            });
+        errors.extend(contract.errors.iter().map(|error| {
+            (
+                error.name.to_string(),
+                Error {
+                    name: error.name.to_string(),
+                    inputs: error
+                        .parameters
+                        .iter()
+                        .map(|argument| FunctionParam {
+                            name: argument.name.clone().unwrap_or_default(),
+                            kind: argument.arg_type.clone().unwrap_or_default().into(),
+                            internal_type: None,
+                        })
+                        .collect(),
+                },
+            )
+        }));
 
         Self { constructor, functions, events, errors, receive: false, fallback: false }
     }
