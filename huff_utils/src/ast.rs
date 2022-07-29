@@ -631,6 +631,8 @@ pub struct ErrorDefinition {
     pub name: String,
     /// The Error's selector
     pub selector: [u8; 4],
+    /// The parameters of the error
+    pub parameters: Vec<Argument>,
     /// The Span of the Constant Definition
     pub span: AstSpan,
 }

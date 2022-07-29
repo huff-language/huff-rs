@@ -405,18 +405,18 @@ impl Parser {
         };
 
         // Get arguments for signature
-        let inputs = self.parse_args(true, true, false, false)?;
+        let parameters = self.parse_args(true, true, false, false)?;
 
         let mut selector = [0u8; 4]; // Only keep first 4 bytes
         let input_types =
-            inputs.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
+            parameters.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
         hash_bytes(&mut selector, &format!("{}({})", name, input_types.join(",")));
 
         // Clone spans and set to nothing
         let new_spans = self.spans.clone();
         self.spans = vec![];
 
-        Ok(ErrorDefinition { name, selector, span: AstSpan(new_spans) })
+        Ok(ErrorDefinition { name, selector, parameters, span: AstSpan(new_spans) })
     }
 
     /// Parses a macro.

@@ -34,6 +34,7 @@ fn constructs_valid_abi() {
             constructor: Some(Constructor { inputs: vec![] }),
             functions: BTreeMap::new(),
             events: BTreeMap::new(),
+            errors: BTreeMap::new(),
             receive: false,
             fallback: false
         }
