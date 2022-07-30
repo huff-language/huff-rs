@@ -7,7 +7,7 @@
 use huff_utils::{
     ast::*,
     error::*,
-    prelude::{hash_bytes, str_to_bytes32, FileSource, Span},
+    prelude::{bytes32_to_string, hash_bytes, str_to_bytes32, FileSource, Span},
     token::{Token, TokenKind},
     types::*,
 };
@@ -705,26 +705,37 @@ impl Parser {
         self.match_kind(TokenKind::OpenParen)?;
         tracing::debug!(target: "parser", "PARSING ARGs: {:?}", self.current_token.kind);
         while !self.check(TokenKind::CloseParen) {
-            // The builtin functions `__FUNC_SIG` and `__EVENT_HASH` can accept a single string as
-            // input. If the `is_builtin` flag was passed, check to see if a single
-            // string is present.
-            if let TokenKind::Str(s) = &self.current_token.kind {
-                if !is_builtin {
-                    return Err(ParserError {
-                        kind: ParserErrorKind::InvalidArgs(self.current_token.kind.clone()),
-                        hint: None,
-                        spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+            if is_builtin {
+                // The builtin functions `__FUNC_SIG` and `__EVENT_HASH` can accept a single string
+                // as input. If the `is_builtin` flag was passed, check to see if a
+                // single string is present.
+                if let TokenKind::Str(s) = &self.current_token.kind {
+                    args.push(Argument {
+                        name: Some(s.to_owned()), // Place the string in the "name" field
+                        arg_type: None,
+                        indexed: false,
+                        span: AstSpan(vec![self.current_token.span.clone()]),
+                    });
+
+                    self.consume();
+                    continue
                 }
 
-                args.push(Argument {
-                    name: Some(s.to_owned()), // Place the string in the "name" field
-                    arg_type: None,
-                    indexed: false,
-                    span: AstSpan(vec![self.current_token.span.clone()]),
-                });
-                self.consume();
-                continue
+                // The builtin function `__RIGHTPAD` can accept a single literal as input. If the
+                // `is_builtin` flag was passed, check to see if a single literal is
+                // present.
+                if let TokenKind::Literal(l) = &self.current_token.kind {
+                    args.push(Argument {
+                        name: Some(bytes32_to_string(l, false)), /* Place the literal in the
+                                                                  * "name" field */
+                        arg_type: None,
+                        indexed: false,
+                        span: AstSpan(vec![self.current_token.span.clone()]),
+                    });
+
+                    self.consume();
+                    continue
+                }
             }
 
             let mut arg = Argument::default();

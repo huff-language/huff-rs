@@ -676,6 +676,8 @@ pub enum BuiltinFunctionKind {
     EventHash,
     /// Error selector function
     Error,
+    /// Rightpad function
+    RightPad,
 }
 
 impl From<String> for BuiltinFunctionKind {
@@ -687,6 +689,7 @@ impl From<String> for BuiltinFunctionKind {
             "__FUNC_SIG" => BuiltinFunctionKind::FunctionSignature,
             "__EVENT_HASH" => BuiltinFunctionKind::EventHash,
             "__ERROR" => BuiltinFunctionKind::Error,
+            "__RIGHTPAD" => BuiltinFunctionKind::RightPad,
             _ => panic!("Invalid Builtin Function Kind"), /* This should never be reached,
                                                            * builtins are validated with a
                                                            * `try_from` call in the lexer. */
@@ -705,6 +708,7 @@ impl TryFrom<&String> for BuiltinFunctionKind {
             "__FUNC_SIG" => Ok(BuiltinFunctionKind::FunctionSignature),
             "__EVENT_HASH" => Ok(BuiltinFunctionKind::EventHash),
             "__ERROR" => Ok(BuiltinFunctionKind::Error),
+            "__RIGHTPAD" => Ok(BuiltinFunctionKind::RightPad),
             _ => Err(()),
         }
     }

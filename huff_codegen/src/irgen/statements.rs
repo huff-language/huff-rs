@@ -280,16 +280,15 @@ pub fn statement_gen(
                         .iter()
                         .find(|f| bf.args[0].name.as_ref().unwrap().eq(&f.name))
                     {
-                        let sig = hex::encode(func.signature);
-                        let push_bytes = format!("{:02x}{}", 95 + sig.len() / 2, sig);
+                        let push_bytes =
+                            format!("{}{}", Opcode::Push4, hex::encode(func.signature));
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else if let Some(s) = &bf.args[0].name {
                         let mut signature = [0u8; 4]; // Only keep first 4 bytes
                         hash_bytes(&mut signature, s);
 
-                        let sig = hex::encode(signature);
-                        let push_bytes = format!("{:02x}{}", 95 + sig.len() / 2, sig);
+                        let push_bytes = format!("{}{}", Opcode::Push4, hex::encode(signature));
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else {
@@ -332,15 +331,14 @@ pub fn statement_gen(
                         .find(|e| bf.args[0].name.as_ref().unwrap().eq(&e.name))
                     {
                         let hash = bytes32_to_string(&event.hash, false);
-                        let push_bytes = format!("{:02x}{}", 95 + hash.len() / 2, hash);
+                        let push_bytes = format!("{}{}", Opcode::Push32, hash);
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else if let Some(s) = &bf.args[0].name {
                         let mut hash = [0u8; 32];
                         hash_bytes(&mut hash, s);
 
-                        let hash = hex::encode(hash);
-                        let push_bytes = format!("{:02x}{}", 95 + hash.len() / 2, hash);
+                        let push_bytes = format!("{}{}", Opcode::Push32, hex::encode(hash));
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else {
@@ -383,7 +381,7 @@ pub fn statement_gen(
                         // Add 28 bytes to left-pad the 4 byte selector
                         let selector =
                             format!("{}{}", hex::encode(error.selector), "00".repeat(28));
-                        let push_bytes = format!("{:02x}{}", 95 + selector.len() / 2, selector);
+                        let push_bytes = format!("{}{}", Opcode::Push32, selector);
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else {
@@ -400,6 +398,29 @@ pub fn statement_gen(
                             token: None,
                         })
                     }
+                }
+                BuiltinFunctionKind::RightPad => {
+                    if bf.args.len() != 1 {
+                        tracing::error!(
+                            target = "codegen",
+                            "Incorrect number of arguments passed to __RIGHTPAD, should be 1: {}",
+                            bf.args.len()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidArguments(format!(
+                                "Incorrect number of arguments passed to __RIGHTPAD, should be 1: {}",
+                                bf.args.len()
+                            )),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+
+                    let hex = format_even_bytes(bf.args[0].name.as_ref().unwrap().clone());
+                    let push_bytes =
+                        format!("{}{}{}", Opcode::Push32, hex, "0".repeat(64 - hex.len()));
+                    *offset += push_bytes.len() / 2;
+                    bytes.push((starting_offset, Bytes(push_bytes)));
                 }
             }
         }
