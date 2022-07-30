@@ -198,6 +198,7 @@ pub fn builtins_under_labels() {
             __codesize(SMALL_MACRO)
             __FUNC_SIG(myFunc)
             __ERROR(TestError)
+            __RIGHTPAD(0xBB)
     }
     "#;
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
@@ -309,6 +310,25 @@ pub fn builtins_under_labels() {
                             Span { start: 477, end: 486, file: None },
                         ]),
                     },
+                    Statement {
+                        ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
+                            kind: BuiltinFunctionKind::RightPad,
+                            args: vec![Argument {
+                                arg_type: None,
+                                name: Some(String::from("bb")),
+                                indexed: false,
+                                span: AstSpan(vec![Span { start: 513, end: 515, file: None }]),
+                            }],
+                            span: AstSpan(vec![
+                                Span { start: 500, end: 510, file: None },
+                                Span { start: 513, end: 515, file: None },
+                            ]),
+                        }),
+                        span: AstSpan(vec![
+                            Span { start: 500, end: 510, file: None },
+                            Span { start: 513, end: 515, file: None },
+                        ]),
+                    },
                 ],
                 span: AstSpan(vec![
                     Span { start: 307, end: 315, file: None },
@@ -322,6 +342,8 @@ pub fn builtins_under_labels() {
                     Span { start: 449, end: 455, file: None },
                     Span { start: 469, end: 476, file: None },
                     Span { start: 477, end: 486, file: None },
+                    Span { start: 500, end: 510, file: None },
+                    Span { start: 513, end: 515, file: None },
                 ]),
             }),
             span: AstSpan(vec![
@@ -336,6 +358,8 @@ pub fn builtins_under_labels() {
                 Span { start: 449, end: 455, file: None },
                 Span { start: 469, end: 476, file: None },
                 Span { start: 477, end: 486, file: None },
+                Span { start: 500, end: 510, file: None },
+                Span { start: 513, end: 515, file: None },
             ]),
         }],
         takes: 3,
@@ -378,7 +402,11 @@ pub fn builtins_under_labels() {
             Span { start: 476, end: 477, file: None },
             Span { start: 477, end: 486, file: None },
             Span { start: 486, end: 487, file: None },
-            Span { start: 492, end: 493, file: None },
+            Span { start: 500, end: 510, file: None },
+            Span { start: 510, end: 511, file: None },
+            Span { start: 513, end: 515, file: None },
+            Span { start: 515, end: 516, file: None },
+            Span { start: 521, end: 522, file: None },
         ]),
         outlined: false,
     };

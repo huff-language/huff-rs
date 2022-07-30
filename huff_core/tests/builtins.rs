@@ -548,3 +548,51 @@ fn test_error_selector_builtin() {
         )
     );
 }
+
+#[test]
+fn test_rightpad_builtin() {
+    let source: &str = r#"
+        #define macro MAIN() = takes (0) returns (0) {
+            __RIGHTPAD(0xa57b)
+            __RIGHTPAD(0x48656c6c6f2c20576f726c6421)
+            __RIGHTPAD(0x6d6f6f7365)
+        }
+    "#;
+
+    // Parse tokens
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Parse the AST
+    let mut contract = parser.parse().unwrap();
+
+    // Derive storage pointers
+    contract.derive_storage_pointers();
+
+    // Instantiate Codegen
+    let cg = Codegen::new();
+
+    // The codegen instance should have no artifact
+    assert!(cg.artifact.is_none());
+
+    // Have Codegen create the runtime bytecode
+    let r_bytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    assert_eq!(&r_bytes[2..66], "a57b000000000000000000000000000000000000000000000000000000000000");
+    assert_eq!(
+        &r_bytes[68..132],
+        "48656c6c6f2c20576f726c642100000000000000000000000000000000000000"
+    );
+    assert_eq!(
+        &r_bytes[134..198],
+        "6d6f6f7365000000000000000000000000000000000000000000000000000000"
+    );
+    assert_eq!(r_bytes.len(), (32 * 3 + 3) * 2);
+    assert_eq!(
+        r_bytes,
+        String::from(
+            "7fa57b0000000000000000000000000000000000000000000000000000000000007f48656c6c6f2c20576f726c6421000000000000000000000000000000000000007f6d6f6f7365000000000000000000000000000000000000000000000000000000"
+        )
+    );
+}
