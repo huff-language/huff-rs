@@ -247,7 +247,7 @@ fn test_invalid_token_in_label_definition() {
 
 #[test]
 fn test_invalid_single_arg() {
-    for _ in [0..10_000] {
+    for _ in 0..10_000 {
         let random_char = rand::random::<u8>() as char;
         if random_char.is_numeric() ||
             !random_char.is_alphabetic() ||
