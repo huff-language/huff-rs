@@ -31,7 +31,7 @@ pub fn resolve_existing_artifacts(
         files.iter().map(|f| (f.path.clone().to_lowercase(), Arc::clone(f))).collect();
 
     // If outputdir is not specified, use the default "./artifacts/" directory
-    let output_dir = (!output.0.is_empty()).then_some(&*output.0).unwrap_or("./artifacts");
+    let output_dir = if !output.0.is_empty() { &*output.0 } else { "./artifacts" };
 
     // For each file, check if the artifact file exists at the location
     tracing::debug!(target: "core", "Traversing output directory {}", output_dir);

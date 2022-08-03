@@ -147,7 +147,6 @@ pub fn bubble_arg_call(
                                 *offset += 3;
                             }
                         }
-
                     }
                 }
             } else {
