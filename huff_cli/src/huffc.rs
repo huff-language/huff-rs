@@ -63,6 +63,10 @@ struct Huff {
     #[clap(short = 'b', long = "bytecode")]
     bytecode: bool,
 
+    /// Generate and log runtime bytecode.
+    #[clap(short = 'r', long = "bin-runtime")]
+    bin_runtime: bool,
+
     /// Prints out to the terminal.
     #[clap(short = 'p', long = "print")]
     print: bool,
@@ -321,6 +325,15 @@ fn main() {
                     _ => artifacts
                         .iter()
                         .for_each(|a| println!("\"{}\" bytecode: {}", a.file.path, a.bytecode)),
+                }
+            }
+
+            if cli.bin_runtime {
+                match sources.len() {
+                    1 => print!("{}", artifacts[0].runtime),
+                    _ => artifacts
+                        .iter()
+                        .for_each(|a| println!("\"{}\" runtime: {}", a.file.path, a.runtime)),
                 }
             }
         }
