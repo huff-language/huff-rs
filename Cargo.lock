@@ -648,7 +648,7 @@ dependencies = [
 
 [[package]]
 name = "huff_cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "clap 3.2.15",
  "ethers-core",
@@ -664,7 +664,7 @@ dependencies = [
 
 [[package]]
 name = "huff_codegen"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ethers-core",
  "hex",
@@ -677,7 +677,7 @@ dependencies = [
 
 [[package]]
 name = "huff_core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "criterion",
  "ethers-core",
@@ -708,7 +708,7 @@ dependencies = [
 
 [[package]]
 name = "huff_parser"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "hex",
  "huff_lexer",
@@ -720,7 +720,7 @@ dependencies = [
 
 [[package]]
 name = "huff_utils"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "codemap-diagnostic",
  "ethers-core",
