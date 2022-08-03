@@ -26,10 +26,10 @@ To install a specific **version** (in this case the `nightly` version):
 huffup --version nightly
 ```
 
-To install a specific **branch** (in this case the `release/0.1.0` branch's latest commit):
+To install a specific **branch** (in this case the `release/0.3.0` branch's latest commit):
 
 ```sh
-huffup --branch release/0.1.0
+huffup --branch release/0.3.0
 ```
 
 To install a **fork's main branch** (in this case `abigger87/huff-rs`'s main branch):
