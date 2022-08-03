@@ -121,31 +121,25 @@ pub fn bubble_arg_call(
                             *offset += push_bytes.len() / 2;
                             tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                             bytes.push((starting_offset, Bytes(push_bytes)));
+                        } else if let Ok(o) = Opcode::from_str(iden) {
+                            tracing::debug!(target: "codegen", "Found Opcode: {}", o);
+                            let b = Bytes(o.to_string());
+                            *offset += b.0.len() / 2;
+                            bytes.push((starting_offset, b));
                         } else {
-                            // Can be an Opcode, otherwise, it's a label
-                            match Opcode::from_str(iden) {
-                                Ok(o) => {
-                                    tracing::debug!(target: "codegen", "Found Opcode: {}", o);
-                                    let b = Bytes(o.to_string());
-                                    *offset += b.0.len() / 2;
-                                    bytes.push((starting_offset, b));
-                                }
-                                Err(_) => {
-                                    tracing::debug!(target: "codegen", "Found Label Call: {}", iden);
+                            tracing::debug!(target: "codegen", "Found Label Call: {}", iden);
 
-                                    // This should be equivalent to a label call.
-                                    bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
-                                    jump_table.insert(
-                                        *offset,
-                                        vec![Jump {
-                                            label: iden.to_owned(),
-                                            bytecode_index: 0,
-                                            span: macro_invoc.1.span.clone(),
-                                        }],
-                                    );
-                                    *offset += 3;
-                                }
-                            }
+                            // This should be equivalent to a label call.
+                            bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
+                            jump_table.insert(
+                                *offset,
+                                vec![Jump {
+                                    label: iden.to_owned(),
+                                    bytecode_index: 0,
+                                    span: macro_invoc.1.span.clone(),
+                                }],
+                            );
+                            *offset += 3;
                         }
                     }
                 }
