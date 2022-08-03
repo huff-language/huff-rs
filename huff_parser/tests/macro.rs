@@ -605,6 +605,45 @@ fn macro_invocation_with_arg_call() {
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
 
+
+#[test]
+fn test_macro_opcode_arguments() {
+    let source = r#"
+    #define macro MAIN() = takes(0) returns(0) {
+        RETURN1(returndatasize)
+    }
+    "#;
+
+    // Parse tokens
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    let expected = MacroDefinition {
+        name: "MAIN".to_string(),
+        parameters: vec![],
+        statements: vec![
+            Statement {
+                ty: StatementType::MacroInvocation(MacroInvocation {
+                    macro_name: "RETURN1".to_string(),
+                    args: vec![MacroArg::Ident("returndatasize".to_string())],
+                    span: AstSpan(vec![Span { start: 58, end: 65, file: None }, Span { start: 65, end: 66, file: None }, Span { start: 66, end: 80, file: None }, Span { start: 80, end: 81, file: None }]),
+                }),
+                span: AstSpan(vec![Span { start: 58, end: 65, file: None }, Span { start: 65, end: 66, file: None }, Span { start: 66, end: 80, file: None }, Span { start: 80, end: 81, file: None }]),
+            },
+        ],
+        takes: 0,
+        returns: 0,
+        span: AstSpan(vec![Span { start: 5, end: 12, file: None }, Span { start: 13, end: 18, file: None }, Span { start: 19, end: 23, file: None }, Span { start: 23, end: 24, file: None }, Span { start: 24, end: 25, file: None }, Span { start: 26, end: 27, file: None }, Span { start: 28, end: 33, file: None }, Span { start: 33, end: 34, file: None }, Span { start: 34, end: 35, file: None }, Span { start: 35, end: 36, file: None }, Span { start: 37, end: 44, file: None }, Span { start: 44, end: 45, file: None }, Span { start: 45, end: 46, file: None }, Span { start: 46, end: 47, file: None }, Span { start: 48, end: 49, file: None }, Span { start: 58, end: 65, file: None }, Span { start: 65, end: 66, file: None }, Span { start: 66, end: 80, file: None }, Span { start: 80, end: 81, file: None }, Span { start: 86, end: 87, file: None }]),
+        outlined: false,
+    };
+    assert_eq!(macro_definition, expected);
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
+
 #[test]
 fn macro_with_builtin_fn_call() {
     // Not valid source, just for testing

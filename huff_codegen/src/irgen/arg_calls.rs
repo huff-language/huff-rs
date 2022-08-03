@@ -122,21 +122,32 @@ pub fn bubble_arg_call(
                         }
                     }
                     MacroArg::Ident(iden) => {
-                        tracing::debug!(target: "codegen", "FOUND IDENT ARG IN \"{}\" MACRO INVOCATION: \"{}\"!", macro_invoc.1.macro_name, iden);
-                        tracing::debug!(target: "codegen", "Macro invocation index: {}", macro_invoc.0);
-                        tracing::debug!(target: "codegen", "At offset: {}", *offset);
+                        tracing::debug!(target: "codegen", "Found MacroArg::Ident IN \"{}\" Macro Invocation: \"{}\"!", macro_invoc.1.macro_name, iden);
 
-                        // This should be equivalent to a label call.
-                        bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
-                        jump_table.insert(
-                            *offset,
-                            vec![Jump {
-                                label: iden.to_owned(),
-                                bytecode_index: 0,
-                                span: macro_invoc.1.span.clone(),
-                            }],
-                        );
-                        *offset += 3;
+                        // Can be an opcode, otherwise, it's a label
+                        match Opcode::from_str(iden) {
+                            Ok(o) => {
+                                tracing::debug!(target: "codegen", "Found Opcode: {}", o);
+                                let b = Bytes(o.to_string());
+                                *offset += b.0.len() / 2;
+                                tracing::info!(target: "codegen", "Found : {:?}", b);
+                                bytes.push((starting_offset, b));
+                            }
+                            Err(_) => {
+                                // This should be equivalent to a label call.
+                                bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
+                                jump_table.insert(
+                                    *offset,
+                                    vec![Jump {
+                                        label: iden.to_owned(),
+                                        bytecode_index: 0,
+                                        span: macro_invoc.1.span.clone(),
+                                    }],
+                                );
+                                *offset += 3;
+                            }
+                        }
+
                     }
                 }
             } else {
