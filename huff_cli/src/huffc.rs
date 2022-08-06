@@ -63,6 +63,10 @@ struct Huff {
     #[clap(short = 'b', long = "bytecode")]
     bytecode: bool,
 
+    /// Generate and log runtime bytecode.
+    #[clap(short = 'r', long = "bin-runtime")]
+    bin_runtime: bool,
+
     /// Prints out to the terminal.
     #[clap(short = 'p', long = "print")]
     print: bool,
@@ -317,10 +321,31 @@ fn main() {
                     tracing::info!(target: "cli", "RE-EXPORTED INTERACTIVE ARTIFACTS");
                 }
                 match sources.len() {
-                    1 => print!("{}", artifacts[0].bytecode),
+                    1 => {
+                        if cli.bin_runtime {
+                            println!("\nbytecode: {}", artifacts[0].bytecode)
+                        } else {
+                            print!("{}", artifacts[0].bytecode)
+                        }
+                    }
                     _ => artifacts
                         .iter()
                         .for_each(|a| println!("\"{}\" bytecode: {}", a.file.path, a.bytecode)),
+                }
+            }
+
+            if cli.bin_runtime {
+                match sources.len() {
+                    1 => {
+                        if cli.bytecode {
+                            println!("\nruntime: {}", artifacts[0].runtime)
+                        } else {
+                            print!("{}", artifacts[0].runtime)
+                        }
+                    }
+                    _ => artifacts
+                        .iter()
+                        .for_each(|a| println!("\"{}\" runtime: {}", a.file.path, a.runtime)),
                 }
             }
         }
