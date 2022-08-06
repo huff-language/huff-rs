@@ -525,8 +525,15 @@ impl Codegen {
             )
         };
 
+        let has_custom_bootstrap = hex::decode(constructor_bytecode).unwrap().contains(&0xf3);
+
+        let bootstrap_code = if has_custom_bootstrap {
+            String::new()
+        } else {
+            format!("{}80{}3d393df3", contract_size, contract_code_offset)
+        };
+
         // Generate the final bytecode
-        let bootstrap_code = format!("{}80{}3d393df3", contract_size, contract_code_offset);
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
         artifact.bytecode =
             format!("{}{}{}", constructor_code, main_bytecode, constructor_args).to_lowercase();
