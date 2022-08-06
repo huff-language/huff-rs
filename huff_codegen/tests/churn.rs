@@ -47,7 +47,10 @@ fn churns_custom_bootstrap() {
         cg.churn(Arc::new(FileSource::default()), inputs, main_bytecode, constructor_bytecode);
 
     assert!(churn_res.is_ok());
-    assert_eq!(churn_res.unwrap().bytecode, "64600160020160005260056000f36001600216".to_lowercase());
+    assert_eq!(
+        churn_res.unwrap().bytecode,
+        "64600160020160005260056000f36001600216".to_lowercase()
+    );
 }
 
 #[test]
