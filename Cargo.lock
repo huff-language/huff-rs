@@ -1639,6 +1639,7 @@ dependencies = [
  "huff_parser",
  "huff_utils",
  "revm",
+ "yansi",
 ]
 
 [[package]]

@@ -11,6 +11,7 @@ use revm::{
     return_ok, return_revert, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return,
     SpecId, TransactOut, TransactTo, TxEnv, EVM,
 };
+use yansi::Paint;
 
 /// A test result
 #[derive(Debug, Clone)]
@@ -25,6 +26,15 @@ pub struct TestResult {
 pub enum TestStatus {
     Success,
     Revert,
+}
+
+impl From<TestStatus> for String {
+    fn from(status: TestStatus) -> Self {
+        match status {
+            TestStatus::Success => Paint::green("PASS").to_string(),
+            TestStatus::Revert => Paint::red("FAIL").to_string(),
+        }
+    }
 }
 
 impl From<TestStatus> for Cell {

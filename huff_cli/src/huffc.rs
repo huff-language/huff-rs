@@ -7,18 +7,21 @@
 #![forbid(where_clauses_object_safety)]
 #![allow(deprecated)]
 
-use clap::{App, CommandFactory, Parser as ClapParser};
+use clap::{App, CommandFactory, Parser as ClapParser, Subcommand};
 use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
-use huff_tests::{gen_test_report, HuffTester, ReportKind};
+use huff_tests::{
+    prelude::{print_test_report, ReportKind},
+    HuffTester,
+};
 use huff_utils::prelude::{
     export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
     CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
-use std::{collections::BTreeMap, io::Write, path::Path, sync::Arc};
+use std::{collections::BTreeMap, io::Write, path::Path, sync::Arc, time::Instant};
 use yansi::Paint;
 
 /// The Huff CLI Args
@@ -80,8 +83,19 @@ struct Huff {
     #[clap(short = 'c', long = "constants", multiple_values = true)]
     constants: Option<Vec<String>>,
 
-    #[clap(short = 't', long = "test")]
-    test: bool,
+    /// Test subcommand
+    #[clap(subcommand)]
+    test: Option<TestCommands>,
+}
+
+#[derive(Subcommand, Clone, Debug)]
+enum TestCommands {
+    /// Test subcommand
+    Test {
+        /// Format the test output as a list, table, or JSON.
+        #[clap(short = 'f', long = "format")]
+        format: Option<String>,
+    },
 }
 
 /// Helper function to read an stdin input
@@ -172,14 +186,15 @@ fn main() {
         cached: use_cache,
     };
 
-    if cli.test {
+    if let Some(TestCommands::Test { format }) = cli.test {
         if let Ok(contracts) = compiler.grab_contracts() {
             for contract in &contracts {
+                let start = Instant::now();
                 let tester = HuffTester::new(contract);
 
                 match tester.execute() {
                     Ok(res) => {
-                        gen_test_report(res, ReportKind::Table);
+                        print_test_report(res, ReportKind::from(&format), start);
                     }
                     Err(e) => {
                         eprintln!("{}", Paint::red(e));
@@ -188,7 +203,7 @@ fn main() {
                 };
             }
         } else {
-            tracing::error!(target: "cli", "PARSER ERRORED ERRORED");
+            tracing::error!(target: "cli", "PARSER ERRORED!");
             eprintln!("{}", Paint::red("Failed to parse one or more sources"));
             std::process::exit(1);
         }
