@@ -528,7 +528,7 @@ impl Codegen {
         let has_custom_bootstrap = hex::decode(constructor_bytecode).unwrap().contains(&0xf3);
 
         let bootstrap_code = if has_custom_bootstrap {
-            String::new()
+            String::default()
         } else {
             format!("{}80{}3d393df3", contract_size, contract_code_offset)
         };
