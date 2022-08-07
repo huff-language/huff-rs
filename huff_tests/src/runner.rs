@@ -61,12 +61,12 @@ impl Default for TestRunner {
 
 impl TestRunner {
     /// Get a mutable reference to the database.
-    pub(crate) fn db_mut(&mut self) -> &mut InMemoryDB {
+    pub fn db_mut(&mut self) -> &mut InMemoryDB {
         &mut self.database
     }
 
     /// Set the balance of an account.
-    pub(crate) fn set_balance(&mut self, address: Address, amount: U256) -> &mut Self {
+    pub fn set_balance(&mut self, address: Address, amount: U256) -> &mut Self {
         let db = self.db_mut();
 
         let mut account = db.basic(address);
@@ -77,7 +77,7 @@ impl TestRunner {
     }
 
     /// Deploy arbitrary bytecode to our revm instance and return the contract address.
-    pub(crate) fn deploy_code(&mut self, code: String) -> Result<Address, RunnerError> {
+    pub fn deploy_code(&mut self, code: String) -> Result<Address, RunnerError> {
         let contract_length = code.len() / 2;
         let constructor_length = 0;
         let mut bootstrap_code_size = 9;
@@ -132,7 +132,7 @@ impl TestRunner {
     }
 
     /// Perform a call to a deployed contract
-    pub(crate) fn call(
+    pub fn call(
         &mut self,
         name: String,
         caller: Address,
