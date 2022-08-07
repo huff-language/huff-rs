@@ -50,7 +50,7 @@ impl<'t> HuffTester<'t> {
             macros: {
                 let mut macros: TestMacros<'t> = ast.macros.iter().filter(|m| m.test).collect();
                 if let Some(match_) = *match_ {
-                    macros = macros.into_iter().filter(|m| m.name == match_).collect();
+                    macros.retain(|m| m.name == match_);
                 }
                 macros
             },
