@@ -20,17 +20,17 @@ Format the test output using the `-f` flag:
 huffc ./path/to/my/contract/Contract.huff test -f <list|table|json>
 ```
 
+Match specific tests using the `-m` flag:
+```
+huffc ./path/to/my/contract/Contract.huff test -m MY_TEST
+```
+
 Set environment variables:
 ```
 ~TODO~
 ```
 
 Set explicit calldata or provide a fuzz range for inputs:
-```
-~TODO~
-```
-
-Match specific tests:
 ```
 ~TODO~
 ```

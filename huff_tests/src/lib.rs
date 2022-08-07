@@ -43,10 +43,17 @@ pub struct HuffTester<'t> {
 /// HuffTester implementation
 impl<'t> HuffTester<'t> {
     /// Create a new instance of `HuffTester` from a contract's AST.
-    pub fn new(ast: &'t Contract) -> Self {
+    #[allow(clippy::boxed_local)]
+    pub fn new(ast: &'t Contract, match_: Box<Option<String>>) -> Self {
         Self {
             ast,
-            macros: ast.macros.iter().filter(|m| m.test).collect(),
+            macros: {
+                let mut macros: TestMacros<'t> = ast.macros.iter().filter(|m| m.test).collect();
+                if let Some(match_) = *match_ {
+                    macros = macros.into_iter().filter(|m| m.name == match_).collect();
+                }
+                macros
+            },
             runner: TestRunner::default(),
         }
     }

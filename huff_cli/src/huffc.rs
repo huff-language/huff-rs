@@ -95,6 +95,10 @@ enum TestCommands {
         /// Format the test output as a list, table, or JSON.
         #[clap(short = 'f', long = "format")]
         format: Option<String>,
+
+        /// Match a specific test
+        #[clap(short = 'm', long = "match")]
+        match_: Option<String>,
     },
 }
 
@@ -186,11 +190,13 @@ fn main() {
         cached: use_cache,
     };
 
-    if let Some(TestCommands::Test { format }) = cli.test {
+    if let Some(TestCommands::Test { format, match_ }) = cli.test {
         if let Ok(contracts) = compiler.grab_contracts() {
+            let match_ = Box::new(match_);
+
             for contract in &contracts {
                 let start = Instant::now();
-                let tester = HuffTester::new(contract);
+                let tester = HuffTester::new(contract, Box::clone(&match_));
 
                 match tester.execute() {
                     Ok(res) => {
