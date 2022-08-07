@@ -1,6 +1,5 @@
 use ethers::prelude::{Address, U256};
-use huff_tests::runner::TestRunner;
-use revm::Return;
+use huff_tests::runner::{TestRunner, TestStatus};
 
 #[test]
 fn test_runner_return() {
@@ -12,11 +11,14 @@ fn test_runner_return() {
         .unwrap();
 
     assert_eq!(result.name, "RETURN");
-    assert_eq!(result.status, Return::Return);
+    assert_eq!(
+        std::mem::discriminant(&result.status),
+        std::mem::discriminant(&TestStatus::Success)
+    );
     assert_eq!(result.gas, 18);
     assert_eq!(
         result.return_data,
-        "0000000000000000000000000000000000000000000000000000000000000020"
+        Some("0000000000000000000000000000000000000000000000000000000000000020".to_string())
     );
 }
 
@@ -30,9 +32,12 @@ fn test_runner_stop() {
         .unwrap();
 
     assert_eq!(result.name, "STOP");
-    assert_eq!(result.status, Return::Stop);
+    assert_eq!(
+        std::mem::discriminant(&result.status),
+        std::mem::discriminant(&TestStatus::Success)
+    );
     assert_eq!(result.gas, 0);
-    assert_eq!(result.return_data, "");
+    assert_eq!(result.return_data, None);
 }
 
 #[test]
@@ -45,7 +50,7 @@ fn test_runner_revert() {
         .unwrap();
 
     assert_eq!(result.name, "REVERT");
-    assert_eq!(result.status, Return::Revert);
+    assert_eq!(std::mem::discriminant(&result.status), std::mem::discriminant(&TestStatus::Revert));
     assert_eq!(result.gas, 6);
-    assert_eq!(result.return_data, "");
+    assert_eq!(result.return_data, None);
 }

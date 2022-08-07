@@ -458,6 +458,8 @@ pub struct MacroDefinition {
     pub span: AstSpan,
     /// Is the macro a function (outlined)?
     pub outlined: bool,
+    /// Is the macro a test?
+    pub test: bool,
 }
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
@@ -469,6 +471,7 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
 
 impl MacroDefinition {
     /// Public associated function that instantiates a MacroDefinition.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
         parameters: Vec<Argument>,
@@ -477,6 +480,7 @@ impl MacroDefinition {
         returns: usize,
         spans: Vec<Span>,
         outlined: bool,
+        test: bool,
     ) -> Self {
         MacroDefinition {
             name,
@@ -486,6 +490,7 @@ impl MacroDefinition {
             returns,
             span: AstSpan(spans),
             outlined,
+            test,
         }
     }
 

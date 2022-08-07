@@ -1,5 +1,6 @@
 use crate::{errors::RunnerError, inspector::SimpleInspector};
 use bytes::Bytes;
+use comfy_table::{Cell, Color};
 use ethers::{prelude::Address, types::U256, utils::hex};
 use huff_codegen::Codegen;
 use huff_utils::{
@@ -15,9 +16,24 @@ use revm::{
 #[derive(Debug, Clone)]
 pub struct TestResult {
     pub name: String,
-    pub return_data: String,
+    pub return_data: Option<String>,
     pub gas: u64,
-    pub status: Return,
+    pub status: TestStatus,
+}
+
+#[derive(Debug, Clone)]
+pub enum TestStatus {
+    Success,
+    Revert,
+}
+
+impl From<TestStatus> for Cell {
+    fn from(status: TestStatus) -> Self {
+        match status {
+            TestStatus::Success => Cell::new("PASS").fg(Color::Green),
+            TestStatus::Revert => Cell::new("FAIL").fg(Color::Red),
+        }
+    }
 }
 
 /// A Test Runner
@@ -128,7 +144,11 @@ impl TestRunner {
         let return_data = match status {
             return_ok!() | return_revert!() => {
                 if let TransactOut::Call(b) = out {
-                    hex::encode(b)
+                    if b.is_empty() {
+                        None
+                    } else {
+                        Some(hex::encode(b))
+                    }
                 } else {
                     return Err(RunnerError("Expected call"))
                 }
@@ -136,20 +156,32 @@ impl TestRunner {
             _ => return Err(RunnerError("Expected contract address")),
         };
 
-        Ok(TestResult { name, return_data, gas: gas - 21000, status })
+        Ok(TestResult {
+            name,
+            return_data,
+            gas: gas - 21000,
+            status: match status {
+                return_ok!() => TestStatus::Success,
+                _ => TestStatus::Revert,
+            },
+        })
     }
 
     /// Compile a test macro and run it in the revm instance.
     pub fn run_test(
         &mut self,
-        m: MacroDefinition,
+        m: &MacroDefinition,
         contract: &Contract,
     ) -> Result<TestResult, RunnerError> {
         let name = m.name.clone();
 
-        if let Ok(res) =
-            Codegen::macro_to_bytecode(m.clone(), contract, &mut vec![m], 0, &mut Vec::default())
-        {
+        if let Ok(res) = Codegen::macro_to_bytecode(
+            m.clone(),
+            contract,
+            &mut vec![m.clone()],
+            0,
+            &mut Vec::default(),
+        ) {
             if let Ok(bytecode) = Codegen::gen_table_bytecode(res) {
                 let address = self.deploy_code(bytecode)?;
 
@@ -160,6 +192,7 @@ impl TestRunner {
                 return Ok(res)
             }
         }
+        // TODO: Print error from codegen
         Err(RunnerError("Failed to generate bytecode"))
     }
 

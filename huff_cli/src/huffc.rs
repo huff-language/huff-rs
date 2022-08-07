@@ -11,6 +11,7 @@ use clap::{App, CommandFactory, Parser as ClapParser};
 use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
+use huff_tests::{gen_test_report, HuffTester, ReportKind};
 use huff_utils::prelude::{
     export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
     CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
@@ -78,6 +79,9 @@ struct Huff {
     /// Override / set constants for the compilation environment.
     #[clap(short = 'c', long = "constants", multiple_values = true)]
     constants: Option<Vec<String>>,
+
+    #[clap(short = 't', long = "test")]
+    test: bool,
 }
 
 /// Helper function to read an stdin input
@@ -167,6 +171,29 @@ fn main() {
         bytecode: cli.bytecode,
         cached: use_cache,
     };
+
+    if cli.test {
+        if let Ok(contracts) = compiler.grab_contracts() {
+            for contract in &contracts {
+                let tester = HuffTester::new(contract);
+
+                match tester.execute() {
+                    Ok(res) => {
+                        gen_test_report(res, ReportKind::Table);
+                    }
+                    Err(e) => {
+                        eprintln!("{}", Paint::red(e));
+                        std::process::exit(1);
+                    }
+                };
+            }
+        } else {
+            tracing::error!(target: "cli", "PARSER ERRORED ERRORED");
+            eprintln!("{}", Paint::red("Failed to parse one or more sources"));
+            std::process::exit(1);
+        }
+        return
+    }
 
     // Create compiling spinner
     tracing::debug!(target: "cli", "[⠔] COMPILING");

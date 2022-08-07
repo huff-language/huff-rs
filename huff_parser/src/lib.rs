@@ -92,7 +92,7 @@ impl Parser {
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED ERROR {}", e.name);
                         contract.errors.push(e);
                     }
-                    TokenKind::Macro | TokenKind::Fn => {
+                    TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
                         let m = self.parse_macro()?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
                         contract.macros.push(m);
@@ -108,7 +108,7 @@ impl Parser {
                         );
                         return Err(ParserError {
                             kind: ParserErrorKind::InvalidDefinition(self.current_token.kind.clone()),
-                            hint: Some("Definition must be one of: `function`, `event`, `constant`, `error`, `macro`, or `fn`.".to_string()),
+                            hint: Some("Definition must be one of: `function`, `event`, `constant`, `error`, `macro`, `fn`, or `test`.".to_string()),
                             spans: AstSpan(vec![self.current_token.span.clone()]),
                         })
                     }
@@ -424,7 +424,15 @@ impl Parser {
     /// It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
     pub fn parse_macro(&mut self) -> Result<MacroDefinition, ParserError> {
         let outlined = self.check(TokenKind::Fn);
-        self.match_kind(if outlined { TokenKind::Fn } else { TokenKind::Macro })?;
+        let test = self.check(TokenKind::Test);
+
+        self.match_kind(if outlined {
+            TokenKind::Fn
+        } else if test {
+            TokenKind::Test
+        } else {
+            TokenKind::Macro
+        })?;
         let macro_name: String =
             self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?.to_string();
         tracing::info!(target: "parser", "PARSING MACRO: \"{}\"", macro_name);
@@ -445,6 +453,7 @@ impl Parser {
             macro_returns,
             self.spans.clone(),
             outlined,
+            test,
         ))
     }
 

@@ -17,6 +17,7 @@ keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
 revm = "1.8.0"
 ethers = "0.13.0"
 bytes = "1.2.1"
+comfy-table = "6.0.0"
 huff_parser = { path = "../huff_parser" }
 huff_core = { path = "../huff_core" }
 huff_codegen = { path = "../huff_codegen" }

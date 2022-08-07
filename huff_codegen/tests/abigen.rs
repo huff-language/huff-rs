@@ -1,11 +1,11 @@
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use huff_codegen::Codegen;
-use huff_utils::{ast, prelude::*};
+use huff_utils::prelude::*;
 
 #[test]
 fn constructs_valid_abi() {
-    let constructor = ast::MacroDefinition {
+    let constructor = MacroDefinition {
         name: "CONSTRUCTOR".to_string(),
         parameters: vec![],
         statements: vec![],
@@ -13,6 +13,7 @@ fn constructs_valid_abi() {
         returns: 0,
         span: AstSpan(vec![]),
         outlined: false,
+        test: false,
     };
     let contract = Contract {
         macros: vec![constructor],
@@ -51,6 +52,7 @@ fn missing_constructor_fails() {
         returns: 0,
         span: AstSpan(vec![]),
         outlined: false,
+        test: false,
     };
     let contract = Contract {
         macros: vec![],

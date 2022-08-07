@@ -163,6 +163,8 @@ pub enum CodegenErrorKind {
     InvalidTableStatement(String),
     /// Invalid Code Length
     InvalidCodeLength(usize),
+    /// Test Invocation
+    TestInvocation(String),
 }
 
 impl Spanned for CodegenError {
@@ -214,6 +216,9 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::InvalidCodeLength(len) => {
                 write!(f.out, "Invalid code length: {}", len)
+            }
+            CodegenErrorKind::TestInvocation(msg) => {
+                write!(f.out, "Test cannot be invoked: \"{}\"", msg)
             }
         }
     }
@@ -512,6 +517,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
                 CodegenErrorKind::InvalidCodeLength(_) => {
                     write!(f, "\nError: Invalid Code Length\n{}\n", ce.span.error(None))
+                }
+                CodegenErrorKind::TestInvocation(_) => {
+                    write!(f, "\nError: Test Invocation\n{}\n", ce.span.error(None))
                 }
             },
             CompilerError::FailedCompiles(v) => {

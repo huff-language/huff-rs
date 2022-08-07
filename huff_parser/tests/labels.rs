@@ -161,6 +161,7 @@ fn multiline_labels() {
             Span { start: 158, end: 159, file: None },
         ]),
         outlined: false,
+        test: false,
     };
     assert_eq!(macro_definition.name, md_expected.name);
     assert_eq!(macro_definition.parameters, md_expected.parameters);
@@ -409,6 +410,7 @@ pub fn builtins_under_labels() {
             Span { start: 521, end: 522, file: None },
         ]),
         outlined: false,
+        test: false,
     };
     assert_eq!(macro_definition.name, md_expected.name);
     assert_eq!(macro_definition.parameters, md_expected.parameters);
