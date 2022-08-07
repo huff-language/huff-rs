@@ -43,6 +43,110 @@ fn empty_macro() {
 }
 
 #[test]
+fn empty_macro_without_takes_returns() {
+    let source = "#define macro HELLO_WORLD() = {}";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    let expected = MacroDefinition {
+        name: "HELLO_WORLD".to_string(),
+        parameters: vec![],
+        statements: vec![],
+        takes: 0,
+        returns: 0,
+        span: AstSpan(vec![
+            Span { start: 0, end: 7, file: None },
+            Span { start: 8, end: 13, file: None },
+            Span { start: 14, end: 25, file: None },
+            Span { start: 25, end: 26, file: None },
+            Span { start: 26, end: 27, file: None },
+            Span { start: 28, end: 29, file: None },
+            Span { start: 30, end: 31, file: None },
+            Span { start: 31, end: 32, file: None },
+        ]),
+        outlined: false,
+    };
+    assert_eq!(macro_definition, expected);
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
+
+#[test]
+fn empty_macro_only_takes() {
+    let source = "#define macro HELLO_WORLD() = takes(3) {}";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    let expected = MacroDefinition {
+        name: "HELLO_WORLD".to_string(),
+        parameters: vec![],
+        statements: vec![],
+        takes: 3,
+        returns: 0,
+        span: AstSpan(vec![
+            Span { start: 0, end: 7, file: None },
+            Span { start: 8, end: 13, file: None },
+            Span { start: 14, end: 25, file: None },
+            Span { start: 25, end: 26, file: None },
+            Span { start: 26, end: 27, file: None },
+            Span { start: 28, end: 29, file: None },
+            Span { start: 30, end: 35, file: None },
+            Span { start: 35, end: 36, file: None },
+            Span { start: 36, end: 37, file: None },
+            Span { start: 37, end: 38, file: None },
+            Span { start: 39, end: 40, file: None },
+            Span { start: 40, end: 41, file: None },
+        ]),
+        outlined: false,
+    };
+    assert_eq!(macro_definition, expected);
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
+
+#[test]
+fn empty_macro_only_returns() {
+    let source = "#define macro HELLO_WORLD() = returns(10) {}";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    let expected = MacroDefinition {
+        name: "HELLO_WORLD".to_string(),
+        parameters: vec![],
+        statements: vec![],
+        takes: 0,
+        returns: 10,
+        span: AstSpan(vec![
+            Span { start: 0, end: 7, file: None },
+            Span { start: 8, end: 13, file: None },
+            Span { start: 14, end: 25, file: None },
+            Span { start: 25, end: 26, file: None },
+            Span { start: 26, end: 27, file: None },
+            Span { start: 28, end: 29, file: None },
+            Span { start: 30, end: 37, file: None },
+            Span { start: 37, end: 38, file: None },
+            Span { start: 38, end: 40, file: None },
+            Span { start: 40, end: 41, file: None },
+            Span { start: 42, end: 43, file: None },
+            Span { start: 43, end: 44, file: None },
+        ]),
+        outlined: false,
+    };
+    assert_eq!(macro_definition, expected);
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
+
+#[test]
 fn macro_with_simple_body() {
     let source =
         "#define macro HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
