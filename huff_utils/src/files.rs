@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     cell::Ref,
     collections::HashMap,
-    fs::{File, self},
+    fs,
     io::{BufReader, Read},
     path::{Path, PathBuf},
     sync::Arc,
@@ -48,20 +48,22 @@ impl<'a> FullFileSource<'a> {
 pub struct Remapper {
     /// The remappings
     pub remappings: HashMap<String, String>,
+    /// The base directory
+    pub base_dir: String,
 }
 
 impl Remapper {
     /// Extracts remappings from configuration files.
     ///
     /// Currently only supports `foundry.toml` remapping definitions.
-    pub fn new(root: &str) -> Self {
+    pub fn new(root: impl AsRef<str>) -> Self {
         let mut inner = HashMap::<String, String>::new();
 
         // Gracefully parse remappings from foundry.toml
-        Remapper::from_foundry(root, &mut inner);
+        Remapper::from_foundry(root.as_ref(), &mut inner);
 
         // Return the constructed remappings
-        Self { remappings: inner }
+        Self { remappings: inner, base_dir: root.as_ref().to_string() }
     }
 
     /// Helper to break apart a remapping gracefully
@@ -78,7 +80,7 @@ impl Remapper {
         // Look for a `foundry.toml` file in the current directory.
         let path = Path::new(root).join("foundry.toml");
 
-        match File::open(&path) {
+        match fs::File::open(&path) {
             Ok(f) => {
                 // Open the buffered reader and read foundry.toml
                 let mut data = String::new();
@@ -141,19 +143,20 @@ impl Remapper {
             }
         }
     }
-
 }
 
 impl Remapper {
     /// Tries to replace path segments in a string with our remappings
-    pub fn remap(&self, path: &str) -> String {
+    pub fn remap(&self, path: &str) -> Option<String> {
         let mut path = path.to_string();
-        self.remappings.iter().for_each(|(k, v)| {
+        for (k, v) in self.remappings.iter() {
             if path.starts_with(k) {
+                tracing::debug!(target: "parser", "found key {} and value {}", k, v);
                 path = path.replace(k, v);
+                return Some(format!("{}{}", self.base_dir, path))
             }
-        });
-        path
+        }
+        None
     }
 }
 

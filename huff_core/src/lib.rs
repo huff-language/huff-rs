@@ -122,9 +122,13 @@ impl<'a> Compiler<'a> {
         // Grab the input files
         let file_paths: Vec<PathBuf> = Compiler::transform_paths(&self.sources)?;
 
+        tracing::debug!(target: "core", ">>MOOSE<< Finished transforming paths!");
+
         // Parallel file fetching
         let files: Vec<Result<Arc<FileSource>, CompilerError>> =
             Compiler::fetch_sources(file_paths);
+
+        tracing::debug!(target: "core", ">>MOOSE<< Finished fetching file source!");
 
         // Unwrap errors
         let mut errors =
@@ -164,9 +168,13 @@ impl<'a> Compiler<'a> {
         match cache::get_cached_artifacts(&files, &output, constructor_args) {
             Some(arts) => artifacts = arts,
             None => {
+                tracing::debug!(target: "core", "FINISHED RECURSING DEPENDENCIES!");
                 // Parallel Dependency Resolution
                 let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
-                    files.into_par_iter().map(Compiler::recurse_deps).collect();
+                    files
+                        .into_par_iter()
+                        .map(|v| Compiler::recurse_deps(v, &Remapper::new("./")))
+                        .collect();
 
                 // Collect Recurse Deps errors and try to resolve to the first one
                 let mut errors = recursed_file_sources
@@ -240,6 +248,7 @@ impl<'a> Compiler<'a> {
         let mut parser = Parser::new(tokens, Some(file.path.clone()));
 
         // Parse into an AST
+        tracing::debug!(target: "core", "Core parsing \"{}\"", file.path);
         let parse_res = parser.parse().map_err(CompilerError::ParserError);
         let mut contract = parse_res?;
         contract.derive_storage_pointers();
@@ -354,7 +363,11 @@ impl<'a> Compiler<'a> {
     }
 
     /// Recurses file dependencies
-    pub fn recurse_deps(fs: Arc<FileSource>) -> Result<Arc<FileSource>, Arc<CompilerError<'a>>> {
+    pub fn recurse_deps(
+        fs: Arc<FileSource>,
+        remapper: &Remapper,
+    ) -> Result<Arc<FileSource>, Arc<CompilerError<'a>>> {
+        tracing::debug!(target: "core", "RECURSING DEPENDENCIES FOR {}", fs.path);
         let mut new_fs = FileSource { path: fs.path.clone(), ..Default::default() };
         let file_source = if let Some(s) = &fs.source {
             s.clone()
@@ -375,14 +388,27 @@ impl<'a> Compiler<'a> {
         if !imports.is_empty() {
             tracing::info!(target: "core", "IMPORT LEXICAL ANALYSIS COMPLETE ON {:?}", imports);
         }
+
         let localized_imports: Vec<String> = imports
-            .iter()
-            .map(|import| {
-                FileSource::localize_file(&fs.path, import).unwrap_or_default().replacen(
-                    "contracts/contracts",
-                    "contracts",
-                    1,
-                )
+            .into_iter()
+            .map(|mut import| {
+                // Check for foundry toml remappings
+                tracing::debug!(target: "core", "core has remapper {:?}", remapper);
+                tracing::debug!(target: "core", "core import path {}", import);
+                tracing::debug!(target: "core", "Current dir: {:?}", std::env::current_dir());
+                match remapper.remap(&import) {
+                    Some(remapped) => {
+                        tracing::debug!(target: "core", "core remapped path {}", import);
+                        import = remapped;
+                    }
+                    None => {
+                        tracing::debug!(target: "core", "core no remapped path {}", import);
+                        import = FileSource::localize_file(&fs.path, &import)
+                            .unwrap_or_default()
+                            .replacen("contracts/contracts", "contracts", 1);
+                    }
+                }
+                import
             })
             .collect();
         if !localized_imports.is_empty() {
@@ -402,7 +428,7 @@ impl<'a> Compiler<'a> {
         // Now that we have all the file sources, we have to recurse and get their source
         file_sources = file_sources
             .into_par_iter()
-            .map(|inner_fs| match Compiler::recurse_deps(Arc::clone(&inner_fs)) {
+            .map(|inner_fs| match Compiler::recurse_deps(Arc::clone(&inner_fs), remapper) {
                 Ok(new_fs) => new_fs,
                 Err(e) => {
                     tracing::error!(target: "core", "NESTED DEPENDENCY RESOLUTION FAILED: \"{:?}\"", e);
