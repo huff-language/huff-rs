@@ -50,3 +50,17 @@ fn fails_to_parse_invalid_import() {
     let import_path = contract.imports[0].clone();
     assert_eq!(import_path.to_str().unwrap(), "../huff-examples/erc20/contracts/ERC1155.huff");
 }
+
+// #[test]
+// fn parses_foundry_import_style() {
+//     let source = " /* .,*./. */  #include \"examples/erc20/contracts/ERC20.huff\"";
+//     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+//     let lexer = Lexer::new(flattened_source);
+//     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+//     let mut parser = Parser::new(tokens, None);
+//     let contract = parser.parse().unwrap();
+//     assert_eq!(parser.current_token.kind, TokenKind::Eof);
+
+//     let import_path = contract.imports[0].clone();
+//     assert_eq!(import_path.to_str().unwrap(), "../huff-examples/erc20/contracts/ERC20.huff");
+// }

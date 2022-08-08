@@ -26,3 +26,5 @@ pathdiff = "0.2.1"
 ethers-core = "0.13.0"
 itertools = "0.10.3"
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }
+toml = "0.5.9"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt"] }

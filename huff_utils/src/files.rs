@@ -1,5 +1,13 @@
 use serde::{Deserialize, Serialize};
-use std::{cell::Ref, path::PathBuf, sync::Arc, time::SystemTime};
+use std::{
+    cell::Ref,
+    collections::HashMap,
+    fs::{File, self},
+    io::{BufReader, Read},
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::SystemTime,
+};
 use uuid::Uuid;
 
 #[allow(clippy::to_string_in_format_args)]
@@ -32,6 +40,120 @@ impl<'a> FullFileSource<'a> {
             .collect::<Vec<Span>>()
             .into_iter()
             .next()
+    }
+}
+
+/// A wrapper for dealing with Remappings
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct Remapper {
+    /// The remappings
+    pub remappings: HashMap<String, String>,
+}
+
+impl Remapper {
+    /// Extracts remappings from configuration files.
+    ///
+    /// Currently only supports `foundry.toml` remapping definitions.
+    pub fn new(root: &str) -> Self {
+        let mut inner = HashMap::<String, String>::new();
+
+        // Gracefully parse remappings from foundry.toml
+        Remapper::from_foundry(root, &mut inner);
+
+        // Return the constructed remappings
+        Self { remappings: inner }
+    }
+
+    /// Helper to break apart a remapping gracefully
+    pub fn split(remapping: &str) -> Option<(String, String)> {
+        let mut split = remapping.splitn(2, '=');
+        match split.next() {
+            Some(from) => split.next().map(|to| (from.to_string(), to.to_string())),
+            None => None,
+        }
+    }
+
+    /// Parse foundry toml remappings
+    pub fn from_foundry(root: &str, inner: &mut HashMap<String, String>) {
+        // Look for a `foundry.toml` file in the current directory.
+        let path = Path::new(root).join("foundry.toml");
+
+        match File::open(&path) {
+            Ok(f) => {
+                // Open the buffered reader and read foundry.toml
+                let mut data = String::new();
+                let mut br = BufReader::new(f);
+                match br.read_to_string(&mut data) {
+                    Ok(_) => {
+                        tracing::debug!(target: "parser", "Read foundry.toml contents {}", data);
+                        // Parse the foundry.toml file
+                        match data.parse::<toml::Value>() {
+                            Ok(toml) => {
+                                // Extract the remappings
+                                if let Some(toml_table) = toml.as_table() {
+                                    toml_table.iter().for_each(|p| {
+                                        if let Some(profiles) = p.1.as_table() {
+                                            profiles.iter().for_each(|table| {
+                                                if let Some(inner_table) = table.1.as_table() {
+                                                    inner_table.iter().for_each(|_| {
+                                                        if let Some(remapping) = inner_table.get("remappings") {
+                                                            match remapping.as_array() {
+                                                                Some(parsed_remappings) => {
+                                                                    parsed_remappings.iter().for_each(|remapping| {
+                                                                        match remapping.as_str() {
+                                                                            Some(str) => match Remapper::split(str) {
+                                                                                Some((from, to)) => {
+                                                                                    inner.insert(from, to);
+                                                                                }
+                                                                                None => tracing::warn!(target: "parser", "Failed to split remapping using \"=\" at \"{}\" in \"{}\"!", remapping, path.to_string_lossy()),
+                                                                            }
+                                                                            None => {
+                                                                                tracing::warn!(target: "parser", "Remapping \"{}\" in \"{}\" is not a string!", remapping, path.to_string_lossy());
+                                                                            }
+                                                                        }
+                                                                    });
+                                                                }
+                                                                None => {
+                                                                    tracing::warn!(target: "parser", "Found remappings key in \"foundry.toml\", but found non-array type!");
+                                                                }
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            }
+                            Err(e) => {
+                                tracing::warn!(target: "parser", "\"foundry.toml\" incorrectly formatted!\nError: {:?}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!(target: "parser", "Failed to read \"foundry.toml\" file contents!\nError: {:?}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::warn!(target: "parser", "Foundry.toml not found in specified \"{}\"", root);
+                tracing::warn!(target: "parser", "{:?}", e);
+            }
+        }
+    }
+
+}
+
+impl Remapper {
+    /// Tries to replace path segments in a string with our remappings
+    pub fn remap(&self, path: &str) -> String {
+        let mut path = path.to_string();
+        self.remappings.iter().for_each(|(k, v)| {
+            if path.starts_with(k) {
+                path = path.replace(k, v);
+            }
+        });
+        path
     }
 }
 

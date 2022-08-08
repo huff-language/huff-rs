@@ -152,6 +152,18 @@ impl Parser {
             }
         };
 
+        // Check for foundry toml remappings
+        // TODO: memoize remappings
+        // p = match &self.base {
+        //     Some(b) => FileSource::extract_remappings(b, &p).unwrap_or_default().replacen(
+        //         "contracts/contracts",
+        //         "contracts",
+        //         1,
+        //     ),
+        //     None => p,
+        // };
+        // tracing::info!(target: "parser", "LOCALIZED IMPORT: {}", p);
+
         // Localize import path using out base
         p = match &self.base {
             Some(b) => FileSource::localize_file(b, &p).unwrap_or_default().replacen(

@@ -734,7 +734,9 @@ dependencies = [
  "strum",
  "strum_macros",
  "tiny-keccak",
+ "toml",
  "tracing",
+ "tracing-subscriber",
  "uuid",
 ]
 
