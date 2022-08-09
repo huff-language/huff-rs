@@ -106,8 +106,6 @@ impl TestRunner {
 
         let mut evm = EVM::new();
         self.set_balance(Address::zero(), U256::MAX);
-        // TODO: Allow the developer to modify the caller, value, and calldata.
-        //       Defaults hardcoded for testing / development.
         evm.env = self.build_env(
             Address::zero(),
             TransactTo::Create(CreateScheme::Create),
@@ -224,8 +222,6 @@ impl TestRunner {
 
     /// Build an EVM transaction environment.
     fn build_env(&self, caller: Address, to: TransactTo, data: Bytes, value: U256) -> Env {
-        // TODO: Allow the developer to change these values
-        //       Defaults hardcoded for testing / development.
         Env {
             cfg: CfgEnv { chain_id: 1.into(), spec_id: SpecId::LATEST, ..Default::default() },
             block: BlockEnv { basefee: 0.into(), gas_limit: U256::MAX, ..Default::default() },
