@@ -4,7 +4,7 @@ use comfy_table::{Cell, Color};
 use ethers::{prelude::Address, types::U256, utils::hex};
 use huff_codegen::Codegen;
 use huff_utils::{
-    ast::MacroDefinition,
+    ast::{DecoratorFlag, MacroDefinition},
     prelude::{pad_n_bytes, Contract},
 };
 use revm::{
@@ -138,7 +138,7 @@ impl TestRunner {
         caller: Address,
         address: Address,
         value: U256,
-        data: &str, // TODO: Custom calldata type
+        data: String, // TODO: Custom calldata type
     ) -> Result<TestResult, RunnerError> {
         let mut evm = EVM::new();
         self.set_balance(caller, U256::MAX);
@@ -196,9 +196,24 @@ impl TestRunner {
             if let Ok(bytecode) = Codegen::gen_table_bytecode(res) {
                 let address = self.deploy_code(bytecode)?;
 
-                // TODO: Allow the developer to modify the caller, value, and calldata.
-                //       Defaults hardcoded for testing / development.
-                let res = self.call(name, Address::zero(), address, U256::zero(), "")?;
+                let mut data = String::default();
+                let mut value = U256::zero();
+                if let Some(decorator) = &m.decorator {
+                    for flag in &decorator.flags {
+                        match flag {
+                            DecoratorFlag::Calldata(s) => {
+                                data = if let Some(s) = s.strip_prefix("0x") {
+                                    s.to_owned()
+                                } else {
+                                    s.to_owned()
+                                };
+                            }
+                            DecoratorFlag::Value(v) => value = U256::from(v),
+                        }
+                    }
+                }
+
+                let res = self.call(name, Address::zero(), address, value, data)?;
 
                 return Ok(res)
             }

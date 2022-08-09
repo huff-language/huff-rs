@@ -55,6 +55,10 @@ pub enum ParserErrorKind {
     InvalidReturnArgs,
     /// Invalid import path
     InvalidImportPath(String),
+    /// Invalid decorator flag
+    InvalidDecoratorFlag(String),
+    /// Invalid decorator flag argument
+    InvalidDecoratorFlagArg(TokenKind),
 }
 
 /// A Lexing Error
@@ -430,6 +434,22 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         f,
                         "\nError: Invalid Import Path: \"{}\" \n{}\n",
                         ip,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
+                ParserErrorKind::InvalidDecoratorFlag(df) => {
+                    write!(
+                        f,
+                        "\nError: Invalid Decorator Flag: \"{}\" \n{}\n",
+                        df,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
+                ParserErrorKind::InvalidDecoratorFlagArg(dfa) => {
+                    write!(
+                        f,
+                        "\nError: Invalid Decorator Flag Argument: \"{}\" \n{}\n",
+                        dfa,
                         pe.spans.error(pe.hint.as_ref())
                     )
                 }

@@ -446,6 +446,8 @@ impl From<TokenKind> for TableKind {
 pub struct MacroDefinition {
     /// The Macro Name
     pub name: String,
+    /// The macro's decorator
+    pub decorator: Option<Decorator>,
     /// A list of Macro parameters
     pub parameters: Vec<Argument>,
     /// A list of Statements contained in the Macro
@@ -474,6 +476,7 @@ impl MacroDefinition {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
+        decorator: Option<Decorator>,
         parameters: Vec<Argument>,
         statements: Vec<Statement>,
         takes: usize,
@@ -484,6 +487,7 @@ impl MacroDefinition {
     ) -> Self {
         MacroDefinition {
             name,
+            decorator,
             parameters,
             statements,
             takes,
@@ -767,6 +771,38 @@ impl Display for StatementType {
             StatementType::BuiltinFunctionCall(b) => {
                 write!(f, "BUILTIN FUNCTION CALL: {:?}", b.kind)
             }
+        }
+    }
+}
+
+/// A decorator tag
+///
+/// At the moment, the decorator tag can only be placed over test definitions. Developers
+/// can use decorators to define environment variables and other metadata for their individual
+/// tests.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Decorator {
+    /// Vector of flags passed within the decorator
+    pub flags: Vec<DecoratorFlag>,
+}
+
+/// A decorator flag
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DecoratorFlag {
+    /// Sets the calldata of the test call transaction
+    Calldata(String),
+    /// Sets the value of the test call transaction
+    Value(Literal),
+}
+
+impl TryFrom<&String> for DecoratorFlag {
+    type Error = ();
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "calldata" => Ok(DecoratorFlag::Calldata(String::default())),
+            "value" => Ok(DecoratorFlag::Value(Literal::default())),
+            _ => Err(()),
         }
     }
 }

@@ -367,6 +367,8 @@ impl<'a> Iterator for Lexer<'a> {
 
                     if let Some(kind) = &found_kind {
                         kind.clone()
+                    } else if self.context == Context::Global && &self.peek_n_chars(1) == "#[" {
+                        TokenKind::Pound
                     } else {
                         // Otherwise we don't support # prefixed indentifiers
                         tracing::error!(target: "lexer", "INVALID '#' CHARACTER USAGE");

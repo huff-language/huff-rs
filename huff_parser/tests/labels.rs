@@ -22,6 +22,7 @@ fn multiline_labels() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let md_expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![
             Statement {
@@ -212,6 +213,7 @@ pub fn builtins_under_labels() {
     let md_expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
         parameters: vec![],
+        decorator: None,
         statements: vec![Statement {
             ty: StatementType::Label(Label {
                 name: String::from("my_label"),

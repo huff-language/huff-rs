@@ -7,6 +7,7 @@ use huff_utils::prelude::*;
 fn constructs_valid_abi() {
     let constructor = MacroDefinition {
         name: "CONSTRUCTOR".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![],
         takes: 0,
@@ -46,6 +47,7 @@ fn constructs_valid_abi() {
 fn missing_constructor_fails() {
     let _constructor = MacroDefinition {
         name: "CONSTRUCTOR".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![],
         takes: 0,

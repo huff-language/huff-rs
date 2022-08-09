@@ -42,6 +42,7 @@ let expected_contract = Contract {
   macros: vec![
     MacroDefinition {
       name: "HELLO_WORLD".to_string(),
+      decorator: None,
       parameters: vec![],
       statements: vec![],
       takes: 0,

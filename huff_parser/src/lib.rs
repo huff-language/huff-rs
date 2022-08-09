@@ -65,6 +65,12 @@ impl Parser {
             if self.check(TokenKind::Include) {
                 contract.imports.push(self.parse_imports()?);
             }
+            // Check for a decorator above a test macro
+            else if self.check(TokenKind::Pound) {
+                let m = self.parse_macro()?;
+                tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
+                contract.macros.push(m);
+            }
             // Check for a defition with the "#define" keyword
             else if self.check(TokenKind::Define) {
                 // Consume the definition token
@@ -419,12 +425,101 @@ impl Parser {
         Ok(ErrorDefinition { name, selector, parameters, span: AstSpan(new_spans) })
     }
 
+    /// Parses a decorator.
+    ///
+    /// Decorators are currently used to add additional flags to a test.
+    pub fn parse_decorator(&mut self) -> Result<Decorator, ParserError> {
+        self.match_kind(TokenKind::Pound)?;
+        self.match_kind(TokenKind::OpenBracket)?;
+
+        let mut flags: Vec<DecoratorFlag> = Vec::default();
+
+        while !self.check(TokenKind::CloseBracket) {
+            if let TokenKind::Ident(s) = self.match_kind(TokenKind::Ident(String::default()))? {
+                // Consume the open parenthesis
+                self.consume();
+
+                match DecoratorFlag::try_from(&s) {
+                    // The calldata flag accepts a single string as an argument
+                    Ok(DecoratorFlag::Calldata(_)) => {
+                        if let TokenKind::Str(s) =
+                            &self.match_kind(TokenKind::Str(String::default()))?
+                        {
+                            flags.push(DecoratorFlag::Calldata(s.clone()));
+                        } else {
+                            return Err(ParserError {
+                                kind: ParserErrorKind::InvalidDecoratorFlagArg(
+                                    self.current_token.kind.clone(),
+                                ),
+                                hint: Some(format!("Expected string for decorator flag: {}", s)),
+                                spans: AstSpan(vec![self.current_token.span.clone()]),
+                            })
+                        }
+                    }
+                    // The value flag accepts a single literal as an argument
+                    Ok(DecoratorFlag::Value(_)) => {
+                        if let TokenKind::Literal(l) =
+                            self.match_kind(TokenKind::Literal(Literal::default()))?
+                        {
+                            flags.push(DecoratorFlag::Value(l));
+                        } else {
+                            return Err(ParserError {
+                                kind: ParserErrorKind::InvalidDecoratorFlagArg(
+                                    self.current_token.kind.clone(),
+                                ),
+                                hint: Some(format!("Expected literal for decorator flag: {}", s)),
+                                spans: AstSpan(vec![self.current_token.span.clone()]),
+                            })
+                        }
+                    }
+                    Err(_) => {
+                        tracing::error!(target: "parser", "DECORATOR FLAG NOT FOUND: {}", s);
+                        return Err(ParserError {
+                            kind: ParserErrorKind::InvalidDecoratorFlag(s.clone()),
+                            hint: Some(format!("Unknown decorator flag: {}", s)),
+                            spans: AstSpan(self.spans.clone()),
+                        })
+                    }
+                }
+
+                // Consume the closing parenthesis
+                self.match_kind(TokenKind::CloseParen)?;
+
+                // Multiple flags are possible
+                if self.check(TokenKind::Comma) {
+                    self.consume();
+                }
+            } else {
+                return Err(ParserError {
+                    kind: ParserErrorKind::InvalidDecoratorFlag(String::from(
+                        "EXPECTED DECORATOR FLAG",
+                    )),
+                    hint: Some(String::from("Unknown decorator flag")),
+                    spans: AstSpan(self.spans.clone()),
+                })
+            }
+        }
+
+        // Consume the final bracket
+        self.consume();
+
+        Ok(Decorator { flags })
+    }
+
     /// Parses a macro.
     ///
     /// It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
     pub fn parse_macro(&mut self) -> Result<MacroDefinition, ParserError> {
         let outlined = self.check(TokenKind::Fn);
         let test = self.check(TokenKind::Test);
+
+        let mut decorator: Option<Decorator> = None;
+        if self.check(TokenKind::Pound) && test {
+            decorator = Some(self.parse_decorator()?);
+
+            // Consume the `#define` keyword
+            self.consume();
+        }
 
         self.match_kind(if outlined {
             TokenKind::Fn
@@ -433,6 +528,7 @@ impl Parser {
         } else {
             TokenKind::Macro
         })?;
+
         let macro_name: String =
             self.match_kind(TokenKind::Ident("MACRO_NAME".to_string()))?.to_string();
         tracing::info!(target: "parser", "PARSING MACRO: \"{}\"", macro_name);
@@ -447,6 +543,7 @@ impl Parser {
 
         Ok(MacroDefinition::new(
             macro_name,
+            decorator,
             macro_arguments,
             macro_statements,
             macro_takes,

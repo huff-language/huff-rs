@@ -7,7 +7,13 @@ fn test_runner_return() {
     let code = "602060005260206000F3";
     let deployed_addr = runner.deploy_code(code.to_string()).unwrap();
     let result = runner
-        .call(String::from("RETURN"), Address::zero(), deployed_addr, U256::zero(), "")
+        .call(
+            String::from("RETURN"),
+            Address::zero(),
+            deployed_addr,
+            U256::zero(),
+            String::default(),
+        )
         .unwrap();
 
     assert_eq!(result.name, "RETURN");
@@ -28,7 +34,7 @@ fn test_runner_stop() {
     let code = "00";
     let deployed_addr = runner.deploy_code(code.to_string()).unwrap();
     let result = runner
-        .call(String::from("STOP"), Address::zero(), deployed_addr, U256::zero(), "")
+        .call(String::from("STOP"), Address::zero(), deployed_addr, U256::zero(), String::default())
         .unwrap();
 
     assert_eq!(result.name, "STOP");
@@ -46,7 +52,13 @@ fn test_runner_revert() {
     let code = "60006000FD";
     let deployed_addr = runner.deploy_code(code.to_string()).unwrap();
     let result = runner
-        .call(String::from("REVERT"), Address::zero(), deployed_addr, U256::zero(), "")
+        .call(
+            String::from("REVERT"),
+            Address::zero(),
+            deployed_addr,
+            U256::zero(),
+            String::default(),
+        )
         .unwrap();
 
     assert_eq!(result.name, "REVERT");

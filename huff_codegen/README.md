@@ -63,6 +63,7 @@ let contract = Contract {
   macros: vec![
     MacroDefinition {
       name: "MAIN".to_string(),
+      decorator: None,
       parameters: vec![],
       statements: vec![
         Statement {
@@ -118,7 +119,8 @@ use std::rc::Rc;
 let contract = Contract {
   macros: vec![
     MacroDefinition {
-      name: "CONSTRUCTOR".to_string(),
+      name: "CONSTRUCTOR".to_string(), 
+      decorator: None,
       parameters: vec![],
       statements: vec![
         Statement {

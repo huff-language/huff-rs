@@ -14,6 +14,7 @@ fn empty_macro() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![],
         takes: 0,
@@ -56,6 +57,7 @@ fn macro_with_simple_body() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![
             Statement {
@@ -151,6 +153,7 @@ fn macro_with_arg_calls() {
             indexed: false,
             span: AstSpan(vec![Span { start: 67, end: 72, file: None }]),
         }],
+        decorator: None,
         statements: vec![
             Statement {
                 ty: StatementType::Opcode(Opcode::Dup2),
@@ -314,6 +317,7 @@ fn macro_labels() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "LABEL_FILLED".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![
             Statement {
@@ -488,6 +492,7 @@ fn macro_invocation_with_arg_call() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "ARG_CALL".to_string(),
+        decorator: None,
         parameters: vec![Argument {
             arg_type: None,
             name: Some("error".to_string()),
@@ -628,6 +633,7 @@ fn test_macro_opcode_arguments() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "MAIN".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![Statement {
             ty: StatementType::MacroInvocation(MacroInvocation {
@@ -697,6 +703,7 @@ fn macro_with_builtin_fn_call() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "BUILTIN_TEST".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![Statement {
             ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
@@ -762,6 +769,7 @@ fn empty_outlined_macro() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![],
         takes: 0,
@@ -803,6 +811,7 @@ fn outlined_macro_with_simple_body() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![
             Statement {
@@ -870,6 +879,7 @@ fn empty_test() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![],
         takes: 0,
@@ -912,6 +922,7 @@ fn test_with_simple_body() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![
             Statement {
@@ -976,6 +987,128 @@ fn test_with_simple_body() {
             Span { start: 76, end: 78, file: None },
             Span { start: 79, end: 82, file: None },
             Span { start: 83, end: 84, file: None },
+        ]),
+        outlined: false,
+        test: true,
+    };
+    assert_eq!(macro_definition, expected);
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
+
+#[test]
+fn empty_test_with_decorator() {
+    let source = r#"
+    #[value(0x01)]
+    #define test MY_TEST() = takes(0) returns(0) {}
+    "#;
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    let expected = MacroDefinition {
+        name: String::from("MY_TEST"),
+        decorator: Some(Decorator {
+            flags: vec![DecoratorFlag::Value([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ])],
+        }),
+        parameters: vec![],
+        statements: vec![],
+        takes: 0,
+        returns: 0,
+        span: AstSpan(vec![
+            Span { start: 5, end: 6, file: None },
+            Span { start: 6, end: 7, file: None },
+            Span { start: 7, end: 12, file: None },
+            Span { start: 12, end: 13, file: None },
+            Span { start: 15, end: 17, file: None },
+            Span { start: 17, end: 18, file: None },
+            Span { start: 18, end: 19, file: None },
+            Span { start: 24, end: 31, file: None },
+            Span { start: 32, end: 36, file: None },
+            Span { start: 37, end: 44, file: None },
+            Span { start: 44, end: 45, file: None },
+            Span { start: 45, end: 46, file: None },
+            Span { start: 47, end: 48, file: None },
+            Span { start: 49, end: 54, file: None },
+            Span { start: 54, end: 55, file: None },
+            Span { start: 55, end: 56, file: None },
+            Span { start: 56, end: 57, file: None },
+            Span { start: 58, end: 65, file: None },
+            Span { start: 65, end: 66, file: None },
+            Span { start: 66, end: 67, file: None },
+            Span { start: 67, end: 68, file: None },
+            Span { start: 69, end: 70, file: None },
+            Span { start: 70, end: 71, file: None },
+        ]),
+        outlined: false,
+        test: true,
+    };
+    assert_eq!(macro_definition, expected);
+    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
+
+#[test]
+fn empty_test_with_multi_flag_decorator() {
+    let source = r#"
+    #[calldata("0x02"), value(0x01)]
+    #define test MY_TEST() = takes(0) returns(0) {}
+    "#;
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let macro_definition = parser.parse().unwrap().macros[0].clone();
+    let expected = MacroDefinition {
+        name: String::from("MY_TEST"),
+        decorator: Some(Decorator {
+            flags: vec![
+                DecoratorFlag::Calldata(String::from("0x02")),
+                DecoratorFlag::Value([
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 1,
+                ]),
+            ],
+        }),
+        parameters: vec![],
+        statements: vec![],
+        takes: 0,
+        returns: 0,
+        span: AstSpan(vec![
+            Span { start: 5, end: 6, file: None },
+            Span { start: 6, end: 7, file: None },
+            Span { start: 7, end: 15, file: None },
+            Span { start: 15, end: 16, file: None },
+            Span { start: 16, end: 22, file: None },
+            Span { start: 22, end: 23, file: None },
+            Span { start: 23, end: 24, file: None },
+            Span { start: 25, end: 30, file: None },
+            Span { start: 30, end: 31, file: None },
+            Span { start: 33, end: 35, file: None },
+            Span { start: 35, end: 36, file: None },
+            Span { start: 36, end: 37, file: None },
+            Span { start: 42, end: 49, file: None },
+            Span { start: 50, end: 54, file: None },
+            Span { start: 55, end: 62, file: None },
+            Span { start: 62, end: 63, file: None },
+            Span { start: 63, end: 64, file: None },
+            Span { start: 65, end: 66, file: None },
+            Span { start: 67, end: 72, file: None },
+            Span { start: 72, end: 73, file: None },
+            Span { start: 73, end: 74, file: None },
+            Span { start: 74, end: 75, file: None },
+            Span { start: 76, end: 83, file: None },
+            Span { start: 83, end: 84, file: None },
+            Span { start: 84, end: 85, file: None },
+            Span { start: 85, end: 86, file: None },
+            Span { start: 87, end: 88, file: None },
+            Span { start: 88, end: 89, file: None },
         ]),
         outlined: false,
         test: true,

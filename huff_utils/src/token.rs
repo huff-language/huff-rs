@@ -93,6 +93,8 @@ pub enum TokenKind {
     Comma,
     /// A Colon
     Colon,
+    /// A pound
+    Pound,
     /// Number
     Num(usize),
     /// A Space
@@ -161,6 +163,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Mul => "*",
             TokenKind::Colon => ":",
             TokenKind::Comma => ",",
+            TokenKind::Pound => "#",
             TokenKind::Num(num) => return write!(f, "{}", num),
             TokenKind::Whitespace => " ",
             TokenKind::Str(str) => str,
