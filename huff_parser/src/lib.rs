@@ -510,16 +510,16 @@ impl Parser {
     ///
     /// It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
     pub fn parse_macro(&mut self) -> Result<MacroDefinition, ParserError> {
-        let outlined = self.check(TokenKind::Fn);
-        let test = self.check(TokenKind::Test);
-
         let mut decorator: Option<Decorator> = None;
-        if self.check(TokenKind::Pound) && test {
+        if self.check(TokenKind::Pound) {
             decorator = Some(self.parse_decorator()?);
 
             // Consume the `#define` keyword
             self.consume();
         }
+
+        let outlined = self.check(TokenKind::Fn);
+        let test = self.check(TokenKind::Test);
 
         self.match_kind(if outlined {
             TokenKind::Fn
