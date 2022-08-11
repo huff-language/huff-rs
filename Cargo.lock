@@ -1638,7 +1638,6 @@ dependencies = [
  "huff_core",
  "huff_parser",
  "huff_utils",
- "isatty",
  "revm",
  "serde",
  "serde_json",
