@@ -56,6 +56,7 @@ fn empty_macro_without_takes_returns() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![],
         takes: 0,
@@ -71,6 +72,7 @@ fn empty_macro_without_takes_returns() {
             Span { start: 31, end: 32, file: None },
         ]),
         outlined: false,
+        test: false,
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
@@ -88,6 +90,7 @@ fn empty_macro_only_takes() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![],
         takes: 3,
@@ -107,6 +110,7 @@ fn empty_macro_only_takes() {
             Span { start: 40, end: 41, file: None },
         ]),
         outlined: false,
+        test: false,
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
@@ -124,6 +128,7 @@ fn empty_macro_only_returns() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![],
         takes: 0,
@@ -143,6 +148,7 @@ fn empty_macro_only_returns() {
             Span { start: 43, end: 44, file: None },
         ]),
         outlined: false,
+        test: false,
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
