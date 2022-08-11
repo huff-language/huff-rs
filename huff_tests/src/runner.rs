@@ -11,10 +11,11 @@ use revm::{
     return_ok, return_revert, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return,
     SpecId, TransactOut, TransactTo, TxEnv, EVM,
 };
+use serde::Serialize;
 use yansi::Paint;
 
 /// A test result
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TestResult {
     pub name: String,
     pub return_data: Option<String>,
@@ -23,7 +24,7 @@ pub struct TestResult {
 }
 
 /// A test status
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum TestStatus {
     Success,
     Revert,

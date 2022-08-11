@@ -3,6 +3,7 @@ use comfy_table::{
     modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL, Attribute, Cell, Color, ContentArrangement,
     Row, Table,
 };
+use isatty::stdout_isatty;
 use std::time::Instant;
 use yansi::Paint;
 
@@ -80,14 +81,21 @@ pub fn print_test_report(results: Vec<TestResult>, report_kind: ReportKind, star
             }
         }
         ReportKind::JSON => {
-            todo!()
+            if let Ok(o) = serde_json::to_string_pretty(&results) {
+                println!("{}", o);
+            } else {
+                eprintln!("Error serializing test results into JSON.");
+            }
         }
     }
-    println!(
-        "➜ {} tests passed, {} tests failed ({}%). ⏱ : {}",
-        Paint::green(n_passed),
-        Paint::red(n_results - n_passed),
-        Paint::yellow(n_passed * 100 / n_results),
-        Paint::magenta(format!("{:.4?}", start.elapsed()))
-    );
+
+    if stdout_isatty() {
+        println!(
+            "➜ {} tests passed, {} tests failed ({}%). ⏱ : {}",
+            Paint::green(n_passed),
+            Paint::red(n_results - n_passed),
+            Paint::yellow(n_passed * 100 / n_results),
+            Paint::magenta(format!("{:.4?}", start.elapsed()))
+        );
+    }
 }
