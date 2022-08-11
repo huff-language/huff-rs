@@ -1,4 +1,4 @@
-use crate::prelude::{RunnerError, SimpleInspector, TestResult, TestStatus};
+use crate::prelude::{RunnerError, TestResult, TestStatus};
 use bytes::Bytes;
 use ethers::{prelude::Address, types::U256, utils::hex};
 use huff_codegen::Codegen;
@@ -78,7 +78,7 @@ impl TestRunner {
         );
         evm.database(self.db_mut());
 
-        let (status, out, _, _) = evm.inspect_commit(&mut SimpleInspector::default());
+        let (status, out, _, _) = evm.transact_commit();
 
         let address = match status {
             return_ok!() => {
@@ -112,7 +112,7 @@ impl TestRunner {
         );
         evm.database(self.db_mut());
 
-        let (status, out, gas, _) = evm.inspect_commit(&mut SimpleInspector::default());
+        let (status, out, gas, _) = evm.transact_commit();
 
         let return_data = match status {
             return_ok!() | return_revert!() => {

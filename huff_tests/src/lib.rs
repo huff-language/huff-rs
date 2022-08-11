@@ -5,9 +5,6 @@ use std::{borrow::Borrow, rc::Rc};
 /// The runner module
 pub mod runner;
 
-/// The inspector module
-pub mod inspector;
-
 /// The report module
 pub mod report;
 
@@ -19,7 +16,7 @@ pub mod errors;
 
 /// Prelude wraps all modules within the crate
 pub mod prelude {
-    pub use crate::{errors::*, inspector::*, report::*, runner::*, types::*};
+    pub use crate::{errors::*, report::*, runner::*, types::*};
 }
 
 /// A vector of shared references to test macro definitions
