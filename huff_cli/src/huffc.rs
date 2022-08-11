@@ -21,7 +21,7 @@ use huff_utils::prelude::{
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
-use std::{collections::BTreeMap, io::Write, path::Path, sync::Arc, time::Instant};
+use std::{collections::BTreeMap, io::Write, path::Path, rc::Rc, sync::Arc, time::Instant};
 use yansi::Paint;
 
 /// The Huff CLI Args
@@ -193,12 +193,12 @@ fn main() {
     if let Some(TestCommands::Test { format, match_ }) = cli.test {
         match compiler.grab_contracts() {
             Ok(contracts) => {
-                let match_ = Box::new(match_);
+                let match_ = Rc::new(match_);
 
                 for contract in &contracts {
-                    let start = Instant::now();
-                    let tester = HuffTester::new(contract, Box::clone(&match_));
+                    let tester = HuffTester::new(contract, Rc::clone(&match_));
 
+                    let start = Instant::now();
                     match tester.execute() {
                         Ok(res) => {
                             print_test_report(res, ReportKind::from(&format), start);

@@ -3,6 +3,7 @@ use crate::{
     runner::{TestResult, TestRunner},
 };
 use huff_utils::prelude::{Contract, MacroDefinition};
+use std::{borrow::Borrow, rc::Rc};
 
 /// The runner module
 pub mod runner;
@@ -44,13 +45,13 @@ pub struct HuffTester<'t> {
 impl<'t> HuffTester<'t> {
     /// Create a new instance of `HuffTester` from a contract's AST.
     #[allow(clippy::boxed_local)]
-    pub fn new(ast: &'t Contract, match_: Box<Option<String>>) -> Self {
+    pub fn new(ast: &'t Contract, match_: Rc<Option<String>>) -> Self {
         Self {
             ast,
             macros: {
                 let mut macros: TestMacros<'t> = ast.macros.iter().filter(|m| m.test).collect();
-                if let Some(match_) = *match_ {
-                    macros.retain(|m| m.name == match_);
+                if let Some(match_) = match_.borrow() {
+                    macros.retain(|m| m.name == *match_);
                 }
                 macros
             },

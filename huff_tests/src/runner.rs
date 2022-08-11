@@ -183,12 +183,12 @@ impl TestRunner {
         m: &MacroDefinition,
         contract: &Contract,
     ) -> Result<TestResult, RunnerError> {
-        let name = m.name.clone();
+        let name = m.name.to_owned();
 
         match Codegen::macro_to_bytecode(
-            m.clone(),
+            m.to_owned(),
             contract,
-            &mut vec![m.clone()],
+            &mut vec![m.to_owned()],
             0,
             &mut Vec::default(),
         ) {
