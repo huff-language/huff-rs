@@ -2,7 +2,7 @@ use std::fmt;
 
 /// A Runner error
 #[derive(Debug)]
-pub struct RunnerError(pub &'static str);
+pub struct RunnerError(pub String);
 
 impl fmt::Display for RunnerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

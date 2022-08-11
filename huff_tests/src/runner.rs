@@ -5,7 +5,7 @@ use ethers::{prelude::Address, types::U256, utils::hex};
 use huff_codegen::Codegen;
 use huff_utils::{
     ast::{DecoratorFlag, MacroDefinition},
-    prelude::{pad_n_bytes, Contract},
+    prelude::{pad_n_bytes, CompilerError, Contract},
 };
 use revm::{
     return_ok, return_revert, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return,
@@ -122,10 +122,10 @@ impl TestRunner {
                 if let TransactOut::Create(_, Some(addr)) = out {
                     addr
                 } else {
-                    return Err(RunnerError("Expected contract creation"))
+                    return Err(RunnerError(String::from("Test deployment failed")))
                 }
             }
-            _ => return Err(RunnerError("Test deployment failed")),
+            _ => return Err(RunnerError(String::from("Test deployment failed"))),
         };
         Ok(address)
     }
@@ -160,10 +160,10 @@ impl TestRunner {
                         Some(hex::encode(b))
                     }
                 } else {
-                    return Err(RunnerError("Expected call"))
+                    return Err(RunnerError(String::from("Unexpected transaction kind")))
                 }
             }
-            _ => return Err(RunnerError("Expected contract address")),
+            _ => return Err(RunnerError(String::from("Unexpected transaction status"))),
         };
 
         Ok(TestResult {
@@ -185,40 +185,43 @@ impl TestRunner {
     ) -> Result<TestResult, RunnerError> {
         let name = m.name.clone();
 
-        if let Ok(res) = Codegen::macro_to_bytecode(
+        match Codegen::macro_to_bytecode(
             m.clone(),
             contract,
             &mut vec![m.clone()],
             0,
             &mut Vec::default(),
         ) {
-            if let Ok(bytecode) = Codegen::gen_table_bytecode(res) {
-                let address = self.deploy_code(bytecode)?;
+            Ok(res) => match Codegen::gen_table_bytecode(res) {
+                Ok(bytecode) => {
+                    let address = self.deploy_code(bytecode)?;
 
-                let mut data = String::default();
-                let mut value = U256::zero();
-                if let Some(decorator) = &m.decorator {
-                    for flag in &decorator.flags {
-                        match flag {
-                            DecoratorFlag::Calldata(s) => {
-                                data = if let Some(s) = s.strip_prefix("0x") {
-                                    s.to_owned()
-                                } else {
-                                    s.to_owned()
-                                };
+                    let mut data = String::default();
+                    let mut value = U256::zero();
+                    if let Some(decorator) = &m.decorator {
+                        for flag in &decorator.flags {
+                            match flag {
+                                DecoratorFlag::Calldata(s) => {
+                                    // Strip calldata of 0x prefix, if it is present.
+                                    data = if let Some(s) = s.strip_prefix("0x") {
+                                        s.to_owned()
+                                    } else {
+                                        s.to_owned()
+                                    };
+                                }
+                                DecoratorFlag::Value(v) => value = U256::from(v),
                             }
-                            DecoratorFlag::Value(v) => value = U256::from(v),
                         }
                     }
+
+                    let res = self.call(name, Address::zero(), address, value, data)?;
+
+                    Ok(res)
                 }
-
-                let res = self.call(name, Address::zero(), address, value, data)?;
-
-                return Ok(res)
-            }
+                Err(e) => Err(RunnerError(CompilerError::CodegenError(e).to_string())),
+            },
+            Err(e) => Err(RunnerError(CompilerError::CodegenError(e).to_string())),
         }
-        // TODO: Print error from codegen
-        Err(RunnerError("Failed to generate bytecode"))
     }
 
     /// Build an EVM transaction environment.

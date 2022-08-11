@@ -191,27 +191,30 @@ fn main() {
     };
 
     if let Some(TestCommands::Test { format, match_ }) = cli.test {
-        if let Ok(contracts) = compiler.grab_contracts() {
-            let match_ = Box::new(match_);
+        match compiler.grab_contracts() {
+            Ok(contracts) => {
+                let match_ = Box::new(match_);
 
-            for contract in &contracts {
-                let start = Instant::now();
-                let tester = HuffTester::new(contract, Box::clone(&match_));
+                for contract in &contracts {
+                    let start = Instant::now();
+                    let tester = HuffTester::new(contract, Box::clone(&match_));
 
-                match tester.execute() {
-                    Ok(res) => {
-                        print_test_report(res, ReportKind::from(&format), start);
-                    }
-                    Err(e) => {
-                        eprintln!("{}", Paint::red(e));
-                        std::process::exit(1);
-                    }
-                };
+                    match tester.execute() {
+                        Ok(res) => {
+                            print_test_report(res, ReportKind::from(&format), start);
+                        }
+                        Err(e) => {
+                            eprintln!("{}", Paint::red(e));
+                            std::process::exit(1);
+                        }
+                    };
+                }
             }
-        } else {
-            tracing::error!(target: "cli", "PARSER ERRORED!");
-            eprintln!("{}", Paint::red("Failed to parse one or more sources"));
-            std::process::exit(1);
+            Err(e) => {
+                tracing::error!(target: "cli", "PARSER ERRORED!");
+                eprintln!("{}", Paint::red(e));
+                std::process::exit(1);
+            }
         }
         return
     }
