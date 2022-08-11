@@ -1,6 +1,5 @@
-use crate::{errors::RunnerError, inspector::SimpleInspector};
+use crate::prelude::{RunnerError, SimpleInspector, TestResult, TestStatus};
 use bytes::Bytes;
-use comfy_table::{Cell, Color};
 use ethers::{prelude::Address, types::U256, utils::hex};
 use huff_codegen::Codegen;
 use huff_utils::{
@@ -11,42 +10,6 @@ use revm::{
     return_ok, return_revert, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return,
     SpecId, TransactOut, TransactTo, TxEnv, EVM,
 };
-use serde::Serialize;
-use yansi::Paint;
-
-/// A test result
-#[derive(Debug, Clone, Serialize)]
-pub struct TestResult {
-    pub name: String,
-    pub return_data: Option<String>,
-    pub gas: u64,
-    pub status: TestStatus,
-}
-
-/// A test status
-#[derive(Debug, Clone, Serialize)]
-pub enum TestStatus {
-    Success,
-    Revert,
-}
-
-impl From<TestStatus> for String {
-    fn from(status: TestStatus) -> Self {
-        match status {
-            TestStatus::Success => Paint::green("PASS").to_string(),
-            TestStatus::Revert => Paint::red("FAIL").to_string(),
-        }
-    }
-}
-
-impl From<TestStatus> for Cell {
-    fn from(status: TestStatus) -> Self {
-        match status {
-            TestStatus::Success => Cell::new("PASS").fg(Color::Green),
-            TestStatus::Revert => Cell::new("FAIL").fg(Color::Red),
-        }
-    }
-}
 
 /// A Test Runner
 pub struct TestRunner {

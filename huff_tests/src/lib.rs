@@ -1,7 +1,4 @@
-use crate::{
-    errors::RunnerError,
-    runner::{TestResult, TestRunner},
-};
+use crate::{errors::RunnerError, runner::TestRunner, types::TestResult};
 use huff_utils::prelude::{Contract, MacroDefinition};
 use std::{borrow::Borrow, rc::Rc};
 
@@ -11,15 +8,18 @@ pub mod runner;
 /// The inspector module
 pub mod inspector;
 
-/// The errors module
-pub mod errors;
-
 /// The report module
 pub mod report;
 
+/// The types module
+pub mod types;
+
+/// The errors module
+pub mod errors;
+
 /// Prelude wraps all modules within the crate
 pub mod prelude {
-    pub use crate::{errors::*, inspector::*, report::*, runner::*};
+    pub use crate::{errors::*, inspector::*, report::*, runner::*, types::*};
 }
 
 /// A vector of shared references to test macro definitions
@@ -44,7 +44,6 @@ pub struct HuffTester<'t> {
 /// HuffTester implementation
 impl<'t> HuffTester<'t> {
     /// Create a new instance of `HuffTester` from a contract's AST.
-    #[allow(clippy::boxed_local)]
     pub fn new(ast: &'t Contract, match_: Rc<Option<String>>) -> Self {
         Self {
             ast,

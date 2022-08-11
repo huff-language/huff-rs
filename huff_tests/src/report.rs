@@ -1,4 +1,4 @@
-use crate::{runner::TestStatus, TestResult};
+use crate::prelude::{TestResult, TestStatus};
 use comfy_table::{
     modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL, Attribute, Cell, Color, ContentArrangement,
     Row, Table,

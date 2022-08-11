@@ -1,5 +1,5 @@
 use ethers::prelude::{Address, U256};
-use huff_tests::runner::{TestRunner, TestStatus};
+use huff_tests::prelude::{TestRunner, TestStatus};
 
 #[test]
 fn test_runner_return() {
