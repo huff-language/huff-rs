@@ -535,10 +535,12 @@ impl Parser {
 
         let macro_arguments = self.parse_args(true, false, false, false)?;
         self.match_kind(TokenKind::Assign)?;
-        self.match_kind(TokenKind::Takes)?;
-        let macro_takes: usize = self.parse_single_arg()?;
-        self.match_kind(TokenKind::Returns)?;
-        let macro_returns: usize = self.parse_single_arg()?;
+
+        let macro_takes =
+            self.match_kind(TokenKind::Takes).map_or(Ok(0), |_| self.parse_single_arg())?;
+        let macro_returns =
+            self.match_kind(TokenKind::Returns).map_or(Ok(0), |_| self.parse_single_arg())?;
+
         let macro_statements: Vec<Statement> = self.parse_body()?;
 
         Ok(MacroDefinition::new(
