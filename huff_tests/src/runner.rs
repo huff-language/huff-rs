@@ -11,7 +11,8 @@ use revm::{
     SpecId, TransactOut, TransactTo, TxEnv, EVM,
 };
 
-/// A Test Runner
+/// The test runner allows execution of test macros within an in-memory REVM
+/// instance.
 pub struct TestRunner {
     pub database: InMemoryDB,
     pub env: Env,
@@ -40,8 +41,9 @@ impl TestRunner {
         self
     }
 
-    /// Deploy arbitrary bytecode to our revm instance and return the contract address.
+    /// Deploy arbitrary bytecode to our REVM instance and return the contract address.
     pub fn deploy_code(&mut self, code: String) -> Result<Address, RunnerError> {
+        // Wrap code in a bootstrap constructor
         let contract_length = code.len() / 2;
         let constructor_length = 0;
         let mut bootstrap_code_size = 9;
@@ -65,7 +67,6 @@ impl TestRunner {
                 pad_n_bytes(format!("{:x}", bootstrap_code_size + constructor_length).as_str(), 2)
             )
         };
-
         let bootstrap = format!("{}80{}3d393df3{}", contract_size, contract_code_offset, code);
 
         let mut evm = EVM::new();
@@ -73,13 +74,18 @@ impl TestRunner {
         evm.env = self.build_env(
             Address::zero(),
             TransactTo::Create(CreateScheme::Create),
+            // The following should never panic, as any potential compilation error
+            // as well as an uneven number of hex nibbles should be caught in the
+            // compilation process.
             hex::decode(bootstrap).expect("Invalid hex").into(),
             U256::zero(),
         );
         evm.database(self.db_mut());
 
+        // Send our CREATE transaction
         let (status, out, _, _) = evm.transact_commit();
 
+        // Check if deployment was successful
         let address = match status {
             return_ok!() => {
                 if let TransactOut::Create(_, Some(addr)) = out {
@@ -100,7 +106,7 @@ impl TestRunner {
         caller: Address,
         address: Address,
         value: U256,
-        data: String, // TODO: Custom calldata type
+        data: String,
     ) -> Result<TestResult, RunnerError> {
         let mut evm = EVM::new();
         self.set_balance(caller, U256::MAX);
@@ -112,8 +118,10 @@ impl TestRunner {
         );
         evm.database(self.db_mut());
 
+        // Send our CALL transaction
         let (status, out, gas, _) = evm.transact_commit();
 
+        // Check if the transaction was successful
         let return_data = match status {
             return_ok!() | return_revert!() => {
                 if let TransactOut::Call(b) = out {
@@ -129,6 +137,9 @@ impl TestRunner {
             _ => return Err(RunnerError(String::from("Unexpected transaction status"))),
         };
 
+        // Return our test result
+        // NOTE: We subtract 21000 gas from the gas result to account for the
+        // base cost of the CALL.
         Ok(TestResult {
             name,
             return_data,
@@ -140,7 +151,7 @@ impl TestRunner {
         })
     }
 
-    /// Compile a test macro and run it in the revm instance.
+    /// Compile a test macro and run it in an in-memory REVM instance.
     pub fn run_test(
         &mut self,
         m: &MacroDefinition,
@@ -148,6 +159,7 @@ impl TestRunner {
     ) -> Result<TestResult, RunnerError> {
         let name = m.name.to_owned();
 
+        // Compile the passed test macro
         match Codegen::macro_to_bytecode(
             m.to_owned(),
             contract,
@@ -155,10 +167,13 @@ impl TestRunner {
             0,
             &mut Vec::default(),
         ) {
+            // Generate table bytecode for compiled test macro
             Ok(res) => match Codegen::gen_table_bytecode(res) {
                 Ok(bytecode) => {
+                    // Deploy compiled test macro
                     let address = self.deploy_code(bytecode)?;
 
+                    // Set environment flags passed through the test decorator
                     let mut data = String::default();
                     let mut value = U256::zero();
                     if let Some(decorator) = &m.decorator {
@@ -177,13 +192,13 @@ impl TestRunner {
                         }
                     }
 
+                    // Call the deployed test
                     let res = self.call(name, Address::zero(), address, value, data)?;
-
                     Ok(res)
                 }
-                Err(e) => Err(RunnerError(CompilerError::CodegenError(e).to_string())),
+                Err(e) => Err(CompilerError::CodegenError(e).into()),
             },
-            Err(e) => Err(RunnerError(CompilerError::CodegenError(e).to_string())),
+            Err(e) => Err(CompilerError::CodegenError(e).into()),
         }
     }
 

@@ -45,7 +45,10 @@ impl<'t> HuffTester<'t> {
         Self {
             ast,
             macros: {
+                // Filter all macros within the AST for `test` macros only
                 let mut macros: TestMacros<'t> = ast.macros.iter().filter(|m| m.test).collect();
+                // If the match flag is present, only retain the test macro
+                // that was queried
                 if let Some(match_) = match_.borrow() {
                     macros.retain(|m| m.name == *match_);
                 }
@@ -57,10 +60,12 @@ impl<'t> HuffTester<'t> {
 
     /// Execute tests
     pub fn execute(mut self) -> Result<Vec<TestResult>, RunnerError> {
+        // Check if any test macros exist
         if self.macros.is_empty() {
             return Err(RunnerError(String::from("No test macros found.")))
         }
 
+        // Execute our tests and return a vector of the results
         self.macros
             .into_iter()
             .map(|macro_def| self.runner.run_test(macro_def, self.ast))

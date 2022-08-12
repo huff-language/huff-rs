@@ -1,4 +1,4 @@
-use crate::prelude::{TestResult, TestStatus};
+use crate::prelude::{ReportKind, TestResult, TestStatus};
 use comfy_table::{
     modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL, Attribute, Cell, Color, ContentArrangement,
     Row, Table,
@@ -6,36 +6,11 @@ use comfy_table::{
 use std::time::Instant;
 use yansi::Paint;
 
-/// A test report kind
-pub enum ReportKind {
-    /// Signals `gen_report` to format the test report as a table
-    Table,
-    /// Signals `gen_report` to format the test report as a list
-    List,
-    /// Signals `gen_report` to format the test report as JSON
-    JSON,
-}
-
-/// Convert a shared reference to an `Option<String>` to a `ReportKind`.
-/// If the `Option<String>` is `None` or does not match any of the
-/// `ReportKind` variants, then `ReportKind::List` is returned.
-impl From<&Option<String>> for ReportKind {
-    fn from(str: &Option<String>) -> Self {
-        if let Some(str) = str {
-            match str.to_lowercase().as_str() {
-                "table" => ReportKind::Table,
-                "list" => ReportKind::List,
-                "json" => ReportKind::JSON,
-                _ => panic!("Invalid report kind"),
-            }
-        } else {
-            ReportKind::List
-        }
-    }
-}
-
 /// Print a report of the test results, formatted according to the `report_kind` parameter.
 pub fn print_test_report(results: Vec<TestResult>, report_kind: ReportKind, start: Instant) {
+    // Gather how many of our tests passed *before* generating our report,
+    // as we pass ownership of `results` to both the `ReportKind::Table`
+    // and `ReportKind::List` arms.
     let n_passed = results
         .iter()
         .filter(|r| {
@@ -44,6 +19,8 @@ pub fn print_test_report(results: Vec<TestResult>, report_kind: ReportKind, star
         .count();
     let n_results = results.len();
 
+    // Generate and print a report of the test results, formatted based on
+    // the `report_kind` input.
     match report_kind {
         ReportKind::Table => {
             let mut table = Table::new();
