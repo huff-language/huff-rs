@@ -12,7 +12,7 @@ fn test_parses_free_storage_pointer_constant() {
     let contract = parser.parse().unwrap();
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 
-    let fsp_constant = contract.constants.borrow()[0].clone();
+    let fsp_constant = contract.constants.lock().unwrap()[0].clone();
     assert_eq!(
         fsp_constant,
         ConstantDefinition {
@@ -44,7 +44,7 @@ fn test_parses_literal_constant() {
         str_to_bytes32("8C5BE1E5EBEC7D5BD14F71427D1E84F3DD0314C0F7B2291E5B200AC8C7C3B925");
 
     // Check Literal
-    let fsp_constant = contract.constants.borrow()[0].clone();
+    let fsp_constant = contract.constants.lock().unwrap()[0].clone();
     assert_eq!(
         fsp_constant,
         ConstantDefinition {

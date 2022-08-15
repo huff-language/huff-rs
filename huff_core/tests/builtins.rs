@@ -477,3 +477,122 @@ fn test_event_hash_builtin() {
         String::from("7fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a87fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a87fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8600055")
     );
 }
+
+#[test]
+fn test_error_selector_builtin() {
+    let source: &str = r#"
+        // Define our custom error
+        #define error PanicError(uint256 panicCode)
+        #define error Error(string)
+
+        #define macro PANIC() = takes (1) returns (0) {
+            // Input stack:          [panic_code]
+            __ERROR(PanicError)   // [panic_error_selector, panic_code]
+            0x00 mstore           // [panic_code]
+            0x04 mstore           // []
+            0x24 0x00 revert
+        }
+
+        #define macro REQUIRE() = takes (3) returns (0) {
+            // Input stack:          [condition, message_length, message]
+            continue jumpi        // [message]
+
+            __ERROR(Error)        // [error_selector, message_length, message]
+            0x00 mstore           // [message_length, message]
+            0x20 0x04 mstore      // [message_length, message]
+            0x24 mstore           // [message]
+            0x44 mstore           // []
+
+            0x64 0x00 revert
+
+            continue:
+                pop               // []
+        }
+
+        #define macro MAIN() = takes (0) returns (0) {
+            // dummy macro invocations so they're included in the runtime bytecode
+            PANIC()
+            REQUIRE()
+        }
+    "#;
+
+    // Parse tokens
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Parse the AST
+    let mut contract = parser.parse().unwrap();
+
+    // Derive storage pointers
+    contract.derive_storage_pointers();
+
+    // Instantiate Codegen
+    let cg = Codegen::new();
+
+    // The codegen instance should have no artifact
+    assert!(cg.artifact.is_none());
+
+    // Have Codegen create the runtime bytecode
+    let r_bytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    assert_eq!(&r_bytes[2..66], "be20788c00000000000000000000000000000000000000000000000000000000");
+    assert_eq!(
+        &r_bytes[98..162],
+        "08c379a000000000000000000000000000000000000000000000000000000000"
+    );
+    assert_eq!(
+        r_bytes,
+        String::from(
+            "7fbe20788c0000000000000000000000000000000000000000000000000000000060005260045260246000fd610064577f08c379a000000000000000000000000000000000000000000000000000000000600052602060045260245260445260646000fd5b50"
+        )
+    );
+}
+
+#[test]
+fn test_rightpad_builtin() {
+    let source: &str = r#"
+        #define macro MAIN() = takes (0) returns (0) {
+            __RIGHTPAD(0xa57b)
+            __RIGHTPAD(0x48656c6c6f2c20576f726c6421)
+            __RIGHTPAD(0x6d6f6f7365)
+        }
+    "#;
+
+    // Parse tokens
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Parse the AST
+    let mut contract = parser.parse().unwrap();
+
+    // Derive storage pointers
+    contract.derive_storage_pointers();
+
+    // Instantiate Codegen
+    let cg = Codegen::new();
+
+    // The codegen instance should have no artifact
+    assert!(cg.artifact.is_none());
+
+    // Have Codegen create the runtime bytecode
+    let r_bytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    assert_eq!(&r_bytes[2..66], "a57b000000000000000000000000000000000000000000000000000000000000");
+    assert_eq!(
+        &r_bytes[68..132],
+        "48656c6c6f2c20576f726c642100000000000000000000000000000000000000"
+    );
+    assert_eq!(
+        &r_bytes[134..198],
+        "6d6f6f7365000000000000000000000000000000000000000000000000000000"
+    );
+    assert_eq!(r_bytes.len(), (32 * 3 + 3) * 2);
+    assert_eq!(
+        r_bytes,
+        String::from(
+            "7fa57b0000000000000000000000000000000000000000000000000000000000007f48656c6c6f2c20576f726c6421000000000000000000000000000000000000007f6d6f6f7365000000000000000000000000000000000000000000000000000000"
+        )
+    );
+}

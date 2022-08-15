@@ -1,8 +1,8 @@
 [package]
 name = "huff_parser"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
-authors = ["Andreas Bigger", "clabby", "exp.table"]
+authors = ["asnared", "clabby", "exp.table"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
 license = "MIT OR Apache-2.0"
@@ -15,7 +15,6 @@ keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
 huff_utils = { path = "../huff_utils" }
 huff_lexer = { path = "../huff_lexer" }
 proptest = "1.0.0"
-tiny-keccak = { version = "2.0.2", features = ["keccak"] }
 tracing = "0.1.34"
 hex = "0.4.3"
 regex = "1.6.0"

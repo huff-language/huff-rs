@@ -21,39 +21,8 @@ pub fn bubble_arg_call(
 ) -> Result<(), CodegenError> {
     let starting_offset = *offset;
 
-    // Check Constant Definitions
-    if let Some(constant) =
-        contract.constants.borrow().iter().find(|const_def| const_def.name.eq(arg_name))
-    {
-        tracing::info!(target: "codegen", "ARGCALL IS CONSTANT: {:?}", constant);
-        let push_bytes = match &constant.value {
-            ConstVal::Literal(l) => {
-                let hex_literal: String = bytes32_to_string(l, false);
-                format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
-            }
-            ConstVal::FreeStoragePointer(fsp) => {
-                // If this is reached in codegen stage,
-                // `derive_storage_pointers`
-                // method was not called on the AST.
-                tracing::error!(target: "codegen", "STORAGE POINTERS INCORRECTLY DERIVED FOR \"{:?}\"", fsp);
-                return Err(CodegenError {
-                    kind: CodegenErrorKind::StoragePointersNotDerived,
-                    span: AstSpan(vec![]),
-                    token: None,
-                })
-            }
-        };
-        *offset += push_bytes.len() / 2;
-        tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
-        bytes.push((starting_offset, Bytes(push_bytes)));
-    } else if let Ok(o) = Opcode::from_str(arg_name) {
-        // Check Opcode Definition
-        let b = Bytes(o.to_string());
-        *offset += b.0.len() / 2;
-        tracing::info!(target: "codegen", "RECURSE_BYTECODE ARG CALL FOUND OPCODE: {:?}", b);
-        bytes.push((starting_offset, b));
-    } else if let Some(macro_invoc) = mis.last() {
-        // Literal & Arg Call Check
+    if let Some(macro_invoc) = mis.last() {
+        // Literal, Ident & Arg Call Check
         // First get this arg_nam position in the macro definition params
         if let Some(pos) = macro_def
             .parameters
@@ -122,21 +91,63 @@ pub fn bubble_arg_call(
                         }
                     }
                     MacroArg::Ident(iden) => {
-                        tracing::debug!(target: "codegen", "FOUND IDENT ARG IN \"{}\" MACRO INVOCATION: \"{}\"!", macro_invoc.1.macro_name, iden);
-                        tracing::debug!(target: "codegen", "Macro invocation index: {}", macro_invoc.0);
-                        tracing::debug!(target: "codegen", "At offset: {}", *offset);
+                        tracing::debug!(target: "codegen", "Found MacroArg::Ident IN \"{}\" Macro Invocation: \"{}\"!", macro_invoc.1.macro_name, iden);
 
-                        // This should be equivalent to a label call.
-                        bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
-                        jump_table.insert(
-                            *offset,
-                            vec![Jump {
-                                label: iden.to_owned(),
-                                bytecode_index: 0,
-                                span: macro_invoc.1.span.clone(),
-                            }],
-                        );
-                        *offset += 3;
+                        // Check for a constant first
+                        if let Some(constant) = contract
+                            .constants
+                            .lock()
+                            .map_err(|_| {
+                                CodegenError::new(
+                                    CodegenErrorKind::LockingError,
+                                    AstSpan(vec![]),
+                                    None,
+                                )
+                            })?
+                            .iter()
+                            .find(|const_def| const_def.name.eq(iden))
+                        {
+                            tracing::info!(target: "codegen", "ARGCALL IS CONSTANT: {:?}", constant);
+                            let push_bytes = match &constant.value {
+                                ConstVal::Literal(l) => {
+                                    let hex_literal: String = bytes32_to_string(l, false);
+                                    format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
+                                }
+                                ConstVal::FreeStoragePointer(fsp) => {
+                                    // If this is reached in codegen stage,
+                                    // `derive_storage_pointers`
+                                    // method was not called on the AST.
+                                    tracing::error!(target: "codegen", "STORAGE POINTERS INCORRECTLY DERIVED FOR \"{:?}\"", fsp);
+                                    return Err(CodegenError {
+                                        kind: CodegenErrorKind::StoragePointersNotDerived,
+                                        span: AstSpan(vec![]),
+                                        token: None,
+                                    })
+                                }
+                            };
+                            *offset += push_bytes.len() / 2;
+                            tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
+                            bytes.push((starting_offset, Bytes(push_bytes)));
+                        } else if let Ok(o) = Opcode::from_str(iden) {
+                            tracing::debug!(target: "codegen", "Found Opcode: {}", o);
+                            let b = Bytes(o.to_string());
+                            *offset += b.0.len() / 2;
+                            bytes.push((starting_offset, b));
+                        } else {
+                            tracing::debug!(target: "codegen", "Found Label Call: {}", iden);
+
+                            // This should be equivalent to a label call.
+                            bytes.push((*offset, Bytes(format!("{}xxxx", Opcode::Push2))));
+                            jump_table.insert(
+                                *offset,
+                                vec![Jump {
+                                    label: iden.to_owned(),
+                                    bytecode_index: 0,
+                                    span: macro_invoc.1.span.clone(),
+                                }],
+                            );
+                            *offset += 3;
+                        }
                     }
                 }
             } else {

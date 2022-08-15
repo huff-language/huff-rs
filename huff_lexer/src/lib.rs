@@ -239,7 +239,7 @@ impl<'a> Lexer<'a> {
     /// Consume characters until a sequence matches
     pub fn seq_consume(&mut self, word: &str) {
         let mut current_pos = self.current_span().start;
-        while self.peek() != None {
+        while self.peek().is_some() {
             let peeked = self.peek_n_chars_from(word.len(), current_pos);
             if word == peeked {
                 break
@@ -268,8 +268,8 @@ impl<'a> Lexer<'a> {
     /// `TokenKind::Ident`.
     ///
     /// Rules:
-    /// - The `macro`, `fn`, `function`, `constant`, `event`, `jumptable`, `jumptable__packed`, and
-    ///   `table` keywords must be preceded by a `#define` keyword.
+    /// - The `macro`, `fn`, `test`, `function`, `constant`, `event`, `jumptable`,
+    ///   `jumptable__packed`, and `table` keywords must be preceded by a `#define` keyword.
     /// - The `takes` keyword must be preceded by an assignment operator: `=`.
     /// - The `nonpayable`, `payable`, `view`, and `pure` keywords must be preceeded by one of these
     ///   keywords or a close paren.
@@ -279,8 +279,10 @@ impl<'a> Lexer<'a> {
         match found_kind {
             Some(TokenKind::Macro) |
             Some(TokenKind::Fn) |
+            Some(TokenKind::Test) |
             Some(TokenKind::Function) |
             Some(TokenKind::Constant) |
+            Some(TokenKind::Error) |
             Some(TokenKind::Event) |
             Some(TokenKind::JumpTable) |
             Some(TokenKind::JumpTablePacked) |
@@ -365,6 +367,8 @@ impl<'a> Iterator for Lexer<'a> {
 
                     if let Some(kind) = &found_kind {
                         kind.clone()
+                    } else if self.context == Context::Global && &self.peek_n_chars(1) == "#[" {
+                        TokenKind::Pound
                     } else {
                         // Otherwise we don't support # prefixed indentifiers
                         tracing::error!(target: "lexer", "INVALID '#' CHARACTER USAGE");
@@ -381,8 +385,10 @@ impl<'a> Iterator for Lexer<'a> {
                     let keys = [
                         TokenKind::Macro,
                         TokenKind::Fn,
+                        TokenKind::Test,
                         TokenKind::Function,
                         TokenKind::Constant,
+                        TokenKind::Error,
                         TokenKind::Takes,
                         TokenKind::Returns,
                         TokenKind::Event,
@@ -421,10 +427,12 @@ impl<'a> Iterator for Lexer<'a> {
 
                     if let Some(kind) = &found_kind {
                         match kind {
-                            TokenKind::Macro | TokenKind::Fn => {
+                            TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
                                 self.context = Context::MacroDefinition
                             }
-                            TokenKind::Function | TokenKind::Event => self.context = Context::Abi,
+                            TokenKind::Function | TokenKind::Event | TokenKind::Error => {
+                                self.context = Context::Abi
+                            }
                             TokenKind::Constant => self.context = Context::Constant,
                             TokenKind::CodeTable => self.context = Context::CodeTableBody,
                             _ => (),
@@ -473,7 +481,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // goes over all opcodes
                     for opcode in OPCODES {
-                        if self.context != Context::MacroBody || found_kind != None {
+                        if self.context != Context::MacroBody || found_kind.is_some() {
                             break
                         }
                         if opcode == pot_op {
@@ -557,14 +565,7 @@ impl<'a> Iterator for Lexer<'a> {
                         let slice = self.slice();
                         // Check for built-in function calls
                         if self.context == Context::MacroBody &&
-                            matches!(
-                                slice.as_ref(),
-                                "__codesize" |
-                                    "__tablesize" |
-                                    "__tablestart" |
-                                    "__FUNC_SIG" |
-                                    "__EVENT_HASH" /* TODO: Clean this process up */
-                            )
+                            BuiltinFunctionKind::try_from(&slice).is_ok()
                         {
                             TokenKind::BuiltinFunction(slice)
                         } else {

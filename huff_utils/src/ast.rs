@@ -9,11 +9,10 @@ use crate::{
     prelude::{Span, TokenKind},
 };
 use std::{
-    cell::RefCell,
     collections::BTreeMap,
     fmt::{Display, Formatter},
     path::PathBuf,
-    rc::Rc,
+    sync::{Arc, Mutex},
 };
 
 /// A contained literal
@@ -89,7 +88,7 @@ impl AstSpan {
 /// Thus, it is also the root of the AST.
 ///
 /// For examples of Huff contracts, see the [huff-examples repository](https://github.com/huff-language/huff-examples).
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone)]
 pub struct Contract {
     /// Macro definitions
     pub macros: Vec<MacroDefinition>,
@@ -98,7 +97,9 @@ pub struct Contract {
     /// File Imports
     pub imports: Vec<FilePath>,
     /// Constants
-    pub constants: Rc<RefCell<Vec<ConstantDefinition>>>,
+    pub constants: Arc<Mutex<Vec<ConstantDefinition>>>,
+    /// Custom Errors
+    pub errors: Vec<ErrorDefinition>,
     /// Functions
     pub functions: Vec<Function>,
     /// Events
@@ -141,7 +142,8 @@ impl Contract {
                 &mut last_assigned_free_pointer,
             ),
             None => {
-                tracing::error!(target: "ast", "'CONSTRUCTOR' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
+                // The constructor is not required, so we can just warn
+                tracing::warn!(target: "ast", "'CONSTRUCTOR' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
             }
         }
 
@@ -161,7 +163,7 @@ impl Contract {
         tracing::debug!(target: "ast", "ALL AST CONSTANTS: {:?}", storage_pointers);
 
         // Set all the constants to their new values
-        for c in self.constants.borrow_mut().iter_mut() {
+        for c in self.constants.lock().unwrap().iter_mut() {
             match storage_pointers
                 .iter()
                 .filter(|pointer| pointer.0.eq(&c.name))
@@ -219,7 +221,8 @@ impl Contract {
                         // Get the associated constant
                         match self
                             .constants
-                            .borrow()
+                            .lock()
+                            .unwrap()
                             .iter()
                             .filter(|c| c.name.eq(const_name))
                             .collect::<Vec<&ConstantDefinition>>()
@@ -304,7 +307,7 @@ impl Contract {
     pub fn add_override_constants(&self, override_constants: &Option<BTreeMap<&str, Literal>>) {
         if let Some(override_constants) = override_constants {
             for (name, value) in override_constants {
-                let mut constants = self.constants.borrow_mut();
+                let mut constants = self.constants.lock().unwrap();
                 if let Some(c) = constants.iter_mut().find(|c| c.name.as_str().eq(*name)) {
                     c.value = ConstVal::Literal(*value);
                 } else {
@@ -443,6 +446,8 @@ impl From<TokenKind> for TableKind {
 pub struct MacroDefinition {
     /// The Macro Name
     pub name: String,
+    /// The macro's decorator
+    pub decorator: Option<Decorator>,
     /// A list of Macro parameters
     pub parameters: Vec<Argument>,
     /// A list of Statements contained in the Macro
@@ -455,6 +460,8 @@ pub struct MacroDefinition {
     pub span: AstSpan,
     /// Is the macro a function (outlined)?
     pub outlined: bool,
+    /// Is the macro a test?
+    pub test: bool,
 }
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
@@ -466,23 +473,28 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
 
 impl MacroDefinition {
     /// Public associated function that instantiates a MacroDefinition.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
+        decorator: Option<Decorator>,
         parameters: Vec<Argument>,
         statements: Vec<Statement>,
         takes: usize,
         returns: usize,
         spans: Vec<Span>,
         outlined: bool,
+        test: bool,
     ) -> Self {
         MacroDefinition {
             name,
+            decorator,
             parameters,
             statements,
             takes,
             returns,
             span: AstSpan(spans),
             outlined,
+            test,
         }
     }
 
@@ -621,6 +633,19 @@ pub struct ConstantDefinition {
     pub span: AstSpan,
 }
 
+/// An Error Definition
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ErrorDefinition {
+    /// The Error name
+    pub name: String,
+    /// The Error's selector
+    pub selector: [u8; 4],
+    /// The parameters of the error
+    pub parameters: Vec<Argument>,
+    /// The Span of the Constant Definition
+    pub span: AstSpan,
+}
+
 /// A Jump Destination
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Label {
@@ -639,7 +664,7 @@ pub struct BuiltinFunctionCall {
     pub kind: BuiltinFunctionKind,
     /// Arguments for the builtin function call.
     /// TODO: Maybe make a better type for this other than `Argument`? Would be nice if it pointed
-    /// directly to the macro/table.
+    ///       directly to the macro/table.
     pub args: Vec<Argument>,
     /// The builtin function call span
     pub span: AstSpan,
@@ -658,17 +683,42 @@ pub enum BuiltinFunctionKind {
     FunctionSignature,
     /// Event hash function
     EventHash,
+    /// Error selector function
+    Error,
+    /// Rightpad function
+    RightPad,
 }
 
-impl From<&str> for BuiltinFunctionKind {
-    fn from(s: &str) -> Self {
-        match s {
+impl From<String> for BuiltinFunctionKind {
+    fn from(value: String) -> Self {
+        match value.as_str() {
             "__tablesize" => BuiltinFunctionKind::Tablesize,
             "__codesize" => BuiltinFunctionKind::Codesize,
             "__tablestart" => BuiltinFunctionKind::Tablestart,
             "__FUNC_SIG" => BuiltinFunctionKind::FunctionSignature,
             "__EVENT_HASH" => BuiltinFunctionKind::EventHash,
-            _ => panic!("Invalid Builtin Function Kind"), // TODO: Better error handling
+            "__ERROR" => BuiltinFunctionKind::Error,
+            "__RIGHTPAD" => BuiltinFunctionKind::RightPad,
+            _ => panic!("Invalid Builtin Function Kind"), /* This should never be reached,
+                                                           * builtins are validated with a
+                                                           * `try_from` call in the lexer. */
+        }
+    }
+}
+
+impl TryFrom<&String> for BuiltinFunctionKind {
+    type Error = ();
+
+    fn try_from(value: &String) -> Result<Self, <BuiltinFunctionKind as TryFrom<&String>>::Error> {
+        match value.as_str() {
+            "__tablesize" => Ok(BuiltinFunctionKind::Tablesize),
+            "__codesize" => Ok(BuiltinFunctionKind::Codesize),
+            "__tablestart" => Ok(BuiltinFunctionKind::Tablestart),
+            "__FUNC_SIG" => Ok(BuiltinFunctionKind::FunctionSignature),
+            "__EVENT_HASH" => Ok(BuiltinFunctionKind::EventHash),
+            "__ERROR" => Ok(BuiltinFunctionKind::Error),
+            "__RIGHTPAD" => Ok(BuiltinFunctionKind::RightPad),
+            _ => Err(()),
         }
     }
 }
@@ -721,6 +771,38 @@ impl Display for StatementType {
             StatementType::BuiltinFunctionCall(b) => {
                 write!(f, "BUILTIN FUNCTION CALL: {:?}", b.kind)
             }
+        }
+    }
+}
+
+/// A decorator tag
+///
+/// At the moment, the decorator tag can only be placed over test definitions. Developers
+/// can use decorators to define environment variables and other metadata for their individual
+/// tests.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Decorator {
+    /// Vector of flags passed within the decorator
+    pub flags: Vec<DecoratorFlag>,
+}
+
+/// A decorator flag
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DecoratorFlag {
+    /// Sets the calldata of the test call transaction
+    Calldata(String),
+    /// Sets the value of the test call transaction
+    Value(Literal),
+}
+
+impl TryFrom<&String> for DecoratorFlag {
+    type Error = ();
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "calldata" => Ok(DecoratorFlag::Calldata(String::default())),
+            "value" => Ok(DecoratorFlag::Value(Literal::default())),
+            _ => Err(()),
         }
     }
 }

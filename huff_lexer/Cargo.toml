@@ -2,7 +2,7 @@
 name = "huff_lexer"
 version = "0.3.0"
 edition = "2021"
-authors = ["Andreas Bigger", "clabby", "exp.table"]
+authors = ["asnared", "clabby", "exp.table"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
 license = "MIT OR Apache-2.0"
@@ -13,6 +13,6 @@ keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
 
 [dependencies]
 proptest = "1.0.0"
-huff_utils = { path = "../huff_utils", version = "0.1.0" }
+huff_utils = { path = "../huff_utils", version = "0.3.0" }
 regex = "1"
 tracing = "0.1.34"

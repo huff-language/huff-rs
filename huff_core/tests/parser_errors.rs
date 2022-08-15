@@ -80,7 +80,7 @@ fn test_unexpected_type() {
 
 #[test]
 fn test_invalid_definition() {
-    let source = "#define test func() returns ()";
+    let source = "#define invalid func() returns ()";
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
     let lexer = Lexer::new(full_source);
@@ -93,14 +93,14 @@ fn test_invalid_definition() {
             assert_eq!(
                 e,
                 ParserError {
-                    kind: ParserErrorKind::InvalidDefinition(TokenKind::Ident("test".to_string())),
+                    kind: ParserErrorKind::InvalidDefinition(TokenKind::Ident("invalid".to_string())),
                     hint: Some(
-                        "Definition must be one of: `function`, `event`, `constant`, `macro`, or `fn`."
+                        "Definition must be one of: `function`, `event`, `constant`, `error`, `macro`, `fn`, or `test`."
                             .to_string()
                     ),
                     spans: AstSpan(vec![Span {
-                        start: source.find("test").unwrap_or(0),
-                        end: source.find("test").unwrap_or(0) + "test".len(),
+                        start: source.find("invalid").unwrap_or(0),
+                        end: source.find("invalid").unwrap_or(0) + "invalid".len(),
                         file: None
                     }]),
                 }
@@ -247,7 +247,7 @@ fn test_invalid_token_in_label_definition() {
 
 #[test]
 fn test_invalid_single_arg() {
-    for _ in [0..10_000] {
+    for _ in 0..10_000 {
         let random_char = rand::random::<u8>() as char;
         if random_char.is_numeric() ||
             !random_char.is_alphabetic() ||

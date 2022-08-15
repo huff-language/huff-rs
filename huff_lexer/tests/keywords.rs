@@ -57,9 +57,41 @@ fn parses_fn_keyword() {
     // Lastly we should parse the fn keyword
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    let macro_span = Span::new(8..10, None);
-    assert_eq!(unwrapped, Token::new(TokenKind::Fn, macro_span.clone()));
-    assert_eq!(lexer.current_span().deref(), &macro_span);
+    let fn_span = Span::new(8..10, None);
+    assert_eq!(unwrapped, Token::new(TokenKind::Fn, fn_span.clone()));
+    assert_eq!(lexer.current_span().deref(), &fn_span);
+
+    // We covered the whole source
+    assert_eq!(lexer.current_span().end, source.len());
+    assert!(lexer.eof);
+}
+
+#[test]
+fn parses_test_keyword() {
+    let source = "#define test";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let mut lexer = Lexer::new(flattened_source);
+
+    // Define Identifier first
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let define_span = Span::new(0..7, None);
+    assert_eq!(unwrapped, Token::new(TokenKind::Define, define_span.clone()));
+    assert_eq!(lexer.current_span().deref(), &define_span);
+
+    // The next token should be the whitespace
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let whitespace_span = Span::new(7..8, None);
+    assert_eq!(unwrapped, Token::new(TokenKind::Whitespace, whitespace_span.clone()));
+    assert_eq!(lexer.current_span().deref(), &whitespace_span);
+
+    // Lastly we should parse the fn keyword
+    let tok = lexer.next();
+    let unwrapped = tok.unwrap().unwrap();
+    let test_span = Span::new(8..12, None);
+    assert_eq!(unwrapped, Token::new(TokenKind::Test, test_span.clone()));
+    assert_eq!(lexer.current_span().deref(), &test_span);
 
     // We covered the whole source
     assert_eq!(lexer.current_span().end, source.len());
@@ -303,8 +335,10 @@ fn parses_function_definition_with_keyword_name() {
     let key_words = [
         "macro",
         "fn",
+        "test",
         "function",
         "constant",
+        "error",
         "takes",
         "returns",
         "define",
@@ -366,8 +400,10 @@ fn parses_label_with_keyword_name() {
     let key_words = [
         "macro",
         "fn",
+        "test",
         "function",
         "constant",
+        "error",
         "takes",
         "returns",
         "define",
@@ -424,8 +460,10 @@ fn parses_function_with_keyword_name() {
     let key_words = [
         "macro",
         "fn",
+        "test",
         "function",
         "constant",
+        "error",
         "takes",
         "returns",
         "define",
@@ -473,8 +511,10 @@ fn parses_function_with_keyword_name_in_macro() {
     let key_words = [
         "macro",
         "fn",
+        "test",
         "function",
         "constant",
+        "error",
         "takes",
         "returns",
         "define",
@@ -573,7 +613,9 @@ fn parses_keyword_arbitrary_whitespace() {
     let key_words = [
         ("macro", TokenKind::Macro),
         ("fn", TokenKind::Fn),
+        ("test", TokenKind::Test),
         ("constant", TokenKind::Constant),
+        ("error", TokenKind::Error),
         ("function", TokenKind::Function),
     ];
 

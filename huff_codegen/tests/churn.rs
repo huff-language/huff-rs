@@ -29,6 +29,31 @@ fn churns_into_bytecode() {
 }
 
 #[test]
+fn churns_custom_bootstrap() {
+    // Instantiate Codegen
+    let mut cg = Codegen::new();
+
+    // The codegen instance should have no artifact
+    assert!(cg.artifact.is_none());
+
+    // Churn Contract using the bytecode
+    let inputs: Vec<Token> = vec![];
+
+    // main bytecode never reached but still included in deploy code
+    let main_bytecode = "6001600216";
+    // custom bootstrap code
+    let constructor_bytecode = "64600160020160005260056000f3";
+    let churn_res =
+        cg.churn(Arc::new(FileSource::default()), inputs, main_bytecode, constructor_bytecode);
+
+    assert!(churn_res.is_ok());
+    assert_eq!(
+        churn_res.unwrap().bytecode,
+        "64600160020160005260056000f36001600216".to_lowercase()
+    );
+}
+
+#[test]
 fn churns_constructor_args() {
     // Instantiate Codegen
     let mut cg = Codegen::new();

@@ -55,6 +55,10 @@ pub enum ParserErrorKind {
     InvalidReturnArgs,
     /// Invalid import path
     InvalidImportPath(String),
+    /// Invalid decorator flag
+    InvalidDecoratorFlag(String),
+    /// Invalid decorator flag argument
+    InvalidDecoratorFlagArg(TokenKind),
 }
 
 /// A Lexing Error
@@ -129,6 +133,8 @@ impl CodegenError {
 /// The Code Generation Error Kind
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum CodegenErrorKind {
+    /// Locking Error
+    LockingError,
     /// Storage Pointers Not Derived
     StoragePointersNotDerived,
     /// Invalid Macro Body Statement
@@ -141,6 +147,8 @@ pub enum CodegenErrorKind {
     MissingEventInterface(String),
     /// Missing Constant Definition
     MissingConstantDefinition(String),
+    /// Missing Error Definition
+    MissingErrorDefinition(String),
     /// Abi Generation Failure
     AbiGenerationFailure,
     /// Unmatched Jump
@@ -161,6 +169,8 @@ pub enum CodegenErrorKind {
     InvalidTableStatement(String),
     /// Invalid Code Length
     InvalidCodeLength(usize),
+    /// Test Invocation
+    TestInvocation(String),
 }
 
 impl Spanned for CodegenError {
@@ -172,6 +182,9 @@ impl Spanned for CodegenError {
 impl<W: Write> Report<W> for CodegenError {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match &self.kind {
+            CodegenErrorKind::LockingError => {
+                write!(f.out, "Synchronisation Error - Please execute again!")
+            }
             CodegenErrorKind::StoragePointersNotDerived => {
                 write!(f.out, "Storage pointers not derived for AST!")
             }
@@ -191,6 +204,9 @@ impl<W: Write> Report<W> for CodegenError {
             CodegenErrorKind::MissingConstantDefinition(cd) => {
                 write!(f.out, "Missing Constant Definition for \"{}\"!", cd)
             }
+            CodegenErrorKind::MissingErrorDefinition(ed) => {
+                write!(f.out, "Missing Error Definition for \"{}\"!", ed)
+            }
             CodegenErrorKind::AbiGenerationFailure => write!(f.out, "Abi generation failure!"),
             CodegenErrorKind::UnmatchedJumpLabel => write!(f.out, "Unmatched jump label!"),
             CodegenErrorKind::IOError(ioe) => write!(f.out, "IO ERROR: {:?}", ioe),
@@ -209,6 +225,9 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::InvalidCodeLength(len) => {
                 write!(f.out, "Invalid code length: {}", len)
+            }
+            CodegenErrorKind::TestInvocation(msg) => {
+                write!(f.out, "Test cannot be invoked: \"{}\"", msg)
             }
         }
     }
@@ -423,6 +442,22 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         pe.spans.error(pe.hint.as_ref())
                     )
                 }
+                ParserErrorKind::InvalidDecoratorFlag(df) => {
+                    write!(
+                        f,
+                        "\nError: Invalid Decorator Flag: \"{}\" \n{}\n",
+                        df,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
+                ParserErrorKind::InvalidDecoratorFlagArg(dfa) => {
+                    write!(
+                        f,
+                        "\nError: Invalid Decorator Flag Argument: \"{}\" \n{}\n",
+                        dfa,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
             },
             CompilerError::PathBufRead(os_str) => {
                 write!(
@@ -432,6 +467,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 )
             }
             CompilerError::CodegenError(ce) => match &ce.kind {
+                CodegenErrorKind::LockingError => {
+                    write!(f, "\nError: Synchronisation Failure\n")
+                }
                 CodegenErrorKind::StoragePointersNotDerived => {
                     write!(f, "\nError: Storage Pointers Not Derived\n{}\n", ce.span.error(None))
                 }
@@ -473,6 +511,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 CodegenErrorKind::MissingConstantDefinition(_) => {
                     write!(f, "\nError: Missing Constant Definition\n{}\n", ce.span.error(None))
                 }
+                CodegenErrorKind::MissingErrorDefinition(_) => {
+                    write!(f, "\nError: Missing Error Definition\n{}\n", ce.span.error(None))
+                }
                 CodegenErrorKind::AbiGenerationFailure => {
                     write!(f, "\nError: ABI Generation Failed\n{}\n", ce.span.error(None))
                 }
@@ -504,6 +545,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
                 CodegenErrorKind::InvalidCodeLength(_) => {
                     write!(f, "\nError: Invalid Code Length\n{}\n", ce.span.error(None))
+                }
+                CodegenErrorKind::TestInvocation(_) => {
+                    write!(f, "\nError: Test Invocation\n{}\n", ce.span.error(None))
                 }
             },
             CompilerError::FailedCompiles(v) => {

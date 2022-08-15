@@ -37,12 +37,16 @@ pub enum TokenKind {
     Macro,
     /// "fn" keyword
     Fn,
+    /// "test" keyword
+    Test,
     /// "function" keyword
     Function,
     /// "event" keyword
     Event,
     /// "constant" keyword
     Constant,
+    /// "error" keyword
+    Error,
     /// "takes" keyword
     Takes,
     /// "returns" keyword
@@ -89,6 +93,8 @@ pub enum TokenKind {
     Comma,
     /// A Colon
     Colon,
+    /// A pound
+    Pound,
     /// Number
     Num(usize),
     /// A Space
@@ -129,9 +135,11 @@ impl fmt::Display for TokenKind {
             TokenKind::Include => "#include",
             TokenKind::Macro => "macro",
             TokenKind::Fn => "fn",
+            TokenKind::Test => "test",
             TokenKind::Function => "function",
             TokenKind::Event => "event",
             TokenKind::Constant => "constant",
+            TokenKind::Error => "error",
             TokenKind::View => "view",
             TokenKind::Pure => "pure",
             TokenKind::Payable => "payable",
@@ -155,6 +163,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Mul => "*",
             TokenKind::Colon => ":",
             TokenKind::Comma => ",",
+            TokenKind::Pound => "#",
             TokenKind::Num(num) => return write!(f, "{}", num),
             TokenKind::Whitespace => " ",
             TokenKind::Str(str) => str,

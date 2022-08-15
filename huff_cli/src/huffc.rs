@@ -7,17 +7,21 @@
 #![forbid(where_clauses_object_safety)]
 #![allow(deprecated)]
 
-use clap::Parser as ClapParser;
+use clap::{App, CommandFactory, Parser as ClapParser, Subcommand};
 use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
+use huff_tests::{
+    prelude::{print_test_report, ReportKind},
+    HuffTester,
+};
 use huff_utils::prelude::{
     export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
     CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
-use std::{collections::BTreeMap, io::Write, path::Path, sync::Arc};
+use std::{collections::BTreeMap, io::Write, path::Path, rc::Rc, sync::Arc, time::Instant};
 use yansi::Paint;
 
 /// The Huff CLI Args
@@ -56,12 +60,16 @@ struct Huff {
     optimize: bool,
 
     /// Generate solidity interface for a Huff artifact
-    #[clap(short = 'g', long = "interface")]
-    interface: bool,
+    #[clap(short = 'g', min_values = 0, long = "interface")]
+    interface: Option<String>,
 
     /// Generate and log bytecode.
     #[clap(short = 'b', long = "bytecode")]
     bytecode: bool,
+
+    /// Generate and log runtime bytecode.
+    #[clap(short = 'r', long = "bin-runtime")]
+    bin_runtime: bool,
 
     /// Prints out to the terminal.
     #[clap(short = 'p', long = "print")]
@@ -74,6 +82,24 @@ struct Huff {
     /// Override / set constants for the compilation environment.
     #[clap(short = 'c', long = "constants", multiple_values = true)]
     constants: Option<Vec<String>>,
+
+    /// Test subcommand
+    #[clap(subcommand)]
+    test: Option<TestCommands>,
+}
+
+#[derive(Subcommand, Clone, Debug)]
+enum TestCommands {
+    /// Test subcommand
+    Test {
+        /// Format the test output as a list, table, or JSON.
+        #[clap(short = 'f', long = "format")]
+        format: Option<String>,
+
+        /// Match a specific test
+        #[clap(short = 'm', long = "match")]
+        match_: Option<String>,
+    },
 }
 
 /// Helper function to read an stdin input
@@ -89,6 +115,9 @@ pub(crate) fn get_input(prompt: &str) -> String {
 }
 
 fn main() {
+    // Into App
+    let app: App = Huff::into_app();
+
     // Parse the command line arguments
     let mut cli = Huff::parse();
 
@@ -161,6 +190,35 @@ fn main() {
         cached: use_cache,
     };
 
+    if let Some(TestCommands::Test { format, match_ }) = cli.test {
+        match compiler.grab_contracts() {
+            Ok(contracts) => {
+                let match_ = Rc::new(match_);
+
+                for contract in &contracts {
+                    let tester = HuffTester::new(contract, Rc::clone(&match_));
+
+                    let start = Instant::now();
+                    match tester.execute() {
+                        Ok(res) => {
+                            print_test_report(res, ReportKind::from(&format), start);
+                        }
+                        Err(e) => {
+                            eprintln!("{}", Paint::red(e));
+                            std::process::exit(1);
+                        }
+                    };
+                }
+            }
+            Err(e) => {
+                tracing::error!(target: "cli", "PARSER ERRORED!");
+                eprintln!("{}", Paint::red(e));
+                std::process::exit(1);
+            }
+        }
+        return
+    }
+
     // Create compiling spinner
     tracing::debug!(target: "cli", "[⠔] COMPILING");
     let mut sp: Option<Spinner> = None;
@@ -199,14 +257,40 @@ fn main() {
                     ),
                     token: None,
                 });
-                tracing::error!(target: "cli", "COMPILER ERRORED: {:?}", e);
+                tracing::error!(target: "cli", "COMPILER ERRORED: {}", e);
                 eprintln!("{}", Paint::red(format!("{}", e)));
                 std::process::exit(1);
             }
 
-            if cli.interface {
+            if app.get_matches().is_present("interface") {
+                let mut interface: Option<String> = None;
+                if artifacts.len() == 1 {
+                    let gen_interface: Option<String> = match artifacts[0]
+                        .file
+                        .path
+                        .split('/')
+                        .last()
+                    {
+                        Some(p) => match p.split('.').next() {
+                            Some(p) => Some(format!("I{}", p)),
+                            None => {
+                                tracing::warn!(target: "cli", "No file name found for artifact");
+                                None
+                            }
+                        },
+                        None => {
+                            tracing::warn!(target: "cli", "No trailing string");
+                            None
+                        }
+                    };
+                    interface = Some(cli.interface.unwrap_or_else(|| {
+                        gen_interface.unwrap_or_else(|| "Interface".to_string())
+                    }));
+                } else if cli.interface.is_some() {
+                    tracing::warn!(target: "cli", "Interface override ignored since multiple artifacts were generated");
+                }
                 tracing::info!(target: "cli", "GENERATING SOLIDITY INTERFACES FROM ARTIFACTS");
-                let interfaces = gen_sol_interfaces(&artifacts);
+                let interfaces = gen_sol_interfaces(&artifacts, interface);
                 if export_interfaces(&interfaces).is_ok() {
                     tracing::info!(target: "cli", "GENERATED SOLIDITY INTERFACES FROM ARTIFACTS SUCCESSFULLY");
                     println!(
@@ -214,7 +298,7 @@ fn main() {
                         Paint::blue(
                             interfaces
                                 .into_iter()
-                                .map(|(_, i, _)| format!("I{}.sol", i))
+                                .map(|(_, i, _)| format!("{}.sol", i))
                                 .collect::<Vec<_>>()
                                 .join(", ")
                         )
@@ -288,15 +372,36 @@ fn main() {
                     tracing::info!(target: "cli", "RE-EXPORTED INTERACTIVE ARTIFACTS");
                 }
                 match sources.len() {
-                    1 => print!("{}", artifacts[0].bytecode),
+                    1 => {
+                        if cli.bin_runtime {
+                            println!("\nbytecode: {}", artifacts[0].bytecode)
+                        } else {
+                            print!("{}", artifacts[0].bytecode)
+                        }
+                    }
                     _ => artifacts
                         .iter()
                         .for_each(|a| println!("\"{}\" bytecode: {}", a.file.path, a.bytecode)),
                 }
             }
+
+            if cli.bin_runtime {
+                match sources.len() {
+                    1 => {
+                        if cli.bytecode {
+                            println!("\nruntime: {}", artifacts[0].runtime)
+                        } else {
+                            print!("{}", artifacts[0].runtime)
+                        }
+                    }
+                    _ => artifacts
+                        .iter()
+                        .for_each(|a| println!("\"{}\" runtime: {}", a.file.path, a.runtime)),
+                }
+            }
         }
         Err(e) => {
-            tracing::error!(target: "cli", "COMPILER ERRORED: {:?}", e);
+            tracing::error!(target: "cli", "COMPILER ERRORED: {}", e);
             eprintln!("{}", Paint::red(format!("{}", e)));
             std::process::exit(1);
         }
