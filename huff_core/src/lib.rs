@@ -212,6 +212,95 @@ impl<'a> Compiler<'a> {
         Ok(artifacts)
     }
 
+    /// Grab the ASTs for all file sources.
+    ///
+    /// ### Steps
+    ///
+    /// 1. Transform inputs into File Paths with [transform_paths](Compiler::transform_paths).
+    /// 2. Fetch file sources in parallel with [fetch_sources](Compiler::fetch_sources).
+    /// 3. Recurse file dependencies in parallel with [recurse_deps](Compiler::recurse_deps).
+    /// 4. For each top-level file, parse its contents and return a vec of [Contract](Contract)
+    ///    ASTs.
+    pub fn grab_contracts(&self) -> Result<Vec<Contract>, Arc<CompilerError<'a>>> {
+        // Grab the input files
+        let file_paths: Vec<PathBuf> = Compiler::transform_paths(&self.sources)?;
+
+        // Parallel file fetching
+        let files: Vec<Result<Arc<FileSource>, CompilerError>> =
+            Compiler::fetch_sources(file_paths);
+
+        // Unwrap errors
+        let mut errors =
+            files.iter().filter_map(|rfs| rfs.as_ref().err()).collect::<Vec<&CompilerError>>();
+        if !errors.is_empty() {
+            let error = errors.remove(0);
+            return Err(Arc::new(error.clone()))
+        }
+
+        // Unpack files into their file sources
+        let files = files
+            .iter()
+            .filter_map(|fs| fs.as_ref().map(Arc::clone).ok())
+            .collect::<Vec<Arc<FileSource>>>();
+
+        let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
+            files.into_par_iter().map(Compiler::recurse_deps).collect();
+
+        // Collect Recurse Deps errors and try to resolve to the first one
+        let mut errors = recursed_file_sources
+            .iter()
+            .filter_map(|rfs| rfs.as_ref().err())
+            .collect::<Vec<&Arc<CompilerError>>>();
+        if !errors.is_empty() {
+            let error = errors.remove(0);
+            return Err(Arc::clone(error))
+        }
+
+        // Unpack recursed dependencies into FileSources
+        let files = recursed_file_sources
+            .into_iter()
+            .filter_map(|fs| fs.ok())
+            .collect::<Vec<Arc<FileSource>>>();
+        tracing::info!(target: "core", "COMPILER RECURSED {} FILE DEPENDENCIES", files.len());
+
+        // Parse file sources and collect ASTs in parallel
+        files
+            .into_par_iter()
+            .map(|file| {
+                // Fully Flatten a file into a source string containing source code of file and all
+                // its dependencies
+                let flattened = FileSource::fully_flatten(Arc::clone(&file));
+                tracing::info!(target: "core", "FLATTENED SOURCE FILE \"{}\"", file.path);
+                let full_source = FullFileSource {
+                    source: &flattened.0,
+                    file: Some(Arc::clone(&file)),
+                    spans: flattened.1,
+                };
+                tracing::debug!(target: "core", "GOT FULL SOURCE FOR PATH: {:?}", file.path);
+
+                // Perform Lexical Analysis
+                // Create a new lexer from the FileSource, flattening dependencies
+                let lexer: Lexer = Lexer::new(full_source);
+
+                // Grab the tokens from the lexer
+                let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+                tracing::info!(target: "core", "LEXICAL ANALYSIS COMPLETE FOR \"{}\"", file.path);
+                tracing::info!(target: "core", "└─ TOKEN COUNT: {}", tokens.len());
+
+                // Parser incantation
+                let mut parser = Parser::new(tokens, Some(file.path.clone()));
+
+                // Parse into an AST
+                let parse_res = parser.parse().map_err(CompilerError::ParserError);
+                let mut contract = parse_res?;
+                contract.derive_storage_pointers();
+                contract.add_override_constants(&self.constant_overrides);
+                tracing::info!(target: "core", "PARSED CONTRACT [{}]", file.path);
+                Ok(contract)
+            })
+            .collect::<Result<Vec<Contract>, Arc<CompilerError<'a>>>>()
+    }
+
     /// Artifact Generation
     ///
     /// Compiles a FileSource into an Artifact.

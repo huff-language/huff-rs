@@ -96,7 +96,14 @@ pub fn bubble_arg_call(
                         // Check for a constant first
                         if let Some(constant) = contract
                             .constants
-                            .borrow()
+                            .lock()
+                            .map_err(|_| {
+                                CodegenError::new(
+                                    CodegenErrorKind::LockingError,
+                                    AstSpan(vec![]),
+                                    None,
+                                )
+                            })?
                             .iter()
                             .find(|const_def| const_def.name.eq(iden))
                         {

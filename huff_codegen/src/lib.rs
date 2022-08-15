@@ -35,7 +35,7 @@ use crate::irgen::prelude::*;
 /// use huff_codegen::Codegen;
 /// let cg = Codegen::new();
 /// ```
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Codegen {
     /// The Input AST
     pub ast: Option<Contract>,
@@ -109,7 +109,7 @@ impl Codegen {
 
     /// Appends table bytecode to the end of the BytecodeRes output.
     /// Fills table JUMPDEST placeholders.
-    pub(crate) fn gen_table_bytecode(res: BytecodeRes) -> Result<String, CodegenError> {
+    pub fn gen_table_bytecode(res: BytecodeRes) -> Result<String, CodegenError> {
         if !res.unmatched_jumps.is_empty() {
             tracing::error!(
                 target: "codegen",
@@ -248,7 +248,7 @@ impl Codegen {
     /// * `scope` - Current scope of the recursion. Contains all macro definitions recursed so far.
     /// * `offset` - Current bytecode offset
     /// * `mis` - Vector of tuples containing parent macro invocations as well as their offsets.
-    pub(crate) fn macro_to_bytecode(
+    pub fn macro_to_bytecode(
         macro_def: MacroDefinition,
         contract: &Contract,
         scope: &mut Vec<MacroDefinition>,

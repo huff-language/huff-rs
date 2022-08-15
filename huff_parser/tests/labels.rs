@@ -22,6 +22,7 @@ fn multiline_labels() {
     let macro_definition = parser.parse().unwrap().macros[0].clone();
     let md_expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![
             Statement {
@@ -161,6 +162,7 @@ fn multiline_labels() {
             Span { start: 158, end: 159, file: None },
         ]),
         outlined: false,
+        test: false,
     };
     assert_eq!(macro_definition.name, md_expected.name);
     assert_eq!(macro_definition.parameters, md_expected.parameters);
@@ -211,6 +213,7 @@ pub fn builtins_under_labels() {
     let md_expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
         parameters: vec![],
+        decorator: None,
         statements: vec![Statement {
             ty: StatementType::Label(Label {
                 name: String::from("my_label"),
@@ -409,6 +412,7 @@ pub fn builtins_under_labels() {
             Span { start: 521, end: 522, file: None },
         ]),
         outlined: false,
+        test: false,
     };
     assert_eq!(macro_definition.name, md_expected.name);
     assert_eq!(macro_definition.parameters, md_expected.parameters);

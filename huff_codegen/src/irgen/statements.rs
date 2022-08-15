@@ -41,6 +41,16 @@ pub fn statement_gen(
 
             tracing::info!(target: "codegen", "FOUND INNER MACRO: {}", ir_macro.name);
 
+            // Tests may not be invoked
+            if ir_macro.test {
+                tracing::error!(target: "codegen", "Tests may not be invoked: {}", ir_macro.name);
+                return Err(CodegenError {
+                    kind: CodegenErrorKind::TestInvocation(ir_macro.name.clone()),
+                    span: ir_macro.span,
+                    token: None,
+                })
+            }
+
             // If invoked macro is a function (outlined), insert a jump to the function's code and a
             // jumpdest to return to. If it is inlined, insert the macro's code at the
             // current offset.
