@@ -91,7 +91,7 @@ impl Parser {
                     TokenKind::Constant => {
                         let c = self.parse_constant()?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED CONSTANT {}", c.name);
-                        contract.constants.borrow_mut().push(c);
+                        contract.constants.lock().unwrap().push(c);
                     }
                     TokenKind::Error => {
                         let e = self.parse_custom_error()?;

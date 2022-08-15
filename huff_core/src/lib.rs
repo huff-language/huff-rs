@@ -267,7 +267,7 @@ impl<'a> Compiler<'a> {
 
         // Synchronously parse file sources and collect ASTs
         files
-            .into_iter()
+            .into_par_iter()
             .map(|file| {
                 // Fully Flatten a file into a source string containing source code of file and all
                 // its dependencies

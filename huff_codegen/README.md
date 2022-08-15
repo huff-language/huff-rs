@@ -54,9 +54,7 @@ Let's say you have a [Contract](../huff_utils/ast/struct.Contract.html) instance
 ```rust
 use huff_codegen::*;
 use huff_utils::prelude::*;
-use std::sync::Arc;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 // Mock contract with a main macro
 let contract = Contract {
@@ -92,7 +90,7 @@ let contract = Contract {
   ],
   invocations: vec![],
   imports: vec![],
-  constants: Rc::new(RefCell::new(vec![])),
+  constants: Arc::new(Mutex::new(vec![])),
   errors: vec![],
   functions: vec![],
   events: vec![],
@@ -111,9 +109,7 @@ Similarly, once you have a [Contract](../huff_utils/ast/struct.Contract.html) in
 ```rust
 use huff_codegen::*;
 use huff_utils::prelude::*;
-use std::sync::Arc;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 // Mock contract with a constructor macro
 let contract = Contract {
@@ -149,7 +145,7 @@ let contract = Contract {
   ],
   invocations: vec![],
   imports: vec![],
-  constants: Rc::new(RefCell::new(vec![])),
+  constants: Arc::new(Mutex::new(vec![])),
   errors: vec![],
   functions: vec![],
   events: vec![],
