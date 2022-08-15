@@ -35,7 +35,7 @@ use crate::irgen::prelude::*;
 /// use huff_codegen::Codegen;
 /// let cg = Codegen::new();
 /// ```
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Codegen {
     /// The Input AST
     pub ast: Option<Contract>,

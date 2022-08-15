@@ -9,11 +9,10 @@ use crate::{
     prelude::{Span, TokenKind},
 };
 use std::{
-    cell::RefCell,
     collections::BTreeMap,
     fmt::{Display, Formatter},
     path::PathBuf,
-    rc::Rc,
+    sync::{Arc, Mutex},
 };
 
 /// A contained literal
@@ -89,7 +88,7 @@ impl AstSpan {
 /// Thus, it is also the root of the AST.
 ///
 /// For examples of Huff contracts, see the [huff-examples repository](https://github.com/huff-language/huff-examples).
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone)]
 pub struct Contract {
     /// Macro definitions
     pub macros: Vec<MacroDefinition>,
@@ -98,7 +97,7 @@ pub struct Contract {
     /// File Imports
     pub imports: Vec<FilePath>,
     /// Constants
-    pub constants: Rc<RefCell<Vec<ConstantDefinition>>>,
+    pub constants: Arc<Mutex<Vec<ConstantDefinition>>>,
     /// Custom Errors
     pub errors: Vec<ErrorDefinition>,
     /// Functions
@@ -164,7 +163,7 @@ impl Contract {
         tracing::debug!(target: "ast", "ALL AST CONSTANTS: {:?}", storage_pointers);
 
         // Set all the constants to their new values
-        for c in self.constants.borrow_mut().iter_mut() {
+        for c in self.constants.lock().unwrap().iter_mut() {
             match storage_pointers
                 .iter()
                 .filter(|pointer| pointer.0.eq(&c.name))
@@ -222,7 +221,8 @@ impl Contract {
                         // Get the associated constant
                         match self
                             .constants
-                            .borrow()
+                            .lock()
+                            .unwrap()
                             .iter()
                             .filter(|c| c.name.eq(const_name))
                             .collect::<Vec<&ConstantDefinition>>()
@@ -307,7 +307,7 @@ impl Contract {
     pub fn add_override_constants(&self, override_constants: &Option<BTreeMap<&str, Literal>>) {
         if let Some(override_constants) = override_constants {
             for (name, value) in override_constants {
-                let mut constants = self.constants.borrow_mut();
+                let mut constants = self.constants.lock().unwrap();
                 if let Some(c) = constants.iter_mut().find(|c| c.name.as_str().eq(*name)) {
                     c.value = ConstVal::Literal(*value);
                 } else {

@@ -9,8 +9,7 @@
 //! instance like so:
 //!
 //! ```rust
-//! use std::cell::RefCell;
-//! use std::rc::Rc;
+//! use std::sync::{Arc, Mutex};
 //! use huff_utils::prelude::*;
 //!
 //! // Generate a default contract for demonstrative purposes.
@@ -19,7 +18,7 @@
 //!     macros: vec![],
 //!     invocations: vec![],
 //!     imports: vec![],
-//!     constants: Rc::new(RefCell::new(vec![])),
+//!     constants: Arc::new(Mutex::new(vec![])),
 //!     errors: vec![],
 //!     functions: vec![huff_utils::ast::Function {
 //!         name: "CONSTRUCTOR".to_string(),

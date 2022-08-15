@@ -239,7 +239,7 @@ impl<'a> Lexer<'a> {
     /// Consume characters until a sequence matches
     pub fn seq_consume(&mut self, word: &str) {
         let mut current_pos = self.current_span().start;
-        while self.peek() != None {
+        while self.peek().is_some() {
             let peeked = self.peek_n_chars_from(word.len(), current_pos);
             if word == peeked {
                 break
@@ -481,7 +481,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // goes over all opcodes
                     for opcode in OPCODES {
-                        if self.context != Context::MacroBody || found_kind != None {
+                        if self.context != Context::MacroBody || found_kind.is_some() {
                             break
                         }
                         if opcode == pot_op {

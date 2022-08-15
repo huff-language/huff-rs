@@ -1,4 +1,7 @@
-use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+};
 
 use huff_codegen::Codegen;
 use huff_utils::prelude::*;
@@ -20,7 +23,7 @@ fn constructs_valid_abi() {
         macros: vec![constructor],
         invocations: vec![],
         imports: vec![],
-        constants: Rc::new(RefCell::new(vec![])),
+        constants: Arc::new(Mutex::new(vec![])),
         errors: vec![],
         functions: vec![],
         events: vec![],
@@ -60,7 +63,7 @@ fn missing_constructor_fails() {
         macros: vec![],
         invocations: vec![],
         imports: vec![],
-        constants: Rc::new(RefCell::new(vec![])),
+        constants: Arc::new(Mutex::new(vec![])),
         errors: vec![],
         functions: vec![],
         events: vec![],

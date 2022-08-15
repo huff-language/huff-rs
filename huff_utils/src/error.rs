@@ -133,6 +133,8 @@ impl CodegenError {
 /// The Code Generation Error Kind
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum CodegenErrorKind {
+    /// Locking Error
+    LockingError,
     /// Storage Pointers Not Derived
     StoragePointersNotDerived,
     /// Invalid Macro Body Statement
@@ -180,6 +182,9 @@ impl Spanned for CodegenError {
 impl<W: Write> Report<W> for CodegenError {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match &self.kind {
+            CodegenErrorKind::LockingError => {
+                write!(f.out, "Synchronisation Error - Please execute again!")
+            }
             CodegenErrorKind::StoragePointersNotDerived => {
                 write!(f.out, "Storage pointers not derived for AST!")
             }
@@ -462,6 +467,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 )
             }
             CompilerError::CodegenError(ce) => match &ce.kind {
+                CodegenErrorKind::LockingError => {
+                    write!(f, "\nError: Synchronisation Failure\n")
+                }
                 CodegenErrorKind::StoragePointersNotDerived => {
                     write!(f, "\nError: Storage Pointers Not Derived\n{}\n", ce.span.error(None))
                 }

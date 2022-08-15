@@ -15,7 +15,7 @@ fn derives_storage_pointers() {
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 
     // Ensure that the constant definitions were parsed correctly
-    let fsp_constant = contract.constants.borrow()[0].clone();
+    let fsp_constant = contract.constants.lock().unwrap()[0].clone();
     assert_eq!(
         fsp_constant,
         ConstantDefinition {
@@ -31,7 +31,7 @@ fn derives_storage_pointers() {
         }
     );
 
-    let fsp_constant = contract.constants.borrow()[1].clone();
+    let fsp_constant = contract.constants.lock().unwrap()[1].clone();
     assert_eq!(
         fsp_constant,
         ConstantDefinition {
@@ -47,7 +47,7 @@ fn derives_storage_pointers() {
         }
     );
 
-    let num_constant = contract.constants.borrow()[2].clone();
+    let num_constant = contract.constants.lock().unwrap()[2].clone();
     assert_eq!(
         num_constant,
         ConstantDefinition {
@@ -68,12 +68,15 @@ fn derives_storage_pointers() {
 
     // Ensure that the storage pointers were set for the FSP constants in the AST
     assert_eq!(
-        contract.constants.borrow()[0].value,
+        contract.constants.lock().unwrap()[0].value,
         ConstVal::FreeStoragePointer(FreeStoragePointer)
     );
     assert_eq!(
-        contract.constants.borrow()[1].value,
+        contract.constants.lock().unwrap()[1].value,
         ConstVal::FreeStoragePointer(FreeStoragePointer)
     );
-    assert_eq!(contract.constants.borrow()[2].value, ConstVal::Literal(str_to_bytes32("a57B")));
+    assert_eq!(
+        contract.constants.lock().unwrap()[2].value,
+        ConstVal::Literal(str_to_bytes32("a57B"))
+    );
 }
