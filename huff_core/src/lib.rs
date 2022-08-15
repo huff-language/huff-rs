@@ -214,8 +214,6 @@ impl<'a> Compiler<'a> {
 
     /// Grab the ASTs for all file sources.
     ///
-    /// TODO: This probably doesn't belong here.
-    ///
     /// ### Steps
     ///
     /// 1. Transform inputs into File Paths with [transform_paths](Compiler::transform_paths).
