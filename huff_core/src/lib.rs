@@ -265,7 +265,7 @@ impl<'a> Compiler<'a> {
             .collect::<Vec<Arc<FileSource>>>();
         tracing::info!(target: "core", "COMPILER RECURSED {} FILE DEPENDENCIES", files.len());
 
-        // Synchronously parse file sources and collect ASTs
+        // Parse file sources and collect ASTs in parallel
         files
             .into_par_iter()
             .map(|file| {
