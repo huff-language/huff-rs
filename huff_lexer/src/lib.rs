@@ -688,6 +688,29 @@ impl<'a> Iterator for Lexer<'a> {
                     }
                     self.consume();
                 },
+                '$' => {
+                    // After this $, there *could* be a whitespace, but the array has to be well formed
+                    // TODO: handle erros better
+
+                    self.consume();
+                    // Consume until stack end
+                    self.seq_consume("]\n");
+
+                    let mut slice = self.slice();
+                    let last_char = slice.pop()?;
+
+                    if last_char.to_string() != "\n" { // seq_consume doesn't throw
+                        return Some(Err(LexicalError::new(
+                            LexicalErrorKind::UnexpectedEof,
+                            self.current_span().clone(),
+                        )));
+                    }
+
+                    let clean = slice.replace(&['[', ']', '$', ' '][..], ""); // Remove any extra whitespace / array / $
+                    let out = clean.split(",").map(|el| el.to_string()).collect::<Vec<String>>(); // String to vec
+
+                    TokenKind::Stack(out)
+                }
                 // At this point, the source code has an invalid or unsupported token
                 ch => {
                     tracing::error!(target: "lexer", "UNSUPPORTED TOKEN '{}'", ch);

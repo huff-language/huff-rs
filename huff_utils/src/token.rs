@@ -123,6 +123,8 @@ pub enum TokenKind {
     CodeTable,
     /// A builtin function (__codesize, __tablesize, __tablestart)
     BuiltinFunction(String),
+    /// Stack assertions e.g: $ [a, b, c]
+    Stack(Vec<String>)
 }
 
 impl fmt::Display for TokenKind {
@@ -189,6 +191,7 @@ impl fmt::Display for TokenKind {
             TokenKind::JumpTablePacked => "jumptable__packed",
             TokenKind::CodeTable => "table",
             TokenKind::BuiltinFunction(s) => return write!(f, "BuiltinFunction({})", s),
+            TokenKind::Stack(st) => return write!(f, "Stack({:#?})", st)
         };
 
         write!(f, "{}", x)
