@@ -1,2 +1,2 @@
-/// The Log inspector
-pub mod log_inspector;
+/// The Cheatcodes inspector
+pub mod cheats_inspector;

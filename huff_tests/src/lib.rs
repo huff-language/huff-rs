@@ -11,6 +11,9 @@ pub mod report;
 /// The inspectors module
 pub mod inspectors;
 
+/// The cheats module
+pub mod cheats;
+
 /// The types module
 pub mod types;
 
