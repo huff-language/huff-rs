@@ -9,6 +9,7 @@ pub struct TestResult {
     pub return_data: Option<String>,
     pub gas: u64,
     pub status: TestStatus,
+    pub logs: Vec<(u32, String)>,
 }
 
 /// A test status variant

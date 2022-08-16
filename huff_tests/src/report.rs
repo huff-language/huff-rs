@@ -54,6 +54,26 @@ pub fn print_test_report(results: Vec<TestResult>, report_kind: ReportKind, star
                     Paint::yellow("Gas used:"),
                     result.gas
                 );
+
+                let num_logs = result.logs.len().saturating_sub(1);
+
+                if let Some(return_data) = result.return_data {
+                    println!("├─ {}", Paint::cyan("RETURN DATA"));
+                    println!("{} {}", if num_logs == 0 { "╰─" } else { "├─" }, return_data);
+                }
+
+                if num_logs > 0 {
+                    println!("├─ {}", Paint::cyan("LOGS"));
+                    result.logs.iter().enumerate().for_each(|(i, (pc, log))| {
+                        let log = format!(
+                            "[{}: {}]: 0x{}",
+                            Paint::magenta("PC"),
+                            Paint::yellow(pc),
+                            log,
+                        );
+                        println!("{} {}", if i == num_logs { "╰─" } else { "├─" }, log); // ├╌
+                    });
+                }
             }
         }
         ReportKind::JSON => {

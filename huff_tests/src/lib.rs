@@ -8,6 +8,9 @@ pub mod runner;
 /// The report module
 pub mod report;
 
+/// The inspectors module
+pub mod inspectors;
+
 /// The types module
 pub mod types;
 
@@ -16,7 +19,7 @@ pub mod errors;
 
 /// Prelude wraps all modules within the crate
 pub mod prelude {
-    pub use crate::{errors::*, report::*, runner::*, types::*};
+    pub use crate::{errors::*, inspectors::*, report::*, runner::*, types::*};
 }
 
 /// A vector of shared references to test macro definitions
