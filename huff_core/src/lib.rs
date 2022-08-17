@@ -479,16 +479,12 @@ impl<'a> Compiler<'a> {
             .into_iter()
             .map(|mut import| {
                 // Check for foundry toml remappings
-                tracing::debug!(target: "core", "core has remapper {:?}", remapper);
-                tracing::debug!(target: "core", "core import path {}", import);
-                tracing::debug!(target: "core", "Current dir: {:?}", std::env::current_dir());
                 match remapper.remap(&import) {
                     Some(remapped) => {
-                        tracing::debug!(target: "core", "core remapped path {}", import);
+                        tracing::debug!(target: "core", "REMAPPED IMPORT PATH \"{}\"", import);
                         import = remapped;
                     }
                     None => {
-                        tracing::debug!(target: "core", "core no remapped path {}", import);
                         import = FileSource::localize_file(&fs.path, &import)
                             .unwrap_or_default()
                             .replacen("contracts/contracts", "contracts", 1);
