@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{
     cell::Ref,
@@ -85,57 +86,67 @@ impl Remapper {
                 // Open the buffered reader and read foundry.toml
                 let mut data = String::new();
                 let mut br = BufReader::new(f);
-                match br.read_to_string(&mut data) {
-                    Ok(_) => {
-                        tracing::debug!(target: "parser", "Read foundry.toml contents {}", data);
-                        // Parse the foundry.toml file
-                        match data.parse::<toml::Value>() {
-                            Ok(toml) => {
-                                // Extract the remappings
-                                if let Some(toml_table) = toml.as_table() {
-                                    toml_table.iter().for_each(|p| {
-                                        if let Some(profiles) = p.1.as_table() {
-                                            profiles.iter().for_each(|table| {
-                                                if let Some(inner_table) = table.1.as_table() {
-                                                    inner_table.iter().for_each(|_| {
-                                                        if let Some(remapping) = inner_table.get("remappings") {
-                                                            match remapping.as_array() {
-                                                                Some(parsed_remappings) => {
-                                                                    parsed_remappings.iter().for_each(|remapping| {
-                                                                        match remapping.as_str() {
-                                                                            Some(str) => match Remapper::split(str) {
-                                                                                Some((from, to)) => {
-                                                                                    inner.insert(from, to);
-                                                                                }
-                                                                                None => tracing::warn!(target: "parser", "Failed to split remapping using \"=\" at \"{}\" in \"{}\"!", remapping, path.to_string_lossy()),
-                                                                            }
-                                                                            None => {
-                                                                                tracing::warn!(target: "parser", "Remapping \"{}\" in \"{}\" is not a string!", remapping, path.to_string_lossy());
-                                                                            }
-                                                                        }
-                                                                    });
-                                                                }
-                                                                None => {
-                                                                    tracing::warn!(target: "parser", "Found remappings key in \"foundry.toml\", but found non-array type!");
-                                                                }
-                                                            }
-                                                        }
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            }
-                            Err(e) => {
-                                tracing::warn!(target: "parser", "\"foundry.toml\" incorrectly formatted!\nError: {:?}", e);
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        tracing::warn!(target: "parser", "Failed to read \"foundry.toml\" file contents!\nError: {:?}", e);
-                    }
+
+                // Gracefully read foundry.toml
+                if let Err(e) = br.read_to_string(&mut data) {
+                    tracing::warn!(target: "parser", "Failed to read \"foundry.toml\" file contents!\nError: {:?}", e);
+                    return
                 }
+
+                // Parse the foundry.toml file as toml
+                let toml = if let Ok(t) = data.parse::<toml::Value>() {
+                    t
+                } else {
+                    tracing::warn!(target: "parser", "\"foundry.toml\" incorrectly formatted!");
+                    return
+                };
+
+                // Parse the toml as a map
+                let toml_map = toml.as_table().cloned().unwrap_or_else(toml::value::Map::new);
+
+                // Transform the mappings into profiles
+                let profiles = toml_map
+                    .iter()
+                    .filter_map(|p| p.1.as_table())
+                    .collect::<Vec<&toml::value::Map<String, toml::Value>>>();
+                let unwrapped_profiles = profiles
+                    .iter()
+                    .flat_map(|t| t.values().into_iter().collect_vec())
+                    .collect::<Vec<&toml::Value>>();
+
+                // Extract the inner tables from each profile
+                let inner_tables = unwrapped_profiles
+                    .iter()
+                    .filter_map(|t| t.as_table())
+                    .collect::<Vec<&toml::value::Map<String, toml::Value>>>();
+                let unwrapped_inner_tables = inner_tables
+                    .iter()
+                    .flat_map(|t| {
+                        t.into_iter().filter(|m| m.0.eq("remappings")).map(|m| m.1).collect_vec()
+                    })
+                    .collect::<Vec<&toml::Value>>();
+
+                // Extract mappings that are arrays
+                let arr_mappings = unwrapped_inner_tables
+                    .iter()
+                    .filter_map(|t| t.as_array())
+                    .collect::<Vec<&Vec<toml::Value>>>();
+                let unwrapped_mappings =
+                    arr_mappings.iter().cloned().flatten().collect::<Vec<&toml::Value>>();
+
+                // Filter the remappings as strings
+                let remapping_strings =
+                    unwrapped_mappings.iter().filter_map(|t| t.as_str()).collect::<Vec<&str>>();
+
+                // For each remapping string, try to split it and insert it into the remappings
+                remapping_strings.iter().for_each(|remapping| {
+                    match Remapper::split(remapping) {
+                        Some((from, to)) => {
+                            inner.insert(from, to);
+                        }
+                        None => tracing::warn!(target: "parser", "Failed to split remapping using \"=\" at \"{}\" in \"{}\"!", remapping, path.to_string_lossy()),
+                    }
+                });
             }
             Err(e) => {
                 tracing::warn!(target: "parser", "Foundry.toml not found in specified \"{}\"", root);

@@ -7,17 +7,21 @@
 #![forbid(where_clauses_object_safety)]
 #![allow(deprecated)]
 
-use clap::{App, CommandFactory, Parser as ClapParser};
+use clap::{App, CommandFactory, Parser as ClapParser, Subcommand};
 use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
+use huff_tests::{
+    prelude::{print_test_report, ReportKind},
+    HuffTester,
+};
 use huff_utils::prelude::{
     export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
     CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
-use std::{collections::BTreeMap, io::Write, path::Path, sync::Arc};
+use std::{collections::BTreeMap, io::Write, path::Path, rc::Rc, sync::Arc, time::Instant};
 use yansi::Paint;
 
 /// The Huff CLI Args
@@ -78,6 +82,24 @@ struct Huff {
     /// Override / set constants for the compilation environment.
     #[clap(short = 'c', long = "constants", multiple_values = true)]
     constants: Option<Vec<String>>,
+
+    /// Test subcommand
+    #[clap(subcommand)]
+    test: Option<TestCommands>,
+}
+
+#[derive(Subcommand, Clone, Debug)]
+enum TestCommands {
+    /// Test subcommand
+    Test {
+        /// Format the test output as a list, table, or JSON.
+        #[clap(short = 'f', long = "format")]
+        format: Option<String>,
+
+        /// Match a specific test
+        #[clap(short = 'm', long = "match")]
+        match_: Option<String>,
+    },
 }
 
 /// Helper function to read an stdin input
@@ -167,6 +189,35 @@ fn main() {
         bytecode: cli.bytecode,
         cached: use_cache,
     };
+
+    if let Some(TestCommands::Test { format, match_ }) = cli.test {
+        match compiler.grab_contracts() {
+            Ok(contracts) => {
+                let match_ = Rc::new(match_);
+
+                for contract in &contracts {
+                    let tester = HuffTester::new(contract, Rc::clone(&match_));
+
+                    let start = Instant::now();
+                    match tester.execute() {
+                        Ok(res) => {
+                            print_test_report(res, ReportKind::from(&format), start);
+                        }
+                        Err(e) => {
+                            eprintln!("{}", Paint::red(e));
+                            std::process::exit(1);
+                        }
+                    };
+                }
+            }
+            Err(e) => {
+                tracing::error!(target: "cli", "PARSER ERRORED!");
+                eprintln!("{}", Paint::red(e));
+                std::process::exit(1);
+            }
+        }
+        return
+    }
 
     // Create compiling spinner
     tracing::debug!(target: "cli", "[⠔] COMPILING");

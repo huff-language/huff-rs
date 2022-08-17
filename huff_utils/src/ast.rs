@@ -9,11 +9,10 @@ use crate::{
     prelude::{Span, TokenKind},
 };
 use std::{
-    cell::RefCell,
     collections::BTreeMap,
     fmt::{Display, Formatter},
     path::PathBuf,
-    rc::Rc,
+    sync::{Arc, Mutex},
 };
 
 /// A contained literal
@@ -89,7 +88,7 @@ impl AstSpan {
 /// Thus, it is also the root of the AST.
 ///
 /// For examples of Huff contracts, see the [huff-examples repository](https://github.com/huff-language/huff-examples).
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone)]
 pub struct Contract {
     /// Macro definitions
     pub macros: Vec<MacroDefinition>,
@@ -98,7 +97,7 @@ pub struct Contract {
     /// File Imports
     pub imports: Vec<FilePath>,
     /// Constants
-    pub constants: Rc<RefCell<Vec<ConstantDefinition>>>,
+    pub constants: Arc<Mutex<Vec<ConstantDefinition>>>,
     /// Custom Errors
     pub errors: Vec<ErrorDefinition>,
     /// Functions
@@ -164,7 +163,7 @@ impl Contract {
         tracing::debug!(target: "ast", "ALL AST CONSTANTS: {:?}", storage_pointers);
 
         // Set all the constants to their new values
-        for c in self.constants.borrow_mut().iter_mut() {
+        for c in self.constants.lock().unwrap().iter_mut() {
             match storage_pointers
                 .iter()
                 .filter(|pointer| pointer.0.eq(&c.name))
@@ -222,7 +221,8 @@ impl Contract {
                         // Get the associated constant
                         match self
                             .constants
-                            .borrow()
+                            .lock()
+                            .unwrap()
                             .iter()
                             .filter(|c| c.name.eq(const_name))
                             .collect::<Vec<&ConstantDefinition>>()
@@ -307,7 +307,7 @@ impl Contract {
     pub fn add_override_constants(&self, override_constants: &Option<BTreeMap<&str, Literal>>) {
         if let Some(override_constants) = override_constants {
             for (name, value) in override_constants {
-                let mut constants = self.constants.borrow_mut();
+                let mut constants = self.constants.lock().unwrap();
                 if let Some(c) = constants.iter_mut().find(|c| c.name.as_str().eq(*name)) {
                     c.value = ConstVal::Literal(*value);
                 } else {
@@ -446,6 +446,8 @@ impl From<TokenKind> for TableKind {
 pub struct MacroDefinition {
     /// The Macro Name
     pub name: String,
+    /// The macro's decorator
+    pub decorator: Option<Decorator>,
     /// A list of Macro parameters
     pub parameters: Vec<Argument>,
     /// A list of Statements contained in the Macro
@@ -458,6 +460,8 @@ pub struct MacroDefinition {
     pub span: AstSpan,
     /// Is the macro a function (outlined)?
     pub outlined: bool,
+    /// Is the macro a test?
+    pub test: bool,
 }
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
@@ -469,23 +473,28 @@ impl ToIRBytecode<CodegenError> for MacroDefinition {
 
 impl MacroDefinition {
     /// Public associated function that instantiates a MacroDefinition.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
+        decorator: Option<Decorator>,
         parameters: Vec<Argument>,
         statements: Vec<Statement>,
         takes: usize,
         returns: usize,
         spans: Vec<Span>,
         outlined: bool,
+        test: bool,
     ) -> Self {
         MacroDefinition {
             name,
+            decorator,
             parameters,
             statements,
             takes,
             returns,
             span: AstSpan(spans),
             outlined,
+            test,
         }
     }
 
@@ -762,6 +771,38 @@ impl Display for StatementType {
             StatementType::BuiltinFunctionCall(b) => {
                 write!(f, "BUILTIN FUNCTION CALL: {:?}", b.kind)
             }
+        }
+    }
+}
+
+/// A decorator tag
+///
+/// At the moment, the decorator tag can only be placed over test definitions. Developers
+/// can use decorators to define environment variables and other metadata for their individual
+/// tests.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Decorator {
+    /// Vector of flags passed within the decorator
+    pub flags: Vec<DecoratorFlag>,
+}
+
+/// A decorator flag
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DecoratorFlag {
+    /// Sets the calldata of the test call transaction
+    Calldata(String),
+    /// Sets the value of the test call transaction
+    Value(Literal),
+}
+
+impl TryFrom<&String> for DecoratorFlag {
+    type Error = ();
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "calldata" => Ok(DecoratorFlag::Calldata(String::default())),
+            "value" => Ok(DecoratorFlag::Value(Literal::default())),
+            _ => Err(()),
         }
     }
 }
