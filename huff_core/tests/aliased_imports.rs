@@ -33,10 +33,10 @@ fn test_parses_foundry_aliased_imports() {
 fn test_invalid_imports_break() {
     let import_bufs =
         vec![std::path::PathBuf::from_str("unaliased/erc20/contracts/ERC20.huff").unwrap()];
-    let potentials = Compiler::fetch_sources(import_bufs)
+
+    // Try to fetch sources
+    let _ = Compiler::fetch_sources(import_bufs)
         .into_iter()
-        .collect::<Vec<Result<Arc<FileSource>, CompilerError<'_>>>>();
-    for import in potentials {
-        import.unwrap();
-    }
+        .map(|r| r.unwrap())
+        .collect::<Vec<Arc<FileSource>>>();
 }
