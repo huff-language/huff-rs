@@ -335,7 +335,6 @@ impl<'a> Compiler<'a> {
         let mut parser = Parser::new(tokens, Some(file.path.clone()));
 
         // Parse into an AST
-        tracing::debug!(target: "core", "Core parsing \"{}\"", file.path);
         let parse_res = parser.parse().map_err(CompilerError::ParserError);
         let mut contract = parse_res?;
         contract.derive_storage_pointers();
@@ -343,7 +342,6 @@ impl<'a> Compiler<'a> {
         tracing::info!(target: "core", "PARSED CONTRACT [{}]", file.path);
 
         // Primary Bytecode Generation
-        // See huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
         let mut cg = Codegen::new();
         let main_bytecode = match Codegen::generate_main_bytecode(&contract) {
             Ok(mb) => mb,
@@ -365,6 +363,8 @@ impl<'a> Compiler<'a> {
             }
         };
         tracing::info!(target: "core", "MAIN BYTECODE GENERATED [{}]", main_bytecode);
+
+        // Generate Constructor Bytecode
         let inputs = self.get_constructor_args();
         let constructor_bytecode = match Codegen::generate_constructor_bytecode(&contract) {
             Ok(mb) => mb,
@@ -395,10 +395,9 @@ impl<'a> Compiler<'a> {
                 "".to_string()
             }
         };
+        tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
 
         // Encode Constructor Arguments
-        tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
-        tracing::info!(target: "core", "ENCODING {} INPUTS", inputs.len());
         let encoded_inputs = Codegen::encode_constructor_args(inputs);
         tracing::info!(target: "core", "ENCODED {} INPUTS", encoded_inputs.len());
 
