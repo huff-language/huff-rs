@@ -1,5 +1,14 @@
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::{cell::Ref, path::PathBuf, sync::Arc, time::SystemTime};
+use std::{
+    cell::Ref,
+    collections::HashMap,
+    fs,
+    io::{BufReader, Read},
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::SystemTime,
+};
 use uuid::Uuid;
 
 #[allow(clippy::to_string_in_format_args)]
@@ -32,6 +41,133 @@ impl<'a> FullFileSource<'a> {
             .collect::<Vec<Span>>()
             .into_iter()
             .next()
+    }
+}
+
+/// A wrapper for dealing with Remappings
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct Remapper {
+    /// The remappings
+    pub remappings: HashMap<String, String>,
+    /// The base directory
+    pub base_dir: String,
+}
+
+impl Remapper {
+    /// Extracts remappings from configuration files.
+    ///
+    /// Currently only supports `foundry.toml` remapping definitions.
+    pub fn new(root: impl AsRef<str>) -> Self {
+        let mut inner = HashMap::<String, String>::new();
+
+        // Gracefully parse remappings from foundry.toml
+        Remapper::from_foundry(root.as_ref(), &mut inner);
+
+        // Return the constructed remappings
+        Self { remappings: inner, base_dir: root.as_ref().to_string() }
+    }
+
+    /// Helper to break apart a remapping gracefully
+    pub fn split(remapping: &str) -> Option<(String, String)> {
+        let mut split = remapping.splitn(2, '=');
+        match split.next() {
+            Some(from) => split.next().map(|to| (from.to_string(), to.to_string())),
+            None => None,
+        }
+    }
+
+    /// Parse foundry toml remappings
+    pub fn from_foundry(root: &str, inner: &mut HashMap<String, String>) {
+        // Look for a `foundry.toml` file in the current directory.
+        let path = Path::new(root).join("foundry.toml");
+
+        match fs::File::open(&path) {
+            Ok(f) => {
+                // Open the buffered reader and read foundry.toml
+                let mut data = String::new();
+                let mut br = BufReader::new(f);
+
+                // Gracefully read foundry.toml
+                if let Err(e) = br.read_to_string(&mut data) {
+                    tracing::warn!(target: "parser", "Failed to read \"foundry.toml\" file contents!\nError: {:?}", e);
+                    return
+                }
+
+                // Parse the foundry.toml file as toml
+                let toml = if let Ok(t) = data.parse::<toml::Value>() {
+                    t
+                } else {
+                    tracing::warn!(target: "parser", "\"foundry.toml\" incorrectly formatted!");
+                    return
+                };
+
+                // Parse the toml as a map
+                let toml_map = toml.as_table().cloned().unwrap_or_else(toml::value::Map::new);
+
+                // Transform the mappings into profiles
+                let profiles = toml_map
+                    .iter()
+                    .filter_map(|p| p.1.as_table())
+                    .collect::<Vec<&toml::value::Map<String, toml::Value>>>();
+                let unwrapped_profiles = profiles
+                    .iter()
+                    .flat_map(|t| t.values().into_iter().collect_vec())
+                    .collect::<Vec<&toml::Value>>();
+
+                // Extract the inner tables from each profile
+                let inner_tables = unwrapped_profiles
+                    .iter()
+                    .filter_map(|t| t.as_table())
+                    .collect::<Vec<&toml::value::Map<String, toml::Value>>>();
+                let unwrapped_inner_tables = inner_tables
+                    .iter()
+                    .flat_map(|t| {
+                        t.into_iter().filter(|m| m.0.eq("remappings")).map(|m| m.1).collect_vec()
+                    })
+                    .collect::<Vec<&toml::Value>>();
+
+                // Extract mappings that are arrays
+                let arr_mappings = unwrapped_inner_tables
+                    .iter()
+                    .filter_map(|t| t.as_array())
+                    .collect::<Vec<&Vec<toml::Value>>>();
+                let unwrapped_mappings =
+                    arr_mappings.iter().cloned().flatten().collect::<Vec<&toml::Value>>();
+
+                // Filter the remappings as strings
+                let remapping_strings =
+                    unwrapped_mappings.iter().filter_map(|t| t.as_str()).collect::<Vec<&str>>();
+
+                // For each remapping string, try to split it and insert it into the remappings
+                remapping_strings.iter().for_each(|remapping| {
+                    match Remapper::split(remapping) {
+                        Some((from, to)) => {
+                            inner.insert(from, to);
+                        }
+                        None => tracing::warn!(target: "parser", "Failed to split remapping using \"=\" at \"{}\" in \"{}\"!", remapping, path.to_string_lossy()),
+                    }
+                });
+            }
+            Err(e) => {
+                tracing::warn!(target: "parser", "Foundry.toml not found in specified \"{}\"", root);
+                tracing::warn!(target: "parser", "{:?}", e);
+            }
+        }
+    }
+}
+
+impl Remapper {
+    /// Tries to replace path segments in a string with our remappings
+    pub fn remap(&self, path: &str) -> Option<String> {
+        let mut path = path.to_string();
+        for (k, v) in self.remappings.iter() {
+            if path.starts_with(k) {
+                tracing::debug!(target: "parser", "found key {} and value {}", k, v);
+                path = path.replace(k, v);
+                return Some(format!("{}{}", self.base_dir, path))
+            }
+        }
+        None
     }
 }
 

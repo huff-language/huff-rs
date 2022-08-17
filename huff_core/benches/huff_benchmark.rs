@@ -3,7 +3,7 @@ use huff_codegen::*;
 use huff_core::Compiler;
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::prelude::*;
+use huff_utils::{files, prelude::*};
 use std::{path::PathBuf, sync::Arc};
 
 fn lex_erc20_from_source_benchmark(c: &mut Criterion) {
@@ -16,7 +16,8 @@ fn lex_erc20_from_source_benchmark(c: &mut Criterion) {
 
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
-    let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source)).unwrap();
+    let recursed_file_source =
+        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
     let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
     let full_source = FullFileSource {
         source: &flattened.0,
@@ -43,7 +44,8 @@ fn parse_erc20_benchmark(c: &mut Criterion) {
 
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
-    let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source)).unwrap();
+    let recursed_file_source =
+        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
     let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
     let full_source = FullFileSource {
         source: &flattened.0,
@@ -75,7 +77,8 @@ fn codegen_erc20_benchmark(c: &mut Criterion) {
 
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
-    let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source)).unwrap();
+    let recursed_file_source =
+        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
     let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
     let full_source = FullFileSource {
         source: &flattened.0,
@@ -119,7 +122,7 @@ fn erc20_compilation_benchmark(c: &mut Criterion) {
 
         // Recurse file deps + generate flattened source
         let file_source = file_sources.get(0).unwrap();
-        let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source)).unwrap();
+        let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
         let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
         let full_source = FullFileSource {
             source: &flattened.0,
@@ -159,7 +162,7 @@ fn erc721_compilation_benchmark(c: &mut Criterion) {
 
         // Recurse file deps + generate flattened source
         let file_source = file_sources.get(0).unwrap();
-        let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source)).unwrap();
+        let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
         let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
         let full_source = FullFileSource {
             source: &flattened.0,

@@ -164,9 +164,13 @@ impl<'a> Compiler<'a> {
         match cache::get_cached_artifacts(&files, &output, constructor_args) {
             Some(arts) => artifacts = arts,
             None => {
+                tracing::debug!(target: "core", "FINISHED RECURSING DEPENDENCIES!");
                 // Parallel Dependency Resolution
                 let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
-                    files.into_par_iter().map(Compiler::recurse_deps).collect();
+                    files
+                        .into_par_iter()
+                        .map(|v| Compiler::recurse_deps(v, &Remapper::new("./")))
+                        .collect();
 
                 // Collect Recurse Deps errors and try to resolve to the first one
                 let mut errors = recursed_file_sources
@@ -243,8 +247,10 @@ impl<'a> Compiler<'a> {
             .filter_map(|fs| fs.as_ref().map(Arc::clone).ok())
             .collect::<Vec<Arc<FileSource>>>();
 
-        let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
-            files.into_par_iter().map(Compiler::recurse_deps).collect();
+        let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> = files
+            .into_par_iter()
+            .map(|f| Compiler::recurse_deps(f, &huff_utils::files::Remapper::new("./")))
+            .collect();
 
         // Collect Recurse Deps errors and try to resolve to the first one
         let mut errors = recursed_file_sources
@@ -336,7 +342,6 @@ impl<'a> Compiler<'a> {
         tracing::info!(target: "core", "PARSED CONTRACT [{}]", file.path);
 
         // Primary Bytecode Generation
-        // See huffc: https://github.com/huff-language/huffc/blob/2e5287afbfdf9cc977b204a4fd1e89c27375b040/src/compiler/processor.ts
         let mut cg = Codegen::new();
         let main_bytecode = match Codegen::generate_main_bytecode(&contract) {
             Ok(mb) => mb,
@@ -358,6 +363,8 @@ impl<'a> Compiler<'a> {
             }
         };
         tracing::info!(target: "core", "MAIN BYTECODE GENERATED [{}]", main_bytecode);
+
+        // Generate Constructor Bytecode
         let inputs = self.get_constructor_args();
         let constructor_bytecode = match Codegen::generate_constructor_bytecode(&contract) {
             Ok(mb) => mb,
@@ -388,10 +395,9 @@ impl<'a> Compiler<'a> {
                 "".to_string()
             }
         };
+        tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
 
         // Encode Constructor Arguments
-        tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
-        tracing::info!(target: "core", "ENCODING {} INPUTS", inputs.len());
         let encoded_inputs = Codegen::encode_constructor_args(inputs);
         tracing::info!(target: "core", "ENCODED {} INPUTS", encoded_inputs.len());
 
@@ -443,7 +449,11 @@ impl<'a> Compiler<'a> {
     }
 
     /// Recurses file dependencies
-    pub fn recurse_deps(fs: Arc<FileSource>) -> Result<Arc<FileSource>, Arc<CompilerError<'a>>> {
+    pub fn recurse_deps(
+        fs: Arc<FileSource>,
+        remapper: &Remapper,
+    ) -> Result<Arc<FileSource>, Arc<CompilerError<'a>>> {
+        tracing::debug!(target: "core", "RECURSING DEPENDENCIES FOR {}", fs.path);
         let mut new_fs = FileSource { path: fs.path.clone(), ..Default::default() };
         let file_source = if let Some(s) = &fs.source {
             s.clone()
@@ -464,14 +474,23 @@ impl<'a> Compiler<'a> {
         if !imports.is_empty() {
             tracing::info!(target: "core", "IMPORT LEXICAL ANALYSIS COMPLETE ON {:?}", imports);
         }
+
         let localized_imports: Vec<String> = imports
-            .iter()
-            .map(|import| {
-                FileSource::localize_file(&fs.path, import).unwrap_or_default().replacen(
-                    "contracts/contracts",
-                    "contracts",
-                    1,
-                )
+            .into_iter()
+            .map(|mut import| {
+                // Check for foundry toml remappings
+                match remapper.remap(&import) {
+                    Some(remapped) => {
+                        tracing::debug!(target: "core", "REMAPPED IMPORT PATH \"{}\"", import);
+                        import = remapped;
+                    }
+                    None => {
+                        import = FileSource::localize_file(&fs.path, &import)
+                            .unwrap_or_default()
+                            .replacen("contracts/contracts", "contracts", 1);
+                    }
+                }
+                import
             })
             .collect();
         if !localized_imports.is_empty() {
@@ -491,7 +510,7 @@ impl<'a> Compiler<'a> {
         // Now that we have all the file sources, we have to recurse and get their source
         file_sources = file_sources
             .into_par_iter()
-            .map(|inner_fs| match Compiler::recurse_deps(Arc::clone(&inner_fs)) {
+            .map(|inner_fs| match Compiler::recurse_deps(Arc::clone(&inner_fs), remapper) {
                 Ok(new_fs) => new_fs,
                 Err(e) => {
                     tracing::error!(target: "core", "NESTED DEPENDENCY RESOLUTION FAILED: \"{:?}\"", e);

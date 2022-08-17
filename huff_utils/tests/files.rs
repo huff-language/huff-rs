@@ -1,6 +1,20 @@
 use std::sync::Arc;
 
-use huff_utils::{files::FileSource, prelude::Span};
+use huff_utils::{files, prelude::Span};
+use tracing_subscriber::EnvFilter;
+
+#[test]
+fn test_generate_remappings() {
+    let subscriber_builder = tracing_subscriber::fmt();
+    let env_filter = EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into());
+    if let Err(e) = subscriber_builder.with_env_filter(env_filter).try_init() {
+        println!("Failed to initialize tracing!\nError: {:?}", e)
+    }
+
+    let remapper = files::Remapper::new("../");
+    assert_eq!(remapper.remappings.len(), 1);
+    assert_eq!(remapper.remappings.get("examples/").unwrap(), "huff-examples/");
+}
 
 #[test]
 fn test_source_seg() {
@@ -8,13 +22,13 @@ fn test_source_seg() {
         start: 59,
         end: 67,
         file: Some(Arc::new(
-            FileSource {
+            files::FileSource {
                 id: uuid::Uuid::nil(),
                 path: "./huff-examples/errors/error.huff".to_string(),
                 source: Some("#include \"./import.huff\"\n\n#define function addressGetter() internal returns (address)".to_string()),
                 access: None,
                 dependencies: Some(vec![
-                    Arc::new(FileSource {
+                    Arc::new(files::FileSource {
                         id: uuid::Uuid::nil(),
                         path: "./huff-examples/errors/import.huff".to_string(),
                         source: Some("#define macro SOME_RANDOM_MACRO() = takes(2) returns (1) {\n    // Store the keys in memory\n    dup1 0x00 mstore\n    swap1 dup1 0x00 mstore\n\n    // Hash the data, generating a key.\n    0x40 sha3\n}\n".to_string()),
@@ -38,52 +52,62 @@ fn test_source_seg() {
 
 #[test]
 fn test_derive_dir() {
-    let localized = FileSource::derive_dir("./examples/ERC20.huff").unwrap();
+    let localized = files::FileSource::derive_dir("./examples/ERC20.huff").unwrap();
     assert_eq!(localized, "./examples");
-    let localized = FileSource::derive_dir("./ERC20.huff").unwrap();
+    let localized = files::FileSource::derive_dir("./ERC20.huff").unwrap();
     assert_eq!(localized, ".");
-    let localized = FileSource::derive_dir("ERC20.huff").unwrap();
+    let localized = files::FileSource::derive_dir("ERC20.huff").unwrap();
     assert_eq!(localized, "");
 }
 
 #[test]
 fn test_localize_file() {
     let localized =
-        FileSource::localize_file("./examples/ERC20.huff", "./utilities/Address.huff").unwrap();
+        files::FileSource::localize_file("./examples/ERC20.huff", "./utilities/Address.huff")
+            .unwrap();
     assert_eq!(localized, "./examples/utilities/Address.huff");
-    let localized = FileSource::localize_file("./ERC20.huff", "./utilities/Address.huff").unwrap();
+    let localized =
+        files::FileSource::localize_file("./ERC20.huff", "./utilities/Address.huff").unwrap();
     assert_eq!(localized, "./utilities/Address.huff");
-    let localized = FileSource::localize_file("ERC20.huff", "./utilities/Address.huff").unwrap();
+    let localized =
+        files::FileSource::localize_file("ERC20.huff", "./utilities/Address.huff").unwrap();
     assert_eq!(localized, "./utilities/Address.huff");
-    let localized = FileSource::localize_file("ERC20.huff", "./Address.huff").unwrap();
+    let localized = files::FileSource::localize_file("ERC20.huff", "./Address.huff").unwrap();
     assert_eq!(localized, "./Address.huff");
-    let localized = FileSource::localize_file("ERC20.huff", "Address.huff").unwrap();
+    let localized = files::FileSource::localize_file("ERC20.huff", "Address.huff").unwrap();
     assert_eq!(localized, "./Address.huff");
-    let localized = FileSource::localize_file("./ERC20.huff", "Address.huff").unwrap();
-    assert_eq!(localized, "./Address.huff");
-    let localized = FileSource::localize_file("./examples/ERC20.huff", "Address.huff").unwrap();
-    assert_eq!(localized, "./examples/Address.huff");
-    let localized = FileSource::localize_file("./examples/ERC20.huff", "../Address.huff").unwrap();
+    let localized = files::FileSource::localize_file("./ERC20.huff", "Address.huff").unwrap();
     assert_eq!(localized, "./Address.huff");
     let localized =
-        FileSource::localize_file("./examples/ERC20.huff", "../../Address.huff").unwrap();
+        files::FileSource::localize_file("./examples/ERC20.huff", "Address.huff").unwrap();
+    assert_eq!(localized, "./examples/Address.huff");
+    let localized =
+        files::FileSource::localize_file("./examples/ERC20.huff", "../Address.huff").unwrap();
+    assert_eq!(localized, "./Address.huff");
+    let localized =
+        files::FileSource::localize_file("./examples/ERC20.huff", "../../Address.huff").unwrap();
     assert_eq!(localized, "../Address.huff");
     let localized =
-        FileSource::localize_file("./examples/ERC20.huff", "../../../Address.huff").unwrap();
+        files::FileSource::localize_file("./examples/ERC20.huff", "../../../Address.huff").unwrap();
     assert_eq!(localized, "../../Address.huff");
     let localized =
-        FileSource::localize_file("../examples/ERC20.huff", "../../../Address.huff").unwrap();
+        files::FileSource::localize_file("../examples/ERC20.huff", "../../../Address.huff")
+            .unwrap();
     assert_eq!(localized, "../../../Address.huff");
-    let localized = FileSource::localize_file("../examples/ERC20.huff", "./Address.huff").unwrap();
+    let localized =
+        files::FileSource::localize_file("../examples/ERC20.huff", "./Address.huff").unwrap();
     assert_eq!(localized, "../examples/Address.huff");
-    let localized = FileSource::localize_file("../examples/ERC20.huff", "Address.huff").unwrap();
+    let localized =
+        files::FileSource::localize_file("../examples/ERC20.huff", "Address.huff").unwrap();
     assert_eq!(localized, "../examples/Address.huff");
-    let localized = FileSource::localize_file("../../examples/ERC20.huff", "Address.huff").unwrap();
+    let localized =
+        files::FileSource::localize_file("../../examples/ERC20.huff", "Address.huff").unwrap();
     assert_eq!(localized, "../../examples/Address.huff");
     let localized =
-        FileSource::localize_file("../../examples/ERC20.huff", "../Address.huff").unwrap();
+        files::FileSource::localize_file("../../examples/ERC20.huff", "../Address.huff").unwrap();
     assert_eq!(localized, "../../Address.huff");
     let localized =
-        FileSource::localize_file("../../examples/ERC20.huff", "../../../Address.huff").unwrap();
+        files::FileSource::localize_file("../../examples/ERC20.huff", "../../../Address.huff")
+            .unwrap();
     assert_eq!(localized, "../../../../Address.huff");
 }
