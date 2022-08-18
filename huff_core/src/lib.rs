@@ -1,21 +1,26 @@
-#![doc = include_str!("../README.md")]
+#![doc = include_str ! ("../README.md")]
 #![warn(missing_docs)]
 #![warn(unused_extern_crates)]
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
-use ethers_core::utils::hex;
+use bytes::Bytes;
+use ethers_core::{
+    types::{H160, U256},
+    utils::hex,
+};
 use huff_codegen::*;
 use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
+use revm::{Bytecode, Contract as Contr, Database, Host, Interpreter, MergeSpec};
 use std::{
     collections::BTreeMap,
     ffi::OsString,
     fs,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
     time::SystemTime,
 };
 use tracing_subscriber::{filter::Directive, EnvFilter};
@@ -569,6 +574,34 @@ impl<'a> Compiler<'a> {
         Ok(paths)
     }
 
+    ///
+    pub fn check_assert(&self) -> Result<(), CompilerError<'a>> {
+        let int = Interpreter::new::<MergeSpec>(
+            Contr::new::<MergeSpec>(
+                Bytes::default(),
+                Bytecode::new(),
+                H160::zero(),
+                H160::zero(),
+                U256::zero(),
+            ),
+            30000000,
+        );
+
+        // let host = Host::sstore(H160::zero(), U256::zero(), U256::max_value());
+        // let host = Host::env(&mut ());
+        // TODO: must use eval https://github.com/bluealloy/revm/blob/186b20dbc9d177af90da1b4e6568b9a0223b5441/crates/revm/src/instructions.rs#L77
+        // int.run(host);
+
+        // dbg!(Host.balance(H160::random()));
+
+        let host = H::new();
+        dbg!(&host.balance(H160::random()));
+
+        dbg!(int.stack().data());
+
+        Ok(())
+    }
+
     /// Derives Constructor Input Arguments
     pub fn get_constructor_args(&self) -> Vec<String> {
         match &self.construct_args {
@@ -585,3 +618,11 @@ impl<'a> Compiler<'a> {
         }
     }
 }
+
+impl H for Host {
+    fn build(&self) -> Box<Self> {
+        Host
+    }
+}
+
+

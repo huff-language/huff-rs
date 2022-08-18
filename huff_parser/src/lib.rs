@@ -662,7 +662,6 @@ impl Parser {
                 }
                 TokenKind::Stack(st) => {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [STACK ASSERTION: {:?}]", st);
-                    // dbg!(&st);
                     self.consume();
                     /*statements.push(Statement {
                         ty: StatementType::ArgCall(arg_call),

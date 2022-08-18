@@ -86,6 +86,10 @@ struct Huff {
     /// Test subcommand
     #[clap(subcommand)]
     test: Option<TestCommands>,
+
+    /// Check for stack asserting
+    #[clap(long = "check-assert")]
+    check_assert: bool,
 }
 
 #[derive(Subcommand, Clone, Debug)]
@@ -189,6 +193,13 @@ fn main() {
         bytecode: cli.bytecode,
         cached: use_cache,
     };
+
+    if cli.check_assert {
+        if let Err(_) = compiler.check_assert() {
+            eprintln!("{}", Paint::red("Assertion failed"));
+            std::process::exit(1);
+        }
+    }
 
     if let Some(TestCommands::Test { format, match_ }) = cli.test {
         match compiler.grab_contracts() {

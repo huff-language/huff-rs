@@ -1588,6 +1588,7 @@ dependencies = [
 name = "huff_core"
 version = "0.3.0"
 dependencies = [
+ "bytes",
  "criterion",
  "ethers-core",
  "huff_codegen",
@@ -1597,6 +1598,7 @@ dependencies = [
  "proptest",
  "rand",
  "rayon",
+ "revm",
  "serde_json",
  "tracing",
  "tracing-subscriber",
