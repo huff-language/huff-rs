@@ -223,3 +223,47 @@ fn test_functions_with_keyword_arg_names_errors() {
     let mut parser = Parser::new(tokens, None);
     parser.parse().unwrap();
 }
+
+#[test]
+fn test_can_prefix_function_arg_names_with_reserved_keywords() {
+    let source: &str = "#define function supportsInterface(bytes4 interfaceId) view returns (bool)";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let expected_tokens: Vec<Token> = vec![
+        Token { kind: TokenKind::Define, span: Span { start: 0, end: 7, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 7, end: 8, file: None } },
+        Token { kind: TokenKind::Function, span: Span { start: 8, end: 16, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 16, end: 17, file: None } },
+        Token {
+            kind: TokenKind::Ident("supportsInterface".to_string()),
+            span: Span { start: 17, end: 34, file: None },
+        },
+        Token { kind: TokenKind::OpenParen, span: Span { start: 34, end: 35, file: None } },
+        Token {
+            kind: TokenKind::PrimitiveType(PrimitiveEVMType::Bytes(4)),
+            span: Span { start: 35, end: 41, file: None },
+        },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 41, end: 42, file: None } },
+        Token {
+            kind: TokenKind::Ident("interfaceId".to_string()),
+            span: Span { start: 42, end: 53, file: None },
+        },
+        Token { kind: TokenKind::CloseParen, span: Span { start: 53, end: 54, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 54, end: 55, file: None } },
+        Token { kind: TokenKind::View, span: Span { start: 55, end: 59, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 59, end: 60, file: None } },
+        Token { kind: TokenKind::Returns, span: Span { start: 60, end: 67, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 67, end: 68, file: None } },
+        Token { kind: TokenKind::OpenParen, span: Span { start: 68, end: 69, file: None } },
+        Token {
+            kind: TokenKind::PrimitiveType(PrimitiveEVMType::Bool),
+            span: Span { start: 69, end: 73, file: None },
+        },
+        Token { kind: TokenKind::CloseParen, span: Span { start: 73, end: 74, file: None } },
+        Token { kind: TokenKind::Eof, span: Span { start: 74, end: 74, file: None } },
+    ];
+    assert_eq!(expected_tokens, tokens);
+    let mut parser = Parser::new(tokens, None);
+    parser.parse().unwrap();
+}
