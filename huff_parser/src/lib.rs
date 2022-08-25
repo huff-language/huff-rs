@@ -789,6 +789,7 @@ impl Parser {
     ) -> Result<Vec<Argument>, ParserError> {
         let mut args: Vec<Argument> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
+        let mut on_type = true;
         tracing::debug!(target: "parser", "PARSING ARGs: {:?}", self.current_token.kind);
         while !self.check(TokenKind::CloseParen) {
             if is_builtin {
@@ -837,17 +838,53 @@ impl Parser {
                     arg_spans.push(self.current_token.span.clone());
                     self.consume(); // consume "indexed" keyword
                 }
+                on_type = false;
             }
 
             // name comes second (is optional)
-            if select_name && self.check(TokenKind::Ident("x".to_string())) {
+            if select_name &&
+                (self.check(TokenKind::Ident("x".to_string())) ||
+                    self.check(TokenKind::PrimitiveType(PrimitiveEVMType::Address)))
+            {
+                // We need to check if the name is a keyword - not the type
+                if !on_type {
+                    // Check for reserved primitive type keyword use and throw an error if so
+                    match self.current_token.kind.clone() {
+                        TokenKind::Ident(arg_str) => {
+                            if PrimitiveEVMType::try_from(arg_str.clone()).is_ok() {
+                                return Err(ParserError {
+                                    kind: ParserErrorKind::InvalidTypeAsArgumentName(
+                                        self.current_token.kind.clone(),
+                                    ),
+                                    hint: Some(format!(
+                                        "Argument names cannot be EVM types: {}",
+                                        arg_str
+                                    )),
+                                    spans: AstSpan(vec![self.current_token.span.clone()]),
+                                })
+                            }
+                        }
+                        TokenKind::PrimitiveType(ty) => {
+                            return Err(ParserError {
+                                kind: ParserErrorKind::InvalidTypeAsArgumentName(
+                                    self.current_token.kind.clone(),
+                                ),
+                                hint: Some(format!("Argument names cannot be EVM types: {}", ty)),
+                                spans: AstSpan(vec![self.current_token.span.clone()]),
+                            })
+                        }
+                        _ => { /* continue, valid string */ }
+                    }
+                }
                 arg_spans.push(self.current_token.span.clone());
-                arg.name = Some(self.match_kind(TokenKind::Ident("x".to_string()))?.to_string())
+                arg.name = Some(self.match_kind(TokenKind::Ident("x".to_string()))?.to_string());
+                on_type = !on_type;
             }
 
             // multiple args possible
             if self.check(TokenKind::Comma) {
                 self.consume();
+                on_type = true;
             }
 
             // If both arg type and arg name are none, we didn't consume anything

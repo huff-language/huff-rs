@@ -23,6 +23,8 @@ pub struct ParserError {
 pub enum ParserErrorKind {
     /// Unexpected type
     UnexpectedType(TokenKind),
+    /// Argument name is a reserved evm primitive type keyword
+    InvalidTypeAsArgumentName(TokenKind),
     /// Invalid definition
     InvalidDefinition(TokenKind),
     /// Invalid constant value
@@ -311,6 +313,14 @@ impl<'a> fmt::Display for CompilerError<'a> {
                     write!(
                         f,
                         "\nError: Unexpected Type: \"{}\" \n{}\n",
+                        ut,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
+                ParserErrorKind::InvalidTypeAsArgumentName(ut) => {
+                    write!(
+                        f,
+                        "\nError: Unexpected Argument Name is an EVM Type: \"{}\" \n{}\n",
                         ut,
                         pe.spans.error(pe.hint.as_ref())
                     )
