@@ -14,6 +14,7 @@ fn test_parse_event() {
                         arg_type: Some(String::from("uint256")),
                         name: Some(String::from("a")),
                         indexed: true,
+                        arg_location: None,
                         span: AstSpan(vec![
                             // "uint256"
                             Span { start: 24, end: 31, file: None },
@@ -27,6 +28,7 @@ fn test_parse_event() {
                         arg_type: Some(String::from("uint8")),
                         name: None,
                         indexed: true,
+                        arg_location: None,
                         span: AstSpan(vec![
                             // "uint8"
                             Span { start: 42, end: 47, file: None },
@@ -74,6 +76,7 @@ fn test_parse_event() {
                         arg_type: Some(String::from("uint256")),
                         name: None,
                         indexed: false,
+                        arg_location: None,
                         span: AstSpan(vec![
                             // "uint256"
                             Span { start: 24, end: 31, file: None },
@@ -83,6 +86,7 @@ fn test_parse_event() {
                         arg_type: Some(String::from("uint8")),
                         name: Some(String::from("b")),
                         indexed: false,
+                        arg_location: None,
                         span: AstSpan(vec![
                             // "uint8"
                             Span { start: 32, end: 37, file: None },
@@ -126,6 +130,7 @@ fn test_parse_event() {
                         arg_type: Some(String::from("uint256")),
                         name: None,
                         indexed: true,
+                        arg_location: None,
                         span: AstSpan(vec![
                             // "uint256"
                             Span { start: 24, end: 31, file: None },
@@ -137,6 +142,7 @@ fn test_parse_event() {
                         arg_type: Some(String::from("uint8")),
                         name: None,
                         indexed: false,
+                        arg_location: None,
                         span: AstSpan(vec![
                             // "uint8"
                             Span { start: 40, end: 45, file: None },

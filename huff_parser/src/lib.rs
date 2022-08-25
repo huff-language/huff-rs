@@ -802,6 +802,7 @@ impl Parser {
                         arg_type: None,
                         indexed: false,
                         span: AstSpan(vec![self.current_token.span.clone()]),
+                        arg_location: None,
                     });
 
                     self.consume();
@@ -813,8 +814,9 @@ impl Parser {
                 // present.
                 if let TokenKind::Literal(l) = &self.current_token.kind {
                     args.push(Argument {
-                        name: Some(bytes32_to_string(l, false)), /* Place the literal in the
-                                                                  * "name" field */
+                        // Place literal in the "name" field
+                        name: Some(bytes32_to_string(l, false)),
+                        arg_location: None,
                         arg_type: None,
                         indexed: false,
                         span: AstSpan(vec![self.current_token.span.clone()]),
@@ -839,6 +841,26 @@ impl Parser {
                     self.consume(); // consume "indexed" keyword
                 }
                 on_type = false;
+            }
+
+            // It can also be a data location
+            match &self.current_token.kind {
+                TokenKind::Calldata => {
+                    arg.arg_location = Some(ArgumentLocation::Calldata);
+                    arg_spans.push(self.current_token.span.clone());
+                    self.consume();
+                }
+                TokenKind::Memory => {
+                    arg.arg_location = Some(ArgumentLocation::Memory);
+                    arg_spans.push(self.current_token.span.clone());
+                    self.consume();
+                }
+                TokenKind::Storage => {
+                    arg.arg_location = Some(ArgumentLocation::Storage);
+                    arg_spans.push(self.current_token.span.clone());
+                    self.consume();
+                }
+                _ => {}
             }
 
             // name comes second (is optional)
@@ -942,6 +964,10 @@ impl Parser {
                 }
                 TokenKind::Ident(ident) => {
                     args.push(MacroArg::Ident(ident));
+                    self.consume();
+                }
+                TokenKind::Calldata => {
+                    args.push(MacroArg::Ident("calldata".to_string()));
                     self.consume();
                 }
                 TokenKind::LeftAngle => {

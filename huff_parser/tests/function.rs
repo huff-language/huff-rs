@@ -24,12 +24,14 @@ fn parses_valid_function_definition() {
                         name: None,
                         arg_type: Some(String::from("uint256")),
                         indexed: false,
+                        arg_location: None,
                         span: AstSpan(vec![Span { start: 22, end: 29, file: None }]),
                     },
                     Argument {
                         name: Some(String::from("b")),
                         arg_type: Some(String::from("bool")),
                         indexed: false,
+                        arg_location: None,
                         span: AstSpan(vec![
                             Span { start: 30, end: 34, file: None },
                             Span { start: 35, end: 36, file: None },
@@ -41,6 +43,7 @@ fn parses_valid_function_definition() {
                     name: None,
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
+                    arg_location: None,
                     span: AstSpan(vec![Span { start: 51, end: 58, file: None }]),
                 }],
                 signature: [84, 204, 215, 119],
@@ -70,6 +73,7 @@ fn parses_valid_function_definition() {
                     name: None,
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
+                    arg_location: None,
                     span: AstSpan(vec![Span { start: 22, end: 29, file: None }]),
                 }],
                 fn_type: FunctionType::Pure,
@@ -77,6 +81,7 @@ fn parses_valid_function_definition() {
                     name: None,
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
+                    arg_location: None,
                     span: AstSpan(vec![Span { start: 44, end: 51, file: None }]),
                 }],
                 signature: [41, 233, 159, 7],
@@ -103,6 +108,7 @@ fn parses_valid_function_definition() {
                     name: None,
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
+                    arg_location: None,
                     span: AstSpan(vec![Span { start: 22, end: 29, file: None }]),
                 }],
                 fn_type: FunctionType::NonPayable,
@@ -110,6 +116,7 @@ fn parses_valid_function_definition() {
                     name: None,
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
+                    arg_location: None,
                     span: AstSpan(vec![Span { start: 50, end: 57, file: None }]),
                 }],
                 signature: [41, 233, 159, 7],
@@ -136,6 +143,7 @@ fn parses_valid_function_definition() {
                     name: None,
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
+                    arg_location: None,
                     span: AstSpan(vec![Span { start: 22, end: 29, file: None }]),
                 }],
                 fn_type: FunctionType::Payable,
@@ -143,6 +151,7 @@ fn parses_valid_function_definition() {
                     name: None,
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
+                    arg_location: None,
                     span: AstSpan(vec![Span { start: 47, end: 54, file: None }]),
                 }],
                 signature: [41, 233, 159, 7],
@@ -169,6 +178,7 @@ fn parses_valid_function_definition() {
                     name: None,
                     arg_type: Some(String::from("uint256[], bool[5]")),
                     indexed: false,
+                    arg_location: None,
                     span: AstSpan(vec![]),
                 }],
                 fn_type: FunctionType::Payable,
@@ -176,6 +186,7 @@ fn parses_valid_function_definition() {
                     name: None,
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
+                    arg_location: None,
                     span: AstSpan(vec![]),
                 }],
                 signature: [5, 191, 166, 243],
@@ -217,6 +228,16 @@ fn cannot_parse_invalid_function_definition() {
 fn test_functions_with_keyword_arg_names_errors() {
     // The function parameter's name is a reserved keyword; this should throw an error
     let source: &str = "#define function myFunc(uint256 uint256) pure returns(uint256)";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+    parser.parse().unwrap();
+}
+
+#[test]
+fn test_functions_with_argument_locations() {
+    let source: &str = "#define function myFunc(string calldata test, uint256[] storage) pure returns(bytes memory)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
