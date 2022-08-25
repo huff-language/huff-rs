@@ -65,13 +65,13 @@ impl TryFrom<String> for PrimitiveEVMType {
             };
             return Ok(PrimitiveEVMType::Bytes(size))
         }
-        if input.starts_with("bool") {
+        if input.eq("bool") {
             return Ok(PrimitiveEVMType::Bool)
         }
-        if input.starts_with("address") {
+        if input.eq("address") {
             return Ok(PrimitiveEVMType::Address)
         }
-        if input.starts_with("string") {
+        if input.eq("string") {
             return Ok(PrimitiveEVMType::String)
         }
         if input == "bytes" {
