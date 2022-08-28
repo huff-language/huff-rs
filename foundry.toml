@@ -1,0 +1,5 @@
+[profile.default]
+optimizer = true
+remappings = [
+    "examples/=huff-examples/",
+]

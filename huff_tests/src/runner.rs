@@ -1,4 +1,4 @@
-use crate::prelude::{RunnerError, TestResult, TestStatus};
+use crate::prelude::{cheats_inspector::CheatsInspector, RunnerError, TestResult, TestStatus};
 use bytes::Bytes;
 use ethers::{prelude::Address, types::U256, utils::hex};
 use huff_codegen::Codegen;
@@ -109,6 +109,7 @@ impl TestRunner {
         data: String,
     ) -> Result<TestResult, RunnerError> {
         let mut evm = EVM::new();
+        let mut inspector = CheatsInspector::default();
         self.set_balance(caller, U256::MAX);
         evm.env = self.build_env(
             caller,
@@ -119,7 +120,7 @@ impl TestRunner {
         evm.database(self.db_mut());
 
         // Send our CALL transaction
-        let (status, out, gas, _) = evm.transact_commit();
+        let (status, out, gas, _) = evm.inspect_commit(&mut inspector);
 
         // Check if the transaction was successful
         let return_data = match status {
@@ -148,6 +149,7 @@ impl TestRunner {
                 return_ok!() => TestStatus::Success,
                 _ => TestStatus::Revert,
             },
+            logs: inspector.logs,
         })
     }
 

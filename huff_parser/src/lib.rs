@@ -7,12 +7,12 @@
 use huff_utils::{
     ast::*,
     error::*,
-    prelude::{bytes32_to_string, hash_bytes, str_to_bytes32, FileSource, Span},
+    files,
+    prelude::{bytes32_to_string, hash_bytes, str_to_bytes32, Span},
     token::{Token, TokenKind},
     types::*,
 };
 use regex::Regex;
-use std::path::Path;
 
 /// The Parser
 #[derive(Debug, Clone)]
@@ -27,13 +27,16 @@ pub struct Parser {
     pub base: Option<String>,
     /// A collection of current spans
     pub spans: Vec<Span>,
+    /// Our remapper
+    pub remapper: files::Remapper,
 }
 
 impl Parser {
     /// Public associated function that instantiates a Parser.
     pub fn new(tokens: Vec<Token>, base: Option<String>) -> Self {
         let initial_token = tokens.get(0).unwrap().clone();
-        Self { tokens, cursor: 0, current_token: initial_token, base, spans: vec![] }
+        let remapper = files::Remapper::new("./");
+        Self { tokens, cursor: 0, current_token: initial_token, base, spans: vec![], remapper }
     }
 
     /// Resets the current token and cursor to the first token in the parser's token vec
@@ -144,7 +147,7 @@ impl Parser {
         // Then let's grab and validate the file path
         self.match_kind(TokenKind::Str("x".to_string()))?;
         let tok = self.peek_behind().unwrap().kind;
-        let mut p = match tok {
+        let p = match tok {
             TokenKind::Str(file_path) => file_path,
             _ => {
                 tracing::error!(target: "parser", "INVALID IMPORT PATH: {}", tok);
@@ -158,32 +161,7 @@ impl Parser {
             }
         };
 
-        // Localize import path using out base
-        p = match &self.base {
-            Some(b) => FileSource::localize_file(b, &p).unwrap_or_default().replacen(
-                "contracts/contracts",
-                "contracts",
-                1,
-            ),
-            None => p,
-        };
-        tracing::info!(target: "parser", "LOCALIZED IMPORT: {}", p);
-
-        let path = Path::new(&p);
-
-        // Validate that a file @ the path exists
-        if !(path.exists() && path.is_file() && path.to_str().unwrap().ends_with(".huff")) {
-            tracing::error!(target: "parser", "INVALID IMPORT PATH: {:?}", path.to_str());
-            let new_spans = self.spans.clone();
-            self.spans = vec![];
-            return Err(ParserError {
-                kind: ParserErrorKind::InvalidImportPath(p),
-                hint: None,
-                spans: AstSpan(new_spans),
-            })
-        }
-
-        Ok(path.to_path_buf())
+        Ok(std::path::PathBuf::from(p))
     }
 
     /// Match current token to a type.

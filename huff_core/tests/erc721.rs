@@ -4,7 +4,7 @@ use huff_codegen::Codegen;
 use huff_core::*;
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::prelude::*;
+use huff_utils::{files, prelude::*};
 
 #[test]
 fn test_erc721_compile() {
@@ -17,7 +17,8 @@ fn test_erc721_compile() {
 
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
-    let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source)).unwrap();
+    let recursed_file_source =
+        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
     let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
     let full_source = FullFileSource {
         source: &flattened.0,
