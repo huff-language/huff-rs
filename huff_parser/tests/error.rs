@@ -22,7 +22,8 @@ fn test_parses_custom_error() {
                 arg_type: Some(String::from("uint256")),
                 name: None,
                 indexed: false,
-                span: AstSpan(vec![Span { start: 24, end: 31, file: None }])
+                span: AstSpan(vec![Span { start: 24, end: 31, file: None }]),
+                arg_location: None,
             }],
             span: AstSpan(vec![
                 Span { start: 0, end: 7, file: None },

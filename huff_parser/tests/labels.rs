@@ -225,6 +225,7 @@ pub fn builtins_under_labels() {
                                 arg_type: None,
                                 name: Some(String::from("TEST_TABLE")),
                                 indexed: false,
+                                arg_location: None,
                                 span: AstSpan(vec![Span { start: 342, end: 352, file: None }]),
                             }],
                             span: AstSpan(vec![
@@ -244,6 +245,7 @@ pub fn builtins_under_labels() {
                                 arg_type: None,
                                 name: Some(String::from("TEST_TABLE")),
                                 indexed: false,
+                                arg_location: None,
                                 span: AstSpan(vec![Span { start: 378, end: 388, file: None }]),
                             }],
                             span: AstSpan(vec![
@@ -263,6 +265,7 @@ pub fn builtins_under_labels() {
                                 arg_type: None,
                                 name: Some(String::from("SMALL_MACRO")),
                                 indexed: false,
+                                arg_location: None,
                                 span: AstSpan(vec![Span { start: 413, end: 424, file: None }]),
                             }],
                             span: AstSpan(vec![
@@ -282,6 +285,7 @@ pub fn builtins_under_labels() {
                                 arg_type: None,
                                 name: Some(String::from("myFunc")),
                                 indexed: false,
+                                arg_location: None,
                                 span: AstSpan(vec![Span { start: 449, end: 455, file: None }]),
                             }],
                             span: AstSpan(vec![
@@ -301,6 +305,7 @@ pub fn builtins_under_labels() {
                                 arg_type: None,
                                 name: Some(String::from("TestError")),
                                 indexed: false,
+                                arg_location: None,
                                 span: AstSpan(vec![Span { start: 477, end: 486, file: None }]),
                             }],
                             span: AstSpan(vec![
@@ -320,6 +325,7 @@ pub fn builtins_under_labels() {
                                 arg_type: None,
                                 name: Some(String::from("bb")),
                                 indexed: false,
+                                arg_location: None,
                                 span: AstSpan(vec![Span { start: 513, end: 515, file: None }]),
                             }],
                             span: AstSpan(vec![
