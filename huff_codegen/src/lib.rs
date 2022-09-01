@@ -192,6 +192,9 @@ impl Codegen {
 
                             table_code = format!("{}{}", table_code, code);
                         }
+                        StatementType::StackAssertion(assert) => {
+                            dbg!(assert);
+                        }
                         _ => {
                             return Err(CodegenError {
                                 kind: CodegenErrorKind::InvalidMacroStatement,

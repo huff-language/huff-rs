@@ -434,6 +434,9 @@ pub fn statement_gen(
                 }
             }
         }
+        StatementType::StackAssertion(sa) => {
+            dbg!(sa);
+        }
         sty => {
             tracing::error!(target: "codegen", "CURRENT MACRO DEF: {}", macro_def.name);
             tracing::error!(target: "codegen", "UNEXPECTED STATEMENT: {:?}", sty);

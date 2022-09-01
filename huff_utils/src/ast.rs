@@ -10,7 +10,7 @@ use crate::{
 };
 use std::{
     collections::BTreeMap,
-    fmt::{Display, Formatter},
+    fmt::{Display, Formatter, Write},
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -205,7 +205,7 @@ impl Contract {
         let mut i = 0;
         loop {
             if i >= statements.len() {
-                break
+                break;
             }
             match &statements[i].clone().ty {
                 StatementType::Constant(const_name) => {
@@ -580,6 +580,15 @@ impl MacroDefinition {
                         span: statement.span.clone(),
                     });
                 }
+                StatementType::StackAssertion(assertions) => {
+                    inner_irbytes.push(IRBytes {
+                        ty: IRByteType::Statement(Statement {
+                            ty: StatementType::StackAssertion(assertions.clone()),
+                            span: statement.span.clone(),
+                        }),
+                        span: statement.span.clone(),
+                    });
+                }
             }
         });
 
@@ -753,6 +762,8 @@ pub enum StatementType {
     LabelCall(String),
     /// A built-in function call
     BuiltinFunctionCall(BuiltinFunctionCall),
+    /// Stack assertion statements
+    StackAssertion(Vec<String>),
 }
 
 impl Display for StatementType {
@@ -770,6 +781,18 @@ impl Display for StatementType {
             StatementType::LabelCall(l) => write!(f, "LABEL CALL: {}", l),
             StatementType::BuiltinFunctionCall(b) => {
                 write!(f, "BUILTIN FUNCTION CALL: {:?}", b.kind)
+            }
+            StatementType::StackAssertion(a) => {
+                // let a: &String = a.into_iter().collect();
+                let a: String = a.into_iter().fold(String::new(), |a, b| {
+                    if a.len() > 0 && b.len() > 0 {
+                        a + ", " + b
+                    } else {
+                        a + b
+                    }
+                });
+                // let a = a.trim_end();
+                write!(f, "STACK ASSERTION: {}", a)
             }
         }
     }

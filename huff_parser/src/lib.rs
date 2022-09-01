@@ -521,6 +521,8 @@ impl Parser {
 
         let macro_statements: Vec<Statement> = self.parse_body()?;
 
+        dbg!(&macro_statements);
+
         Ok(MacroDefinition::new(
             macro_name,
             decorator,
@@ -640,11 +642,12 @@ impl Parser {
                 }
                 TokenKind::Stack(st) => {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [STACK ASSERTION: {:?}]", st);
+                    let mut curr_spans = vec![self.current_token.span.clone()];
                     self.consume();
-                    /*statements.push(Statement {
-                        ty: StatementType::ArgCall(arg_call),
-                        span: AstSpan(vec![arg_span]),
-                    });*/
+                    statements.push(Statement {
+                        ty: StatementType::StackAssertion(st),
+                        span: AstSpan(vec![self.current_token.span.clone()]),
+                    });
                 }
                 kind => {
                     tracing::error!(target: "parser", "TOKEN MISMATCH - MACRO BODY: {}", kind);
