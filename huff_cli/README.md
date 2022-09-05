@@ -6,7 +6,7 @@ The `huffc` CLI is written using [clap's](https://docs.rs/clap) [derive feature]
 ## huffc
 
 ```
-huffc 0.2.0
+huffc 0.3.0
 Huff Language Compiler built in Pure Rust.
 
 USAGE:
@@ -25,6 +25,7 @@ OPTIONS:
     -n, --interactive                     Interactively input the constructor args
     -o, --output <OUTPUT>                 The output file path
     -p, --print                           Prints out to the terminal
+    -r, --bin-runtime                     Generate and log runtime bytecode
     -s, --source-path <SOURCE>            The contracts source path [default: ./contracts]
     -v, --verbose                         Verbose output
     -V, --version                         Print version information

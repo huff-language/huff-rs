@@ -33,7 +33,10 @@ impl TryFrom<String> for PrimitiveEVMType {
             // Default to 256 if no size
             let size = match input.get(4..input.len()) {
                 Some(s) => match s.is_empty() {
-                    false => s.parse::<usize>().unwrap(),
+                    false => match s.parse::<usize>() {
+                        Ok(s) => s,
+                        Err(_) => return Err(format!("Invalid uint size : {}", s)),
+                    },
                     true => 256,
                 },
                 None => 256,
@@ -44,7 +47,10 @@ impl TryFrom<String> for PrimitiveEVMType {
             // Default to 256 if no size
             let size = match input.get(3..input.len()) {
                 Some(s) => match s.is_empty() {
-                    false => s.parse::<usize>().unwrap(),
+                    false => match s.parse::<usize>() {
+                        Ok(s) => s,
+                        Err(_) => return Err(format!("Invalid int size : {}", s)),
+                    },
                     true => 256,
                 },
                 None => 256,
@@ -52,16 +58,20 @@ impl TryFrom<String> for PrimitiveEVMType {
             return Ok(PrimitiveEVMType::Int(size))
         }
         if input.starts_with("bytes") && input.len() != 5 {
-            let size = input.get(5..input.len()).unwrap().parse::<usize>().unwrap();
+            let remaining = input.get(5..input.len()).unwrap();
+            let size = match remaining.parse::<usize>() {
+                Ok(s) => s,
+                Err(_) => return Err(format!("Invalid bytes size : {}", remaining)),
+            };
             return Ok(PrimitiveEVMType::Bytes(size))
         }
-        if input.starts_with("bool") {
+        if input.eq("bool") {
             return Ok(PrimitiveEVMType::Bool)
         }
-        if input.starts_with("address") {
+        if input.eq("address") {
             return Ok(PrimitiveEVMType::Address)
         }
-        if input.starts_with("string") {
+        if input.eq("string") {
             return Ok(PrimitiveEVMType::String)
         }
         if input == "bytes" {

@@ -1,0 +1,29 @@
+[package]
+name = "huff_tests"
+version = "0.1.0"
+edition = "2021"
+authors = ["clabby"]
+readme = "README.md"
+repository = "https://github.com/huff-language/huff-rs/"
+license = "MIT OR Apache-2.0"
+description = """
+A stripped down testing framework for the Huff language.
+"""
+keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+revm = "1.8.0"
+ethers = "0.13.0"
+bytes = "1.2.1"
+comfy-table = "6.0.0"
+yansi = "0.5.1"
+serde = "1.0.143"
+serde_json = "1.0.83"
+phf = { version = "0.11.1", features = ["macros"] }
+lazy_static = "1.4.0"
+huff_parser = { path = "../huff_parser" }
+huff_core = { path = "../huff_core" }
+huff_codegen = { path = "../huff_codegen" }
+huff_utils = { path = "../huff_utils" }

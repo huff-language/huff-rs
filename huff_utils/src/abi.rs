@@ -9,8 +9,7 @@
 //! instance like so:
 //!
 //! ```rust
-//! use std::cell::RefCell;
-//! use std::rc::Rc;
+//! use std::sync::{Arc, Mutex};
 //! use huff_utils::prelude::*;
 //!
 //! // Generate a default contract for demonstrative purposes.
@@ -19,7 +18,8 @@
 //!     macros: vec![],
 //!     invocations: vec![],
 //!     imports: vec![],
-//!     constants: Rc::new(RefCell::new(vec![])),
+//!     constants: Arc::new(Mutex::new(vec![])),
+//!     errors: vec![],
 //!     functions: vec![huff_utils::ast::Function {
 //!         name: "CONSTRUCTOR".to_string(),
 //!         signature: [0u8, 0u8, 0u8, 0u8],
@@ -52,6 +52,8 @@ pub struct Abi {
     pub functions: BTreeMap<String, Function>,
     /// A list of events and their definitions
     pub events: BTreeMap<String, Event>,
+    /// A list of errors and their definitions
+    pub errors: BTreeMap<String, Error>,
     /// If the contract defines receive logic
     pub receive: bool,
     /// If the contract defines fallback logic
@@ -112,72 +114,85 @@ impl From<ast::Contract> for Abi {
         // Instantiate functions and events
         let mut functions = BTreeMap::new();
         let mut events = BTreeMap::new();
+        let mut errors = BTreeMap::new();
 
         // Translate contract functions
         // Excluding constructor
-        contract
-            .functions
-            .iter()
-            .filter(|function: &&ast::Function| function.name != "CONSTRUCTOR")
-            .map(|function| {
-                (
-                    function.name.to_string(),
-                    Function {
-                        name: function.name.to_string(),
-                        inputs: function
-                            .inputs
-                            .iter()
-                            .map(|argument| FunctionParam {
-                                name: argument.name.clone().unwrap_or_default(),
-                                kind: argument.arg_type.clone().unwrap_or_default().into(),
-                                internal_type: None,
-                            })
-                            .collect(),
-                        outputs: function
-                            .outputs
-                            .iter()
-                            .map(|argument| FunctionParam {
-                                name: argument.name.clone().unwrap_or_default(),
-                                kind: argument.arg_type.clone().unwrap_or_default().into(),
-                                internal_type: None,
-                            })
-                            .collect(),
-                        constant: false,
-                        state_mutability: function.fn_type.clone(),
-                    },
-                )
-            })
-            .for_each(|val| {
-                let _ = functions.insert(val.0, val.1);
-            });
+        functions.extend(
+            contract
+                .functions
+                .iter()
+                .filter(|function: &&ast::Function| function.name != "CONSTRUCTOR")
+                .map(|function| {
+                    (
+                        function.name.to_string(),
+                        Function {
+                            name: function.name.to_string(),
+                            inputs: function
+                                .inputs
+                                .iter()
+                                .map(|argument| FunctionParam {
+                                    name: argument.name.clone().unwrap_or_default(),
+                                    kind: argument.arg_type.clone().unwrap_or_default().into(),
+                                    internal_type: None,
+                                })
+                                .collect(),
+                            outputs: function
+                                .outputs
+                                .iter()
+                                .map(|argument| FunctionParam {
+                                    name: argument.name.clone().unwrap_or_default(),
+                                    kind: argument.arg_type.clone().unwrap_or_default().into(),
+                                    internal_type: None,
+                                })
+                                .collect(),
+                            constant: false,
+                            state_mutability: function.fn_type.clone(),
+                        },
+                    )
+                }),
+        );
 
         // Translate contract events
-        contract
-            .events
-            .iter()
-            .map(|event| {
-                (
-                    event.name.to_string(),
-                    Event {
-                        name: event.name.to_string(),
-                        inputs: event
-                            .parameters
-                            .iter()
-                            .map(|argument| EventParam {
-                                name: argument.name.clone().unwrap_or_default(),
-                                kind: argument.arg_type.clone().unwrap_or_default().into(),
-                                indexed: argument.indexed,
-                            })
-                            .collect(),
-                        anonymous: false,
-                    },
-                )
-            })
-            .for_each(|val| {
-                let _ = events.insert(val.0, val.1);
-            });
+        events.extend(contract.events.iter().map(|event| {
+            (
+                event.name.to_string(),
+                Event {
+                    name: event.name.to_string(),
+                    inputs: event
+                        .parameters
+                        .iter()
+                        .map(|argument| EventParam {
+                            name: argument.name.clone().unwrap_or_default(),
+                            kind: argument.arg_type.clone().unwrap_or_default().into(),
+                            indexed: argument.indexed,
+                        })
+                        .collect(),
+                    anonymous: false,
+                },
+            )
+        }));
 
-        Self { constructor, functions, events, receive: false, fallback: false }
+        // Translate contract errors
+        errors.extend(contract.errors.iter().map(|error| {
+            (
+                error.name.to_string(),
+                Error {
+                    name: error.name.to_string(),
+                    inputs: error
+                        .parameters
+                        .iter()
+                        .map(|argument| FunctionParam {
+                            name: argument.name.clone().unwrap_or_default(),
+                            kind: argument.arg_type.clone().unwrap_or_default().into(),
+                            internal_type: None,
+                        })
+                        .collect(),
+                },
+            )
+        }));
+
+        Self { constructor, functions, events, errors, receive: false, fallback: false }
     }
 }
 
@@ -222,6 +237,17 @@ pub struct EventParam {
     pub kind: FunctionParamType,
     /// If the parameter is indexed
     pub indexed: bool,
+}
+
+/// #### Error
+///
+/// An Error definition.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct Error {
+    /// The error name
+    pub name: String,
+    /// The error inputs
+    pub inputs: Vec<FunctionParam>,
 }
 
 /// #### Constructor

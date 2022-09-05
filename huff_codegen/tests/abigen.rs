@@ -1,24 +1,30 @@
-use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+};
 
 use huff_codegen::Codegen;
-use huff_utils::{ast, prelude::*};
+use huff_utils::prelude::*;
 
 #[test]
 fn constructs_valid_abi() {
-    let constructor = ast::MacroDefinition {
+    let constructor = MacroDefinition {
         name: "CONSTRUCTOR".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![],
         takes: 0,
         returns: 0,
         span: AstSpan(vec![]),
         outlined: false,
+        test: false,
     };
     let contract = Contract {
         macros: vec![constructor],
         invocations: vec![],
         imports: vec![],
-        constants: Rc::new(RefCell::new(vec![])),
+        constants: Arc::new(Mutex::new(vec![])),
+        errors: vec![],
         functions: vec![],
         events: vec![],
         tables: vec![],
@@ -33,6 +39,7 @@ fn constructs_valid_abi() {
             constructor: Some(Constructor { inputs: vec![] }),
             functions: BTreeMap::new(),
             events: BTreeMap::new(),
+            errors: BTreeMap::new(),
             receive: false,
             fallback: false
         }
@@ -43,18 +50,21 @@ fn constructs_valid_abi() {
 fn missing_constructor_fails() {
     let _constructor = MacroDefinition {
         name: "CONSTRUCTOR".to_string(),
+        decorator: None,
         parameters: vec![],
         statements: vec![],
         takes: 0,
         returns: 0,
         span: AstSpan(vec![]),
         outlined: false,
+        test: false,
     };
     let contract = Contract {
         macros: vec![],
         invocations: vec![],
         imports: vec![],
-        constants: Rc::new(RefCell::new(vec![])),
+        constants: Arc::new(Mutex::new(vec![])),
+        errors: vec![],
         functions: vec![],
         events: vec![],
         tables: vec![],

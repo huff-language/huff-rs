@@ -17,10 +17,13 @@ fn parses_import() {
 }
 
 #[test]
-#[should_panic]
-fn fails_to_parse_invalid_import() {
-    let source = " /* .,*./. */  #include \"../huff-examples/erc20/contracts/ERC1155.huff\"";
-
+fn parses_deep_imports() {
+    let source = r#"
+        /* .,*./. */
+        #include "../huff-examples/erc20/contracts/ERC20.huff"
+        #define macro MAIN() = takes (0) returns (0) { /* Mock Empty Main Macro */ }
+        #include "../huff-examples/erc20/contracts/utils/Ownable.huff"
+    "#;
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
@@ -29,5 +32,5 @@ fn fails_to_parse_invalid_import() {
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 
     let import_path = contract.imports[0].clone();
-    assert_eq!(import_path.to_str().unwrap(), "../huff-examples/erc20/contracts/ERC1155.huff");
+    assert_eq!(import_path.to_str().unwrap(), "../huff-examples/erc20/contracts/ERC20.huff");
 }

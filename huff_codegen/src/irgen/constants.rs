@@ -9,7 +9,10 @@ pub fn constant_gen(
     ir_byte_span: AstSpan,
 ) -> Result<String, CodegenError> {
     // Get the first `ConstantDefinition` that matches the constant's name
-    let constants = contract.constants.borrow();
+    let constants = contract
+        .constants
+        .lock()
+        .map_err(|_| CodegenError::new(CodegenErrorKind::LockingError, AstSpan(vec![]), None))?;
     let constant = if let Some(m) = constants.iter().find(|const_def| const_def.name.eq(&name)) {
         m
     } else {

@@ -54,15 +54,14 @@ Let's say you have a [Contract](../huff_utils/ast/struct.Contract.html) instance
 ```rust
 use huff_codegen::*;
 use huff_utils::prelude::*;
-use std::sync::Arc;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 // Mock contract with a main macro
 let contract = Contract {
   macros: vec![
     MacroDefinition {
       name: "MAIN".to_string(),
+      decorator: None,
       parameters: vec![],
       statements: vec![
         Statement {
@@ -86,11 +85,13 @@ let contract = Contract {
       returns: 0,
       span: AstSpan(vec![]),
       outlined: false,
+      test: false,
     }
   ],
   invocations: vec![],
   imports: vec![],
-  constants: Rc::new(RefCell::new(vec![])),
+  constants: Arc::new(Mutex::new(vec![])),
+  errors: vec![],
   functions: vec![],
   events: vec![],
   tables: vec![],
@@ -108,15 +109,14 @@ Similarly, once you have a [Contract](../huff_utils/ast/struct.Contract.html) in
 ```rust
 use huff_codegen::*;
 use huff_utils::prelude::*;
-use std::sync::Arc;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 // Mock contract with a constructor macro
 let contract = Contract {
   macros: vec![
     MacroDefinition {
-      name: "CONSTRUCTOR".to_string(),
+      name: "CONSTRUCTOR".to_string(), 
+      decorator: None,
       parameters: vec![],
       statements: vec![
         Statement {
@@ -140,11 +140,13 @@ let contract = Contract {
       returns: 0,
       span: AstSpan(vec![]),
       outlined: false,
+      test: false,
     }
   ],
   invocations: vec![],
   imports: vec![],
-  constants: Rc::new(RefCell::new(vec![])),
+  constants: Arc::new(Mutex::new(vec![])),
+  errors: vec![],
   functions: vec![],
   events: vec![],
   tables: vec![],

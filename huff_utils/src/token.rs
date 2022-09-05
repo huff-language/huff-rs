@@ -37,12 +37,16 @@ pub enum TokenKind {
     Macro,
     /// "fn" keyword
     Fn,
+    /// "test" keyword
+    Test,
     /// "function" keyword
     Function,
     /// "event" keyword
     Event,
     /// "constant" keyword
     Constant,
+    /// "error" keyword
+    Error,
     /// "takes" keyword
     Takes,
     /// "returns" keyword
@@ -89,6 +93,8 @@ pub enum TokenKind {
     Comma,
     /// A Colon
     Colon,
+    /// A pound
+    Pound,
     /// Number
     Num(usize),
     /// A Space
@@ -117,6 +123,12 @@ pub enum TokenKind {
     CodeTable,
     /// A builtin function (__codesize, __tablesize, __tablestart)
     BuiltinFunction(String),
+    /// Calldata Data Location
+    Calldata,
+    /// Memory Data Location
+    Memory,
+    /// Storage Data Location
+    Storage,
 }
 
 impl fmt::Display for TokenKind {
@@ -129,9 +141,11 @@ impl fmt::Display for TokenKind {
             TokenKind::Include => "#include",
             TokenKind::Macro => "macro",
             TokenKind::Fn => "fn",
+            TokenKind::Test => "test",
             TokenKind::Function => "function",
             TokenKind::Event => "event",
             TokenKind::Constant => "constant",
+            TokenKind::Error => "error",
             TokenKind::View => "view",
             TokenKind::Pure => "pure",
             TokenKind::Payable => "payable",
@@ -155,6 +169,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Mul => "*",
             TokenKind::Colon => ":",
             TokenKind::Comma => ",",
+            TokenKind::Pound => "#",
             TokenKind::Num(num) => return write!(f, "{}", num),
             TokenKind::Whitespace => " ",
             TokenKind::Str(str) => str,
@@ -180,6 +195,9 @@ impl fmt::Display for TokenKind {
             TokenKind::JumpTablePacked => "jumptable__packed",
             TokenKind::CodeTable => "table",
             TokenKind::BuiltinFunction(s) => return write!(f, "BuiltinFunction({})", s),
+            TokenKind::Calldata => return write!(f, "calldata"),
+            TokenKind::Memory => return write!(f, "memory"),
+            TokenKind::Storage => return write!(f, "storage"),
         };
 
         write!(f, "{}", x)

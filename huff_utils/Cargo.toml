@@ -1,8 +1,8 @@
 [package]
 name = "huff_utils"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
-authors = ["Andreas Bigger", "clabby", "exp.table"]
+authors = ["asnared", "clabby", "exp.table"]
 readme = "README.md"
 repository = "https://github.com/huff-language/huff-rs/"
 license = "MIT OR Apache-2.0"
@@ -25,3 +25,6 @@ uuid = { version = "1.1.1", features = ["v4"] }
 pathdiff = "0.2.1"
 ethers-core = "0.13.0"
 itertools = "0.10.3"
+tiny-keccak = { version = "2.0.2", features = ["keccak"] }
+toml = "0.5.9"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt"] }

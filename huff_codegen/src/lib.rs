@@ -9,11 +9,10 @@ use huff_utils::{
     artifact::*,
     ast::*,
     bytecode::*,
+    bytes_util,
     error::CodegenError,
     evm::Opcode,
-    prelude::{
-        bytes32_to_string, format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span,
-    },
+    prelude::{format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span},
     types::EToken,
 };
 use std::{collections::HashMap, fs, path::Path, sync::Arc};
@@ -36,7 +35,7 @@ use crate::irgen::prelude::*;
 /// use huff_codegen::Codegen;
 /// let cg = Codegen::new();
 /// ```
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Codegen {
     /// The Input AST
     pub ast: Option<Contract>,
@@ -67,6 +66,8 @@ impl Codegen {
             0,
             &mut Vec::default(),
         )?;
+
+        tracing::debug!(target: "codegen", "Generated main bytecode. Appending table bytecode...");
 
         // Generate the fully baked bytecode
         Codegen::gen_table_bytecode(bytecode_res)
@@ -108,7 +109,7 @@ impl Codegen {
 
     /// Appends table bytecode to the end of the BytecodeRes output.
     /// Fills table JUMPDEST placeholders.
-    pub(crate) fn gen_table_bytecode(res: BytecodeRes) -> Result<String, CodegenError> {
+    pub fn gen_table_bytecode(res: BytecodeRes) -> Result<String, CodegenError> {
         if !res.unmatched_jumps.is_empty() {
             tracing::error!(
                 target: "codegen",
@@ -135,13 +136,16 @@ impl Codegen {
 
         res.utilized_tables.iter().try_for_each(|jt| {
             table_offsets.insert(jt.name.to_string(), table_offset);
-            let size = match bytes32_to_string(&jt.size, false).as_str().parse::<usize>() {
+            let size = match bytes_util::hex_to_usize(bytes_util::bytes32_to_string(&jt.size, false).as_str()) {
                 Ok(s) => s,
-                Err(_) => return Err(CodegenError {
-                    kind: CodegenErrorKind::UsizeConversion(format!("{:?}", jt.size)),
-                    span: jt.span.clone(),
-                    token: None
-                })
+                Err(e) => {
+                    tracing::error!(target: "codegen", "Errored converting bytes32 to str. Bytes {:?} with error: {:?}", jt.size, e);
+                    return Err(CodegenError {
+                        kind: CodegenErrorKind::UsizeConversion(format!("{:?}", jt.size)),
+                        span: jt.span.clone(),
+                        token: None
+                    })
+                }
             };
             table_offset += size;
 
@@ -244,7 +248,7 @@ impl Codegen {
     /// * `scope` - Current scope of the recursion. Contains all macro definitions recursed so far.
     /// * `offset` - Current bytecode offset
     /// * `mis` - Vector of tuples containing parent macro invocations as well as their offsets.
-    pub(crate) fn macro_to_bytecode(
+    pub fn macro_to_bytecode(
         macro_def: MacroDefinition,
         contract: &Contract,
         scope: &mut Vec<MacroDefinition>,
@@ -521,8 +525,15 @@ impl Codegen {
             )
         };
 
+        let has_custom_bootstrap = hex::decode(constructor_bytecode).unwrap().contains(&0xf3);
+
+        let bootstrap_code = if has_custom_bootstrap {
+            String::default()
+        } else {
+            format!("{}80{}3d393df3", contract_size, contract_code_offset)
+        };
+
         // Generate the final bytecode
-        let bootstrap_code = format!("{}80{}3d393df3", contract_size, contract_code_offset);
         let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
         artifact.bytecode =
             format!("{}{}{}", constructor_code, main_bytecode, constructor_args).to_lowercase();

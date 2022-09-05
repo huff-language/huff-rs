@@ -6,7 +6,7 @@ use strum_macros::EnumString;
 /// They are arranged in a particular order such that all the opcodes that have common
 /// prefixes are ordered by decreasing length to avoid mismatch when lexing.
 /// Example : [origin, or] or [push32, ..., push3]
-pub const OPCODES: [&str; 142] = [
+pub const OPCODES: [&str; 143] = [
     "lt",
     "gt",
     "slt",
@@ -28,6 +28,7 @@ pub const OPCODES: [&str; 142] = [
     "calldatacopy",
     "codesize",
     "codecopy",
+    "basefee",
     "blockhash",
     "coinbase",
     "timestamp",
@@ -174,6 +175,7 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "calldatacopy" => Opcode::Calldatacopy,
     "codesize" => Opcode::Codesize,
     "codecopy" => Opcode::Codecopy,
+    "basefee" => Opcode::Basefee,
     "blockhash" => Opcode::Blockhash,
     "coinbase" => Opcode::Coinbase,
     "timestamp" => Opcode::Timestamp,
@@ -300,15 +302,13 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
 /// EVM Opcodes
 /// References <https://evm.codes>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumString)]
+#[strum(serialize_all = "lowercase")]
 pub enum Opcode {
     /// Halts execution.
-    #[strum(serialize = "stop")]
     Stop,
     /// Addition operation
-    #[strum(serialize = "add")]
     Add,
     /// Multiplication Operation
-    #[strum(serialize = "mul")]
     Mul,
     /// Subtraction Operation
     Sub,
@@ -624,7 +624,6 @@ impl Opcode {
             Opcode::Shr => "1c",
             Opcode::Sar => "1d",
             Opcode::Sha3 => "20",
-            // Opcode::Keccak => "20",
             Opcode::Address => "30",
             Opcode::Balance => "31",
             Opcode::Origin => "32",
