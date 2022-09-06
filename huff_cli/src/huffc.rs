@@ -9,8 +9,11 @@
 
 use clap::{App, CommandFactory, Parser as ClapParser, Subcommand};
 use ethers_core::utils::hex;
+use huff_assert::runner::StackRunner;
+use huff_assert::HuffAssert;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
+use huff_tests::prelude::cheats_inspector::CheatsInspector;
 use huff_tests::{
     prelude::{print_test_report, ReportKind},
     HuffTester,
@@ -149,12 +152,12 @@ fn main() {
                 // Check that constant override argument is valid
                 // Key rule: Alphabetic chars + underscore
                 // Value rule: Valid literal string (0x...)
-                if parts.len() != 2 ||
-                    parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_')) ||
-                    !parts[1].starts_with("0x") ||
-                    parts[1][2..].chars().any(|c| {
-                        !(c.is_numeric() ||
-                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
+                if parts.len() != 2
+                    || parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_'))
+                    || !parts[1].starts_with("0x")
+                    || parts[1][2..].chars().any(|c| {
+                        !(c.is_numeric()
+                            || matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
                     })
                 {
                     eprintln!("Invalid constant override argument: {}", Paint::red(c.to_string()));
@@ -195,30 +198,39 @@ fn main() {
     };
 
     if cli.check_assert {
-        if let Err(_) = compiler.check_assert() {
+        /*if let Err(_) = compiler.check_assert() {
             eprintln!("{}", Paint::red("Assertion failed"));
             std::process::exit(1);
-        }
+        }*/
     }
 
-    if let Some(TestCommands::Test { format, match_ }) = cli.test {
+    if matches!(cli.test, Some(TestCommands::Test { .. })) || cli.check_assert {
         match compiler.grab_contracts() {
             Ok(contracts) => {
-                let match_ = Rc::new(match_);
+                if let Some(TestCommands::Test { format, match_ }) = cli.test {
+                    let match_ = Rc::new(match_);
 
-                for contract in &contracts {
-                    let tester = HuffTester::new(contract, Rc::clone(&match_));
+                    for contract in &contracts {
+                        let tester = HuffTester::new(contract, Rc::clone(&match_));
 
-                    let start = Instant::now();
-                    match tester.execute() {
-                        Ok(res) => {
-                            print_test_report(res, ReportKind::from(&format), start);
-                        }
-                        Err(e) => {
-                            eprintln!("{}", Paint::red(e));
-                            std::process::exit(1);
-                        }
-                    };
+                        let start = Instant::now();
+                        match tester.execute() {
+                            Ok(res) => {
+                                print_test_report(res, ReportKind::from(&format), start);
+                            }
+                            Err(e) => {
+                                eprintln!("{}", Paint::red(e));
+                                std::process::exit(1);
+                            }
+                        };
+                    }
+                }
+
+                if cli.check_assert {
+                    for contract in &contracts {
+                        let assert = HuffAssert::new(contract);
+                        assert.execute();
+                    }
                 }
             }
             Err(e) => {
@@ -227,7 +239,7 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        return
+        return;
     }
 
     // Create compiling spinner

@@ -119,7 +119,7 @@ impl Parser {
                             kind: ParserErrorKind::InvalidDefinition(self.current_token.kind.clone()),
                             hint: Some("Definition must be one of: `function`, `event`, `constant`, `error`, `macro`, `fn`, or `test`.".to_string()),
                             spans: AstSpan(vec![self.current_token.span.clone()]),
-                        })
+                        });
                     }
                 };
             } else {
@@ -132,7 +132,7 @@ impl Parser {
                         TokenKind::Include
                     )),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         }
 
@@ -157,7 +157,7 @@ impl Parser {
                     kind: ParserErrorKind::InvalidName(tok.clone()),
                     hint: Some(format!("Expected import string. Got: \"{}\"", tok)),
                     spans: AstSpan(new_spans),
-                })
+                });
             }
         };
 
@@ -197,7 +197,7 @@ impl Parser {
         loop {
             let token = self.peek().unwrap();
             if !kinds.contains(&token.kind) {
-                break
+                break;
             }
             self.current_token = token;
             self.cursor += 1;
@@ -238,7 +238,7 @@ impl Parser {
                     kind: ParserErrorKind::InvalidName(tok.clone()),
                     hint: Some(format!("Expected function name, found: \"{}\"", tok)),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         };
 
@@ -300,7 +300,7 @@ impl Parser {
                     kind: ParserErrorKind::InvalidName(tok.clone()),
                     hint: Some(format!("Expected event name, found: \"{}\"", tok)),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         };
 
@@ -331,7 +331,7 @@ impl Parser {
                     kind: ParserErrorKind::UnexpectedType(tok),
                     hint: Some("Expected constant name.".to_string()),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         };
 
@@ -356,7 +356,7 @@ impl Parser {
                             .to_string(),
                     ),
                     spans: AstSpan(vec![self.current_token.span.clone()]),
-                })
+                });
             }
         };
 
@@ -384,7 +384,7 @@ impl Parser {
                     kind: ParserErrorKind::UnexpectedType(tok),
                     hint: Some("Expected error name.".to_string()),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         };
 
@@ -431,7 +431,7 @@ impl Parser {
                                 ),
                                 hint: Some(format!("Expected string for decorator flag: {}", s)),
                                 spans: AstSpan(vec![self.current_token.span.clone()]),
-                            })
+                            });
                         }
                     }
                     // The value flag accepts a single literal as an argument
@@ -447,7 +447,7 @@ impl Parser {
                                 ),
                                 hint: Some(format!("Expected literal for decorator flag: {}", s)),
                                 spans: AstSpan(vec![self.current_token.span.clone()]),
-                            })
+                            });
                         }
                     }
                     Err(_) => {
@@ -456,7 +456,7 @@ impl Parser {
                             kind: ParserErrorKind::InvalidDecoratorFlag(s.clone()),
                             hint: Some(format!("Unknown decorator flag: {}", s)),
                             spans: AstSpan(self.spans.clone()),
-                        })
+                        });
                     }
                 }
 
@@ -474,7 +474,7 @@ impl Parser {
                     )),
                     hint: Some(String::from("Unknown decorator flag")),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         }
 
@@ -520,8 +520,6 @@ impl Parser {
             self.match_kind(TokenKind::Returns).map_or(Ok(0), |_| self.parse_single_arg())?;
 
         let macro_statements: Vec<Statement> = self.parse_body()?;
-
-        dbg!(&macro_statements);
 
         Ok(MacroDefinition::new(
             macro_name,
@@ -655,7 +653,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidTokenInMacroBody(kind),
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+                    });
                 }
             };
         }
@@ -678,8 +676,8 @@ impl Parser {
     pub fn parse_label(&mut self) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
         self.match_kind(TokenKind::Colon)?;
-        while !self.check(TokenKind::Label("NEXT_LABEL".to_string())) &&
-            !self.check(TokenKind::CloseBrace)
+        while !self.check(TokenKind::Label("NEXT_LABEL".to_string()))
+            && !self.check(TokenKind::CloseBrace)
         {
             match self.current_token.kind.clone() {
                 TokenKind::Literal(val) => {
@@ -768,7 +766,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidTokenInLabelDefinition(kind),
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+                    });
                 }
             };
         }
@@ -815,7 +813,7 @@ impl Parser {
                     });
 
                     self.consume();
-                    continue
+                    continue;
                 }
 
                 // The builtin function `__RIGHTPAD` can accept a single literal as input. If the
@@ -831,7 +829,7 @@ impl Parser {
                     });
 
                     self.consume();
-                    continue
+                    continue;
                 }
             }
 
@@ -868,7 +866,7 @@ impl Parser {
                     kind: ParserErrorKind::InvalidArgs(self.current_token.kind.clone()),
                     hint: None,
                     spans: AstSpan(vec![self.current_token.span.clone()]),
-                })
+                });
             }
 
             arg.span = AstSpan(arg_spans);
@@ -942,7 +940,7 @@ impl Parser {
                                 .to_string(),
                         ),
                         spans: AstSpan(new_spans),
-                    })
+                    });
                 }
             }
             if self.check(TokenKind::Comma) {
@@ -989,8 +987,8 @@ impl Parser {
                             0_usize
                         }
                     })
-                    .sum::<usize>() /
-                    2
+                    .sum::<usize>()
+                    / 2
             }
         };
 
@@ -1030,7 +1028,7 @@ impl Parser {
                                     ),
                                     hint: Some("Expected valid hex bytecode.".to_string()),
                                     spans: AstSpan(new_spans),
-                                })
+                                });
                             }
                         } else {
                             StatementType::LabelCall(ident_str.to_string())
@@ -1045,7 +1043,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidTableBodyToken(kind.clone()),
                         hint: Some("Expected an identifier string.".to_string()),
                         spans: AstSpan(new_spans),
-                    })
+                    });
                 }
             };
         }
@@ -1150,7 +1148,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidUint256(size),
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+                    });
                 }
                 Ok(self.match_kind(self.current_token.kind.clone())?)
             }
@@ -1160,7 +1158,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidBytes(size),
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+                    });
                 }
                 Ok(self.match_kind(self.current_token.kind.clone())?)
             }
@@ -1174,7 +1172,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidInt(size),
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+                    });
                 }
                 let curr_token_kind = self.current_token.kind.clone();
                 self.consume();

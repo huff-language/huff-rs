@@ -1558,6 +1558,11 @@ checksum = "c4a1e36c821dbe04574f602848a19f742f4fb3c98d40449f11bcad18d6b17421"
 name = "huff_assert"
 version = "0.1.0"
 dependencies = [
+ "bytes",
+ "ethers",
+ "huff_codegen",
+ "huff_tests",
+ "huff_utils",
  "revm",
 ]
 
@@ -1567,6 +1572,7 @@ version = "0.3.0"
 dependencies = [
  "clap 3.2.17",
  "ethers-core",
+ "huff_assert",
  "huff_codegen",
  "huff_core",
  "huff_tests",

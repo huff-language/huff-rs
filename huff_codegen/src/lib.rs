@@ -67,6 +67,8 @@ impl Codegen {
             &mut Vec::default(),
         )?;
 
+        dbg!(&bytecode_res);
+
         tracing::debug!(target: "codegen", "Generated main bytecode. Appending table bytecode...");
 
         // Generate the fully baked bytecode
@@ -125,7 +127,7 @@ impl Codegen {
                         .collect::<Vec<Span>>(),
                 ),
                 token: None,
-            })
+            });
         }
 
         tracing::info!(target: "codegen", "GENERATING JUMPTABLE BYTECODE");
@@ -274,6 +276,7 @@ impl Codegen {
             match ir_byte.ty {
                 IRByteType::Bytes(b) => {
                     offset += b.0.len() / 2;
+                    tracing::debug!(target: "codegen", "OFFSET: {}", offset);
                     bytes.push((starting_offset, b));
                 }
                 IRByteType::Constant(name) => {
@@ -296,6 +299,7 @@ impl Codegen {
                         &mut utilized_tables,
                         starting_offset,
                     )?;
+                    tracing::debug!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                     bytes.append(&mut push_bytes);
                 }
                 IRByteType::ArgCall(arg_name) => {
@@ -311,6 +315,10 @@ impl Codegen {
                         mis,
                         &mut jump_table,
                     )?
+                }
+                IRByteType::StackAssertion(assertions) => {
+                    // offset should not change
+                    bytes.push((starting_offset, Bytes(String::from(""))));
                 }
             }
         }
@@ -579,7 +587,7 @@ impl Codegen {
                         })),
                     }]),
                     token: None,
-                })
+                });
             }
         }
         if let Err(e) = fs::write(file_path, serialized_artifact) {
@@ -597,7 +605,7 @@ impl Codegen {
                     })),
                 }]),
                 token: None,
-            })
+            });
         }
         Ok(())
     }

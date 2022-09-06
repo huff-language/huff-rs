@@ -17,6 +17,7 @@ huff_core = { path = "../huff_core", version = "0.x.x" }
 huff_codegen = { path = "../huff_codegen", version = "0.x.x" }
 huff_utils = { path = "../huff_utils", version = "0.x.x" }
 huff_tests = { path = "../huff_tests", version = "0.x.x" }
+huff_assert = { path = "../huff_assert", version = "0.x.x" }
 tracing = "0.1.34"
 ethers-core = "0.13.0"
 yansi = "0.5.1"

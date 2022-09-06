@@ -32,6 +32,8 @@ pub enum IRByteType {
     Constant(String),
     /// An Arg Call needs to use the calling macro context
     ArgCall(String),
+    /// A very special kind of comment made to make assertions on the stack
+    StackAssertion(Vec<String>),
 }
 
 /// Full Intermediate Bytecode Representation

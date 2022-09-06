@@ -582,10 +582,7 @@ impl MacroDefinition {
                 }
                 StatementType::StackAssertion(assertions) => {
                     inner_irbytes.push(IRBytes {
-                        ty: IRByteType::Statement(Statement {
-                            ty: StatementType::StackAssertion(assertions.clone()),
-                            span: statement.span.clone(),
-                        }),
+                        ty: IRByteType::StackAssertion(assertions.clone()),
                         span: statement.span.clone(),
                     });
                 }
