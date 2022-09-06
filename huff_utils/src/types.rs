@@ -139,10 +139,8 @@ impl TryFrom<String> for EToken {
         // array
         if input.starts_with('[') {
             let trimmed_input = input.trim_start_matches('[').trim_end_matches(']');
-            let v: Vec<String> = trimmed_input
-                .split(',')
-                .map(|x| x.replace(' ', "").replace('"', "").replace('\'', ""))
-                .collect();
+            let v: Vec<String> =
+                trimmed_input.split(',').map(|x| x.replace([' ', '"', '\''], "")).collect();
             let etokens: Result<Vec<EToken>, _> =
                 v.iter().map(|x| EToken::try_from(x.to_owned())).collect();
             let tokens: Vec<Token> = etokens?.iter().map(move |x| x.clone().0).collect();
@@ -165,7 +163,7 @@ impl TryFrom<String> for EToken {
             // Try to unwrap something like "100,0x123,20" without brackets
             let e_tokens: Result<Vec<EToken>, _> = input
                 .split(',')
-                .map(|x| x.replace(' ', "").replace('"', "").replace('\'', ""))
+                .map(|x| x.replace([' ', '"', '\''], ""))
                 .map(EToken::try_from)
                 .collect();
             let tokens: Vec<Token> = e_tokens?.into_iter().map(|x| x.0).collect();
