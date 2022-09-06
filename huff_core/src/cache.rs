@@ -35,7 +35,7 @@ pub fn resolve_existing_artifacts(
 
     // For each file, check if the artifact file exists at the location
     tracing::debug!(target: "core", "Traversing output directory {}", output_dir);
-    for entry in WalkDir::new(&output_dir)
+    for entry in WalkDir::new(output_dir)
         .into_iter()
         .filter_map(Result::ok)
         .filter(|e| !e.file_type().is_dir())
@@ -46,7 +46,7 @@ pub fn resolve_existing_artifacts(
             .display()
             .to_string()
             .replace(".json", "")
-            .replace(&output_dir, ".")
+            .replace(output_dir, ".")
             .to_lowercase();
         let expected = file_sources.remove(&formatted_path);
 
