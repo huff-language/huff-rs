@@ -1,11 +1,14 @@
 use ethers::{prelude::Address, types::U256, utils::hex};
 use huff_codegen::Codegen;
+use std::collections::BTreeMap;
+use std::str::from_utf8;
 
 use crate::errors::{RunnerError, TestResult, TestStatus};
 use bytes::Bytes;
 
 use crate::stack::StackInspector;
 use crate::utils::{build_ic_pc_map, build_pc_ic_map};
+use huff_utils::prelude::{BytecodeRes, Bytes as HuffBytes};
 use huff_utils::{
     ast::{DecoratorFlag, MacroDefinition},
     prelude::{pad_n_bytes, CompilerError, Contract},
@@ -46,7 +49,7 @@ impl StackRunner {
     }
 
     /// Deploy arbitrary bytecode to our REVM instance and return the contract address.
-    pub fn deploy_code(&mut self, code: String) -> Result<Address, RunnerError> {
+    pub fn deploy_code(&mut self, code: String) -> Result<(Address, i32), RunnerError> {
         // Wrap code in a bootstrap constructor
         let contract_length = code.len() / 2;
         let constructor_length = 0;
@@ -102,7 +105,8 @@ impl StackRunner {
             }
             _ => return Err(RunnerError(String::from("Test deployment failed"))),
         };
-        Ok(address)
+
+        Ok((address, bootstrap_code_size))
     }
 
     /// Perform a call to a deployed contract
@@ -113,6 +117,8 @@ impl StackRunner {
         address: Address,
         value: U256,
         data: String,
+        bytecode_res: BytecodeRes,
+        offset: usize,
     ) -> Result<TestResult, RunnerError> {
         let mut evm = EVM::new();
 
@@ -144,7 +150,19 @@ impl StackRunner {
 
         let code = code.bytes();
 
-        let mut inspector = StackInspector::new(code);
+        dbg!(&code);
+
+        let mut pc_to_instruction: BTreeMap<usize, Vec<HuffBytes>> = BTreeMap::new();
+        bytecode_res.bytes.into_iter().for_each(|(c, b)| {
+            pc_to_instruction
+                .entry(c + offset)
+                .and_modify(|val| val.push(b.clone()))
+                .or_insert(vec![b]);
+        });
+
+        dbg!(&pc_to_instruction);
+
+        let mut inspector = StackInspector::new(code, pc_to_instruction);
 
         // Send our CALL transaction
         let (status, out, gas, _) = evm.inspect_commit(&mut inspector);
@@ -177,57 +195,6 @@ impl StackRunner {
                 _ => TestStatus::Revert,
             },
         })
-    }
-
-    /// Compile a test macro and run it in an in-memory REVM instance.
-    pub fn run_test(
-        &mut self,
-        m: &MacroDefinition,
-        contract: &Contract,
-    ) -> Result<TestResult, RunnerError> {
-        let name = m.name.to_owned();
-
-        // Compile the passed test macro
-        match Codegen::macro_to_bytecode(
-            m.to_owned(),
-            contract,
-            &mut vec![m.to_owned()],
-            0,
-            &mut Vec::default(),
-        ) {
-            // Generate table bytecode for compiled test macro
-            Ok(res) => match Codegen::gen_table_bytecode(res) {
-                Ok(bytecode) => {
-                    // Deploy compiled test macro
-                    let address = self.deploy_code(bytecode)?;
-
-                    // Set environment flags passed through the test decorator
-                    let mut data = String::default();
-                    let mut value = U256::zero();
-                    if let Some(decorator) = &m.decorator {
-                        for flag in &decorator.flags {
-                            match flag {
-                                DecoratorFlag::Calldata(s) => {
-                                    // Strip calldata of 0x prefix, if it is present.
-                                    data = if let Some(s) = s.strip_prefix("0x") {
-                                        s.to_owned()
-                                    } else {
-                                        s.to_owned()
-                                    };
-                                }
-                                DecoratorFlag::Value(v) => value = U256::from(v),
-                            }
-                        }
-                    }
-
-                    // Call the deployed test
-                    let res = self.call(name, Address::zero(), address, value, data)?;
-                    Ok(res)
-                }
-                Err(e) => Err(CompilerError::CodegenError(e).into()),
-            },
-            Err(e) => Err(CompilerError::CodegenError(e).into()),
-        }
     }
 
     /// Build an EVM transaction environment.

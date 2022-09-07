@@ -67,8 +67,6 @@ impl Codegen {
             &mut Vec::default(),
         )?;
 
-        dbg!(&bytecode_res);
-
         tracing::debug!(target: "codegen", "Generated main bytecode. Appending table bytecode...");
 
         // Generate the fully baked bytecode
@@ -132,7 +130,14 @@ impl Codegen {
 
         tracing::info!(target: "codegen", "GENERATING JUMPTABLE BYTECODE");
 
-        let mut bytecode = res.bytes.into_iter().map(|(_, b)| b.0).collect::<String>();
+        let mut bytecode = res
+            .bytes
+            .into_iter()
+            .filter_map(|(_, b)| match b.0.starts_with("stack: ") {
+                false => Some(b.0),
+                _ => None,
+            })
+            .collect::<String>(); // remove bytes starting by placeholder
         let mut table_offsets: HashMap<String, usize> = HashMap::new(); // table name -> bytecode offset
         let mut table_offset = bytecode.len() / 2;
 
@@ -195,7 +200,7 @@ impl Codegen {
                             table_code = format!("{}{}", table_code, code);
                         }
                         StatementType::StackAssertion(assert) => {
-                            dbg!(assert);
+                            // dbg!(assert);
                         }
                         _ => {
                             return Err(CodegenError {
@@ -264,6 +269,8 @@ impl Codegen {
         let mut bytes: Vec<(usize, Bytes)> = Vec::default();
         let ir_bytes = macro_def.to_irbytecode()?.0;
 
+        // dbg!(&ir_bytes);
+
         // Define outer loop variables
         let mut jump_table = JumpTable::new();
         let mut label_indices = LabelIndices::new();
@@ -318,7 +325,18 @@ impl Codegen {
                 }
                 IRByteType::StackAssertion(assertions) => {
                     // offset should not change
-                    bytes.push((starting_offset, Bytes(String::from(""))));
+                    let assertions = assertions.join(",");
+                    let assertions = assertions.as_ref();
+                    dbg!(&assertions);
+
+                    let mut placeholder = String::from("stack: ");
+                    placeholder.push_str(assertions);
+
+                    if placeholder.len() % 2 == 1 {
+                        placeholder.push_str(" ");
+                    }
+
+                    bytes.push((starting_offset, Bytes(placeholder)));
                 }
             }
         }

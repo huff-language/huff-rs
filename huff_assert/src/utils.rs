@@ -1,3 +1,8 @@
+use huff_utils::ast::{Contract, MacroDefinition, MacroInvocation, TableDefinition};
+use huff_utils::bytecode::{
+    BytecodeRes, Bytes, IRByteType, JumpTable, Jumps, LabelIndices, ToIRBytecode,
+};
+use huff_utils::error::CodegenError;
 use revm::{opcode, spec_opcode_gas, SpecId};
 use std::collections::BTreeMap;
 

@@ -24,7 +24,7 @@ impl<'a> HuffAssert<'a> {
 
             let name = m.name.to_owned();
 
-            let res = Codegen::macro_to_bytecode(
+            let bytecode_res = Codegen::macro_to_bytecode(
                 m.to_owned(),
                 self.ast,
                 &mut vec![m.to_owned()],
@@ -33,18 +33,32 @@ impl<'a> HuffAssert<'a> {
             )
             .unwrap();
 
-            let bytecode = Codegen::gen_table_bytecode(res).unwrap();
+            // dbg!(&bytecode_res.bytes);
 
-            let address = runner.deploy_code(bytecode).unwrap();
+            let bytecode = Codegen::gen_table_bytecode(bytecode_res.clone()).unwrap();
+
+            let (address, offset) = runner.deploy_code(bytecode).unwrap();
+
+            dbg!(&offset);
 
             // Set environment flags passed through the test decorator
             let mut data = String::default();
             let mut value = U256::zero();
 
             // Call the deployed test
-            let res = runner.call(name, Address::zero(), address, value, data).unwrap();
+            let res = runner
+                .call(
+                    name,
+                    Address::zero(),
+                    address,
+                    value,
+                    data,
+                    bytecode_res,
+                    /*offset as usize*/ 0,
+                )
+                .unwrap();
 
-            dbg!(&res);
+            // dbg!(&res);
         })
     }
 }
