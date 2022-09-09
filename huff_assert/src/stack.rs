@@ -10,11 +10,11 @@ pub struct StackInspector {
     // stack: Vec<Stack>
     pc_to_ic_map: PCICMap,
     ic_to_pc_map: ICPCMap,
-    pc_to_i_map: BTreeMap<usize, Vec<HuffBytes>>,
+    pc_to_i_map: BTreeMap<usize, HuffBytes>,
 }
 
 impl StackInspector {
-    pub fn new(code: &Bytes, pc_to_i_map: BTreeMap<usize, Vec<HuffBytes>>) -> Self {
+    pub fn new(code: &Bytes, pc_to_i_map: BTreeMap<usize, HuffBytes>) -> Self {
         let pc_to_ic_map = build_pc_ic_map(SpecId::LATEST, code);
         let ic_to_pc_map = build_ic_pc_map(SpecId::LATEST, code);
         Self { pc_to_ic_map, ic_to_pc_map, pc_to_i_map }
@@ -28,11 +28,11 @@ impl<DB: Database> Inspector<DB> for StackInspector {
         data: &mut EVMData<'_, DB>,
         _is_static: bool,
     ) -> Return {
+        dbg!(&self.pc_to_i_map);
 
         Return::Continue
     }*/
 
-    // TODO: Make verification if has stack assertion right after
     fn step_end(
         &mut self,
         interp: &mut Interpreter,
@@ -40,14 +40,31 @@ impl<DB: Database> Inspector<DB> for StackInspector {
         _is_static: bool,
         _eval: Return,
     ) -> Return {
-        // dbg!(interp.stack().data(), interp.program_counter());
         let pc = interp.program_counter();
-        dbg!(&pc);
-        let ic = self.pc_to_ic_map[&pc];
-        dbg!(&ic);
+        let stack = interp.stack().data();
 
-        /*let i = &self.pc_to_i_map[&pc];
-        dbg!(&i);*/
+        // dbg!(&stack);
+
+        match self.pc_to_i_map.get(&pc) {
+            Some(assertions) => {
+                if let Some(assertions) = assertions.0.strip_prefix("stack: ") {
+                    // dbg!(&assertions);
+                    let ass_len = if assertions == " " {
+                        // Is empty, might require a less hacky solution
+                        0
+                    } else {
+                        let assertions = assertions.split(",").collect::<Vec<&str>>();
+                        // dbg!(&assertions);
+                        assertions.len()
+                    };
+
+                    if ass_len != stack.len() {
+                        return Return::Revert;
+                    }
+                }
+            }
+            _ => (),
+        }
 
         Return::Continue
     }

@@ -1,7 +1,9 @@
+use crate::errors::AssertStatus;
 use crate::runner::StackRunner;
 use ethers::types::{Address, U256};
 use huff_codegen::Codegen;
 use huff_utils::prelude::Contract;
+use revm::Return;
 
 pub mod errors;
 pub mod runner;
@@ -39,7 +41,7 @@ impl<'a> HuffAssert<'a> {
 
             let (address, offset) = runner.deploy_code(bytecode).unwrap();
 
-            dbg!(&offset);
+            // dbg!(&offset);
 
             // Set environment flags passed through the test decorator
             let mut data = String::default();
@@ -57,6 +59,10 @@ impl<'a> HuffAssert<'a> {
                     /*offset as usize*/ 0,
                 )
                 .unwrap();
+
+            if res.status == AssertStatus::Revert {
+                panic!("Stack assertion failed at macro {}", res.name);
+            }
 
             // dbg!(&res);
         })

@@ -22,16 +22,14 @@ impl From<CompilerError<'_>> for RunnerError {
 
 /// A test result
 #[derive(Debug, Clone)]
-pub struct TestResult {
+pub struct AssertResult {
     pub name: String,
-    pub return_data: Option<String>,
-    pub gas: u64,
-    pub status: TestStatus,
+    pub status: AssertStatus,
 }
 
 /// A test status variant
-#[derive(Debug, Clone)]
-pub enum TestStatus {
+#[derive(Debug, Clone, PartialEq)]
+pub enum AssertStatus {
     Success,
     Revert,
 }

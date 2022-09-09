@@ -327,7 +327,7 @@ impl Codegen {
                     // offset should not change
                     let assertions = assertions.join(",");
                     let assertions = assertions.as_ref();
-                    dbg!(&assertions);
+                    // dbg!(&assertions);
 
                     let mut placeholder = String::from("stack: ");
                     placeholder.push_str(assertions);

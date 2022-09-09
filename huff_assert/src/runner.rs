@@ -3,7 +3,7 @@ use huff_codegen::Codegen;
 use std::collections::BTreeMap;
 use std::str::from_utf8;
 
-use crate::errors::{RunnerError, TestResult, TestStatus};
+use crate::errors::{AssertResult, AssertStatus, RunnerError};
 use bytes::Bytes;
 
 use crate::stack::StackInspector;
@@ -119,7 +119,7 @@ impl StackRunner {
         data: String,
         bytecode_res: BytecodeRes,
         offset: usize,
-    ) -> Result<TestResult, RunnerError> {
+    ) -> Result<AssertResult, RunnerError> {
         let mut evm = EVM::new();
 
         self.set_balance(caller, U256::MAX);
@@ -150,17 +150,26 @@ impl StackRunner {
 
         let code = code.bytes();
 
-        dbg!(&code);
+        // dbg!(&code);
 
-        let mut pc_to_instruction: BTreeMap<usize, Vec<HuffBytes>> = BTreeMap::new();
-        bytecode_res.bytes.into_iter().for_each(|(c, b)| {
+        // let mut pc_to_instruction: BTreeMap<usize, Vec<HuffBytes>> = BTreeMap::new();
+        /*bytecode_res.bytes.into_iter().for_each(|(c, b)| {
             pc_to_instruction
                 .entry(c + offset)
                 .and_modify(|val| val.push(b.clone()))
                 .or_insert(vec![b]);
-        });
+        });*/
 
-        dbg!(&pc_to_instruction);
+        dbg!(&code);
+
+        let mut pc_to_instruction: BTreeMap<usize, HuffBytes> = BTreeMap::new();
+        bytecode_res.bytes.into_iter().filter(|(_, b)| b.0.starts_with("stack: ")).for_each(
+            |(c, b)| {
+                pc_to_instruction.insert(c, b);
+            },
+        );
+
+        // dbg!(&pc_to_instruction);
 
         let mut inspector = StackInspector::new(code, pc_to_instruction);
 
@@ -183,16 +192,12 @@ impl StackRunner {
             _ => return Err(RunnerError(String::from("Unexpected transaction status"))),
         };
 
-        // Return our test result
-        // NOTE: We subtract 21000 gas from the gas result to account for the
-        // base cost of the CALL.
-        Ok(TestResult {
+        // Return our assert result
+        Ok(AssertResult {
             name,
-            return_data,
-            gas: gas - 21000,
             status: match status {
-                return_ok!() => TestStatus::Success,
-                _ => TestStatus::Revert,
+                return_ok!() => AssertStatus::Success,
+                Return::Revert | _ => AssertStatus::Revert,
             },
         })
     }
