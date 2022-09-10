@@ -780,7 +780,6 @@ impl Display for StatementType {
                 write!(f, "BUILTIN FUNCTION CALL: {:?}", b.kind)
             }
             StatementType::StackAssertion(a) => {
-                // let a: &String = a.into_iter().collect();
                 let a: String = a.iter().fold(String::new(), |a, b| {
                     if !a.is_empty() && !b.is_empty() {
                         a + ", " + b
@@ -788,7 +787,9 @@ impl Display for StatementType {
                         a + b
                     }
                 });
-                // let a = a.trim_end();
+
+                dbg!(&a);
+
                 write!(f, "STACK ASSERTION: {}", a)
             }
         }

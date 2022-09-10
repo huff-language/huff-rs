@@ -694,18 +694,9 @@ impl<'a> Iterator for Lexer<'a> {
 
                     self.consume();
                     // Consume until stack end
-                    self.seq_consume("]\n");
+                    self.seq_consume("]");
 
                     let mut slice = self.slice();
-                    let last_char = slice.pop()?;
-
-                    if last_char.to_string() != "\n" {
-                        // seq_consume doesn't throw
-                        return Some(Err(LexicalError::new(
-                            LexicalErrorKind::UnexpectedEof,
-                            self.current_span().clone(),
-                        )));
-                    }
 
                     let clean = slice.replace(&['[', ']', '$', ' '][..], ""); // Remove any extra whitespace / array / $
                     let out = clean.split(',').map(|el| el.to_string()).collect::<Vec<String>>(); // String to vec
