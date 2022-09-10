@@ -34,7 +34,10 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
                         // Is empty, might require a less hacky solution
                         (0, vec![])
                     } else {
-                        let assertions = assertions.split(",").collect::<Vec<&str>>();
+                        let assertions: Vec<String> = assertions
+                            .split(",")
+                            .map(|a| a.split_whitespace().collect::<String>())
+                            .collect();
 
                         (assertions.len(), assertions)
                     };

@@ -332,7 +332,7 @@ impl Codegen {
                     placeholder.push_str(assertions);
 
                     if placeholder.len() % 2 == 1 {
-                        placeholder.push_str(" ");
+                        placeholder.push_str(" "); // Cheat
                     }
 
                     bytes.push((starting_offset, Bytes(placeholder)));
