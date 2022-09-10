@@ -788,8 +788,6 @@ impl Display for StatementType {
                     }
                 });
 
-                dbg!(&a);
-
                 write!(f, "STACK ASSERTION: {}", a)
             }
         }
