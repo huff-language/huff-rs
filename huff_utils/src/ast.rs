@@ -10,7 +10,7 @@ use crate::{
 };
 use std::{
     collections::BTreeMap,
-    fmt::{Display, Formatter, Write},
+    fmt::{Display, Formatter},
     path::PathBuf,
     sync::{Arc, Mutex},
 };

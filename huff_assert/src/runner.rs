@@ -1,21 +1,17 @@
 use ethers::{prelude::Address, types::U256, utils::hex};
-use huff_codegen::Codegen;
-use std::collections::BTreeMap;
-use std::str::from_utf8;
 
-use crate::errors::{AssertResult, AssertStatus, RunnerError};
+use std::collections::BTreeMap;
+
+use crate::errors::AssertResult;
 use bytes::Bytes;
+use huff_tests::errors::RunnerError;
 
 use crate::stack::StackInspector;
-use crate::utils::{build_ic_pc_map, build_pc_ic_map};
+use huff_utils::prelude::pad_n_bytes;
 use huff_utils::prelude::{BytecodeRes, Bytes as HuffBytes};
-use huff_utils::{
-    ast::{DecoratorFlag, MacroDefinition},
-    prelude::{pad_n_bytes, CompilerError, Contract},
-};
 use revm::{
-    return_ok, return_revert, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return,
-    SpecId, TransactOut, TransactTo, TxEnv, EVM,
+    return_ok, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return, SpecId,
+    TransactOut, TransactTo, TxEnv, EVM,
 };
 
 /// The test runner allows execution of test macros within an in-memory REVM
@@ -49,7 +45,7 @@ impl StackRunner {
     }
 
     /// Deploy arbitrary bytecode to our REVM instance and return the contract address.
-    pub fn deploy_code(&mut self, code: String) -> Result<(Address, i32), RunnerError> {
+    pub fn deploy_code(&mut self, code: String) -> Result<Address, RunnerError> {
         // Wrap code in a bootstrap constructor
         let contract_length = code.len() / 2;
         let constructor_length = 0;
@@ -106,7 +102,7 @@ impl StackRunner {
             _ => return Err(RunnerError(String::from("Test deployment failed"))),
         };
 
-        Ok((address, bootstrap_code_size))
+        Ok(address)
     }
 
     /// Perform a call to a deployed contract
@@ -118,8 +114,7 @@ impl StackRunner {
         value: U256,
         data: String,
         bytecode_res: BytecodeRes,
-        offset: usize,
-    ) -> Result<AssertResult, RunnerError> {
+    ) -> AssertResult {
         let mut evm = EVM::new();
 
         self.set_balance(caller, U256::MAX);
@@ -131,54 +126,22 @@ impl StackRunner {
         );
         evm.database(self.db_mut());
 
-        // build ic_pc / pc_ic / ic_byte / pc_byte
-        let code = if let Some(db) = evm.db() {
-            match db.accounts.get(&address) {
-                Some(account) => {
-                    // dbg!(&account);
-                    if let Some(code) = &account.info.code {
-                        code
-                    } else {
-                        return Err(RunnerError(String::from("No code at this account")));
-                    }
-                }
-                _ => return Err(RunnerError(String::from("Account was not found"))),
-            }
-        } else {
-            return Err(RunnerError(String::from("No DB")));
-        };
-
-        let code = code.bytes();
-
-        // dbg!(&code);
-
-        // let mut pc_to_instruction: BTreeMap<usize, Vec<HuffBytes>> = BTreeMap::new();
-        /*bytecode_res.bytes.into_iter().for_each(|(c, b)| {
-            pc_to_instruction
-                .entry(c + offset)
-                .and_modify(|val| val.push(b.clone()))
-                .or_insert(vec![b]);
-        });*/
-
-        dbg!(&code);
-
-        let mut pc_to_instruction: BTreeMap<usize, HuffBytes> = BTreeMap::new();
+        let mut pc_to_assert: BTreeMap<usize, HuffBytes> = BTreeMap::new();
         bytecode_res.bytes.into_iter().filter(|(_, b)| b.0.starts_with("stack: ")).for_each(
             |(c, b)| {
-                pc_to_instruction.insert(c, b);
+                pc_to_assert.insert(c, b);
             },
         );
 
-        // dbg!(&pc_to_instruction);
-
-        let mut inspector = StackInspector::new(code, pc_to_instruction);
+        let mut inspector = StackInspector::new(pc_to_assert);
 
         // Send our CALL transaction
-        let (status, out, gas, _) = evm.inspect_commit(&mut inspector);
+        /*let (status, ..) =*/
+        evm.inspect_commit(&mut inspector);
 
-        // Check if the transaction was successful
-        let return_data = match status {
-            return_ok!() | return_revert!() => {
+        // Should we enforce the tx to pass or only check for stack ?
+        /*match status {
+            return_ok!() | return_revert!() | Return::FatalNotSupported => {
                 if let TransactOut::Call(b) = out {
                     if b.is_empty() {
                         None
@@ -186,20 +149,15 @@ impl StackRunner {
                         Some(hex::encode(b))
                     }
                 } else {
+                    dbg!(&out);
                     return Err(RunnerError(String::from("Unexpected transaction kind")));
                 }
             }
             _ => return Err(RunnerError(String::from("Unexpected transaction status"))),
-        };
+        };*/
 
         // Return our assert result
-        Ok(AssertResult {
-            name,
-            status: match status {
-                return_ok!() => AssertStatus::Success,
-                Return::Revert | _ => AssertStatus::Revert,
-            },
-        })
+        AssertResult { name, errors: inspector.errors }
     }
 
     /// Build an EVM transaction environment.

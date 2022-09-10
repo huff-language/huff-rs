@@ -640,7 +640,7 @@ impl Parser {
                 }
                 TokenKind::Stack(st) => {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [STACK ASSERTION: {:?}]", st);
-                    let mut curr_spans = vec![self.current_token.span.clone()];
+                    vec![self.current_token.span.clone()];
                     self.consume();
                     statements.push(Statement {
                         ty: StatementType::StackAssertion(st),

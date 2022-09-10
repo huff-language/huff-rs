@@ -9,11 +9,11 @@
 
 use clap::{App, CommandFactory, Parser as ClapParser, Subcommand};
 use ethers_core::utils::hex;
-use huff_assert::runner::StackRunner;
+
 use huff_assert::HuffAssert;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
-use huff_tests::prelude::cheats_inspector::CheatsInspector;
+
 use huff_tests::{
     prelude::{print_test_report, ReportKind},
     HuffTester,

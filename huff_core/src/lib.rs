@@ -4,23 +4,19 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
-use bytes::Bytes;
-use ethers_core::{
-    types::{H160, U256},
-    utils::hex,
-};
+use ethers_core::utils::hex;
 use huff_codegen::*;
 use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
 use rayon::prelude::*;
-use revm::{Bytecode, Contract as Contr, Database, Host, Interpreter, MergeSpec};
+
 use std::{
     collections::BTreeMap,
     ffi::OsString,
     fs,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
     time::SystemTime,
 };
 use tracing_subscriber::{filter::Directive, EnvFilter};

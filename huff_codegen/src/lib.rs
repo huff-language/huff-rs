@@ -199,8 +199,7 @@ impl Codegen {
 
                             table_code = format!("{}{}", table_code, code);
                         }
-                        StatementType::StackAssertion(assert) => {
-                            // dbg!(assert);
+                        StatementType::StackAssertion(_sa) => {
                         }
                         _ => {
                             return Err(CodegenError {

@@ -1,14 +1,11 @@
-use crate::errors::AssertStatus;
 use crate::runner::StackRunner;
 use ethers::types::{Address, U256};
 use huff_codegen::Codegen;
 use huff_utils::prelude::Contract;
-use revm::Return;
 
 pub mod errors;
 pub mod runner;
 pub mod stack;
-pub mod utils;
 
 pub struct HuffAssert<'a> {
     ast: &'a Contract,
@@ -39,32 +36,23 @@ impl<'a> HuffAssert<'a> {
 
             let bytecode = Codegen::gen_table_bytecode(bytecode_res.clone()).unwrap();
 
-            let (address, offset) = runner.deploy_code(bytecode).unwrap();
+            let address = runner.deploy_code(bytecode).unwrap();
 
             // dbg!(&offset);
 
             // Set environment flags passed through the test decorator
-            let mut data = String::default();
-            let mut value = U256::zero();
+            let data = String::default();
+            let value = U256::zero();
 
             // Call the deployed test
-            let res = runner
-                .call(
-                    name,
-                    Address::zero(),
-                    address,
-                    value,
-                    data,
-                    bytecode_res,
-                    /*offset as usize*/ 0,
-                )
-                .unwrap();
+            let res = runner.call(name, Address::zero(), address, value, data, bytecode_res);
 
-            if res.status == AssertStatus::Revert {
-                panic!("Stack assertion failed at macro {}", res.name);
+            if res.errors.len() > 0 {
+                println!("Stack assertion failed at macro {}", res.name);
+                for err in res.errors {
+                    println!("{:#}", err);
+                }
             }
-
-            // dbg!(&res);
         })
     }
 }
