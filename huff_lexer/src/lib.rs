@@ -696,7 +696,7 @@ impl<'a> Iterator for Lexer<'a> {
                     // Consume until stack end
                     self.seq_consume("]");
 
-                    let mut slice = self.slice();
+                    let slice = self.slice();
 
                     let clean = slice.replace(&['[', ']', '$', ' '][..], ""); // Remove any extra whitespace / array / $
                     let out = clean.split(',').map(|el| el.to_string()).collect::<Vec<String>>(); // String to vec
