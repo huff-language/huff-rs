@@ -47,7 +47,7 @@ impl<'a> HuffAssert<'a> {
             // Call the deployed test
             let res = runner.call(name, Address::zero(), address, value, data, bytecode_res);
 
-            if res.errors.len() > 0 {
+            if !res.errors.is_empty() {
                 println!("Stack assertion failed at macro {}", res.name);
                 for err in res.errors {
                     println!("{:#}", err);

@@ -27,32 +27,27 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
         let pc = interp.program_counter();
         let stack = interp.stack().data();
 
-        match self.pc_to_i_map.get(&pc) {
-            Some(assertions) => {
-                if let Some(assertions) = assertions.0.strip_prefix("stack: ") {
-                    let (ass_len, assertions) = if assertions == " " {
-                        // Is empty, might require a less hacky solution
-                        (0, vec![])
-                    } else {
-                        let assertions: Vec<String> = assertions
-                            .split(",")
-                            .map(|a| a.split_whitespace().collect::<String>())
-                            .collect();
+        if let Some(assertions) = self.pc_to_i_map.get(&pc) {
+            if let Some(assertions) = assertions.0.strip_prefix("stack: ") {
+                let (ass_len, assertions) = if assertions == " " {
+                    // Is empty, might require a less hacky solution
+                    (0, vec![])
+                } else {
+                    let assertions: Vec<String> = assertions
+                        .split(',')
+                        .map(|a| a.split_whitespace().collect::<String>())
+                        .collect();
 
-                        (assertions.len(), assertions)
-                    };
+                    (assertions.len(), assertions)
+                };
 
-                    if ass_len != stack.len() {
-                        let err = format!(
-                            "wrong assertion: expected `{:?}` got `{:?}`",
-                            &assertions, &stack
-                        );
+                if ass_len != stack.len() {
+                    let err =
+                        format!("wrong assertion: expected `{:?}` got `{:?}`", &assertions, &stack);
 
-                        self.errors.push(err);
-                    }
+                    self.errors.push(err);
                 }
             }
-            _ => (),
         }
 
         Return::Continue

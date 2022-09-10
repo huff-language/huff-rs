@@ -781,8 +781,8 @@ impl Display for StatementType {
             }
             StatementType::StackAssertion(a) => {
                 // let a: &String = a.into_iter().collect();
-                let a: String = a.into_iter().fold(String::new(), |a, b| {
-                    if a.len() > 0 && b.len() > 0 {
+                let a: String = a.iter().fold(String::new(), |a, b| {
+                    if !a.is_empty() && !b.is_empty() {
                         a + ", " + b
                     } else {
                         a + b
