@@ -268,8 +268,6 @@ impl Codegen {
         let mut bytes: Vec<(usize, Bytes)> = Vec::default();
         let ir_bytes = macro_def.to_irbytecode()?.0;
 
-        // dbg!(&ir_bytes);
-
         // Define outer loop variables
         let mut jump_table = JumpTable::new();
         let mut label_indices = LabelIndices::new();
@@ -326,7 +324,6 @@ impl Codegen {
                     // offset should not change
                     let assertions = assertions.join(",");
                     let assertions = assertions.as_ref();
-                    // dbg!(&assertions);
 
                     let mut placeholder = String::from("stack: ");
                     placeholder.push_str(assertions);

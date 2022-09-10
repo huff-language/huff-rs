@@ -698,7 +698,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     let slice = self.slice();
 
-                    let clean = slice.replace(&['[', ']', '$', ' '][..], ""); // Remove any extra whitespace / array / $
+                    let clean = slice.replace(&['[', ']', '$', ' ', '\n'][..], ""); // Remove any extra whitespace / array / $
                     let out = clean.split(',').map(|el| el.to_string()).collect::<Vec<String>>(); // String to vec
 
                     TokenKind::Stack(out)

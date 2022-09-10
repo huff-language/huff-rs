@@ -149,7 +149,6 @@ impl StackRunner {
                         Some(hex::encode(b))
                     }
                 } else {
-                    dbg!(&out);
                     return Err(RunnerError(String::from("Unexpected transaction kind")));
                 }
             }

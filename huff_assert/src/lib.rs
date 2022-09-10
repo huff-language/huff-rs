@@ -32,15 +32,10 @@ impl<'a> HuffAssert<'a> {
             )
             .unwrap();
 
-            // dbg!(&bytecode_res.bytes);
-
             let bytecode = Codegen::gen_table_bytecode(bytecode_res.clone()).unwrap();
 
             let address = runner.deploy_code(bytecode).unwrap();
 
-            // dbg!(&offset);
-
-            // Set environment flags passed through the test decorator
             let data = String::default();
             let value = U256::zero();
 
