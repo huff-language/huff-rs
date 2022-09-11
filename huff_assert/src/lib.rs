@@ -1,5 +1,6 @@
 use crate::runner::StackRunner;
 use ethers::types::{Address, U256};
+
 use huff_codegen::Codegen;
 use huff_utils::prelude::Contract;
 
@@ -19,6 +20,8 @@ impl<'a> HuffAssert<'a> {
 
     pub fn execute(&self) {
         self.ast.macros.iter().for_each(|m| {
+            tracing::debug!(target: "assert", "parsing {}", m.name);
+
             let mut runner = StackRunner::default();
 
             let name = m.name.to_owned();
@@ -32,7 +35,17 @@ impl<'a> HuffAssert<'a> {
             )
             .unwrap();
 
-            let bytecode = Codegen::gen_table_bytecode(bytecode_res.clone()).unwrap();
+            let code = Codegen::gen_table_bytecode(bytecode_res.clone()).unwrap();
+
+            let mut bytecode = if m.takes > 0 {
+                // push dummy data to stack
+                (0..m.takes).into_iter().map(|_| "6000").collect::<String>()
+            } else {
+                String::default()
+            };
+            let offset = bytecode.len() / 2;
+
+            bytecode.push_str(code.as_str());
 
             let address = runner.deploy_code(bytecode).unwrap();
 
@@ -40,7 +53,8 @@ impl<'a> HuffAssert<'a> {
             let value = U256::zero();
 
             // Call the deployed test
-            let res = runner.call(name, Address::zero(), address, value, data, bytecode_res);
+            let res =
+                runner.call(name, Address::zero(), address, value, data, bytecode_res, offset);
 
             if !res.errors.is_empty() {
                 println!("Stack assertion failed at macro {}", res.name);

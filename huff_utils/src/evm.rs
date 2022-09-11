@@ -181,6 +181,7 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "timestamp" => Opcode::Timestamp,
     "number" => Opcode::Number,
     "difficulty" => Opcode::Difficulty,
+    "prevrandao" => Opcode::Difficulty,
     "gaslimit" => Opcode::Gaslimit,
     "chainid" => Opcode::Chainid,
     "selfbalance" => Opcode::Selfbalance,

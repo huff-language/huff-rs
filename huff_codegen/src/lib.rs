@@ -130,6 +130,7 @@ impl Codegen {
 
         tracing::info!(target: "codegen", "GENERATING JUMPTABLE BYTECODE");
 
+        // filter out stack assertions
         let mut bytecode = res
             .bytes
             .into_iter()
@@ -388,41 +389,46 @@ impl Codegen {
         let bytes =
             bytes.into_iter().fold(Vec::default(), |mut acc, (code_index, mut formatted_bytes)| {
                 // Check if a jump table exists at `code_index` (starting offset of `b`)
-                if let Some(jt) = jump_table.get(&code_index) {
-                    // Loop through jumps inside of the found JumpTable
-                    for jump in jt {
-                        // Check if the jump label has been defined. If not, add `jump` to the
-                        // unmatched jumps and define its `bytecode_index`
-                        // at `code_index`
-                        if let Some(jump_index) = label_indices.get(jump.label.as_str()) {
-                            // Format the jump index as a 2 byte hex number
-                            let jump_value = format!("{:04x}", jump_index);
+                if !formatted_bytes.0.starts_with("stack: ") {
+                    // stack assertions may have the same name than a label
+                    if let Some(jt) = jump_table.get(&code_index) {
+                        // Loop through jumps inside of the found JumpTable
+                        for jump in jt {
+                            // Check if the jump label has been defined. If not, add `jump` to the
+                            // unmatched jumps and define its `bytecode_index`
+                            // at `code_index`
+                            if let Some(jump_index) = label_indices.get(jump.label.as_str()) {
+                                // Format the jump index as a 2 byte hex number
+                                let jump_value = format!("{:04x}", jump_index);
 
-                            // Get the bytes before & after the placeholder
-                            let before = &formatted_bytes.0[0..jump.bytecode_index + 2];
-                            let after = &formatted_bytes.0[jump.bytecode_index + 6..];
+                                // Get the bytes before & after the placeholder
+                                let before = &formatted_bytes.0[0..jump.bytecode_index + 2];
+                                let after = &formatted_bytes.0[jump.bytecode_index + 6..];
 
-                            // Check if a jump dest placeholder is present
-                            if !&formatted_bytes.0[jump.bytecode_index + 2..jump.bytecode_index + 6]
-                                .eq("xxxx")
-                            {
-                                tracing::error!(
-                                    target: "codegen",
-                                    "JUMP DESTINATION PLACEHOLDER NOT FOUND FOR JUMPLABEL {}",
-                                    jump.label
-                                );
+                                // Check if a jump dest placeholder is present
+                                if !&formatted_bytes.0
+                                    [jump.bytecode_index + 2..jump.bytecode_index + 6]
+                                    .eq("xxxx")
+                                {
+                                    tracing::error!(
+                                        target: "codegen",
+                                        "JUMP DESTINATION PLACEHOLDER NOT FOUND FOR JUMPLABEL {}",
+                                        jump.label
+                                    );
+                                }
+
+                                // Replace the "xxxx" placeholder with the jump value
+                                formatted_bytes =
+                                    Bytes(format!("{}{}{}", before, jump_value, after));
+                            } else {
+                                // The jump did not have a corresponding label index. Add it to the
+                                // unmatched jumps vec.
+                                unmatched_jumps.push(Jump {
+                                    label: jump.label.clone(),
+                                    bytecode_index: code_index,
+                                    span: jump.span.clone(),
+                                });
                             }
-
-                            // Replace the "xxxx" placeholder with the jump value
-                            formatted_bytes = Bytes(format!("{}{}{}", before, jump_value, after));
-                        } else {
-                            // The jump did not have a corresponding label index. Add it to the
-                            // unmatched jumps vec.
-                            unmatched_jumps.push(Jump {
-                                label: jump.label.clone(),
-                                bytecode_index: code_index,
-                                span: jump.span.clone(),
-                            });
                         }
                     }
                 }

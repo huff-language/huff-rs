@@ -1564,6 +1564,7 @@ dependencies = [
  "huff_tests",
  "huff_utils",
  "revm",
+ "tracing",
 ]
 
 [[package]]

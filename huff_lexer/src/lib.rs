@@ -689,9 +689,6 @@ impl<'a> Iterator for Lexer<'a> {
                     self.consume();
                 },
                 '$' => {
-                    // After this $, there *could* be a whitespace, but the array has to be well
-                    // formed TODO: handle errors better
-
                     self.consume();
                     // Consume until stack end
                     self.seq_consume("]");

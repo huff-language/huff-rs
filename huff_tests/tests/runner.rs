@@ -4,8 +4,7 @@ use huff_tests::prelude::{TestRunner, TestStatus};
 
 #[test]
 fn test_runner_return() {
-    // let mut runner = TestRunner::default();
-    let mut runner = TestRunner::new(CheatsInspector::default());
+    let mut runner = TestRunner::default();
     let code = "602060005260206000F3";
     let deployed_addr = runner.deploy_code(code.to_string()).unwrap();
     let result = runner
@@ -32,8 +31,7 @@ fn test_runner_return() {
 
 #[test]
 fn test_runner_stop() {
-    // let mut runner = TestRunner::default();
-    let mut runner = TestRunner::new(CheatsInspector::default());
+    let mut runner = TestRunner::default();
     let code = "00";
     let deployed_addr = runner.deploy_code(code.to_string()).unwrap();
     let result = runner
@@ -51,8 +49,7 @@ fn test_runner_stop() {
 
 #[test]
 fn test_runner_revert() {
-    // let mut runner = TestRunner::default();
-    let mut runner = TestRunner::new(CheatsInspector::default());
+    let mut runner = TestRunner::default();
     let code = "60006000FD";
     let deployed_addr = runner.deploy_code(code.to_string()).unwrap();
     let result = runner

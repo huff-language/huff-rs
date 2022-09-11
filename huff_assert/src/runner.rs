@@ -7,6 +7,7 @@ use bytes::Bytes;
 use huff_tests::errors::RunnerError;
 
 use crate::stack::StackInspector;
+
 use huff_utils::prelude::pad_n_bytes;
 use huff_utils::prelude::{BytecodeRes, Bytes as HuffBytes};
 use revm::{
@@ -114,6 +115,7 @@ impl StackRunner {
         value: U256,
         data: String,
         bytecode_res: BytecodeRes,
+        offset: usize,
     ) -> AssertResult {
         let mut evm = EVM::new();
 
@@ -129,7 +131,7 @@ impl StackRunner {
         let mut pc_to_assert: BTreeMap<usize, HuffBytes> = BTreeMap::new();
         bytecode_res.bytes.into_iter().filter(|(_, b)| b.0.starts_with("stack: ")).for_each(
             |(c, b)| {
-                pc_to_assert.insert(c, b);
+                pc_to_assert.insert(c + offset, b);
             },
         );
 

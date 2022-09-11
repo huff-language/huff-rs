@@ -12,3 +12,4 @@ huff_tests = {path="../huff_tests"}
 huff_codegen = {path="../huff_codegen"}
 ethers = "0.13.0"
 bytes = "1.2.1"
+tracing = "0.1.36"

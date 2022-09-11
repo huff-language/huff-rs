@@ -29,19 +29,21 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
 
         if let Some(assertions) = self.pc_to_i_map.get(&pc) {
             if let Some(assertions) = assertions.0.strip_prefix("stack: ") {
-                let (ass_len, assertions) = if assertions == " " {
+                let assertions = if assertions == " " {
                     // Is empty, might require a less hacky solution
-                    (0, vec![])
+                    vec![]
                 } else {
                     let assertions: Vec<String> = assertions
                         .split(',')
                         .map(|a| a.split_whitespace().collect::<String>())
                         .collect();
 
-                    (assertions.len(), assertions)
+                    assertions
                 };
 
-                if ass_len != stack.len() {
+                // println!("{:?} {:?}", &stack, &assertions);
+
+                if assertions.len() != stack.len() {
                     let err =
                         format!("wrong assertion: expected `{:?}` got `{:?}`", &assertions, &stack);
 
