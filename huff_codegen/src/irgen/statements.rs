@@ -36,7 +36,7 @@ pub fn statement_gen(
                     kind: CodegenErrorKind::InvalidMacroInvocation(mi.macro_name.clone()),
                     span: mi.span.clone(),
                     token: None,
-                });
+                })
             };
 
             tracing::info!(target: "codegen", "FOUND INNER MACRO: {}", ir_macro.name);
@@ -48,7 +48,7 @@ pub fn statement_gen(
                     kind: CodegenErrorKind::TestInvocation(ir_macro.name.clone()),
                     span: ir_macro.span,
                     token: None,
-                });
+                })
             }
 
             // If invoked macro is a function (outlined), insert a jump to the function's code and a
@@ -109,7 +109,7 @@ pub fn statement_gen(
                             "FAILED TO RECURSE INTO MACRO \"{}\"",
                             ir_macro.name
                         );
-                        return Err(e);
+                        return Err(e)
                     }
                 };
 
@@ -176,7 +176,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        });
+                        })
                     };
 
                     let res: BytecodeRes = match Codegen::macro_to_bytecode(
@@ -193,7 +193,7 @@ pub fn statement_gen(
                                 "FAILED TO RECURSE INTO MACRO \"{}\"",
                                 ir_macro.name
                             );
-                            return Err(e);
+                            return Err(e)
                         }
                     };
 
@@ -223,7 +223,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        });
+                        })
                     };
 
                     let size = bytes32_to_string(&ir_table.size, false);
@@ -263,7 +263,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        });
+                        })
                     }
                 }
                 BuiltinFunctionKind::FunctionSignature => {
@@ -322,7 +322,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        });
+                        })
                     }
                 }
                 BuiltinFunctionKind::EventHash => {
@@ -372,7 +372,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        });
+                        })
                     }
                 }
                 BuiltinFunctionKind::Error => {
@@ -389,7 +389,7 @@ pub fn statement_gen(
                             )),
                             span: bf.span.clone(),
                             token: None,
-                        });
+                        })
                     }
 
                     if let Some(error) = contract
@@ -415,7 +415,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        });
+                        })
                     }
                 }
                 BuiltinFunctionKind::RightPad => {
@@ -450,7 +450,7 @@ pub fn statement_gen(
                 kind: CodegenErrorKind::InvalidMacroStatement,
                 span: s.span.clone(),
                 token: None,
-            });
+            })
         }
     }
 
