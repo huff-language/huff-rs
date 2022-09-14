@@ -322,7 +322,6 @@ impl Codegen {
                     )?
                 }
                 IRByteType::StackAssertion(assertions) => {
-                    // offset should not change
                     let assertions = assertions.join(",");
                     let assertions = assertions.as_ref();
 

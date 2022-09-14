@@ -1,22 +1,37 @@
+use crate::U256;
 use huff_utils::bytecode::Bytes as HuffBytes;
+use huff_utils::prelude::MacroDefinition;
 use revm::{Database, EVMData, Inspector, Interpreter, Return};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct StackInspector {
     pc_to_i_map: BTreeMap<usize, HuffBytes>,
-
     pub errors: Vec<String>,
+    m: MacroDefinition,
 }
 
 impl StackInspector {
-    pub fn new(pc_to_i_map: BTreeMap<usize, HuffBytes>) -> Self {
-        Self { pc_to_i_map, errors: vec![] }
+    pub fn new(pc_to_i_map: BTreeMap<usize, HuffBytes>, m: MacroDefinition) -> Self {
+        Self { pc_to_i_map, errors: vec![], m }
     }
 }
 
 impl<DB: Database + Debug> Inspector<DB> for StackInspector {
+    fn initialize_interp(
+        &mut self,
+        interp: &mut Interpreter,
+        _data: &mut EVMData<'_, DB>,
+        _is_static: bool,
+    ) -> Return {
+        for _ in 0..self.m.takes {
+            interp.stack.push(U256::zero()).expect("Failed to push to stack");
+        }
+
+        Return::Continue
+    }
+
     fn step_end(
         &mut self,
         interp: &mut Interpreter,
@@ -26,6 +41,8 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
     ) -> Return {
         let pc = interp.program_counter();
         let stack = interp.stack().data();
+
+        // println!("{} {:?} {:?}", &pc, &stack, &stack.iter().rev().collect::<Vec<&U256>>());
 
         if let Some(assertions) = self.pc_to_i_map.get(&pc) {
             if let Some(assertions) = assertions.0.strip_prefix("stack: ") {

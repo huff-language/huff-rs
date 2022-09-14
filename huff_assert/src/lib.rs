@@ -1,8 +1,15 @@
 use crate::runner::StackRunner;
+use ethers::abi::AbiEncode;
 use ethers::types::{Address, U256};
+use ethers::utils::hex;
+use revm::OpCode;
 
+use crate::hex::FromHex;
 use huff_codegen::Codegen;
+use huff_tests::prelude::TestStatus;
+use huff_utils::evm::Opcode::Jump;
 use huff_utils::prelude::Contract;
+use huff_utils::token::TokenKind::Opcode;
 
 pub mod errors;
 pub mod runner;
@@ -24,8 +31,6 @@ impl<'a> HuffAssert<'a> {
 
             let mut runner = StackRunner::default();
 
-            let name = m.name.to_owned();
-
             let bytecode_res = Codegen::macro_to_bytecode(
                 m.to_owned(),
                 self.ast,
@@ -35,31 +40,32 @@ impl<'a> HuffAssert<'a> {
             )
             .unwrap();
 
-            let code = Codegen::gen_table_bytecode(bytecode_res.clone()).unwrap();
+            let mut code = Codegen::gen_table_bytecode(bytecode_res.clone()).unwrap();
 
-            let mut bytecode = if m.takes > 0 {
-                // push dummy data to stack
-                (0..m.takes).into_iter().map(|_| "6000").collect::<String>()
-            } else {
-                String::default()
-            };
-            let offset = bytecode.len() / 2;
-
-            bytecode.push_str(code.as_str());
-
-            let address = runner.deploy_code(bytecode).unwrap();
+            let address = runner.deploy_code(code).unwrap();
 
             let data = String::default();
             let value = U256::zero();
 
             // Call the deployed test
-            let res =
-                runner.call(name, Address::zero(), address, value, data, bytecode_res, offset);
+            let res = runner.call(
+                m,
+                Address::zero(),
+                address,
+                value,
+                data,
+                bytecode_res,
+                /*offset*/ 0,
+            );
 
-            if !res.errors.is_empty() {
-                println!("Stack assertion failed at macro {}", res.name);
-                for err in res.errors {
-                    println!("{:#}", err);
+            if res.status == TestStatus::Revert {
+                println!("Macro {} reverted", res.name);
+            } else {
+                if !res.errors.is_empty() {
+                    println!("Stack assertion failed at macro {}", res.name);
+                    for err in res.errors {
+                        println!("{:#}", err);
+                    }
                 }
             }
         })

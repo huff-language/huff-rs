@@ -760,6 +760,15 @@ impl Parser {
                         span: AstSpan(curr_spans),
                     });
                 }
+                TokenKind::Stack(st) => {
+                    tracing::info!(target: "parser", "PARSING MACRO BODY: [STACK ASSERTION: {:?}]", st);
+                    vec![self.current_token.span.clone()];
+                    self.consume();
+                    statements.push(Statement {
+                        ty: StatementType::StackAssertion(st),
+                        span: AstSpan(vec![self.current_token.span.clone()]),
+                    });
+                }
                 kind => {
                     tracing::error!(target: "parser", "TOKEN MISMATCH - LABEL BODY: {}", kind);
                     return Err(ParserError {

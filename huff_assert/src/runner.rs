@@ -8,8 +8,11 @@ use huff_tests::errors::RunnerError;
 
 use crate::stack::StackInspector;
 
+use huff_tests::prelude::TestStatus;
+use huff_utils::ast::MacroDefinition;
 use huff_utils::prelude::pad_n_bytes;
 use huff_utils::prelude::{BytecodeRes, Bytes as HuffBytes};
+use huff_utils::token::TokenKind::Test;
 use revm::{
     return_ok, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return, SpecId,
     TransactOut, TransactTo, TxEnv, EVM,
@@ -109,7 +112,7 @@ impl StackRunner {
     /// Perform a call to a deployed contract
     pub fn call(
         &mut self,
-        name: String,
+        m: &MacroDefinition,
         caller: Address,
         address: Address,
         value: U256,
@@ -135,30 +138,18 @@ impl StackRunner {
             },
         );
 
-        let mut inspector = StackInspector::new(pc_to_assert);
+        let mut inspector = StackInspector::new(pc_to_assert, m.clone());
 
         // Send our CALL transaction
-        /*let (status, ..) =*/
-        evm.inspect_commit(&mut inspector);
+        let (status, ..) = evm.inspect_commit(&mut inspector);
 
-        // Should we enforce the tx to pass or only check for stack ?
-        /*match status {
-            return_ok!() | return_revert!() | Return::FatalNotSupported => {
-                if let TransactOut::Call(b) = out {
-                    if b.is_empty() {
-                        None
-                    } else {
-                        Some(hex::encode(b))
-                    }
-                } else {
-                    return Err(RunnerError(String::from("Unexpected transaction kind")));
-                }
-            }
-            _ => return Err(RunnerError(String::from("Unexpected transaction status"))),
-        };*/
+        let status = match status {
+            return_ok!() => TestStatus::Success,
+            _ => TestStatus::Revert,
+        };
 
         // Return our assert result
-        AssertResult { name, errors: inspector.errors }
+        AssertResult { name: m.name.clone(), status, errors: inspector.errors }
     }
 
     /// Build an EVM transaction environment.
