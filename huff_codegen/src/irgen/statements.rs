@@ -36,7 +36,7 @@ pub fn statement_gen(
                     kind: CodegenErrorKind::InvalidMacroInvocation(mi.macro_name.clone()),
                     span: mi.span.clone(),
                     token: None,
-                })
+                });
             };
 
             tracing::info!(target: "codegen", "FOUND INNER MACRO: {}", ir_macro.name);
@@ -48,7 +48,7 @@ pub fn statement_gen(
                     kind: CodegenErrorKind::TestInvocation(ir_macro.name.clone()),
                     span: ir_macro.span,
                     token: None,
-                })
+                });
             }
 
             // If invoked macro is a function (outlined), insert a jump to the function's code and a
@@ -109,7 +109,7 @@ pub fn statement_gen(
                             "FAILED TO RECURSE INTO MACRO \"{}\"",
                             ir_macro.name
                         );
-                        return Err(e)
+                        return Err(e);
                     }
                 };
 
@@ -176,7 +176,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     };
 
                     let res: BytecodeRes = match Codegen::macro_to_bytecode(
@@ -193,7 +193,7 @@ pub fn statement_gen(
                                 "FAILED TO RECURSE INTO MACRO \"{}\"",
                                 ir_macro.name
                             );
-                            return Err(e)
+                            return Err(e);
                         }
                     };
 
@@ -223,7 +223,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     };
 
                     let size = bytes32_to_string(&ir_table.size, false);
@@ -263,7 +263,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::FunctionSignature => {
@@ -282,7 +282,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     if let Some(func) = contract
@@ -292,6 +292,15 @@ pub fn statement_gen(
                     {
                         let push_bytes =
                             format!("{}{}", Opcode::Push4, hex::encode(func.signature));
+                        *offset += push_bytes.len() / 2;
+                        bytes.push((starting_offset, Bytes(push_bytes)));
+                    } else if let Some(error) = contract
+                        .errors
+                        .iter()
+                        .find(|e| bf.args[0].name.as_ref().unwrap().eq(&e.name))
+                    {
+                        let push_bytes =
+                            format!("{}{}", Opcode::Push4, hex::encode(error.selector));
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else if let Some(s) = &bf.args[0].name {
@@ -313,7 +322,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::EventHash => {
@@ -332,7 +341,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     if let Some(event) = contract
@@ -363,7 +372,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::Error => {
@@ -380,7 +389,7 @@ pub fn statement_gen(
                             )),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     if let Some(error) = contract
@@ -406,7 +415,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::RightPad => {
@@ -423,7 +432,7 @@ pub fn statement_gen(
                             )),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     let hex = format_even_bytes(bf.args[0].name.as_ref().unwrap().clone());
@@ -441,7 +450,7 @@ pub fn statement_gen(
                 kind: CodegenErrorKind::InvalidMacroStatement,
                 span: s.span.clone(),
                 token: None,
-            })
+            });
         }
     }
 
