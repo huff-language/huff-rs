@@ -567,6 +567,16 @@ impl Codegen {
         let hex_args: Vec<String> = encoded.iter().map(|tok| hex::encode(tok.as_slice())).collect();
         let constructor_args = hex_args.join("");
 
+        // Sucks that we can't provide a span on this error. Need to refactor at some point.
+        if main_bytecode.contains('x') {
+            tracing::error!(target="codegen", "Failed to fill `__CODECOPY_DYN_ARG` placeholders. Dynamic argument index is invalid.");
+            return Err(CodegenError {
+                kind: CodegenErrorKind::InvalidDynArgIndex,
+                span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
+                token: None,
+            })
+        }
+
         // Constructor size optimizations
         let mut bootstrap_code_size = 9;
         let contract_size = if contract_length < 256 {
