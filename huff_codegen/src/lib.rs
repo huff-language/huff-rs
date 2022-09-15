@@ -16,7 +16,7 @@ use huff_utils::{
     types::EToken,
 };
 use regex::Regex;
-use std::{collections::HashMap, fs, path::Path, sync::Arc};
+use std::{cmp::Ordering, collections::HashMap, fs, path::Path, sync::Arc};
 
 mod irgen;
 use crate::irgen::prelude::*;
@@ -483,7 +483,7 @@ impl Codegen {
     pub fn churn(
         &mut self,
         file: Arc<FileSource>,
-        args: Vec<ethers_core::abi::token::Token>,
+        mut args: Vec<ethers_core::abi::token::Token>,
         main_bytecode: &str,
         constructor_bytecode: &str,
     ) -> Result<Artifact, CodegenError> {
@@ -499,6 +499,17 @@ impl Codegen {
 
         let contract_length = main_bytecode.len() / 2;
         let constructor_length = constructor_bytecode.len() / 2;
+
+        // Sort constructor arguments so that statically sized args are inserted last.
+        args.sort_by(|a, b| {
+            if a.is_dynamic() && !b.is_dynamic() {
+                Ordering::Less
+            } else if !a.is_dynamic() && b.is_dynamic() {
+                Ordering::Greater
+            } else {
+                Ordering::Equal
+            }
+        });
 
         let mut arg_offset_acc = contract_length;
         let encoded: Vec<Vec<u8>> = args
