@@ -282,7 +282,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     if let Some(func) = contract
@@ -292,6 +292,15 @@ pub fn statement_gen(
                     {
                         let push_bytes =
                             format!("{}{}", Opcode::Push4, hex::encode(func.signature));
+                        *offset += push_bytes.len() / 2;
+                        bytes.push((starting_offset, Bytes(push_bytes)));
+                    } else if let Some(error) = contract
+                        .errors
+                        .iter()
+                        .find(|e| bf.args[0].name.as_ref().unwrap().eq(&e.name))
+                    {
+                        let push_bytes =
+                            format!("{}{}", Opcode::Push4, hex::encode(error.selector));
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else if let Some(s) = &bf.args[0].name {
@@ -332,7 +341,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     if let Some(event) = contract
@@ -423,7 +432,7 @@ pub fn statement_gen(
                             )),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     let hex = format_even_bytes(bf.args[0].name.as_ref().unwrap().clone());
