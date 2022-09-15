@@ -432,6 +432,41 @@ pub fn statement_gen(
                     *offset += push_bytes.len() / 2;
                     bytes.push((starting_offset, Bytes(push_bytes)));
                 }
+                BuiltinFunctionKind::DynConstructorArg => {
+                    if bf.args.len() != 2 {
+                        tracing::error!(
+                            target = "codegen",
+                            "Incorrect number of arguments passed to __MSTORE_ARG, should be 2: {}",
+                            bf.args.len()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidArguments(format!(
+                                "Incorrect number of arguments passed to __MSTORE_ARG, should be 2: {}",
+                                bf.args.len()
+                            )),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+
+                    // TODO: Enforce single byte index, max 2 byte dest offset
+
+                    // Insert a 17 byte placeholder- will be filled when constructor args are added
+                    // to the end of the runtime code.
+                    // <len (2 bytes)> <dest_mem_ptr (2 bytes)> mstore
+                    // <len (2 bytes)> <contents_code_ptr (2 bytes)> <dest_mem_ptr + 0x20 (2 bytes)>
+                    // codecopy
+                    *offset += 17;
+                    bytes.push((
+                        starting_offset,
+                        Bytes(format!(
+                            "{}{}{}",
+                            "xx".repeat(14),
+                            bf.args[0].name.as_ref().unwrap(),
+                            pad_n_bytes(bf.args[1].name.as_ref().unwrap(), 2)
+                        )),
+                    ));
+                }
             }
         }
         sty => {

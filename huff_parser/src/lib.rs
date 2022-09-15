@@ -793,9 +793,7 @@ impl Parser {
         tracing::debug!(target: "parser", "PARSING ARGs: {:?}", self.current_token.kind);
         while !self.check(TokenKind::CloseParen) {
             if is_builtin {
-                // The builtin functions `__FUNC_SIG` and `__EVENT_HASH` can accept a single string
-                // as input. If the `is_builtin` flag was passed, check to see if a
-                // single string is present.
+                // Check for strings
                 if let TokenKind::Str(s) = &self.current_token.kind {
                     args.push(Argument {
                         name: Some(s.to_owned()), // Place the string in the "name" field
@@ -806,12 +804,15 @@ impl Parser {
                     });
 
                     self.consume();
+                    // multiple args possible
+                    if self.check(TokenKind::Comma) {
+                        self.consume();
+                        on_type = true;
+                    }
                     continue
                 }
 
-                // The builtin function `__RIGHTPAD` can accept a single literal as input. If the
-                // `is_builtin` flag was passed, check to see if a single literal is
-                // present.
+                // Check for literals
                 if let TokenKind::Literal(l) = &self.current_token.kind {
                     args.push(Argument {
                         // Place literal in the "name" field
@@ -821,8 +822,13 @@ impl Parser {
                         indexed: false,
                         span: AstSpan(vec![self.current_token.span.clone()]),
                     });
-
                     self.consume();
+
+                    // multiple args possible
+                    if self.check(TokenKind::Comma) {
+                        self.consume();
+                        on_type = true;
+                    }
                     continue
                 }
             }
