@@ -2,6 +2,7 @@ use huff_codegen::*;
 use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::prelude::*;
+use std::sync::Arc;
 
 #[test]
 fn test_codesize_builtin() {
@@ -42,6 +43,50 @@ fn test_codesize_builtin() {
     // Have the Codegen create the constructor bytecode
     let cbytes = Codegen::generate_constructor_bytecode(&contract).unwrap();
     assert_eq!(cbytes, String::from("6004"));
+}
+
+#[test]
+fn test_dyn_constructor_arg_builtin() {
+    let source: &str = r#"
+        #define macro MAIN() = {
+            // Store first dynamic constructor argument in memory @ 0x20
+            __CODECOPY_DYN_ARG(0x00, 0x20)
+        }
+
+        #define macro CONSTRUCTOR() = {}
+    "#;
+
+    // Parse tokens
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Parse the AST
+    let mut contract = parser.parse().unwrap();
+
+    // Derive storage pointers
+    contract.derive_storage_pointers();
+
+    // Instantiate Codegen
+    let mut cg = Codegen::new();
+
+    // The codegen instance should have no artifact
+    assert!(cg.artifact.is_none());
+
+    // Have the Codegen create the constructor bytecode
+    let constructor_code = Codegen::generate_constructor_bytecode(&contract).unwrap();
+    let main_code = Codegen::generate_main_bytecode(&contract).unwrap();
+
+    let args = Codegen::encode_constructor_args(vec![String::from("testing")]);
+    let final_bytecode = cg.churn(
+        Arc::new(FileSource::default()),
+        args,
+        main_code.as_str(),
+        constructor_code.as_str(),
+    );
+
+    assert_eq!(final_bytecode.unwrap().bytecode, String::from("60118060093d393df3610007610020526100076100116100403974657374696e6700000000000000000000000000000000000000000000000000"));
 }
 
 #[test]

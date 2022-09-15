@@ -392,7 +392,7 @@ impl<'a> Compiler<'a> {
 
                 // If the kind is a missing constructor we can ignore it
                 tracing::warn!(target: "codegen", "Contract has no \"CONSTRUCTOR\" macro definition!");
-                "".to_string()
+                String::default()
             }
         };
         tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);

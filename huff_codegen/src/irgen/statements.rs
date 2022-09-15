@@ -432,6 +432,58 @@ pub fn statement_gen(
                     *offset += push_bytes.len() / 2;
                     bytes.push((starting_offset, Bytes(push_bytes)));
                 }
+                BuiltinFunctionKind::DynConstructorArg => {
+                    if bf.args.len() != 2 {
+                        tracing::error!(
+                            target = "codegen",
+                            "Incorrect number of arguments passed to __CODECOPY_DYN_ARG, should be 2: {}",
+                            bf.args.len()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidArguments(format!(
+                                "Incorrect number of arguments passed to __CODECOPY_DYN_ARG, should be 2: {}",
+                                bf.args.len()
+                            )),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+
+                    let arg_index = bf.args[0].name.as_ref().unwrap();
+                    let dest_offset = bf.args[1].name.as_ref().unwrap();
+
+                    // Enforce that the arg index is 1 byte and that the dest offset is at max
+                    // 2 bytes.
+                    if arg_index.len() != 2 || dest_offset.len() > 4 {
+                        tracing::error!(
+                            target = "codegen",
+                            "Incorrect number of bytes in argument passed to __CODECOPY_DYN_ARG. Should be (1 byte, <= 2 bytes)"
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidArguments(
+                                String::from("Incorrect number of bytes in argument passed to __CODECOPY_DYN_ARG. Should be (1 byte, <= 2 bytes)")
+                            ),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+
+                    // Insert a 17 byte placeholder- will be filled when constructor args are added
+                    // to the end of the runtime code.
+                    // <len (2 bytes)> <dest_mem_ptr (2 bytes)> mstore
+                    // <len (2 bytes)> <contents_code_ptr (2 bytes)> <dest_mem_ptr + 0x20 (2 bytes)>
+                    // codecopy
+                    *offset += 17;
+                    bytes.push((
+                        starting_offset,
+                        Bytes(format!(
+                            "{}{}{}",
+                            "xx".repeat(14),
+                            bf.args[0].name.as_ref().unwrap(),
+                            pad_n_bytes(bf.args[1].name.as_ref().unwrap(), 2)
+                        )),
+                    ));
+                }
             }
         }
         sty => {

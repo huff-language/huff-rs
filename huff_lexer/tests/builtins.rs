@@ -12,6 +12,7 @@ fn parses_builtin_function_in_macro_body() {
         "__EVENT_HASH",
         "__ERROR",
         "__RIGHTPAD",
+        "__CODECOPY_DYN_ARG",
     ];
 
     for builtin in builtin_funcs {
@@ -85,6 +86,7 @@ fn fails_to_parse_builtin_outside_macro_body() {
         "__EVENT_HASH",
         "__ERROR",
         "__RIGHTPAD",
+        "__CODECOPY_DYN_ARG",
     ];
 
     for builtin in builtin_funcs {
