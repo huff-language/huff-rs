@@ -436,12 +436,12 @@ pub fn statement_gen(
                     if bf.args.len() != 2 {
                         tracing::error!(
                             target = "codegen",
-                            "Incorrect number of arguments passed to __MSTORE_ARG, should be 2: {}",
+                            "Incorrect number of arguments passed to __CODECOPY_DYN_ARG, should be 2: {}",
                             bf.args.len()
                         );
                         return Err(CodegenError {
                             kind: CodegenErrorKind::InvalidArguments(format!(
-                                "Incorrect number of arguments passed to __MSTORE_ARG, should be 2: {}",
+                                "Incorrect number of arguments passed to __CODECOPY_DYN_ARG, should be 2: {}",
                                 bf.args.len()
                             )),
                             span: bf.span.clone(),
@@ -449,7 +449,24 @@ pub fn statement_gen(
                         })
                     }
 
-                    // TODO: Enforce single byte index, max 2 byte dest offset
+                    let arg_index = bf.args[0].name.as_ref().unwrap();
+                    let dest_offset = bf.args[1].name.as_ref().unwrap();
+
+                    // Enforce that the arg index is 1 byte and that the dest offset is at max
+                    // 2 bytes.
+                    if arg_index.len() != 2 || dest_offset.len() > 4 {
+                        tracing::error!(
+                            target = "codegen",
+                            "Incorrect number of bytes in argument passed to __CODECOPY_DYN_ARG. Should be (1 byte, <= 2 bytes)"
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidArguments(
+                                String::from("Incorrect number of bytes in argument passed to __CODECOPY_DYN_ARG. Should be (1 byte, <= 2 bytes)")
+                            ),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
 
                     // Insert a 17 byte placeholder- will be filled when constructor args are added
                     // to the end of the runtime code.
