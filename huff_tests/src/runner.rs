@@ -7,8 +7,8 @@ use huff_utils::{
     prelude::{pad_n_bytes, CompilerError, Contract},
 };
 use revm::{
-    return_ok, return_revert, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return,
-    SpecId, TransactOut, TransactTo, TxEnv, EVM,
+    return_ok, return_revert, AccountInfo, BlockEnv, CfgEnv, CreateScheme, Database, Env,
+    InMemoryDB, Return, SpecId, TransactOut, TransactTo, TxEnv, EVM,
 };
 
 /// The test runner allows execution of test macros within an in-memory REVM
@@ -34,8 +34,13 @@ impl TestRunner {
     pub fn set_balance(&mut self, address: Address, amount: U256) -> &mut Self {
         let db = self.db_mut();
 
-        let mut account = db.basic(address);
-        account.balance = amount;
+        let account = if let Some(mut account) = db.basic(address).unwrap() {
+            account.balance = amount;
+            account
+        } else {
+            AccountInfo { balance: amount, nonce: 0, code_hash: Default::default(), code: None }
+        };
+
         db.insert_account_info(address, account);
 
         self
@@ -83,12 +88,12 @@ impl TestRunner {
         evm.database(self.db_mut());
 
         // Send our CREATE transaction
-        let (status, out, _, _) = evm.transact_commit();
+        let res = evm.transact_commit();
 
         // Check if deployment was successful
-        let address = match status {
+        let address = match res.exit_reason {
             return_ok!() => {
-                if let TransactOut::Create(_, Some(addr)) = out {
+                if let TransactOut::Create(_, Some(addr)) = res.out {
                     addr
                 } else {
                     return Err(RunnerError(String::from("Test deployment failed")))
@@ -120,12 +125,12 @@ impl TestRunner {
         evm.database(self.db_mut());
 
         // Send our CALL transaction
-        let (status, out, gas, _) = evm.inspect_commit(&mut inspector);
+        let res = evm.inspect_commit(&mut inspector);
 
         // Check if the transaction was successful
-        let return_data = match status {
+        let return_data = match res.exit_reason {
             return_ok!() | return_revert!() => {
-                if let TransactOut::Call(b) = out {
+                if let TransactOut::Call(b) = res.out {
                     if b.is_empty() {
                         None
                     } else {
@@ -144,8 +149,8 @@ impl TestRunner {
         Ok(TestResult {
             name,
             return_data,
-            gas: gas - 21000,
-            status: match status {
+            gas: res.gas_used - res.gas_refunded - 21000,
+            status: match res.exit_reason {
                 return_ok!() => TestStatus::Success,
                 _ => TestStatus::Revert,
             },

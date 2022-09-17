@@ -12,7 +12,7 @@ Core Compiler Crate for the Huff-Language
 keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
 
 [dependencies]
-revm = "1.8.0"
+revm = "2.0.0"
 serde_json = "1.0.81"
 proptest = "1.0.0"
 ethers-core = "0.13.0"

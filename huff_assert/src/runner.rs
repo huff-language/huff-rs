@@ -1,7 +1,5 @@
 use ethers::{prelude::Address, types::U256, utils::hex};
 
-use std::collections::BTreeMap;
-
 use crate::errors::AssertResult;
 use bytes::Bytes;
 use huff_tests::errors::RunnerError;
@@ -9,13 +7,13 @@ use huff_tests::errors::RunnerError;
 use crate::stack::StackInspector;
 
 use huff_tests::prelude::TestStatus;
-use huff_utils::ast::MacroDefinition;
-use huff_utils::prelude::pad_n_bytes;
-use huff_utils::prelude::{BytecodeRes, Bytes as HuffBytes};
-use huff_utils::token::TokenKind::Test;
+use huff_utils::{
+    ast::MacroDefinition,
+    prelude::{pad_n_bytes, BytecodeRes},
+};
 use revm::{
-    return_ok, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return, SpecId,
-    TransactOut, TransactTo, TxEnv, EVM,
+    return_ok, AccountInfo, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return,
+    SpecId, TransactOut, TransactTo, TxEnv, EVM,
 };
 
 /// The test runner allows execution of test macros within an in-memory REVM
@@ -41,8 +39,13 @@ impl StackRunner {
     pub fn set_balance(&mut self, address: Address, amount: U256) -> &mut Self {
         let db = self.db_mut();
 
-        let mut account = db.basic(address);
-        account.balance = amount;
+        let account = if let Some(mut account) = db.basic(address).unwrap() {
+            account.balance = amount;
+            account
+        } else {
+            AccountInfo { balance: amount, nonce: 0, code_hash: Default::default(), code: None }
+        };
+
         db.insert_account_info(address, account);
 
         self
@@ -92,15 +95,15 @@ impl StackRunner {
         evm.database(self.db_mut());
 
         // Send our CREATE transaction
-        let (status, out, _, _) = evm.transact_commit();
+        let res = evm.transact_commit();
 
         // Check if deployment was successful
-        let address = match status {
+        let address = match res.exit_reason {
             return_ok!() => {
-                if let TransactOut::Create(_, Some(addr)) = out {
+                if let TransactOut::Create(_, Some(addr)) = res.out {
                     addr
                 } else {
-                    return Err(RunnerError(String::from("Test deployment failed")));
+                    return Err(RunnerError(String::from("Test deployment failed")))
                 }
             }
             _ => return Err(RunnerError(String::from("Test deployment failed"))),
@@ -118,7 +121,6 @@ impl StackRunner {
         value: U256,
         data: String,
         bytecode_res: BytecodeRes,
-        offset: usize,
     ) -> AssertResult {
         let mut evm = EVM::new();
 
@@ -131,19 +133,12 @@ impl StackRunner {
         );
         evm.database(self.db_mut());
 
-        let mut pc_to_assert: BTreeMap<usize, HuffBytes> = BTreeMap::new();
-        bytecode_res.bytes.into_iter().filter(|(_, b)| b.0.starts_with("stack: ")).for_each(
-            |(c, b)| {
-                pc_to_assert.insert(c + offset, b);
-            },
-        );
-
-        let mut inspector = StackInspector::new(pc_to_assert, m.clone());
+        let mut inspector = StackInspector::new(bytecode_res.stacks, bytecode_res.last, m.clone());
 
         // Send our CALL transaction
-        let (status, ..) = evm.inspect_commit(&mut inspector);
+        let res = evm.inspect_commit(&mut inspector);
 
-        let status = match status {
+        let status = match res.exit_reason {
             return_ok!() => TestStatus::Success,
             _ => TestStatus::Revert,
         };

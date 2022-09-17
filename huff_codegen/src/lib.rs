@@ -15,7 +15,12 @@ use huff_utils::{
     prelude::{format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span},
     types::EToken,
 };
-use std::{collections::HashMap, fs, path::Path, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fs,
+    path::Path,
+    sync::Arc,
+};
 
 mod irgen;
 use crate::irgen::prelude::*;
@@ -125,7 +130,7 @@ impl Codegen {
                         .collect::<Vec<Span>>(),
                 ),
                 token: None,
-            });
+            })
         }
 
         tracing::info!(target: "codegen", "GENERATING JUMPTABLE BYTECODE");
@@ -267,6 +272,7 @@ impl Codegen {
     ) -> Result<BytecodeRes, CodegenError> {
         // Get intermediate bytecode representation of the macro definition
         let mut bytes: Vec<(usize, Bytes)> = Vec::default();
+        let mut stacks: BTreeMap<usize, Bytes> = BTreeMap::new();
         let ir_bytes = macro_def.to_irbytecode()?.0;
 
         // Define outer loop variables
@@ -323,19 +329,12 @@ impl Codegen {
                 }
                 IRByteType::StackAssertion(assertions) => {
                     let assertions = assertions.join(",");
-                    let assertions = assertions.as_ref();
-
-                    let mut placeholder = String::from("stack: ");
-                    placeholder.push_str(assertions);
-
-                    if placeholder.len() % 2 == 1 {
-                        placeholder.push(' '); // Cheat
-                    }
-
-                    bytes.push((starting_offset, Bytes(placeholder)));
+                    stacks.insert(starting_offset, Bytes(assertions));
                 }
             }
         }
+
+        let last = offset; // last pc in the macro
 
         // We're done, let's pop off the macro invocation
         if mis.pop().is_none() {
@@ -364,7 +363,15 @@ impl Codegen {
         // Fill JUMPDEST placeholders
         let (bytes, unmatched_jumps) = Codegen::fill_unmatched(bytes, &jump_table, &label_indices)?;
 
-        Ok(BytecodeRes { bytes, label_indices, unmatched_jumps, table_instances, utilized_tables })
+        Ok(BytecodeRes {
+            bytes,
+            stacks,
+            last,
+            label_indices,
+            unmatched_jumps,
+            table_instances,
+            utilized_tables,
+        })
     }
 
     /// Helper associated function to fill unmatched jump dests.
@@ -606,7 +613,7 @@ impl Codegen {
                         })),
                     }]),
                     token: None,
-                });
+                })
             }
         }
         if let Err(e) = fs::write(file_path, serialized_artifact) {
@@ -624,7 +631,7 @@ impl Codegen {
                     })),
                 }]),
                 token: None,
-            });
+            })
         }
         Ok(())
     }

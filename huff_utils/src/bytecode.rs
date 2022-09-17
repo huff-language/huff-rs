@@ -72,6 +72,10 @@ impl From<Vec<Bytes>> for Bytecode {
 pub struct BytecodeRes {
     /// Resulting bytes
     pub bytes: Vec<(usize, Bytes)>,
+    /// Resulting stack assertions
+    pub stacks: BTreeMap<usize, Bytes>,
+    /// last executed operation counter
+    pub last: usize,
     /// Jump Indices
     pub label_indices: LabelIndices,
     /// Unmatched Jumps

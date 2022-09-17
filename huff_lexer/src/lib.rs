@@ -89,7 +89,7 @@ impl<'a> Lexer<'a> {
                             // Iterate until newline
                             while let Some(lc) = &peekable_source.next() {
                                 if lc.eq(&'\n') {
-                                    break;
+                                    break
                                 }
                             }
                         } else if nnc.eq(&'*') {
@@ -98,7 +98,7 @@ impl<'a> Lexer<'a> {
                                 if lc.eq(&'*') {
                                     if let Some(llc) = peekable_source.peek() {
                                         if *llc == '/' {
-                                            break;
+                                            break
                                         }
                                     }
                                 }
@@ -113,7 +113,7 @@ impl<'a> Lexer<'a> {
                     // Skip over whitespace
                     while peekable_source.peek().is_some() {
                         if !peekable_source.peek().unwrap().is_whitespace() {
-                            break;
+                            break
                         } else {
                             peekable_source.next();
                         }
@@ -129,7 +129,7 @@ impl<'a> Lexer<'a> {
                                     if let Some(c) = peekable_source.next() {
                                         if matches!(c, '"' | '\'') {
                                             imports.push(import);
-                                            break;
+                                            break
                                         } else {
                                             import.push(c);
                                         }
@@ -141,7 +141,7 @@ impl<'a> Lexer<'a> {
                     }
                 } else if nc.ne(&include_chars_iterator.next().unwrap()) {
                     include_chars_iterator = "#include".chars().peekable();
-                    break;
+                    break
                 }
             }
         }
@@ -161,7 +161,7 @@ impl<'a> Lexer<'a> {
     /// Get the length of the previous lexing span.
     pub fn lookback_len(&self) -> usize {
         if let Some(lookback) = &self.lookback {
-            return lookback.span.end - lookback.span.start;
+            return lookback.span.end - lookback.span.start
         }
         0
     }
@@ -206,7 +206,7 @@ impl<'a> Lexer<'a> {
         let cur_span: Ref<Span> = self.current_span();
         // Break with an empty string if the bounds are exceeded
         if cur_span.end + n > self.source.source.len() {
-            return String::default();
+            return String::default()
         }
         self.source.source[cur_span.start..cur_span.end + n].to_string()
     }
@@ -242,7 +242,7 @@ impl<'a> Lexer<'a> {
         while self.peek().is_some() {
             let peeked = self.peek_n_chars_from(word.len(), current_pos);
             if word == peeked {
-                break;
+                break
             }
             self.consume();
             current_pos += 1;
@@ -277,20 +277,20 @@ impl<'a> Lexer<'a> {
     ///   by a colon or preceded by the keyword `function`
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
         match found_kind {
-            Some(TokenKind::Macro)
-            | Some(TokenKind::Fn)
-            | Some(TokenKind::Test)
-            | Some(TokenKind::Function)
-            | Some(TokenKind::Constant)
-            | Some(TokenKind::Error)
-            | Some(TokenKind::Event)
-            | Some(TokenKind::JumpTable)
-            | Some(TokenKind::JumpTablePacked)
-            | Some(TokenKind::CodeTable) => self.checked_lookback(TokenKind::Define),
-            Some(TokenKind::NonPayable)
-            | Some(TokenKind::Payable)
-            | Some(TokenKind::View)
-            | Some(TokenKind::Pure) => {
+            Some(TokenKind::Macro) |
+            Some(TokenKind::Fn) |
+            Some(TokenKind::Test) |
+            Some(TokenKind::Function) |
+            Some(TokenKind::Constant) |
+            Some(TokenKind::Error) |
+            Some(TokenKind::Event) |
+            Some(TokenKind::JumpTable) |
+            Some(TokenKind::JumpTablePacked) |
+            Some(TokenKind::CodeTable) => self.checked_lookback(TokenKind::Define),
+            Some(TokenKind::NonPayable) |
+            Some(TokenKind::Payable) |
+            Some(TokenKind::View) |
+            Some(TokenKind::Pure) => {
                 let keys = [
                     TokenKind::NonPayable,
                     TokenKind::Payable,
@@ -300,7 +300,7 @@ impl<'a> Lexer<'a> {
                 ];
                 for key in keys {
                     if self.checked_lookback(key) {
-                        return true;
+                        return true
                     }
                 }
                 false
@@ -309,9 +309,9 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Returns) => {
                 let cur_span_end = self.current_span().end;
                 // Allow for loose and tight syntax (e.g. `returns   (0)`, `returns(0)`, ...)
-                self.checked_lookforward('(')
-                    && !self.checked_lookback(TokenKind::Function)
-                    && self.peek_n_chars_from(1, cur_span_end) != ":"
+                self.checked_lookforward('(') &&
+                    !self.checked_lookback(TokenKind::Function) &&
+                    self.peek_n_chars_from(1, cur_span_end) != ":"
             }
             _ => true,
         }
@@ -361,7 +361,7 @@ impl<'a> Iterator for Lexer<'a> {
                         if key == peeked {
                             self.nconsume(token_length);
                             found_kind = Some(kind);
-                            break;
+                            break
                         }
                     }
 
@@ -375,7 +375,7 @@ impl<'a> Iterator for Lexer<'a> {
                         return Some(Err(LexicalError::new(
                             LexicalErrorKind::InvalidCharacter('#'),
                             self.current_span().clone(),
-                        )));
+                        )))
                     }
                 }
                 // Alphabetical characters
@@ -405,7 +405,7 @@ impl<'a> Iterator for Lexer<'a> {
                     ];
                     for kind in keys.into_iter() {
                         if self.context == Context::MacroBody {
-                            break;
+                            break
                         }
                         let key = kind.to_string();
                         let token_length = key.len() - 1;
@@ -414,7 +414,7 @@ impl<'a> Iterator for Lexer<'a> {
                         if key == peeked {
                             self.nconsume(token_length);
                             found_kind = Some(kind);
-                            break;
+                            break
                         }
                     }
 
@@ -482,7 +482,7 @@ impl<'a> Iterator for Lexer<'a> {
                     // goes over all opcodes
                     for opcode in OPCODES {
                         if self.context != Context::MacroBody || found_kind.is_some() {
-                            break;
+                            break
                         }
                         if opcode == pot_op {
                             self.dyn_consume(|c| c.is_alphanumeric());
@@ -491,7 +491,7 @@ impl<'a> Iterator for Lexer<'a> {
                             } else {
                                 tracing::error!(target: "lexer", "[huff_lexer] Fatal Opcode Mapping!");
                             }
-                            break;
+                            break
                         }
                     }
 
@@ -564,8 +564,8 @@ impl<'a> Iterator for Lexer<'a> {
 
                         let slice = self.slice();
                         // Check for built-in function calls
-                        if self.context == Context::MacroBody
-                            && BuiltinFunctionKind::try_from(&slice).is_ok()
+                        if self.context == Context::MacroBody &&
+                            BuiltinFunctionKind::try_from(&slice).is_ok()
                         {
                             TokenKind::BuiltinFunction(slice)
                         } else {
@@ -648,7 +648,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('"') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str((str[1..str.len() - 1]).to_string());
+                            break TokenKind::Str((str[1..str.len() - 1]).to_string())
                         }
                         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('"')) => {
                             self.consume();
@@ -660,7 +660,7 @@ impl<'a> Iterator for Lexer<'a> {
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
                                 self.current_span().clone(),
-                            )));
+                            )))
                         }
                     }
                     self.consume();
@@ -671,7 +671,7 @@ impl<'a> Iterator for Lexer<'a> {
                         Some('\'') => {
                             self.consume();
                             let str = self.slice();
-                            break TokenKind::Str((str[1..str.len() - 1]).to_string());
+                            break TokenKind::Str((str[1..str.len() - 1]).to_string())
                         }
                         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('\'')) => {
                             self.consume();
@@ -683,20 +683,87 @@ impl<'a> Iterator for Lexer<'a> {
                             return Some(Err(LexicalError::new(
                                 LexicalErrorKind::UnexpectedEof,
                                 self.current_span().clone(),
-                            )));
+                            )))
                         }
                     }
                     self.consume();
                 },
                 '$' => {
-                    self.consume();
-                    // Consume until stack end
-                    self.seq_consume("]");
+                    self.seq_consume("]"); // extract assertion
 
                     let slice = self.slice();
 
                     let clean = slice.replace(&['[', ']', '$', ' ', '\n'][..], ""); // Remove any extra whitespace / array / $
-                    let out = clean.split(',').map(|el| el.to_string()).collect::<Vec<String>>(); // String to vec
+
+                    // dbg!(&clean);
+
+                    let mut nesting: i8 = -1;
+                    let mut nest: Vec<Source> = Vec::new();
+
+                    let chars = clean.chars();
+
+                    let mut vec_chars = chars.clone().collect::<Vec<char>>();
+
+                    for (i, c) in chars.enumerate() {
+                        if c.is_alphanumeric() || ['/', '*', ',', '_'].contains(&c) {
+                            // dbg!(&c);
+                            match c {
+                                '/' | '*' => {
+                                    if let Some(next) = vec_chars.get(&i + 1) {
+                                        let next = next.clone();
+                                        if c == '/' && next == '*' {
+                                            // dbg!(&nesting);
+                                            // starting comment
+                                            // nesting level
+                                            nest.push(Source { start: i, end: 0 });
+                                            nesting += 1;
+                                            continue
+                                        } else if c == '*' && next == '/' {
+                                            // dbg!(&nesting);
+                                            // closing comment
+                                            if let Some(val) = nest.get_mut(nesting as usize) {
+                                                val.end = i + 2; // don't account for '*/'
+                                                nesting -= 1;
+                                            }
+                                            continue
+                                        }
+                                    }
+                                }
+                                _ => (),
+                            };
+                        } else {
+                            return Some(Err(LexicalError::new(
+                                LexicalErrorKind::InvalidCharacter(c),
+                                self.current_span().clone(),
+                            )))
+                        }
+                    }
+
+                    let mut diff = 0;
+                    for src in nest.into_iter() {
+                        if src.end == 0 {
+                            // if end was not found
+                            return Some(Err(LexicalError::new(
+                                LexicalErrorKind::InvalidCharacter(ch),
+                                self.current_span().clone(),
+                            )))
+                        }
+
+                        let (start, end) = (src.start - diff, src.end - diff);
+                        vec_chars.drain(start..end);
+                        diff = diff + end - start;
+                    }
+
+                    let seq = vec_chars.into_iter().collect::<String>();
+
+                    let out = if seq == "" {
+                        vec![]
+                    } else {
+                        // String to vec
+                        seq.split(',').map(|el| el.to_string()).collect::<Vec<String>>()
+                    };
+
+                    // dbg!(&out);
 
                     TokenKind::Stack(out)
                 }
@@ -706,7 +773,7 @@ impl<'a> Iterator for Lexer<'a> {
                     return Some(Err(LexicalError::new(
                         LexicalErrorKind::InvalidCharacter(ch),
                         self.current_span().clone(),
-                    )));
+                    )))
                 }
             };
 
@@ -728,7 +795,7 @@ impl<'a> Iterator for Lexer<'a> {
                 self.lookback = Some(token.clone());
             }
 
-            return Some(Ok(token));
+            return Some(Ok(token))
         }
 
         // Mark EOF
@@ -741,9 +808,15 @@ impl<'a> Iterator for Lexer<'a> {
             if token.kind != TokenKind::Whitespace {
                 self.lookback = Some(token.clone());
             }
-            return Some(Ok(token));
+            return Some(Ok(token))
         }
 
         None
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct Source {
+    start: usize,
+    end: usize,
 }

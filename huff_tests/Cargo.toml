@@ -14,7 +14,7 @@ keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-revm = "1.8.0"
+revm = "2.0.0"
 ethers = "0.13.0"
 bytes = "1.2.1"
 comfy-table = "6.0.0"
