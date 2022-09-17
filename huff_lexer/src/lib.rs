@@ -815,6 +815,7 @@ impl<'a> Iterator for Lexer<'a> {
     }
 }
 
+/// keep track of comment positions
 #[derive(Clone, Debug)]
 pub struct Source {
     start: usize,

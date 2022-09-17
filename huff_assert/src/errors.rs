@@ -1,7 +1,7 @@
 use huff_tests::types::TestStatus;
-use std::fmt::{format, Display, Formatter};
+use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ErrorKind {
     Returns,
     Takes,
@@ -31,7 +31,7 @@ pub struct AssertError {
 
 impl Display for AssertError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: expected `{:?}` got `{:?}`", self.kind, self.expected, self.got)
+        write!(f, "{}: expected {} got {}", self.kind, self.expected, self.got)
     }
 }
 

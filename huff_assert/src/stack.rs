@@ -1,8 +1,9 @@
 use crate::{
     errors::{AssertError, ErrorKind},
+    utils::format_arr,
     U256,
 };
-use huff_utils::{bytecode::Bytes as HuffBytes, prelude::MacroDefinition};
+use huff_utils::prelude::MacroDefinition;
 use revm::{Database, EVMData, Inspector, Interpreter, Return};
 use std::{
     collections::{
@@ -15,7 +16,7 @@ use std::{
 #[derive(Debug)]
 pub struct StackInspector {
     /// pc to stack assertion
-    pc_to_i_map: BTreeMap<usize, HuffBytes>,
+    pc_to_i_map: BTreeMap<usize, Vec<String>>,
     /// last operation
     last: usize,
     /// errors returned from inspection
@@ -24,11 +25,18 @@ pub struct StackInspector {
     m: MacroDefinition,
     /// cache of assertions values
     cached: BTreeMap<String, U256>,
+    /// stack state on macro execution
+    stack: Option<Vec<U256>>,
 }
 
 impl StackInspector {
-    pub fn new(pc_to_i_map: BTreeMap<usize, HuffBytes>, last: usize, m: MacroDefinition) -> Self {
-        Self { pc_to_i_map, last, errors: vec![], m, cached: BTreeMap::new() }
+    pub fn new(
+        pc_to_i_map: BTreeMap<usize, Vec<String>>,
+        last: usize,
+        m: MacroDefinition,
+        stack: Option<Vec<U256>>,
+    ) -> Self {
+        Self { pc_to_i_map, last, errors: vec![], m, cached: BTreeMap::new(), stack }
     }
 
     /// Check assertion length and value at pc. Please note that stack is sent inverted for clarity
@@ -36,8 +44,8 @@ impl StackInspector {
         if assertions.len() != stack.len() {
             let err = AssertError {
                 kind: ErrorKind::Amount,
-                expected: assertions.into_iter().collect::<String>().clone(),
-                got: stack.into_iter().map(|n| n.to_string()).collect::<String>().clone(),
+                expected: format_arr(assertions),
+                got: format_arr(stack),
             };
 
             self.errors.push(err);
@@ -72,8 +80,15 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
         _data: &mut EVMData<'_, DB>,
         _is_static: bool,
     ) -> Return {
-        for _ in 0..self.m.takes {
-            interp.stack.push(U256::zero()).expect("Failed to push to stack");
+        if let Some(stack) = &self.stack {
+            for val in stack.iter() {
+                interp.stack.push(*val).expect("Failed to push to stack");
+            }
+        } else {
+            // push 0 if not custom
+            for _ in 0..self.m.takes {
+                interp.stack.push(U256::zero()).expect("Failed to push to stack");
+            }
         }
 
         Return::Continue
@@ -102,10 +117,7 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
             }
 
             if let Some(assertions) = self.pc_to_i_map.get(&(0 as usize)) {
-                let assertions =
-                    assertions.0.split(',').map(|s| s.to_string()).collect::<Vec<String>>();
-
-                StackInspector::check_assertion(self, assertions, stack.clone());
+                StackInspector::check_assertion(self, assertions.clone(), stack.clone());
             }
         }
 
@@ -137,10 +149,7 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
         }
 
         if let Some(assertions) = self.pc_to_i_map.get(&pc) {
-            let assertions =
-                assertions.0.split(',').map(|s| s.to_string()).collect::<Vec<String>>();
-
-            StackInspector::check_assertion(self, assertions, stack.clone());
+            StackInspector::check_assertion(self, assertions.clone(), stack.clone());
         }
 
         Return::Continue

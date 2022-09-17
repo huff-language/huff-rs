@@ -272,7 +272,7 @@ impl Codegen {
     ) -> Result<BytecodeRes, CodegenError> {
         // Get intermediate bytecode representation of the macro definition
         let mut bytes: Vec<(usize, Bytes)> = Vec::default();
-        let mut stacks: BTreeMap<usize, Bytes> = BTreeMap::new();
+        let mut stacks: BTreeMap<usize, Vec<String>> = BTreeMap::new();
         let ir_bytes = macro_def.to_irbytecode()?.0;
 
         // Define outer loop variables
@@ -328,8 +328,7 @@ impl Codegen {
                     )?
                 }
                 IRByteType::StackAssertion(assertions) => {
-                    let assertions = assertions.join(",");
-                    stacks.insert(starting_offset, Bytes(assertions));
+                    stacks.insert(starting_offset, assertions);
                 }
             }
         }

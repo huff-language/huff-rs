@@ -121,6 +121,7 @@ impl StackRunner {
         value: U256,
         data: String,
         bytecode_res: BytecodeRes,
+        stack: Option<Vec<U256>>,
     ) -> AssertResult {
         let mut evm = EVM::new();
 
@@ -133,7 +134,8 @@ impl StackRunner {
         );
         evm.database(self.db_mut());
 
-        let mut inspector = StackInspector::new(bytecode_res.stacks, bytecode_res.last, m.clone());
+        let mut inspector =
+            StackInspector::new(bytecode_res.stacks, bytecode_res.last, m.clone(), stack);
 
         // Send our CALL transaction
         let res = evm.inspect_commit(&mut inspector);

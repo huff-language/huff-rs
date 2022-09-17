@@ -73,7 +73,7 @@ pub struct BytecodeRes {
     /// Resulting bytes
     pub bytes: Vec<(usize, Bytes)>,
     /// Resulting stack assertions
-    pub stacks: BTreeMap<usize, Bytes>,
+    pub stacks: BTreeMap<usize, Vec<String>>,
     /// last executed operation counter
     pub last: usize,
     /// Jump Indices
