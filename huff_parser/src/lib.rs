@@ -73,8 +73,12 @@ impl Parser {
                 let m = self.parse_macro()?;
                 tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
                 contract.macros.push(m);
-            } else if self.check(TokenKind::Stack(vec![])) {
+            }
+            /*else if self.check(TokenKind::Stack(vec![])) {
                 self.match_kind(TokenKind::Stack(vec![]))?;
+            }*/
+            else if self.check(TokenKind::Stack(String::default())) {
+                self.match_kind(TokenKind::Stack(String::default()))?;
             }
             // Check for a defition with the "#define" keyword
             else if self.check(TokenKind::Define) {
@@ -642,11 +646,14 @@ impl Parser {
                 }
                 TokenKind::Stack(st) => {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [STACK ASSERTION: {:?}]", st);
-                    vec![self.current_token.span.clone()];
+                    let s = self.current_token.span.clone();
                     self.consume();
+
+                    let out = self.parse_stack_assertion(st)?;
+
                     statements.push(Statement {
-                        ty: StatementType::StackAssertion(st),
-                        span: AstSpan(vec![self.current_token.span.clone()]),
+                        ty: StatementType::StackAssertion(out),
+                        span: AstSpan(vec![s]),
                     });
                 }
                 kind => {
@@ -764,10 +771,9 @@ impl Parser {
                 }
                 TokenKind::Stack(st) => {
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [STACK ASSERTION: {:?}]", st);
-                    vec![self.current_token.span.clone()];
                     self.consume();
                     statements.push(Statement {
-                        ty: StatementType::StackAssertion(st),
+                        ty: StatementType::StackAssertion(self.parse_stack_assertion(st)?),
                         span: AstSpan(vec![self.current_token.span.clone()]),
                     });
                 }
@@ -1190,5 +1196,69 @@ impl Parser {
                 Ok(curr_token_kind)
             }
         }
+    }
+
+    /// Parse raw stack assertions
+    pub fn parse_stack_assertion(
+        &mut self,
+        assertions: String,
+    ) -> Result<Vec<String>, ParserError> {
+        let clean = assertions.replace(&['[', ']', '$', ' ', '\n'][..], ""); // Remove any extra whitespace / array / $
+        let mut vec_chars = clean.chars().collect::<Vec<char>>();
+
+        let mut comments: Vec<Source> = Vec::new();
+
+        for (i, c) in vec_chars.iter().enumerate() {
+            if c.is_alphanumeric() || ['/', '*', ',', '_'].contains(&c) {
+                if let Some(next) = vec_chars.get(&i + 1) {
+                    // If we find a /* iterate until we find a */
+                    if c == &'/' && next == &'*' {
+                        if comments.iter().find(|com| com.end == 0).is_none() {
+                            // if end is populated
+                            comments.push(Source { start: i, end: 0 });
+                        }
+                    } else if c == &'*' && next == &'/' {
+                        let len = comments.len();
+                        if len > 0 {
+                            let last_pos = len - 1;
+                            if let Some(mut com) = comments.get_mut(last_pos) {
+                                com.end = i + 2;
+                            } else {
+                                return Err(ParserError {
+                                    kind: ParserErrorKind::UnopenedComment,
+                                    hint: None,
+                                    spans: AstSpan(vec![self.current_token.span.clone()]),
+                                })
+                            }
+                        }
+                    }
+                }
+            } else {
+                return Err(ParserError {
+                    kind: ParserErrorKind::InvalidSingleArg(TokenKind::Stack(assertions)),
+                    hint: None,
+                    spans: AstSpan(vec![self.current_token.span.clone()]),
+                })
+            }
+        }
+
+        let mut rel: usize = 0;
+        comments.iter().for_each(|com| {
+            if com.end != 0 {
+                vec_chars.drain((com.start - rel)..(com.end - rel));
+                rel += com.end - com.start;
+            }
+        });
+
+        let seq = vec_chars.iter().collect::<String>();
+
+        let res = if seq == "" {
+            vec![]
+        } else {
+            // String to vec
+            seq.split(',').map(|el| el.to_string()).collect::<Vec<String>>()
+        };
+
+        Ok(res)
     }
 }

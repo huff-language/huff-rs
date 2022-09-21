@@ -689,64 +689,12 @@ impl<'a> Iterator for Lexer<'a> {
                     self.consume();
                 },
                 '$' => {
-                    self.seq_consume("]"); // extract assertion
+                    self.consume();
+                    // self.seq_consume("]"); // extract assertion
+                    self.dyn_consume(|c| !c.eq(&']')); // extract assertion
+                    self.consume();
 
-                    let slice = self.slice();
-                    let clean = slice.replace(&['[', ']', '$', ' ', '\n'][..], ""); // Remove any extra whitespace / array / $
-                    let mut vec_chars = clean.chars().collect::<Vec<char>>();
-
-                    let mut comments: Vec<Source> = Vec::new();
-
-                    for (i, c) in vec_chars.iter().enumerate() {
-                        if c.is_alphanumeric() || ['/', '*', ',', '_'].contains(&c) {
-                            if let Some(next) = vec_chars.get(&i + 1) {
-                                // If we find a /* iterate until we find a */
-                                if c == &'/' && next == &'*' {
-                                    if comments.iter().find(|com| com.end == 0).is_none() {
-                                        // if end is populated
-                                        comments.push(Source { start: i, end: 0 });
-                                    }
-                                } else if c == &'*' && next == &'/' {
-                                    let len = comments.len();
-                                    if len > 0 {
-                                        let last_pos = len - 1;
-                                        if let Some(mut com) = comments.get_mut(last_pos) {
-                                            com.end = i + 2;
-                                        } else {
-                                            return Some(Err(LexicalError::new(
-                                                LexicalErrorKind::InvalidCharacter(*c),
-                                                self.current_span().clone(),
-                                            )))
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            return Some(Err(LexicalError::new(
-                                LexicalErrorKind::InvalidCharacter(*c),
-                                self.current_span().clone(),
-                            )))
-                        }
-                    }
-
-                    let mut rel: usize = 0;
-                    comments.iter().for_each(|com| {
-                        if com.end != 0 {
-                            vec_chars.drain((com.start - rel)..(com.end - rel));
-                            rel += com.end - com.start;
-                        }
-                    });
-
-                    let seq = vec_chars.iter().collect::<String>();
-
-                    let out = if seq == "" {
-                        vec![]
-                    } else {
-                        // String to vec
-                        seq.split(',').map(|el| el.to_string()).collect::<Vec<String>>()
-                    };
-
-                    TokenKind::Stack(out)
+                    TokenKind::Stack(self.slice())
                 }
                 // At this point, the source code has an invalid or unsupported token
                 ch => {
@@ -794,11 +742,4 @@ impl<'a> Iterator for Lexer<'a> {
 
         None
     }
-}
-
-/// keep track of comment positions
-#[derive(Debug)]
-struct Source {
-    start: usize,
-    end: usize,
 }

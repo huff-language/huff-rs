@@ -59,6 +59,8 @@ pub enum ParserErrorKind {
     InvalidDecoratorFlag(String),
     /// Invalid decorator flag argument
     InvalidDecoratorFlagArg(TokenKind),
+    /// Unopened comment
+    UnopenedComment,
 }
 
 /// A Lexing Error
@@ -457,6 +459,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                         dfa,
                         pe.spans.error(pe.hint.as_ref())
                     )
+                }
+                ParserErrorKind::UnopenedComment => {
+                    write!(f, "\nError: Unopened comment: \n{}\n", pe.spans.error(pe.hint.as_ref()))
                 }
             },
             CompilerError::PathBufRead(os_str) => {

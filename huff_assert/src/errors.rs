@@ -16,7 +16,7 @@ impl Display for ErrorKind {
             ErrorKind::Returns => format!("mismatching return"),
             ErrorKind::Takes => format!("mismatching takes"),
             ErrorKind::Value => format!("wrong assertion value"),
-            ErrorKind::Amount => format!("wrong return"),
+            ErrorKind::Amount => format!("wrong assertion"),
         };
 
         write!(f, "{}", m)

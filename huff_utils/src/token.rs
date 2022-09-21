@@ -124,7 +124,8 @@ pub enum TokenKind {
     /// A builtin function (__codesize, __tablesize, __tablestart)
     BuiltinFunction(String),
     /// Stack assertions e.g: $ [a, b, c]
-    Stack(Vec<String>),
+    // Stack(Vec<String>),
+    Stack(String),
 }
 
 impl fmt::Display for TokenKind {

@@ -3,7 +3,7 @@ use crate::{
     utils::format_arr,
     U256,
 };
-use huff_utils::prelude::MacroDefinition;
+use huff_utils::{ast::AstSpan, bytecode::AssertSpan, prelude::MacroDefinition};
 use revm::{Database, EVMData, Inspector, Interpreter, Return};
 use std::{
     collections::{
@@ -12,12 +12,11 @@ use std::{
     },
     fmt::Debug,
 };
-use tracing::span;
 
 #[derive(Debug)]
 pub struct StackInspector {
     /// pc to stack assertion
-    pc_to_i_map: BTreeMap<usize, Vec<String>>,
+    pc_to_i_map: BTreeMap<usize, AssertSpan>,
     /// last operation
     last: usize,
     /// errors returned from inspection
@@ -32,7 +31,7 @@ pub struct StackInspector {
 
 impl StackInspector {
     pub fn new(
-        pc_to_i_map: BTreeMap<usize, Vec<String>>,
+        pc_to_i_map: BTreeMap<usize, AssertSpan>,
         last: usize,
         m: MacroDefinition,
         stack: Option<Vec<U256>>,
@@ -42,12 +41,7 @@ impl StackInspector {
 
     /// Check assertion length and value at pc. Please note that stack is sent inverted for clarity
     fn check_assertion(&mut self, assertions: Vec<String>, stack: Vec<U256>, pc: usize) {
-        let spans = if let Some(stat) = self.m.statements.get(pc) {
-            let span = stat.clone().span;
-            Some(span)
-        } else {
-            None
-        };
+        let spans = self.pc_to_span(pc);
 
         if assertions.len() != stack.len() {
             let err = AssertError {
@@ -79,6 +73,15 @@ impl StackInspector {
                     }
                 }
             }
+        }
+    }
+
+    fn pc_to_span(&self, pc: usize) -> Option<AstSpan> {
+        if let Some(assert) = self.pc_to_i_map.get(&pc) {
+            let span = assert.clone().span;
+            Some(span)
+        } else {
+            None
         }
     }
 }
@@ -121,14 +124,14 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
                     kind: ErrorKind::Takes,
                     expected: format!("`takes({})`", self.m.takes),
                     got: format!("`{:?}`", stack),
-                    spans: None,
+                    spans: self.pc_to_span(pc),
                 };
 
                 self.errors.push(err);
             }
 
-            if let Some(assertions) = self.pc_to_i_map.get(&(0 as usize)) {
-                StackInspector::check_assertion(self, assertions.clone(), stack.clone(), 0);
+            if let Some(assert) = self.pc_to_i_map.get(&(0 as usize)) {
+                StackInspector::check_assertion(self, assert.clone().assertions, stack.clone(), 0);
             }
         }
 
@@ -153,15 +156,15 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
                     kind: ErrorKind::Returns,
                     expected: format!("`returns({})`", self.m.returns),
                     got: format!("`{:?}`", stack),
-                    spans: None,
+                    spans: self.pc_to_span(pc),
                 };
 
                 self.errors.push(err);
             }
         }
 
-        if let Some(assertions) = self.pc_to_i_map.get(&pc) {
-            self.check_assertion(assertions.clone(), stack.clone(), pc);
+        if let Some(assert) = self.pc_to_i_map.get(&pc) {
+            self.check_assertion(assert.clone().assertions, stack.clone(), pc);
         }
 
         Return::Continue

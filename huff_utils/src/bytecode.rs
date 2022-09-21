@@ -32,7 +32,7 @@ pub enum IRByteType {
     Constant(String),
     /// An Arg Call needs to use the calling macro context
     ArgCall(String),
-    /// A very special kind of comment made to make assertions on the stack
+    /// A kind of comment made to make assertions on the stack
     StackAssertion(Vec<String>),
 }
 
@@ -66,6 +66,15 @@ impl From<Vec<Bytes>> for Bytecode {
     }
 }
 
+/// Wrapper to keep track of stack assertions positions
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct AssertSpan {
+    /// Plain assertion
+    pub assertions: Vec<String>,
+    /// Span of the current assertion
+    pub span: AstSpan,
+}
+
 /// Result type for [huff_codegen](../../huff_codegen)'s
 /// [`recurse_bytecode`](../../huff_codegen/src/lib.rs#recurse_bytecode)
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -73,7 +82,7 @@ pub struct BytecodeRes {
     /// Resulting bytes
     pub bytes: Vec<(usize, Bytes)>,
     /// Resulting stack assertions
-    pub stacks: BTreeMap<usize, Vec<String>>,
+    pub stacks: BTreeMap<usize, AssertSpan>,
     /// last executed operation counter
     pub last: usize,
     /// Jump Indices

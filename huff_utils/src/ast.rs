@@ -205,7 +205,7 @@ impl Contract {
         let mut i = 0;
         loop {
             if i >= statements.len() {
-                break;
+                break
             }
             match &statements[i].clone().ty {
                 StatementType::Constant(const_name) => {
@@ -812,6 +812,15 @@ pub enum DecoratorFlag {
     Calldata(String),
     /// Sets the value of the test call transaction
     Value(Literal),
+}
+
+/// Keep track of comment positions
+#[derive(Debug)]
+pub struct Source {
+    /// Start of the comment
+    pub start: usize,
+    /// End of the comment
+    pub end: usize,
 }
 
 impl TryFrom<&String> for DecoratorFlag {
