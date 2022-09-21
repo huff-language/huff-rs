@@ -137,6 +137,32 @@ fn test_wrong_returns() {
     assert_eq!(res.status, TestStatus::Success); // didn't reverted
 }
 
+#[test]
+fn test_reverts() {
+    let source = r#"
+    #define macro TEST() = takes (0) returns (0) {
+        revert
+    }
+    "#;
+
+    let contract = get_contract(source);
+
+    assert_eq!(contract.macros.len(), 1);
+
+    let res = inspect(
+        &contract,
+        contract.macros.get(0).unwrap(),
+        String::default(),
+        U256::zero(),
+        Some(vec![]),
+    );
+
+    assert_eq!(res.name, "TEST");
+    assert_eq!(res.errors.len(), 0);
+
+    assert_eq!(res.status, TestStatus::Revert); // didn't reverted
+}
+
 fn get_contract(source: &str) -> Contract {
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let lexer = Lexer::new(flattened_source);

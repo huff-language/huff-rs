@@ -1,4 +1,5 @@
 use huff_tests::types::TestStatus;
+use huff_utils::ast::AstSpan;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -27,6 +28,7 @@ pub struct AssertError {
     pub kind: ErrorKind,
     pub expected: String,
     pub got: String,
+    pub spans: Option<AstSpan>,
 }
 
 impl Display for AssertError {
@@ -41,4 +43,18 @@ pub struct AssertResult {
     pub name: String,
     pub status: TestStatus,
     pub errors: Vec<AssertError>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PrettyError(pub AssertError);
+
+impl Display for PrettyError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let err = format!("{}", &self.0);
+        let err = match &self.0.spans {
+            Some(spans) => spans.error(Some(&err)),
+            None => err,
+        };
+        write!(f, "{}", err)
+    }
 }

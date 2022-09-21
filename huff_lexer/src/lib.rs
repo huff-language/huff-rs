@@ -692,69 +692,52 @@ impl<'a> Iterator for Lexer<'a> {
                     self.seq_consume("]"); // extract assertion
 
                     let slice = self.slice();
-
                     let clean = slice.replace(&['[', ']', '$', ' ', '\n'][..], ""); // Remove any extra whitespace / array / $
+                    let mut vec_chars = clean.chars().collect::<Vec<char>>();
 
-                    // dbg!(&clean);
+                    let mut comments: Vec<Source> = Vec::new();
 
-                    let mut nesting: i8 = -1;
-                    let mut nest: Vec<Source> = Vec::new();
-
-                    let chars = clean.chars();
-
-                    let mut vec_chars = chars.clone().collect::<Vec<char>>();
-
-                    for (i, c) in chars.enumerate() {
+                    for (i, c) in vec_chars.iter().enumerate() {
                         if c.is_alphanumeric() || ['/', '*', ',', '_'].contains(&c) {
-                            // dbg!(&c);
-                            match c {
-                                '/' | '*' => {
-                                    if let Some(next) = vec_chars.get(&i + 1) {
-                                        let next = next.clone();
-                                        if c == '/' && next == '*' {
-                                            // dbg!(&nesting);
-                                            // starting comment
-                                            // nesting level
-                                            nest.push(Source { start: i, end: 0 });
-                                            nesting += 1;
-                                            continue
-                                        } else if c == '*' && next == '/' {
-                                            // dbg!(&nesting);
-                                            // closing comment
-                                            if let Some(val) = nest.get_mut(nesting as usize) {
-                                                val.end = i + 2; // don't account for '*/'
-                                                nesting -= 1;
-                                            }
-                                            continue
+                            if let Some(next) = vec_chars.get(&i + 1) {
+                                // If we find a /* iterate until we find a */
+                                if c == &'/' && next == &'*' {
+                                    if comments.iter().find(|com| com.end == 0).is_none() {
+                                        // if end is populated
+                                        comments.push(Source { start: i, end: 0 });
+                                    }
+                                } else if c == &'*' && next == &'/' {
+                                    let len = comments.len();
+                                    if len > 0 {
+                                        let last_pos = len - 1;
+                                        if let Some(mut com) = comments.get_mut(last_pos) {
+                                            com.end = i + 2;
+                                        } else {
+                                            return Some(Err(LexicalError::new(
+                                                LexicalErrorKind::InvalidCharacter(*c),
+                                                self.current_span().clone(),
+                                            )))
                                         }
                                     }
                                 }
-                                _ => (),
-                            };
+                            }
                         } else {
                             return Some(Err(LexicalError::new(
-                                LexicalErrorKind::InvalidCharacter(c),
+                                LexicalErrorKind::InvalidCharacter(*c),
                                 self.current_span().clone(),
                             )))
                         }
                     }
 
-                    let mut diff = 0;
-                    for src in nest.into_iter() {
-                        if src.end == 0 {
-                            // if end was not found
-                            return Some(Err(LexicalError::new(
-                                LexicalErrorKind::InvalidCharacter(ch),
-                                self.current_span().clone(),
-                            )))
+                    let mut rel: usize = 0;
+                    comments.iter().for_each(|com| {
+                        if com.end != 0 {
+                            vec_chars.drain((com.start - rel)..(com.end - rel));
+                            rel += com.end - com.start;
                         }
+                    });
 
-                        let (start, end) = (src.start - diff, src.end - diff);
-                        vec_chars.drain(start..end);
-                        diff = diff + end - start;
-                    }
-
-                    let seq = vec_chars.into_iter().collect::<String>();
+                    let seq = vec_chars.iter().collect::<String>();
 
                     let out = if seq == "" {
                         vec![]
@@ -762,8 +745,6 @@ impl<'a> Iterator for Lexer<'a> {
                         // String to vec
                         seq.split(',').map(|el| el.to_string()).collect::<Vec<String>>()
                     };
-
-                    // dbg!(&out);
 
                     TokenKind::Stack(out)
                 }
@@ -816,8 +797,8 @@ impl<'a> Iterator for Lexer<'a> {
 }
 
 /// keep track of comment positions
-#[derive(Clone, Debug)]
-pub struct Source {
+#[derive(Debug)]
+struct Source {
     start: usize,
     end: usize,
 }

@@ -1,7 +1,10 @@
 use crate::runner::StackRunner;
 use ethers::types::U256;
 
-use crate::{errors::AssertResult, utils::inspect};
+use crate::{
+    errors::{AssertResult, PrettyError},
+    utils::inspect,
+};
 use huff_tests::prelude::TestStatus;
 use huff_utils::prelude::Contract;
 
@@ -14,7 +17,7 @@ pub struct HuffAssert<'a> {
     ast: &'a Contract,
 }
 
-/// Check assertions for a macro considering "takes" and using revm interpreter
+/// Check assertions for a macro considering "takes" and "returns" and using revm interpreter
 impl<'a> HuffAssert<'a> {
     pub fn new(ast: &'a Contract) -> Self {
         HuffAssert { ast }
@@ -32,7 +35,8 @@ impl<'a> HuffAssert<'a> {
                 if !res.errors.is_empty() {
                     println!("Stack assertion failed at macro {}", res.name);
                     for err in &res.errors {
-                        println!("{}", err);
+                        let p_err = PrettyError(err.clone());
+                        println!("{}", p_err);
                     }
                 }
             }

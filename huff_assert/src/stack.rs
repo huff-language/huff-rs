@@ -12,6 +12,7 @@ use std::{
     },
     fmt::Debug,
 };
+use tracing::span;
 
 #[derive(Debug)]
 pub struct StackInspector {
@@ -40,12 +41,20 @@ impl StackInspector {
     }
 
     /// Check assertion length and value at pc. Please note that stack is sent inverted for clarity
-    fn check_assertion(&mut self, assertions: Vec<String>, stack: Vec<U256>) {
+    fn check_assertion(&mut self, assertions: Vec<String>, stack: Vec<U256>, pc: usize) {
+        let spans = if let Some(stat) = self.m.statements.get(pc) {
+            let span = stat.clone().span;
+            Some(span)
+        } else {
+            None
+        };
+
         if assertions.len() != stack.len() {
             let err = AssertError {
                 kind: ErrorKind::Amount,
                 expected: format_arr(assertions),
                 got: format_arr(stack),
+                spans: spans.clone(),
             };
 
             self.errors.push(err);
@@ -62,6 +71,7 @@ impl StackInspector {
                                 kind: ErrorKind::Value,
                                 expected: format!("`{}` == `{}`", entry.key(), stack_val),
                                 got: format!("`{}`", entry.get()),
+                                spans: spans.clone(),
                             };
 
                             self.errors.push(err);
@@ -111,13 +121,14 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
                     kind: ErrorKind::Takes,
                     expected: format!("`takes({})`", self.m.takes),
                     got: format!("`{:?}`", stack),
+                    spans: None,
                 };
 
                 self.errors.push(err);
             }
 
             if let Some(assertions) = self.pc_to_i_map.get(&(0 as usize)) {
-                StackInspector::check_assertion(self, assertions.clone(), stack.clone());
+                StackInspector::check_assertion(self, assertions.clone(), stack.clone(), 0);
             }
         }
 
@@ -142,6 +153,7 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
                     kind: ErrorKind::Returns,
                     expected: format!("`returns({})`", self.m.returns),
                     got: format!("`{:?}`", stack),
+                    spans: None,
                 };
 
                 self.errors.push(err);
@@ -149,7 +161,7 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
         }
 
         if let Some(assertions) = self.pc_to_i_map.get(&pc) {
-            StackInspector::check_assertion(self, assertions.clone(), stack.clone());
+            self.check_assertion(assertions.clone(), stack.clone(), pc);
         }
 
         Return::Continue
