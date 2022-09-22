@@ -130,15 +130,12 @@ impl StackRunner {
         self.set_balance(caller, U256::MAX);
 
         let data = Bytes::from(hex::decode(data).expect("Invalid calldata"));
-        // dbg!(&data);
 
         evm.env = self.build_env(caller, TransactTo::Call(address), data, value);
         evm.database(self.db_mut());
 
         // Send our CALL transaction
         let res = evm.inspect_commit(&mut inspector);
-
-        // dbg!(&res);
 
         // Return our assert result
         AssertResult { name: m.name.clone(), reason: res.exit_reason, errors: inspector.errors }

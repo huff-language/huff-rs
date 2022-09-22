@@ -89,14 +89,13 @@ struct Huff {
 
     #[clap(subcommand)]
     sub: Option<Subcommands>,
-
-    #[clap(long)]
-    abc: Vec<String>,
 }
 
 #[derive(Subcommand, Clone, Debug)]
 enum Subcommands {
     /// Test command
+    #[clap(name = "test")]
+    #[clap(visible_alias = "t")]
     Test {
         /// Format the test output as a list, table, or JSON.
         #[clap(short = 'f', long = "format")]
@@ -107,6 +106,8 @@ enum Subcommands {
         match_: Option<String>,
     },
     /// Run an inspection for stack assertions
+    #[clap(name = "check-assert")]
+    #[clap(visible_alias = "$")]
     CheckAssert {
         /// Macro names
         #[clap(short = 'm', long, multiple_values = true)]

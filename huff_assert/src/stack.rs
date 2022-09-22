@@ -142,8 +142,6 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
         let stack = interp.stack().data().clone();
         let stack = stack.into_iter().rev().collect::<Vec<U256>>();
 
-        // dbg!(&stack);
-
         if pc == self.last {
             // is at returns
             if stack.len() != self.m.returns {
