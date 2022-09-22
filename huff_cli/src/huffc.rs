@@ -19,8 +19,9 @@ use huff_tests::{
     HuffTester,
 };
 use huff_utils::prelude::{
-    export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
-    CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
+    bytes32_check, export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan,
+    CodegenError, CodegenErrorKind, CompilerError, FileSource, Literal, MacroInput, OutputLocation,
+    Span,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
@@ -86,18 +87,16 @@ struct Huff {
     #[clap(short = 'c', long = "constants", multiple_values = true)]
     constants: Option<Vec<String>>,
 
-    /// Test subcommand
     #[clap(subcommand)]
-    test: Option<TestCommands>,
+    sub: Option<Subcommands>,
 
-    /// Check for stack asserting
-    #[clap(long = "check-assert", short = '$')]
-    check_assert: bool,
+    #[clap(long)]
+    abc: Vec<String>,
 }
 
 #[derive(Subcommand, Clone, Debug)]
-enum TestCommands {
-    /// Test subcommand
+enum Subcommands {
+    /// Test command
     Test {
         /// Format the test output as a list, table, or JSON.
         #[clap(short = 'f', long = "format")]
@@ -106,6 +105,25 @@ enum TestCommands {
         /// Match a specific test
         #[clap(short = 'm', long = "match")]
         match_: Option<String>,
+    },
+    /// Run an inspection for stack assertions
+    CheckAssert {
+        /// Macro names
+        #[clap(short = 'm', long, multiple_values = true)]
+        macros: Vec<String>,
+
+        /// Calldata of each macro
+        #[clap(short = 'd', long, multiple_values = true, long_help = "Use x for empty")]
+        data: Vec<String>,
+
+        /// Input stack of each macro
+        #[clap(
+            short = 's',
+            long,
+            multiple_values = true,
+            long_help = "Use x for empty or _ for autofill"
+        )]
+        stack: Vec<String>,
     },
 }
 
@@ -197,42 +215,73 @@ fn main() {
         cached: use_cache,
     };
 
-    if matches!(cli.test, Some(TestCommands::Test { .. })) || cli.check_assert {
-        match compiler.grab_contracts() {
-            Ok(contracts) => {
-                if let Some(TestCommands::Test { format, match_ }) = cli.test {
-                    let match_ = Rc::new(match_);
+    if let Some(sub) = cli.sub {
+        if matches!(sub, Subcommands::Test { .. }) || matches!(sub, Subcommands::CheckAssert { .. })
+        {
+            match compiler.grab_contracts() {
+                Ok(contracts) => {
+                    if let Subcommands::Test { format, match_ } = sub {
+                        let match_ = Rc::new(match_);
 
-                    for contract in &contracts {
-                        let tester = HuffTester::new(contract, Rc::clone(&match_));
+                        for contract in &contracts {
+                            let tester = HuffTester::new(contract, Rc::clone(&match_));
 
-                        let start = Instant::now();
-                        match tester.execute() {
-                            Ok(res) => {
-                                print_test_report(res, ReportKind::from(&format), start);
+                            let start = Instant::now();
+                            match tester.execute() {
+                                Ok(res) => {
+                                    print_test_report(res, ReportKind::from(&format), start);
+                                }
+                                Err(e) => {
+                                    eprintln!("{}", Paint::red(e));
+                                    std::process::exit(1);
+                                }
+                            };
+                        }
+                    } else if let Subcommands::CheckAssert { macros, data, stack } = sub {
+                        // building macro => stack, calldata tree
+                        let mut macros_val: BTreeMap<String, MacroInput> = BTreeMap::new();
+
+                        if macros.len() != data.len() || data.len() != stack.len() {
+                            eprintln!("{}", Paint::red("len should match"));
+                            std::process::exit(1);
+                        }
+
+                        macros.iter().enumerate().for_each(|(i, m)| {
+                            let (d, s) = (data.get(i).unwrap(), stack.get(i).unwrap());
+
+                            // TODO: strip 0x prefix
+
+                            if d != "x" {
+                                if d == "_" {
+                                    eprintln!("{}", Paint::red("data cannot be equal to _"));
+                                    std::process::exit(1);
+                                }
+
+                                hex::decode(d).expect("bad hex");
                             }
-                            Err(e) => {
-                                eprintln!("{}", Paint::red(e));
-                                std::process::exit(1);
+                            if s != "_" && s != "x" {
+                                bytes32_check(s).expect("bad hex");
                             }
-                        };
+
+                            let (data, stack) = (d.to_string(), s.to_string());
+
+                            macros_val.insert(m.to_string(), MacroInput { data, stack });
+                        });
+
+                        for contract in &contracts {
+                            let assert = HuffAssert::new(contract, &macros_val);
+                            assert.execute();
+                        }
                     }
                 }
-
-                if cli.check_assert {
-                    for contract in &contracts {
-                        let assert = HuffAssert::new(contract);
-                        assert.execute();
-                    }
+                Err(e) => {
+                    tracing::error!(target: "cli", "PARSER ERRORED!");
+                    eprintln!("{}", Paint::red(e));
+                    std::process::exit(1);
                 }
             }
-            Err(e) => {
-                tracing::error!(target: "cli", "PARSER ERRORED!");
-                eprintln!("{}", Paint::red(e));
-                std::process::exit(1);
-            }
+            return
         }
-        return
     }
 
     // Create compiling spinner

@@ -6,7 +6,6 @@ use huff_tests::errors::RunnerError;
 
 use crate::stack::StackInspector;
 
-use huff_tests::prelude::TestStatus;
 use huff_utils::{
     ast::MacroDefinition,
     prelude::{pad_n_bytes, BytecodeRes},
@@ -113,6 +112,7 @@ impl StackRunner {
     }
 
     /// Perform a call to a deployed contract
+    #[allow(clippy::too_many_arguments)]
     pub fn call(
         &mut self,
         m: &MacroDefinition,
@@ -121,32 +121,27 @@ impl StackRunner {
         value: U256,
         data: String,
         bytecode_res: BytecodeRes,
-        stack: Option<Vec<U256>>,
+        stack: Vec<U256>,
     ) -> AssertResult {
         let mut evm = EVM::new();
-
-        self.set_balance(caller, U256::MAX);
-        evm.env = self.build_env(
-            caller,
-            TransactTo::Call(address),
-            hex::decode(data).expect("Invalid calldata").into(),
-            value,
-        );
-        evm.database(self.db_mut());
-
         let mut inspector =
             StackInspector::new(bytecode_res.stacks, bytecode_res.last, m.clone(), stack);
+
+        self.set_balance(caller, U256::MAX);
+
+        let data = Bytes::from(hex::decode(data).expect("Invalid calldata"));
+        // dbg!(&data);
+
+        evm.env = self.build_env(caller, TransactTo::Call(address), data, value);
+        evm.database(self.db_mut());
 
         // Send our CALL transaction
         let res = evm.inspect_commit(&mut inspector);
 
-        let status = match res.exit_reason {
-            return_ok!() => TestStatus::Success,
-            _ => TestStatus::Revert,
-        };
+        // dbg!(&res);
 
         // Return our assert result
-        AssertResult { name: m.name.clone(), status, errors: inspector.errors }
+        AssertResult { name: m.name.clone(), reason: res.exit_reason, errors: inspector.errors }
     }
 
     /// Build an EVM transaction environment.

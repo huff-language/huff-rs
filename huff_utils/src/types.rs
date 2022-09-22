@@ -165,3 +165,12 @@ impl TryFrom<String> for EToken {
         }
     }
 }
+
+/// Data to input in a macro call
+#[derive(Debug, Clone)]
+pub struct MacroInput {
+    /// Calldata to send to the macro
+    pub data: String,
+    /// Stack at the input of the macro
+    pub stack: String,
+}

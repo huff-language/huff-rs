@@ -5,6 +5,7 @@ use crate::{
     report::{Report, Reporter},
     token::TokenKind,
 };
+use hex::FromHexError;
 use std::{ffi::OsString, fmt, io::Write};
 
 /// A Parser Error
@@ -562,5 +563,20 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 Ok(())
             }
         }
+    }
+}
+
+/// Errors relative to hex
+#[derive(Debug)]
+pub enum HexError<'a> {
+    /// Hex errors from hex crate
+    FromHexError(FromHexError),
+    /// Custom error for length
+    InvalidLength(&'a str),
+}
+
+impl From<hex::FromHexError> for HexError<'_> {
+    fn from(e: hex::FromHexError) -> Self {
+        Self::FromHexError(e)
     }
 }

@@ -1,5 +1,5 @@
-use huff_tests::types::TestStatus;
 use huff_utils::ast::AstSpan;
+use revm::Return;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,7 +41,7 @@ impl Display for AssertError {
 #[derive(Debug, Clone)]
 pub struct AssertResult {
     pub name: String,
-    pub status: TestStatus,
+    pub reason: Return,
     pub errors: Vec<AssertError>,
 }
 

@@ -26,7 +26,7 @@ pub struct StackInspector {
     /// cache of assertions values
     cached: BTreeMap<String, U256>,
     /// stack state on macro execution
-    stack: Option<Vec<U256>>,
+    stack: Vec<U256>,
 }
 
 impl StackInspector {
@@ -34,7 +34,7 @@ impl StackInspector {
         pc_to_i_map: BTreeMap<usize, AssertSpan>,
         last: usize,
         m: MacroDefinition,
-        stack: Option<Vec<U256>>,
+        stack: Vec<U256>,
     ) -> Self {
         Self { pc_to_i_map, last, errors: vec![], m, cached: BTreeMap::new(), stack }
     }
@@ -93,15 +93,8 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
         _data: &mut EVMData<'_, DB>,
         _is_static: bool,
     ) -> Return {
-        if let Some(stack) = &self.stack {
-            for val in stack.iter() {
-                interp.stack.push(*val).expect("Failed to push to stack");
-            }
-        } else {
-            // push 0 if not custom
-            for _ in 0..self.m.takes {
-                interp.stack.push(U256::zero()).expect("Failed to push to stack");
-            }
+        for val in self.stack.iter() {
+            interp.stack.push(*val).expect("Failed to push to stack");
         }
 
         Return::Continue
@@ -148,6 +141,8 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
         let pc = interp.program_counter();
         let stack = interp.stack().data().clone();
         let stack = stack.into_iter().rev().collect::<Vec<U256>>();
+
+        // dbg!(&stack);
 
         if pc == self.last {
             // is at returns

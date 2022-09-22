@@ -2,6 +2,10 @@ use std::num::ParseIntError;
 
 use tiny_keccak::{Hasher, Keccak};
 
+use hex;
+
+use crate::error::HexError;
+
 /// Convert a string slice to a `[u8; 32]`
 /// Pads zeros to the left of significant bytes in the `[u8; 32]` slice.
 /// i.e. 0xa57b becomes `[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -70,4 +74,15 @@ pub fn hash_bytes(dest: &mut [u8], to_hash: &String) {
     let mut hasher = Keccak::v256();
     hasher.update(to_hash.as_bytes());
     hasher.finalize(dest);
+}
+
+/// Validate evm-like input bytes
+pub fn bytes32_check(hx: &str) -> Result<(), HexError> {
+    if hx.len() % 32 != 0 {
+        return Err(HexError::InvalidLength("hex not multiple of 32"));
+    }
+
+    hex::decode(hx)?;
+
+    Ok(())
 }

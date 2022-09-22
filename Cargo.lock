@@ -1567,6 +1567,7 @@ dependencies = [
  "huff_utils",
  "revm",
  "tracing",
+ "yansi",
 ]
 
 [[package]]
@@ -1670,6 +1671,7 @@ version = "0.3.0"
 dependencies = [
  "codemap-diagnostic",
  "ethers-core",
+ "hex",
  "itertools",
  "lazy_static",
  "pathdiff",
