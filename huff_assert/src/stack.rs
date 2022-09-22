@@ -48,7 +48,7 @@ impl StackInspector {
                 kind: ErrorKind::Amount,
                 expected: format_arr(assertions),
                 got: format_arr(stack),
-                spans: spans.clone(),
+                spans,
             };
 
             self.errors.push(err);
@@ -123,7 +123,7 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
                 self.errors.push(err);
             }
 
-            if let Some(assert) = self.pc_to_i_map.get(&(0 as usize)) {
+            if let Some(assert) = self.pc_to_i_map.get(&0_usize) {
                 StackInspector::check_assertion(self, assert.clone().assertions, stack.clone(), 0);
             }
         }

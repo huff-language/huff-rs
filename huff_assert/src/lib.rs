@@ -38,7 +38,7 @@ impl<'a, 'b> HuffAssert<'a, 'b> {
 
             let mut stack_vec: Vec<U256> = Vec::new();
 
-            if stack == "_" {
+            if stack == "_" || stack.is_empty() {
                 for _ in 0..m.takes {
                     stack_vec.push(U256::zero());
                 }
