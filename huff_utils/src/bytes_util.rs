@@ -79,7 +79,7 @@ pub fn hash_bytes(dest: &mut [u8], to_hash: &String) {
 /// Validate evm-like input bytes
 pub fn bytes32_check(hx: &str) -> Result<(), HexError> {
     if hx.len() % 32 != 0 {
-        return Err(HexError::InvalidLength("hex not multiple of 32"));
+        return Err(HexError::InvalidLength("hex not multiple of 32"))
     }
 
     hex::decode(hx)?;

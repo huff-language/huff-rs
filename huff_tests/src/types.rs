@@ -13,7 +13,7 @@ pub struct TestResult {
 }
 
 /// A test status variant
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub enum TestStatus {
     Success,
     Revert,

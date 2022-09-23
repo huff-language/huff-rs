@@ -124,7 +124,7 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
             }
 
             if let Some(assert) = self.pc_to_i_map.get(&0_usize) {
-                StackInspector::check_assertion(self, assert.clone().assertions, stack.clone(), 0);
+                StackInspector::check_assertion(self, assert.clone().assertions, stack, 0);
             }
         }
 
@@ -157,7 +157,7 @@ impl<DB: Database + Debug> Inspector<DB> for StackInspector {
         }
 
         if let Some(assert) = self.pc_to_i_map.get(&pc) {
-            self.check_assertion(assert.clone().assertions, stack.clone(), pc);
+            self.check_assertion(assert.clone().assertions, stack, pc);
         }
 
         Return::Continue

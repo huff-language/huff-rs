@@ -73,11 +73,7 @@ impl Parser {
                 let m = self.parse_macro()?;
                 tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
                 contract.macros.push(m);
-            }
-            /*else if self.check(TokenKind::Stack(vec![])) {
-                self.match_kind(TokenKind::Stack(vec![]))?;
-            }*/
-            else if self.check(TokenKind::Stack(String::default())) {
+            } else if self.check(TokenKind::Stack(String::default())) {
                 self.match_kind(TokenKind::Stack(String::default()))?;
             }
             // Check for a defition with the "#define" keyword
@@ -1278,11 +1274,11 @@ impl Parser {
         let mut comments: Vec<Source> = Vec::new();
 
         for (i, c) in vec_chars.iter().enumerate() {
-            if c.is_alphanumeric() || ['/', '*', ',', '_'].contains(&c) {
+            if c.is_alphanumeric() || ['/', '*', ',', '_'].contains(c) {
                 if let Some(next) = vec_chars.get(&i + 1) {
                     // If we find a /* iterate until we find a */
                     if c == &'/' && next == &'*' {
-                        if comments.iter().find(|com| com.end == 0).is_none() {
+                        if !comments.iter().any(|com| com.end == 0) {
                             // if end is populated
                             comments.push(Source { start: i, end: 0 });
                         }
@@ -1321,7 +1317,7 @@ impl Parser {
 
         let seq = vec_chars.iter().collect::<String>();
 
-        let res = if seq == "" {
+        let res = if seq.is_empty() {
             vec![]
         } else {
             // String to vec

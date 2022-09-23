@@ -15,15 +15,14 @@ use huff_utils::{
     prelude::{format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span},
     types::EToken,
 };
+use regex::Regex;
 use std::{
+    cmp::Ordering,
     collections::{BTreeMap, HashMap},
     fs,
     path::Path,
     sync::Arc,
 };
-use std::{collections::HashMap, fs, path::Path, sync::Arc};
-use regex::Regex;
-use std::{cmp::Ordering, collections::HashMap, fs, path::Path, sync::Arc};
 
 mod irgen;
 use crate::irgen::prelude::*;

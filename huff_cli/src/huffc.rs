@@ -171,12 +171,12 @@ fn main() {
                 // Check that constant override argument is valid
                 // Key rule: Alphabetic chars + underscore
                 // Value rule: Valid literal string (0x...)
-                if parts.len() != 2
-                    || parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_'))
-                    || !parts[1].starts_with("0x")
-                    || parts[1][2..].chars().any(|c| {
-                        !(c.is_numeric()
-                            || matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
+                if parts.len() != 2 ||
+                    parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_')) ||
+                    !parts[1].starts_with("0x") ||
+                    parts[1][2..].chars().any(|c| {
+                        !(c.is_numeric() ||
+                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
                     })
                 {
                     eprintln!("Invalid constant override argument: {}", Paint::red(c.to_string()));
@@ -260,7 +260,7 @@ fn main() {
                                 hex::decode(&d).expect("bad hex");
                             }
                             if s != "_" && s != "x" {
-                                bytes32_check(&s).expect("bad hex");
+                                bytes32_check(s).expect("bad hex");
                             }
 
                             let (data, stack) = (d.to_string(), s.to_string());
@@ -280,7 +280,7 @@ fn main() {
                     std::process::exit(1);
                 }
             }
-            return;
+            return
         }
     }
 

@@ -31,8 +31,7 @@ pub fn inspect(
 }
 
 pub fn format_arr<T: Debug>(arr: Vec<T>) -> String {
-    let s = format!("`{:?}`", arr).replace('"', "");
-    format!("{}", s)
+    format!("`{:?}`", arr).replace('"', "")
 }
 
 pub struct RevmReturn(pub Return);

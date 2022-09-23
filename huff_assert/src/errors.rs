@@ -2,7 +2,7 @@ use huff_utils::ast::AstSpan;
 use revm::Return;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorKind {
     Returns,
     Takes,
@@ -13,10 +13,10 @@ pub enum ErrorKind {
 impl Display for ErrorKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let m = match self {
-            ErrorKind::Returns => format!("mismatching return"),
-            ErrorKind::Takes => format!("mismatching takes"),
-            ErrorKind::Value => format!("wrong assertion value"),
-            ErrorKind::Amount => format!("wrong assertion"),
+            ErrorKind::Returns => "mismatching return".to_string(),
+            ErrorKind::Takes => "mismatching takes".to_string(),
+            ErrorKind::Value => "wrong assertion value".to_string(),
+            ErrorKind::Amount => "wrong assertion".to_string(),
         };
 
         write!(f, "{}", m)
