@@ -16,8 +16,8 @@ fn test_parse_assertions() {
         .collect::<Vec<Token>>();
 
     assert_eq!(tokens.len(), 2);
-    assert_eq!(tokens.get(0).unwrap().kind, TokenKind::Stack(vec!["val".to_string()]));
-    assert_eq!(tokens.get(1).unwrap().kind, TokenKind::Stack(vec![]));
+    assert_eq!(tokens.get(0).unwrap().kind, TokenKind::Stack("$ [val]".to_string()));
+    assert_eq!(tokens.get(1).unwrap().kind, TokenKind::Stack("$ []".to_string()));
 }
 
 #[test]
@@ -37,13 +37,13 @@ fn test_parse_comments_in_assertions() {
         .collect::<Vec<Token>>();
 
     assert_eq!(tokens.len(), 4);
-    assert_eq!(tokens.get(0).unwrap().kind, TokenKind::Stack(vec!["val".to_string()]));
+    assert_eq!(tokens.get(0).unwrap().kind, TokenKind::Stack("$ [val]".to_string()));
     assert_eq!(
         tokens.get(1).unwrap().kind,
-        TokenKind::Stack(vec!["oth_val".to_string(), "val".to_string()])
+        TokenKind::Stack("$ [/*oth_val, */ oth_val, val]".to_string())
     );
-    assert_eq!(tokens.get(2).unwrap().kind, TokenKind::Stack(vec!["val".to_string()]));
-    assert_eq!(tokens.get(3).unwrap().kind, TokenKind::Stack(vec![]));
+    assert_eq!(tokens.get(2).unwrap().kind, TokenKind::Stack("$ [val]".to_string()));
+    assert_eq!(tokens.get(3).unwrap().kind, TokenKind::Stack("$ []".to_string()));
 }
 
 #[test]
@@ -63,10 +63,13 @@ fn test_parse_multiple_comments_in_assertions() {
         .collect::<Vec<Token>>();
 
     assert_eq!(tokens.len(), 4);
-    assert_eq!(tokens.get(0).unwrap().kind, TokenKind::Stack(vec!["val".to_string()]));
-    assert_eq!(tokens.get(1).unwrap().kind, TokenKind::Stack(vec!["oth_val".to_string()]));
-    assert_eq!(tokens.get(2).unwrap().kind, TokenKind::Stack(vec!["val".to_string()]));
-    assert_eq!(tokens.get(3).unwrap().kind, TokenKind::Stack(vec![]));
+    assert_eq!(tokens.get(0).unwrap().kind, TokenKind::Stack("$ [val]".to_string()));
+    assert_eq!(
+        tokens.get(1).unwrap().kind,
+        TokenKind::Stack("$ [oth_val/*, oth_val*//*, val*/]".to_string())
+    );
+    assert_eq!(tokens.get(2).unwrap().kind, TokenKind::Stack("$ [val]".to_string()));
+    assert_eq!(tokens.get(3).unwrap().kind, TokenKind::Stack("$ []".to_string()));
 }
 
 #[test]
@@ -86,8 +89,11 @@ fn test_parse_nested_comments_in_assertions() {
         .collect::<Vec<Token>>();
 
     assert_eq!(tokens.len(), 4);
-    assert_eq!(tokens.get(0).unwrap().kind, TokenKind::Stack(vec!["val".to_string()]));
-    assert_eq!(tokens.get(1).unwrap().kind, TokenKind::Stack(vec!["oth_val".to_string()]));
-    assert_eq!(tokens.get(2).unwrap().kind, TokenKind::Stack(vec!["val".to_string()]));
-    assert_eq!(tokens.get(3).unwrap().kind, TokenKind::Stack(vec![]));
+    assert_eq!(tokens.get(0).unwrap().kind, TokenKind::Stack("$ [val]".to_string()));
+    assert_eq!(
+        tokens.get(1).unwrap().kind,
+        TokenKind::Stack("$ [oth_val/*, /*oth_val, val*/]".to_string())
+    );
+    assert_eq!(tokens.get(2).unwrap().kind, TokenKind::Stack("$ [val]".to_string()));
+    assert_eq!(tokens.get(3).unwrap().kind, TokenKind::Stack("$ []".to_string()));
 }
