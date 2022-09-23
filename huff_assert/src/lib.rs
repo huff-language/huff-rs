@@ -43,6 +43,7 @@ impl<'a, 'b> HuffAssert<'a, 'b> {
                     stack_vec.push(U256::zero());
                 }
             } else if stack == "x" {
+                // do nothing
             } else {
                 stack.chars().enumerate().into_iter().for_each(|(i, _)| {
                     let num = i + 1;
@@ -51,6 +52,7 @@ impl<'a, 'b> HuffAssert<'a, 'b> {
                         stack_vec.push(sub_vec);
                     }
                 });
+                stack_vec = stack_vec.into_iter().rev().collect::<Vec<U256>>();
             }
 
             let data = if data == "x" { "" } else { data };
