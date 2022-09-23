@@ -6,7 +6,7 @@ use strum_macros::EnumString;
 /// They are arranged in a particular order such that all the opcodes that have common
 /// prefixes are ordered by decreasing length to avoid mismatch when lexing.
 /// Example : [origin, or] or [push32, ..., push3]
-pub const OPCODES: [&str; 143] = [
+pub const OPCODES: [&str; 144] = [
     "lt",
     "gt",
     "slt",
@@ -34,6 +34,7 @@ pub const OPCODES: [&str; 143] = [
     "timestamp",
     "number",
     "difficulty",
+    "prevrandao",
     "gaslimit",
     "chainid",
     "selfbalance",
@@ -181,7 +182,7 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "timestamp" => Opcode::Timestamp,
     "number" => Opcode::Number,
     "difficulty" => Opcode::Difficulty,
-    "prevrandao" => Opcode::Difficulty,
+    "prevrandao" => Opcode::Prevrandao,
     "gaslimit" => Opcode::Gaslimit,
     "chainid" => Opcode::Chainid,
     "selfbalance" => Opcode::Selfbalance,
@@ -399,6 +400,8 @@ pub enum Opcode {
     Number,
     /// The Current Blocks Difficulty
     Difficulty,
+    /// Pseudorandomness from the Beacon Chain
+    Prevrandao,
     /// The Current Blocks Gas Limit
     Gaslimit,
     /// The Chain ID
@@ -646,6 +649,7 @@ impl Opcode {
             Opcode::Timestamp => "42",
             Opcode::Number => "43",
             Opcode::Difficulty => "44",
+            Opcode::Prevrandao => "44",
             Opcode::Gaslimit => "45",
             Opcode::Chainid => "46",
             Opcode::Selfbalance => "47",

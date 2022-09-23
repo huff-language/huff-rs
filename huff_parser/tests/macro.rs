@@ -261,6 +261,7 @@ fn macro_with_arg_calls() {
             arg_type: None,
             name: Some("error".to_string()),
             indexed: false,
+            arg_location: None,
             span: AstSpan(vec![Span { start: 67, end: 72, file: None }]),
         }],
         decorator: None,
@@ -607,6 +608,7 @@ fn macro_invocation_with_arg_call() {
             arg_type: None,
             name: Some("error".to_string()),
             indexed: false,
+            arg_location: None,
             span: AstSpan(vec![Span { start: 28, end: 33, file: None }]),
         }],
         statements: vec![
@@ -822,6 +824,7 @@ fn macro_with_builtin_fn_call() {
                     arg_type: None,
                     name: Some("TEST".to_string()),
                     indexed: false,
+                    arg_location: None,
                     span: AstSpan(vec![Span { start: 77, end: 81, file: None }]),
                 }],
                 span: AstSpan(vec![

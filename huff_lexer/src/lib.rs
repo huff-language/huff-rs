@@ -439,7 +439,7 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
-                    // Check for macro keyword
+                    // Check for free storage pointer builtin
                     let fsp = "FREE_STORAGE_POINTER";
                     let token_length = fsp.len() - 1;
                     let peeked = self.peek_n_chars(token_length);
@@ -503,8 +503,15 @@ impl<'a> Iterator for Lexer<'a> {
                             self.dyn_consume(|c| c.is_alphanumeric() || *c == '[' || *c == ']');
                             // got a type at this point, we have to know which
                             let raw_type: String = self.slice();
-                            // check for arrays first
-                            if EVM_TYPE_ARRAY_REGEX.is_match(&raw_type) {
+
+                            // Check if calldata, memory, or storage
+                            if raw_type == TokenKind::Calldata.to_string() {
+                                found_kind = Some(TokenKind::Calldata);
+                            } else if raw_type == TokenKind::Memory.to_string() {
+                                found_kind = Some(TokenKind::Memory);
+                            } else if raw_type == TokenKind::Storage.to_string() {
+                                found_kind = Some(TokenKind::Storage);
+                            } else if EVM_TYPE_ARRAY_REGEX.is_match(&raw_type) {
                                 // split to get array size and type
                                 // TODO: support multi-dimensional arrays
                                 let words: Vec<String> = Regex::new(r"\[")

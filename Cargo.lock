@@ -1596,6 +1596,7 @@ dependencies = [
  "hex",
  "huff_utils",
  "proptest",
+ "regex",
  "serde_json",
  "tracing",
  "uuid 1.1.2",

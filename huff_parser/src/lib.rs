@@ -815,37 +815,46 @@ impl Parser {
     ) -> Result<Vec<Argument>, ParserError> {
         let mut args: Vec<Argument> = Vec::new();
         self.match_kind(TokenKind::OpenParen)?;
+        let mut on_type = true;
         tracing::debug!(target: "parser", "PARSING ARGs: {:?}", self.current_token.kind);
         while !self.check(TokenKind::CloseParen) {
             if is_builtin {
-                // The builtin functions `__FUNC_SIG` and `__EVENT_HASH` can accept a single string
-                // as input. If the `is_builtin` flag was passed, check to see if a
-                // single string is present.
+                // Check for strings
                 if let TokenKind::Str(s) = &self.current_token.kind {
                     args.push(Argument {
                         name: Some(s.to_owned()), // Place the string in the "name" field
                         arg_type: None,
                         indexed: false,
                         span: AstSpan(vec![self.current_token.span.clone()]),
+                        arg_location: None,
                     });
 
                     self.consume();
+                    // multiple args possible
+                    if self.check(TokenKind::Comma) {
+                        self.consume();
+                        on_type = true;
+                    }
                     continue
                 }
 
-                // The builtin function `__RIGHTPAD` can accept a single literal as input. If the
-                // `is_builtin` flag was passed, check to see if a single literal is
-                // present.
+                // Check for literals
                 if let TokenKind::Literal(l) = &self.current_token.kind {
                     args.push(Argument {
-                        name: Some(bytes32_to_string(l, false)), /* Place the literal in the
-                                                                  * "name" field */
+                        // Place literal in the "name" field
+                        name: Some(bytes32_to_string(l, false)),
+                        arg_location: None,
                         arg_type: None,
                         indexed: false,
                         span: AstSpan(vec![self.current_token.span.clone()]),
                     });
-
                     self.consume();
+
+                    // multiple args possible
+                    if self.check(TokenKind::Comma) {
+                        self.consume();
+                        on_type = true;
+                    }
                     continue
                 }
             }
@@ -863,17 +872,73 @@ impl Parser {
                     arg_spans.push(self.current_token.span.clone());
                     self.consume(); // consume "indexed" keyword
                 }
+                on_type = false;
+            }
+
+            // It can also be a data location
+            match &self.current_token.kind {
+                TokenKind::Calldata => {
+                    arg.arg_location = Some(ArgumentLocation::Calldata);
+                    arg_spans.push(self.current_token.span.clone());
+                    self.consume();
+                }
+                TokenKind::Memory => {
+                    arg.arg_location = Some(ArgumentLocation::Memory);
+                    arg_spans.push(self.current_token.span.clone());
+                    self.consume();
+                }
+                TokenKind::Storage => {
+                    arg.arg_location = Some(ArgumentLocation::Storage);
+                    arg_spans.push(self.current_token.span.clone());
+                    self.consume();
+                }
+                _ => {}
             }
 
             // name comes second (is optional)
-            if select_name && self.check(TokenKind::Ident("x".to_string())) {
+            if select_name &&
+                (self.check(TokenKind::Ident("x".to_string())) ||
+                    self.check(TokenKind::PrimitiveType(PrimitiveEVMType::Address)))
+            {
+                // We need to check if the name is a keyword - not the type
+                if !on_type {
+                    // Check for reserved primitive type keyword use and throw an error if so
+                    match self.current_token.kind.clone() {
+                        TokenKind::Ident(arg_str) => {
+                            if PrimitiveEVMType::try_from(arg_str.clone()).is_ok() {
+                                return Err(ParserError {
+                                    kind: ParserErrorKind::InvalidTypeAsArgumentName(
+                                        self.current_token.kind.clone(),
+                                    ),
+                                    hint: Some(format!(
+                                        "Argument names cannot be EVM types: {}",
+                                        arg_str
+                                    )),
+                                    spans: AstSpan(vec![self.current_token.span.clone()]),
+                                })
+                            }
+                        }
+                        TokenKind::PrimitiveType(ty) => {
+                            return Err(ParserError {
+                                kind: ParserErrorKind::InvalidTypeAsArgumentName(
+                                    self.current_token.kind.clone(),
+                                ),
+                                hint: Some(format!("Argument names cannot be EVM types: {}", ty)),
+                                spans: AstSpan(vec![self.current_token.span.clone()]),
+                            })
+                        }
+                        _ => { /* continue, valid string */ }
+                    }
+                }
                 arg_spans.push(self.current_token.span.clone());
-                arg.name = Some(self.match_kind(TokenKind::Ident("x".to_string()))?.to_string())
+                arg.name = Some(self.match_kind(TokenKind::Ident("x".to_string()))?.to_string());
+                on_type = !on_type;
             }
 
             // multiple args possible
             if self.check(TokenKind::Comma) {
                 self.consume();
+                on_type = true;
             }
 
             // If both arg type and arg name are none, we didn't consume anything
@@ -931,6 +996,10 @@ impl Parser {
                 }
                 TokenKind::Ident(ident) => {
                     args.push(MacroArg::Ident(ident));
+                    self.consume();
+                }
+                TokenKind::Calldata => {
+                    args.push(MacroArg::Ident("calldata".to_string()));
                     self.consume();
                 }
                 TokenKind::LeftAngle => {

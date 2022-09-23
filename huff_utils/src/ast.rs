@@ -322,11 +322,25 @@ impl Contract {
     }
 }
 
+/// An argument's location
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ArgumentLocation {
+    /// Memory location
+    #[default]
+    Memory,
+    /// Storage location
+    Storage,
+    /// Calldata location
+    Calldata,
+}
+
 /// A function, event, or macro argument
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Argument {
     /// Type of the argument
     pub arg_type: Option<String>,
+    /// Optional Argument Location
+    pub arg_location: Option<ArgumentLocation>,
     /// The name of the argument
     pub name: Option<String>,
     /// Is the argument indexed? TODO: should be valid for event arguments ONLY
@@ -693,6 +707,8 @@ pub enum BuiltinFunctionKind {
     Error,
     /// Rightpad function
     RightPad,
+    /// Dynamic constructor arg function
+    DynConstructorArg,
 }
 
 impl From<String> for BuiltinFunctionKind {
@@ -705,6 +721,7 @@ impl From<String> for BuiltinFunctionKind {
             "__EVENT_HASH" => BuiltinFunctionKind::EventHash,
             "__ERROR" => BuiltinFunctionKind::Error,
             "__RIGHTPAD" => BuiltinFunctionKind::RightPad,
+            "__CODECOPY_DYN_ARG" => BuiltinFunctionKind::DynConstructorArg,
             _ => panic!("Invalid Builtin Function Kind"), /* This should never be reached,
                                                            * builtins are validated with a
                                                            * `try_from` call in the lexer. */
@@ -724,6 +741,7 @@ impl TryFrom<&String> for BuiltinFunctionKind {
             "__EVENT_HASH" => Ok(BuiltinFunctionKind::EventHash),
             "__ERROR" => Ok(BuiltinFunctionKind::Error),
             "__RIGHTPAD" => Ok(BuiltinFunctionKind::RightPad),
+            "__CODECOPY_DYN_ARG" => Ok(BuiltinFunctionKind::DynConstructorArg),
             _ => Err(()),
         }
     }

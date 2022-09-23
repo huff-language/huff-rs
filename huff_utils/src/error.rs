@@ -24,6 +24,8 @@ pub struct ParserError {
 pub enum ParserErrorKind {
     /// Unexpected type
     UnexpectedType(TokenKind),
+    /// Argument name is a reserved evm primitive type keyword
+    InvalidTypeAsArgumentName(TokenKind),
     /// Invalid definition
     InvalidDefinition(TokenKind),
     /// Invalid constant value
@@ -174,6 +176,8 @@ pub enum CodegenErrorKind {
     InvalidCodeLength(usize),
     /// Test Invocation
     TestInvocation(String),
+    /// Incorrect dynamic argument index
+    InvalidDynArgIndex,
 }
 
 impl Spanned for CodegenError {
@@ -231,6 +235,9 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::TestInvocation(msg) => {
                 write!(f.out, "Test cannot be invoked: \"{}\"", msg)
+            }
+            CodegenErrorKind::InvalidDynArgIndex => {
+                write!(f.out, "Invalid Dynamic Constructor Argument Index")
             }
         }
     }
@@ -314,6 +321,14 @@ impl<'a> fmt::Display for CompilerError<'a> {
                     write!(
                         f,
                         "\nError: Unexpected Type: \"{}\" \n{}\n",
+                        ut,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
+                ParserErrorKind::InvalidTypeAsArgumentName(ut) => {
+                    write!(
+                        f,
+                        "\nError: Unexpected Argument Name is an EVM Type: \"{}\" \n{}\n",
                         ut,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -554,6 +569,13 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
                 CodegenErrorKind::TestInvocation(_) => {
                     write!(f, "\nError: Test Invocation\n{}\n", ce.span.error(None))
+                }
+                CodegenErrorKind::InvalidDynArgIndex => {
+                    write!(
+                        f,
+                        "\nError: Invalid Dynamic Constructor Argument Index:\n{}\n",
+                        ce.span.error(None)
+                    )
                 }
             },
             CompilerError::FailedCompiles(v) => {
