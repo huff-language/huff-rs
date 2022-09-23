@@ -19,9 +19,9 @@ use huff_tests::{
     HuffTester,
 };
 use huff_utils::prelude::{
-    bytes32_check, export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan,
-    CodegenError, CodegenErrorKind, CompilerError, FileSource, Literal, MacroInput, OutputLocation,
-    Span,
+    bytes32_check, export_interfaces, gen_sol_interfaces, get_stripped_hex, str_to_bytes32,
+    unpack_files, AstSpan, CodegenError, CodegenErrorKind, CompilerError, FileSource, Literal,
+    MacroInput, OutputLocation, Span,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
@@ -171,12 +171,12 @@ fn main() {
                 // Check that constant override argument is valid
                 // Key rule: Alphabetic chars + underscore
                 // Value rule: Valid literal string (0x...)
-                if parts.len() != 2 ||
-                    parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_')) ||
-                    !parts[1].starts_with("0x") ||
-                    parts[1][2..].chars().any(|c| {
-                        !(c.is_numeric() ||
-                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
+                if parts.len() != 2
+                    || parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_'))
+                    || !parts[1].starts_with("0x")
+                    || parts[1][2..].chars().any(|c| {
+                        !(c.is_numeric()
+                            || matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
                     })
                 {
                     eprintln!("Invalid constant override argument: {}", Paint::red(c.to_string()));
@@ -249,8 +249,7 @@ fn main() {
 
                         macros.iter().enumerate().for_each(|(i, m)| {
                             let (d, s) = (data.get(i).unwrap(), stack.get(i).unwrap());
-
-                            // TODO: strip 0x prefix
+                            let (d, s) = (get_stripped_hex(d), get_stripped_hex(s));
 
                             if d != "x" {
                                 if d == "_" {
@@ -258,10 +257,10 @@ fn main() {
                                     std::process::exit(1);
                                 }
 
-                                hex::decode(d).expect("bad hex");
+                                hex::decode(&d).expect("bad hex");
                             }
                             if s != "_" && s != "x" {
-                                bytes32_check(s).expect("bad hex");
+                                bytes32_check(&s).expect("bad hex");
                             }
 
                             let (data, stack) = (d.to_string(), s.to_string());
@@ -281,7 +280,7 @@ fn main() {
                     std::process::exit(1);
                 }
             }
-            return
+            return;
         }
     }
 

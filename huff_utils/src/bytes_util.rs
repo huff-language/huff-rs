@@ -86,3 +86,12 @@ pub fn bytes32_check(hx: &str) -> Result<(), HexError> {
 
     Ok(())
 }
+
+/// Given an hex with or without 0x, return the striped version of this hex
+pub fn get_stripped_hex(hex: &str) -> &str {
+    if let Some(hex) = hex.strip_prefix("0x") {
+        hex
+    } else {
+        hex
+    }
+}
