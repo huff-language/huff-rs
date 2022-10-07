@@ -63,6 +63,9 @@ impl Remapper {
         // Gracefully parse remappings from foundry.toml
         Remapper::from_foundry(root.as_ref(), &mut inner);
 
+        // And from remappings.txt
+        Remapper::from_file(root.as_ref(), &mut inner);
+
         // Return the constructed remappings
         Self { remappings: inner, base_dir: root.as_ref().to_string() }
     }
@@ -90,7 +93,7 @@ impl Remapper {
                 // Gracefully read foundry.toml
                 if let Err(e) = br.read_to_string(&mut data) {
                     tracing::warn!(target: "parser", "Failed to read \"foundry.toml\" file contents!\nError: {:?}", e);
-                    return
+                    return;
                 }
 
                 // Parse the foundry.toml file as toml
@@ -98,7 +101,7 @@ impl Remapper {
                     t
                 } else {
                     tracing::warn!(target: "parser", "\"foundry.toml\" incorrectly formatted!");
-                    return
+                    return;
                 };
 
                 // Parse the toml as a map
@@ -154,6 +157,36 @@ impl Remapper {
             }
         }
     }
+
+    /// Get remappings from a remappings.txt file
+    pub fn from_file(root: &str, inner: &mut HashMap<String, String>) {
+        let mut remappings: HashMap<String, String> = HashMap::new();
+        let remappings_file = PathBuf::new().join(root).join("remappings.txt");
+        if remappings_file.is_file() {
+            let content =
+                fs::read_to_string(remappings_file).map_err(|err| err.to_string()).unwrap();
+
+            let rem_lines = content.split('\n').collect::<Vec<&str>>();
+            let rem = rem_lines
+                .iter()
+                .map(|l| l.split('=').collect::<Vec<&str>>())
+                .collect::<Vec<Vec<&str>>>();
+            rem.iter().for_each(|els| {
+                let key = els.get(0).unwrap().to_string();
+                let val = els.get(1).unwrap().to_string();
+
+                remappings.insert(key, val);
+            });
+
+            inner.extend(remappings);
+        }
+    }
+
+    /*pub fn remappings_from_newline(
+        remappings: &str,
+    ) -> impl Iterator<Item = Result<Remapping, RemappingError>> + '_ {
+        remappings.lines().map(|x| x.trim()).filter(|x| !x.is_empty()).map(Remapping::from_str)
+    }*/
 }
 
 impl Remapper {
@@ -164,7 +197,7 @@ impl Remapper {
             if path.starts_with(k) {
                 tracing::debug!(target: "parser", "found key {} and value {}", k, v);
                 path = path.replace(k, v);
-                return Some(format!("{}{}", self.base_dir, path))
+                return Some(format!("{}{}", self.base_dir, path));
             }
         }
         None
@@ -261,12 +294,12 @@ impl FileSource {
                         }
                         None => {
                             tracing::warn!("Failed to convert path to string");
-                            return None
+                            return None;
                         }
                     },
                     None => {
                         tracing::warn!("Failed to find parent for path: {:?}", path);
-                        return None
+                        return None;
                     }
                 }
                 res_str = res_str.replacen("../", "", 1);
@@ -326,11 +359,11 @@ impl Span {
                     .as_ref()
                     .map(|s| {
                         let line_num =
-                            &s[0..self.start].as_bytes().iter().filter(|&&c| c == b'\n').count() +
-                                1;
+                            &s[0..self.start].as_bytes().iter().filter(|&&c| c == b'\n').count()
+                                + 1;
                         let line_start = &s[0..self.start].rfind('\n').unwrap_or(0);
-                        let line_end = self.end +
-                            s[self.end..s.len()]
+                        let line_end = self.end
+                            + s[self.end..s.len()]
                                 .find('\n')
                                 .unwrap_or(s.len() - self.end)
                                 .to_owned();
