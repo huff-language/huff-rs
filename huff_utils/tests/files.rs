@@ -17,6 +17,17 @@ fn test_generate_remappings() {
 }
 
 #[test]
+fn test_remappings_from_file() {
+    let remapper = files::Remapper::new("./tests");
+    assert_eq!(remapper.remappings.len(), 2);
+    assert_eq!(remapper.remappings.get("@huffmate/").unwrap(), "lib/huffmate/src/");
+    assert_eq!(
+        remapper.remappings.get("@openzeppelin/").unwrap(),
+        "lib/openzeppelin-contracts/contracts/"
+    );
+}
+
+#[test]
 fn test_source_seg() {
     let span = Span {
         start: 59,
