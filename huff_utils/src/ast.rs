@@ -516,7 +516,8 @@ impl MacroDefinition {
     pub fn to_irbytes(statements: &[Statement]) -> Vec<IRBytes> {
         let mut inner_irbytes: Vec<IRBytes> = vec![];
 
-        statements.iter().for_each(|statement| {
+        let mut statement_iter = statements.iter();
+        while let Some(statement) = statement_iter.next() {
             match &statement.ty {
                 StatementType::Literal(l) => {
                     let hex_literal: String = bytes32_to_string(l, false);
@@ -532,6 +533,25 @@ impl MacroDefinition {
                         ty: IRByteType::Bytes(Bytes(opcode_str)),
                         span: statement.span.clone(),
                     });
+                    // If the opcode is a push, we need to consume the next statement, which must be
+                    // a literal as checked in the parser
+                    if o.is_push() {
+                        match statement_iter.next() {
+                            Some(Statement { ty: StatementType::Literal(l), span: _ }) => {
+                                let hex_literal: String = bytes32_to_string(l, false);
+                                inner_irbytes.push(IRBytes {
+                                    ty: IRByteType::Bytes(Bytes(hex_literal)),
+                                    span: statement.span.clone(),
+                                });
+                                statement_iter.next();
+                            }
+                            _ => {
+                                // We have a push without a literal - this should be caught by the
+                                // parser
+                                panic!("Invalid push statement");
+                            }
+                        }
+                    }
                 }
                 StatementType::Code(c) => {
                     inner_irbytes.push(IRBytes {
@@ -595,7 +615,7 @@ impl MacroDefinition {
                     });
                 }
             }
-        });
+        }
 
         inner_irbytes
     }

@@ -567,6 +567,9 @@ impl Parser {
                                 let curr_spans = vec![self.current_token.span.clone()];
                                 tracing::info!(target: "parser", "PARSING MACRO BODY: [LITERAL: {}]", hex::encode(val));
                                 self.consume();
+
+                                // TODO: Here we need to gracefully add zeros to the beginning of
+                                // the literal
                                 statements.push(Statement {
                                     ty: StatementType::Literal(val),
                                     span: AstSpan(curr_spans),
