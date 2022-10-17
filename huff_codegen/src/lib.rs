@@ -280,6 +280,26 @@ impl Codegen {
                     bytes.push((starting_offset, Bytes(push_bytes)));
                 }
                 IRByteType::Statement(s) => {
+                    // if we have a codesize call for the constructor here, from within the
+                    // constructor, we skip
+                    if let Some(m) = scope.get(0) {
+                        if m.name == "CONSTRUCTOR" {
+                            if let StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
+                                kind,
+                                args,
+                                span: _,
+                            }) = &s.ty
+                            {
+                                if kind.eq(&BuiltinFunctionKind::Codesize) {
+                                    if let Some(arg) = args.get(0) {
+                                        if Some("CONSTRUCTOR".to_string()) == arg.name {
+                                            continue
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     let mut push_bytes = statement_gen(
                         &s,
                         contract,

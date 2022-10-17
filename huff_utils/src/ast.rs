@@ -140,6 +140,7 @@ impl Contract {
                 &m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
+                false,
             ),
             None => {
                 // The constructor is not required, so we can just warn
@@ -153,6 +154,7 @@ impl Contract {
                 &m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
+                false,
             ),
             None => {
                 tracing::error!(target: "ast", "'MAIN' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
@@ -200,6 +202,7 @@ impl Contract {
         macro_def: &MacroDefinition,
         storage_pointers: &mut Vec<(String, [u8; 32])>,
         last_p: &mut i32,
+        checking_constructor: bool,
     ) {
         let mut statements = macro_def.statements.clone();
         let mut i = 0;
@@ -254,7 +257,15 @@ impl Contract {
                         .collect::<Vec<&MacroDefinition>>()
                         .get(0)
                     {
-                        Some(&md) => self.recurse_ast_constants(md, storage_pointers, last_p),
+                        Some(&md) => {
+                            if md.name.eq("CONSTRUCTOR") {
+                                if !checking_constructor {
+                                    self.recurse_ast_constants(md, storage_pointers, last_p, true);
+                                }
+                            } else {
+                                self.recurse_ast_constants(md, storage_pointers, last_p, false);
+                            }
+                        }
                         None => {
                             tracing::warn!(target: "ast", "MACRO \"{}\" INVOKED BUT NOT FOUND IN AST!", mi.macro_name)
                         }
@@ -272,7 +283,23 @@ impl Contract {
                                 .get(0)
                             {
                                 Some(&md) => {
-                                    self.recurse_ast_constants(md, storage_pointers, last_p)
+                                    if md.name.eq("CONSTRUCTOR") {
+                                        if !checking_constructor {
+                                            self.recurse_ast_constants(
+                                                md,
+                                                storage_pointers,
+                                                last_p,
+                                                true,
+                                            );
+                                        }
+                                    } else {
+                                        self.recurse_ast_constants(
+                                            md,
+                                            storage_pointers,
+                                            last_p,
+                                            false,
+                                        );
+                                    }
                                 }
                                 None => {
                                     tracing::warn!(target: "ast", "BUILTIN HAS ARG NAME \"{}\" BUT NOT FOUND IN AST!", name)
