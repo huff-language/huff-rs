@@ -1,7 +1,7 @@
 use crate::{
     files::{Span, Spanned},
     io::UnpackError,
-    prelude::{parse_extension, AstSpan},
+    prelude::{parse_extension, AstSpan, Opcode},
     report::{Report, Reporter},
     token::TokenKind,
 };
@@ -21,6 +21,8 @@ pub struct ParserError {
 /// A Type of Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum ParserErrorKind {
+    /// An invalid literal was passed to a push opcode
+    InvalidPush(Opcode),
     /// Unexpected type
     UnexpectedType(TokenKind),
     /// Argument name is a reserved evm primitive type keyword
@@ -314,6 +316,14 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
             },
             CompilerError::ParserError(pe) => match &pe.kind {
+                ParserErrorKind::InvalidPush(op) => {
+                    write!(
+                        f,
+                        "\nError: Invalid use of \"{:?}\" \n{}\n",
+                        op,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
                 ParserErrorKind::UnexpectedType(ut) => {
                     write!(
                         f,

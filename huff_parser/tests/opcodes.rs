@@ -34,3 +34,25 @@ fn not_mistaken_as_opcode() {
         assert_eq!(actual_label, TokenKind::Label(label));
     }
 }
+
+#[test]
+#[should_panic]
+fn test_invalid_push_non_literal() {
+    let source: &str = r#"
+        // Here we have a macro invocation directly in the parameter list - this should fail
+        #define macro MAIN() = takes (0) returns (0) {
+            push1 0x10
+            push32 0x108
+            push1 push1
+        }
+    "#;
+
+    // Parse tokens
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Should fail here
+    parser.parse().unwrap();
+}

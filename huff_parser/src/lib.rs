@@ -560,6 +560,30 @@ impl Parser {
                         ty: StatementType::Opcode(o),
                         span: AstSpan(curr_spans),
                     });
+                    // If the opcode is a push, we need to parse the next literal
+                    if o.is_push() {
+                        match self.current_token.kind.clone() {
+                            TokenKind::Literal(val) => {
+                                let curr_spans = vec![self.current_token.span.clone()];
+                                tracing::info!(target: "parser", "PARSING MACRO BODY: [LITERAL: {}]", hex::encode(val));
+                                self.consume();
+                                statements.push(Statement {
+                                    ty: StatementType::Literal(val),
+                                    span: AstSpan(curr_spans),
+                                });
+                            }
+                            _ => {
+                                return Err(ParserError {
+                                    kind: ParserErrorKind::InvalidPush(o),
+                                    hint: Some(format!(
+                                        "Expected literal following \"{:?}\", found \"{:?}\"",
+                                        o, self.current_token.kind
+                                    )),
+                                    spans: AstSpan(vec![self.current_token.span.clone()]),
+                                })
+                            }
+                        }
+                    }
                 }
                 TokenKind::Ident(ident_str) => {
                     let mut curr_spans = vec![self.current_token.span.clone()];
