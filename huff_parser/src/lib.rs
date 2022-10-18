@@ -568,8 +568,20 @@ impl Parser {
                                 tracing::info!(target: "parser", "PARSING MACRO BODY: [LITERAL: {}]", hex::encode(val));
                                 self.consume();
 
-                                // TODO: Here we need to gracefully add zeros to the beginning of
-                                // the literal
+                                // Check that the literal does not overflow the push size
+                                let hex_literal: String = bytes32_to_string(&val, false);
+                                if o.push_overflows(&hex_literal) {
+                                    return Err(ParserError {
+                                        kind: ParserErrorKind::InvalidPush(o),
+                                        hint: Some(format!(
+                                            "Literal {:?} contains too many bytes for opcode \"{:?}\"",
+                                            hex_literal, o
+                                        )),
+                                        spans: AstSpan(curr_spans),
+                                    })
+                                }
+
+                                // Otherwise we can push the literal
                                 statements.push(Statement {
                                     ty: StatementType::Literal(val),
                                     span: AstSpan(curr_spans),

@@ -803,15 +803,33 @@ impl Opcode {
         if self.is_push() {
             if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
                 if len >= 96 {
-                    let zeros_needed = ((len - 96 + 1) * 2) - literal.len() as u8;
-                    let zero_prefix =
-                        (0..zeros_needed).map(|_| "0").collect::<Vec<&str>>().join("");
-                    return format!("{}{}", zero_prefix, literal)
+                    let size = (len - 96 + 1) * 2;
+                    // This case should be caught in the parser
+                    if literal.len() <= size as usize {
+                        let zeros_needed = size - literal.len() as u8;
+                        let zero_prefix =
+                            (0..zeros_needed).map(|_| "0").collect::<Vec<&str>>().join("");
+                        return format!("{}{}", zero_prefix, literal)
+                    }
                 }
             }
         }
 
         literal.to_string()
+    }
+
+    /// Checks if the value overflows the given push opcode
+    pub fn push_overflows(&self, literal: &str) -> bool {
+        if self.is_push() {
+            if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
+                if len >= 96 {
+                    let size = (len - 96 + 1) * 2;
+                    return literal.len() > size as usize
+                }
+            }
+        }
+
+        false
     }
 }
 
