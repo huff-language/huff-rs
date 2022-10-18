@@ -570,7 +570,7 @@ impl MacroDefinition {
                                     ty: IRByteType::Bytes(Bytes(hex_literal)),
                                     span: statement.span.clone(),
                                 });
-                                statement_iter.next();
+                                // statement_iter.next();
                             }
                             _ => {
                                 // We have a push without a literal - this should be caught by the
