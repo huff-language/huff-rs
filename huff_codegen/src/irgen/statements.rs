@@ -101,6 +101,7 @@ pub fn statement_gen(
                     scope,
                     *offset,
                     mis,
+                    false,
                 ) {
                     Ok(r) => r,
                     Err(e) => {
@@ -185,6 +186,7 @@ pub fn statement_gen(
                         scope,
                         *offset,
                         mis,
+                        ir_macro.name.eq("CONSTRUCTOR"),
                     ) {
                         Ok(r) => r,
                         Err(e) => {

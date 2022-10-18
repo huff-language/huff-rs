@@ -140,6 +140,7 @@ impl Contract {
                 &m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
+                false,
             ),
             None => {
                 // The constructor is not required, so we can just warn
@@ -153,6 +154,7 @@ impl Contract {
                 &m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
+                false,
             ),
             None => {
                 tracing::error!(target: "ast", "'MAIN' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
@@ -200,6 +202,7 @@ impl Contract {
         macro_def: &MacroDefinition,
         storage_pointers: &mut Vec<(String, [u8; 32])>,
         last_p: &mut i32,
+        checking_constructor: bool,
     ) {
         let mut statements = macro_def.statements.clone();
         let mut i = 0;
@@ -254,7 +257,15 @@ impl Contract {
                         .collect::<Vec<&MacroDefinition>>()
                         .get(0)
                     {
-                        Some(&md) => self.recurse_ast_constants(md, storage_pointers, last_p),
+                        Some(&md) => {
+                            if md.name.eq("CONSTRUCTOR") {
+                                if !checking_constructor {
+                                    self.recurse_ast_constants(md, storage_pointers, last_p, true);
+                                }
+                            } else {
+                                self.recurse_ast_constants(md, storage_pointers, last_p, false);
+                            }
+                        }
                         None => {
                             tracing::warn!(target: "ast", "MACRO \"{}\" INVOKED BUT NOT FOUND IN AST!", mi.macro_name)
                         }
@@ -272,7 +283,23 @@ impl Contract {
                                 .get(0)
                             {
                                 Some(&md) => {
-                                    self.recurse_ast_constants(md, storage_pointers, last_p)
+                                    if md.name.eq("CONSTRUCTOR") {
+                                        if !checking_constructor {
+                                            self.recurse_ast_constants(
+                                                md,
+                                                storage_pointers,
+                                                last_p,
+                                                true,
+                                            );
+                                        }
+                                    } else {
+                                        self.recurse_ast_constants(
+                                            md,
+                                            storage_pointers,
+                                            last_p,
+                                            false,
+                                        );
+                                    }
                                 }
                                 None => {
                                     tracing::warn!(target: "ast", "BUILTIN HAS ARG NAME \"{}\" BUT NOT FOUND IN AST!", name)
@@ -516,7 +543,8 @@ impl MacroDefinition {
     pub fn to_irbytes(statements: &[Statement]) -> Vec<IRBytes> {
         let mut inner_irbytes: Vec<IRBytes> = vec![];
 
-        statements.iter().for_each(|statement| {
+        let mut statement_iter = statements.iter();
+        while let Some(statement) = statement_iter.next() {
             match &statement.ty {
                 StatementType::Literal(l) => {
                     let hex_literal: String = bytes32_to_string(l, false);
@@ -532,6 +560,25 @@ impl MacroDefinition {
                         ty: IRByteType::Bytes(Bytes(opcode_str)),
                         span: statement.span.clone(),
                     });
+                    // If the opcode is a push, we need to consume the next statement, which must be
+                    // a literal as checked in the parser
+                    if o.is_push() {
+                        match statement_iter.next() {
+                            Some(Statement { ty: StatementType::Literal(l), span: _ }) => {
+                                let hex_literal: String = bytes32_to_string(l, false);
+                                let prefixed_hex_literal = o.prefix_push_literal(&hex_literal);
+                                inner_irbytes.push(IRBytes {
+                                    ty: IRByteType::Bytes(Bytes(prefixed_hex_literal)),
+                                    span: statement.span.clone(),
+                                });
+                            }
+                            _ => {
+                                // We have a push without a literal - this should be caught by the
+                                // parser
+                                panic!("Invalid push statement");
+                            }
+                        }
+                    }
                 }
                 StatementType::Code(c) => {
                     inner_irbytes.push(IRBytes {
@@ -595,7 +642,7 @@ impl MacroDefinition {
                     });
                 }
             }
-        });
+        }
 
         inner_irbytes
     }

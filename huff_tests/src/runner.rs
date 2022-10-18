@@ -168,6 +168,7 @@ impl TestRunner {
             &mut vec![m.to_owned()],
             0,
             &mut Vec::default(),
+            false,
         ) {
             // Generate table bytecode for compiled test macro
             Ok(res) => match Codegen::gen_table_bytecode(res) {
