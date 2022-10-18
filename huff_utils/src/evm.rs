@@ -797,6 +797,22 @@ impl Opcode {
                 Opcode::Push32
         )
     }
+
+    /// Prefixes the literal if necessary
+    pub fn prefix_push_literal(&self, literal: &str) -> String {
+        if self.is_push() {
+            if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
+                if len >= 96 {
+                    let zeros_needed = ((len - 96 + 1) * 2) - literal.len() as u8;
+                    let zero_prefix =
+                        (0..zeros_needed).map(|_| "0").collect::<Vec<&str>>().join("");
+                    return format!("{}{}", zero_prefix, literal)
+                }
+            }
+        }
+
+        literal.to_string()
+    }
 }
 
 impl fmt::Display for Opcode {

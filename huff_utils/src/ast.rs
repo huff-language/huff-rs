@@ -566,11 +566,11 @@ impl MacroDefinition {
                         match statement_iter.next() {
                             Some(Statement { ty: StatementType::Literal(l), span: _ }) => {
                                 let hex_literal: String = bytes32_to_string(l, false);
+                                let prefixed_hex_literal = o.prefix_push_literal(&hex_literal);
                                 inner_irbytes.push(IRBytes {
-                                    ty: IRByteType::Bytes(Bytes(hex_literal)),
+                                    ty: IRByteType::Bytes(Bytes(prefixed_hex_literal)),
                                     span: statement.span.clone(),
                                 });
-                                // statement_iter.next();
                             }
                             _ => {
                                 // We have a push without a literal - this should be caught by the
