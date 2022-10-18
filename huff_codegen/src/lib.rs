@@ -66,6 +66,7 @@ impl Codegen {
             &mut vec![m_macro],
             0,
             &mut Vec::default(),
+            false,
         )?;
 
         tracing::debug!(target: "codegen", "Generated main bytecode. Appending table bytecode...");
@@ -86,6 +87,7 @@ impl Codegen {
             &mut vec![c_macro],
             0,
             &mut Vec::default(),
+            false,
         )?;
 
         Codegen::gen_table_bytecode(bytecode_res)
@@ -254,6 +256,7 @@ impl Codegen {
         scope: &mut Vec<MacroDefinition>,
         mut offset: usize,
         mis: &mut Vec<(usize, MacroInvocation)>,
+        recursing_constructor: bool,
     ) -> Result<BytecodeRes, CodegenError> {
         // Get intermediate bytecode representation of the macro definition
         let mut bytes: Vec<(usize, Bytes)> = Vec::default();
@@ -282,23 +285,8 @@ impl Codegen {
                 IRByteType::Statement(s) => {
                     // if we have a codesize call for the constructor here, from within the
                     // constructor, we skip
-                    if let Some(m) = scope.get(0) {
-                        if m.name == "CONSTRUCTOR" {
-                            if let StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
-                                kind,
-                                args,
-                                span: _,
-                            }) = &s.ty
-                            {
-                                if kind.eq(&BuiltinFunctionKind::Codesize) {
-                                    if let Some(arg) = args.get(0) {
-                                        if Some("CONSTRUCTOR".to_string()) == arg.name {
-                                            continue
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    if recursing_constructor {
+                        continue
                     }
                     let mut push_bytes = statement_gen(
                         &s,
@@ -454,8 +442,14 @@ impl Codegen {
             scope.push(macro_def.clone());
 
             // Add 1 to starting offset to account for the JUMPDEST opcode
-            let mut res =
-                Codegen::macro_to_bytecode(macro_def.clone(), contract, scope, *offset + 1, mis)?;
+            let mut res = Codegen::macro_to_bytecode(
+                macro_def.clone(),
+                contract,
+                scope,
+                *offset + 1,
+                mis,
+                false,
+            )?;
 
             for j in res.unmatched_jumps.iter_mut() {
                 let new_index = j.bytecode_index;
