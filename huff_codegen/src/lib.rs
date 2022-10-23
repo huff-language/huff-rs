@@ -57,8 +57,6 @@ impl Codegen {
     /// Generates main bytecode from a Contract AST
     pub fn generate_main_bytecode(
         contract: &Contract,
-
-        // TODO: allow an alternative main to be used as the compilation source
         alternative_main: Option<String>,
     ) -> Result<String, CodegenError> {
         // If an alternative main is provided, then use it as the compilation target

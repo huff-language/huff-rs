@@ -191,8 +191,6 @@ fn erc721_compilation_benchmark(c: &mut Criterion) {
     }));
 }
 
-// TODO: Create a benchmark compiling from an alternative macro
-
 criterion_group!(
     benches,
     lex_erc20_from_source_benchmark,

@@ -56,7 +56,7 @@ pub struct Compiler<'a> {
     /// The output location
     pub output: Option<String>,
     /// Macro to use a main
-    pub alternative_main: Option<String>, // TODO: give a better name
+    pub alternative_main: Option<String>,
     /// Constructor Input Arguments
     pub construct_args: Option<Vec<String>>,
     /// Constant Overrides
