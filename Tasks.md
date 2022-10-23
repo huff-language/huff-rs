@@ -1,0 +1,1 @@
+- huff_core/benches add a benchmark for compiling from an alternative macro

@@ -98,7 +98,7 @@ let contract = Contract {
 };
 
 // Generate the main bytecode
-let main_bytecode: String = Codegen::generate_main_bytecode(&contract).unwrap();
+let main_bytecode: String = Codegen::generate_main_bytecode(&contract, None).unwrap();
 
 // Validate the output bytecode
 assert_eq!(main_bytecode, "60003560e01c");

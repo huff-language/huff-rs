@@ -96,7 +96,7 @@ fn codegen_erc20_benchmark(c: &mut Criterion) {
     // Isolate codegen to benchmark
     c.bench_function("Codegen: ERC-20", |b| b.iter(|| {
         // Create main and constructor bytecode
-        let main_bytecode = Codegen::generate_main_bytecode(&contract).unwrap();
+        let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
         let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract).unwrap();
 
         // Churn
@@ -136,7 +136,7 @@ fn erc20_compilation_benchmark(c: &mut Criterion) {
         contract.derive_storage_pointers();
 
         // Create main and constructor bytecode
-        let main_bytecode = Codegen::generate_main_bytecode(&contract).unwrap();
+        let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
         let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract).unwrap();
 
         // Churn
@@ -176,7 +176,7 @@ fn erc721_compilation_benchmark(c: &mut Criterion) {
         contract.derive_storage_pointers();
 
         // Create main and constructor bytecode
-        let main_bytecode = Codegen::generate_main_bytecode(&contract).unwrap();
+        let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
         let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract).unwrap();
 
         // Churn
@@ -190,6 +190,8 @@ fn erc721_compilation_benchmark(c: &mut Criterion) {
         assert_eq!(artifact.bytecode.to_lowercase(), expected_bytecode.to_lowercase());
     }));
 }
+
+// TODO: Create a benchmark compiling from an alternative macro
 
 criterion_group!(
     benches,

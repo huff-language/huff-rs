@@ -110,7 +110,7 @@ fn test_function() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the runtime bytecode
-    let rbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let rbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     // Churn
     let mut cg = Codegen::new();
     let artifact =
@@ -204,7 +204,7 @@ fn test_nested_function() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the runtime bytecode
-    let rbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let rbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     // Churn
     let mut cg = Codegen::new();
     let artifact =

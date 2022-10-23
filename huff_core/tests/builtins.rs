@@ -76,7 +76,7 @@ fn test_dyn_constructor_arg_builtin() {
 
     // Have the Codegen create the constructor bytecode
     let constructor_code = Codegen::generate_constructor_bytecode(&contract).unwrap();
-    let main_code = Codegen::generate_main_bytecode(&contract).unwrap();
+    let main_code = Codegen::generate_main_bytecode(&contract, None).unwrap();
 
     let args = Codegen::encode_constructor_args(vec![String::from("testing")]);
     let final_bytecode = cg.churn(
@@ -162,7 +162,7 @@ fn test_tablesize_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let mbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let mbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     assert_eq!(mbytes, String::from("6008608061002c60003960205b60006000f35b60006000f35b60006000f35b60006000f3000c00120018001e000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000001eDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"));
 }
 
@@ -289,7 +289,7 @@ fn test_jump_table_exhaustive_usage() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let mbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let mbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     assert_eq!(mbytes, String::from("608061004060003960003560e01c8063a9059cbb14610019575b60208703516202ffe016806020015b60206020015b60206020015b60206020015b60206020010000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000002e0000000000000000000000000000000000000000000000000000000000000034000000000000000000000000000000000000000000000000000000000000003a"));
 }
 
@@ -349,7 +349,7 @@ fn test_jump_table_packed_exhaustive_usage() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the main macro bytecode
-    let mbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let mbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     assert_eq!(mbytes, String::from("600861004060003960003560e01c8063a9059cbb14610019575b60208703516202ffe016806020015b60206020015b60206020015b60206020015b60206020010028002e0034003a"));
 }
 
@@ -416,7 +416,7 @@ fn test_label_clashing() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the main macro bytecode
-    let mbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let mbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     assert_eq!(mbytes, String::from("6008610048600039608061005060003960003560e01c8063a9059cbb14610021575b60208703516202ffe016806020015b60206020015b60206020015b60206020015b602060200100300036003c004200000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000036000000000000000000000000000000000000000000000000000000000000003c0000000000000000000000000000000000000000000000000000000000000042"));
 }
 
@@ -460,7 +460,7 @@ fn test_func_sig_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let cbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     // `transfer(address,uint256) signature = 0xa9059cbb
     assert_eq!(&cbytes[16..24], "a9059cbb");
     assert_eq!(&cbytes[38..46], "a9059cbb");
@@ -505,7 +505,7 @@ fn test_event_hash_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let cbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     // `transfer(address,address,uint256) signature =
     // 0xbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8
     assert_eq!(&cbytes[2..66], "beabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8");
@@ -580,7 +580,7 @@ fn test_error_selector_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have Codegen create the runtime bytecode
-    let r_bytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let r_bytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     assert_eq!(&r_bytes[2..66], "be20788c00000000000000000000000000000000000000000000000000000000");
     assert_eq!(
         &r_bytes[98..162],
@@ -623,7 +623,7 @@ fn test_rightpad_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have Codegen create the runtime bytecode
-    let r_bytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let r_bytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     assert_eq!(&r_bytes[2..66], "a57b000000000000000000000000000000000000000000000000000000000000");
     assert_eq!(
         &r_bytes[68..132],

@@ -32,7 +32,7 @@ fn test_erc20_compile() {
     contract.derive_storage_pointers();
 
     // Create main and constructor bytecode
-    let main_bytecode = Codegen::generate_main_bytecode(&contract).unwrap();
+    let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
     let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract).unwrap();
 
     // Churn
