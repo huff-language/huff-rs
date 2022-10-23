@@ -134,7 +134,7 @@ impl Codegen {
                         .collect::<Vec<Span>>(),
                 ),
                 token: None,
-            });
+            })
         }
 
         tracing::info!(target: "codegen", "GENERATING JUMPTABLE BYTECODE");
@@ -292,7 +292,7 @@ impl Codegen {
                     // if we have a codesize call for the constructor here, from within the
                     // constructor, we skip
                     if recursing_constructor {
-                        continue;
+                        continue
                     }
                     let mut push_bytes = statement_gen(
                         &s,
@@ -594,7 +594,7 @@ impl Codegen {
                 kind: CodegenErrorKind::InvalidDynArgIndex,
                 span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
                 token: None,
-            });
+            })
         }
 
         // Constructor size optimizations
@@ -671,7 +671,7 @@ impl Codegen {
                         })),
                     }]),
                     token: None,
-                });
+                })
             }
         }
         if let Err(e) = fs::write(file_path, serialized_artifact) {
@@ -689,7 +689,7 @@ impl Codegen {
                     })),
                 }]),
                 token: None,
-            });
+            })
         }
         Ok(())
     }
