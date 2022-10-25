@@ -151,7 +151,7 @@ fn recurse_macro_bytecode() {
     // assert_eq!(contract, ast);
 
     // Create main and constructor bytecode
-    let main_bytecode = Codegen::generate_main_bytecode(&contract).unwrap();
+    let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
     let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract).unwrap();
 
     // Full expected bytecode output (generated from huffc) (placed here as a reference)

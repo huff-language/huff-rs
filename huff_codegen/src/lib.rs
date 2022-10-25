@@ -55,9 +55,15 @@ impl Codegen {
     }
 
     /// Generates main bytecode from a Contract AST
-    pub fn generate_main_bytecode(contract: &Contract) -> Result<String, CodegenError> {
+    pub fn generate_main_bytecode(
+        contract: &Contract,
+        alternative_main: Option<String>,
+    ) -> Result<String, CodegenError> {
+        // If an alternative main is provided, then use it as the compilation target
+        let main_macro = alternative_main.unwrap_or(String::from("MAIN"));
+
         // Find the main macro
-        let m_macro = Codegen::get_macro_by_name("MAIN", contract)?;
+        let m_macro = Codegen::get_macro_by_name(&main_macro, contract)?;
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(

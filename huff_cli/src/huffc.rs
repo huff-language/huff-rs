@@ -83,6 +83,10 @@ struct Huff {
     #[clap(short = 'c', long = "constants", multiple_values = true)]
     constants: Option<Vec<String>>,
 
+    /// Compile a specific macro
+    #[clap(short = 'm', long = "alt-main")]
+    alternative_main: Option<String>,
+
     /// Test subcommand
     #[clap(subcommand)]
     test: Option<TestCommands>,
@@ -183,6 +187,7 @@ fn main() {
     let compiler: Compiler = Compiler {
         sources: Arc::clone(&sources),
         output,
+        alternative_main: cli.alternative_main,
         construct_args: cli.inputs,
         constant_overrides: constants,
         optimize: cli.optimize,

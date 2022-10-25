@@ -44,6 +44,7 @@ pub(crate) mod cache;
 ///     Some("./artifacts".to_string()),
 ///     None,
 ///     None,
+///     None,
 ///     false,
 ///     false
 /// );
@@ -54,6 +55,8 @@ pub struct Compiler<'a> {
     pub sources: Arc<Vec<String>>,
     /// The output location
     pub output: Option<String>,
+    /// Macro to use a main
+    pub alternative_main: Option<String>,
     /// Constructor Input Arguments
     pub construct_args: Option<Vec<String>>,
     /// Constant Overrides
@@ -71,6 +74,7 @@ impl<'a> Compiler<'a> {
     pub fn new(
         sources: Arc<Vec<String>>,
         output: Option<String>,
+        alternative_main: Option<String>,
         construct_args: Option<Vec<String>>,
         constant_overrides: Option<BTreeMap<&'a str, Literal>>,
         verbose: bool,
@@ -82,6 +86,7 @@ impl<'a> Compiler<'a> {
         Self {
             sources,
             output,
+            alternative_main,
             construct_args,
             constant_overrides,
             optimize: false,
@@ -343,7 +348,10 @@ impl<'a> Compiler<'a> {
 
         // Primary Bytecode Generation
         let mut cg = Codegen::new();
-        let main_bytecode = match Codegen::generate_main_bytecode(&contract) {
+        let main_bytecode = match Codegen::generate_main_bytecode(
+            &contract,
+            self.alternative_main.clone(),
+        ) {
             Ok(mb) => mb,
             Err(mut e) => {
                 tracing::error!(target: "core", "FAILED TO GENERATE MAIN BYTECODE FOR CONTRACT");

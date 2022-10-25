@@ -39,7 +39,7 @@ fn test_storage_pointers_not_derived() {
     let contract = parser.parse().unwrap();
 
     // Create main and constructor bytecode
-    match Codegen::generate_main_bytecode(&contract) {
+    match Codegen::generate_main_bytecode(&contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
@@ -99,7 +99,7 @@ fn test_invalid_constant_definition() {
     contract.derive_storage_pointers();
 
     // Create main and constructor bytecode
-    match Codegen::generate_main_bytecode(&contract) {
+    match Codegen::generate_main_bytecode(&contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
@@ -175,13 +175,48 @@ fn test_missing_main() {
     contract.derive_storage_pointers();
 
     // Createconstructor bytecode
-    match Codegen::generate_main_bytecode(&contract) {
+    match Codegen::generate_main_bytecode(&contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
                 e,
                 CodegenError {
                     kind: CodegenErrorKind::MissingMacroDefinition("MAIN".to_string()),
+                    span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
+                    token: None
+                }
+            )
+        }
+    }
+}
+
+#[test]
+fn test_missing_when_alternative_main_provided() {
+    let source = r#"
+    #define macro MINT() = takes(0) returns (0) {
+        0x04 calldataload   // [to]
+        0x00                // [from (0x00), to]
+        0x24 calldataload   // [value, from, to]
+    }
+    "#;
+
+    let full_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(full_source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, Some("".to_string()));
+    let mut contract = parser.parse().unwrap();
+    contract.derive_storage_pointers();
+
+    let alternative_main = Some(String::from("NAH"));
+
+    // Createconstructor bytecode
+    match Codegen::generate_main_bytecode(&contract, alternative_main) {
+        Ok(_) => panic!("moose"),
+        Err(e) => {
+            assert_eq!(
+                e,
+                CodegenError {
+                    kind: CodegenErrorKind::MissingMacroDefinition("NAH".to_string()),
                     span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
                     token: None
                 }
@@ -216,7 +251,7 @@ fn test_unknown_macro_definition() {
     contract.derive_storage_pointers();
 
     // Create main and constructor bytecode
-    match Codegen::generate_main_bytecode(&contract) {
+    match Codegen::generate_main_bytecode(&contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
@@ -263,7 +298,7 @@ fn test_unmatched_jump_label() {
     contract.derive_storage_pointers();
 
     // Create main and constructor bytecode
-    match Codegen::generate_main_bytecode(&contract) {
+    match Codegen::generate_main_bytecode(&contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
