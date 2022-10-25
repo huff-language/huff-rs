@@ -83,7 +83,7 @@ pub fn print_test_report(results: Vec<TestResult>, report_kind: ReportKind, star
             } else {
                 eprintln!("Error serializing test results into JSON.");
             }
-            return;
+            return
         }
     }
     println!(

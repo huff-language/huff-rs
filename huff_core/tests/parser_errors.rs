@@ -255,8 +255,7 @@ fn test_invalid_single_arg() {
         {
             continue
         }
-        let source =
-            &format!("#define macro CONSTANT() = takes ({random_char}) returns (0) {{}}");
+        let source = &format!("#define macro CONSTANT() = takes ({random_char}) returns (0) {{}}");
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
         let lexer = Lexer::new(full_source);

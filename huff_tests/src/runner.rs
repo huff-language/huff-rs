@@ -91,7 +91,7 @@ impl TestRunner {
                 if let TransactOut::Create(_, Some(addr)) = out {
                     addr
                 } else {
-                    return Err(RunnerError(String::from("Test deployment failed")));
+                    return Err(RunnerError(String::from("Test deployment failed")))
                 }
             }
             _ => return Err(RunnerError(String::from("Test deployment failed"))),
@@ -132,7 +132,7 @@ impl TestRunner {
                         Some(hex::encode(b))
                     }
                 } else {
-                    return Err(RunnerError(String::from("Unexpected transaction kind")));
+                    return Err(RunnerError(String::from("Unexpected transaction kind")))
                 }
             }
             _ => return Err(RunnerError(String::from("Unexpected transaction status"))),

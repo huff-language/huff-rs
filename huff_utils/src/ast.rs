@@ -66,11 +66,7 @@ impl AstSpan {
             },
         );
         // Add in optional hint message
-        format!(
-            "{}{}",
-            hint.map(|msg| format!("{msg}\n")).unwrap_or_default(),
-            source_str
-        )
+        format!("{}{}", hint.map(|msg| format!("{msg}\n")).unwrap_or_default(), source_str)
     }
 
     /// Print just the file for missing

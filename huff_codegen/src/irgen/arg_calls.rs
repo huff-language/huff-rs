@@ -38,8 +38,7 @@ pub fn bubble_arg_call(
                         tracing::info!(target: "codegen", "GOT LITERAL {} ARG FROM MACRO INVOCATION", bytes32_to_string(l, false));
 
                         let hex_literal: String = bytes32_to_string(l, false);
-                        let push_bytes =
-                            format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2);
+                        let push_bytes = format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2);
                         let b = Bytes(push_bytes);
                         *offset += b.0.len() / 2;
                         bytes.push((starting_offset, b));
