@@ -142,7 +142,7 @@ impl<'a> Compiler<'a> {
             files.iter().filter_map(|rfs| rfs.as_ref().err()).collect::<Vec<&CompilerError>>();
         if !errors.is_empty() {
             let error = errors.remove(0);
-            return Err(Arc::new(error.clone()));
+            return Err(Arc::new(error.clone()))
         }
 
         // Unpack files into their file sources
@@ -190,7 +190,7 @@ impl<'a> Compiler<'a> {
                     .collect::<Vec<&Arc<CompilerError>>>();
                 if !errors.is_empty() {
                     let error = errors.remove(0);
-                    return Err(Arc::clone(error));
+                    return Err(Arc::clone(error))
                 }
 
                 // Unpack recursed dependencies into FileSources
@@ -216,7 +216,7 @@ impl<'a> Compiler<'a> {
 
                 if !gen_errors.is_empty() {
                     tracing::error!(target: "core", "{} FILES FAILED TO COMPILE", gen_errors.len());
-                    return Err(Arc::new(CompilerError::FailedCompiles(gen_errors)));
+                    return Err(Arc::new(CompilerError::FailedCompiles(gen_errors)))
                 }
 
                 // Export
@@ -249,7 +249,7 @@ impl<'a> Compiler<'a> {
             files.iter().filter_map(|rfs| rfs.as_ref().err()).collect::<Vec<&CompilerError>>();
         if !errors.is_empty() {
             let error = errors.remove(0);
-            return Err(Arc::new(error.clone()));
+            return Err(Arc::new(error.clone()))
         }
 
         // Unpack files into their file sources
@@ -270,7 +270,7 @@ impl<'a> Compiler<'a> {
             .collect::<Vec<&Arc<CompilerError>>>();
         if !errors.is_empty() {
             let error = errors.remove(0);
-            return Err(Arc::clone(error));
+            return Err(Arc::clone(error))
         }
 
         // Unpack recursed dependencies into FileSources
@@ -373,7 +373,7 @@ impl<'a> Compiler<'a> {
                         .collect::<Vec<Span>>(),
                 );
                 tracing::error!(target: "core", "Roll Failed with CodegenError: {:?}", e.kind);
-                return Err(CompilerError::CodegenError(e));
+                return Err(CompilerError::CodegenError(e))
             }
         };
         tracing::info!(target: "core", "MAIN BYTECODE GENERATED [{}]", main_bytecode);
@@ -388,8 +388,8 @@ impl<'a> Compiler<'a> {
             Err(mut e) => {
                 // Return any errors except if the inputs is empty and the constructor definition is
                 // missing
-                if e.kind != CodegenErrorKind::MissingMacroDefinition("CONSTRUCTOR".to_string())
-                    || !inputs.is_empty()
+                if e.kind != CodegenErrorKind::MissingMacroDefinition("CONSTRUCTOR".to_string()) ||
+                    !inputs.is_empty()
                 {
                     // Add File Source to Span
                     let mut errs = e
@@ -404,7 +404,7 @@ impl<'a> Compiler<'a> {
                     errs.dedup();
                     e.span = AstSpan(errs);
                     tracing::error!(target: "codegen", "Constructor inputs provided, but contract missing \"CONSTRUCTOR\" macro!");
-                    return Err(CompilerError::CodegenError(e));
+                    return Err(CompilerError::CodegenError(e))
                 }
 
                 // If the kind is a missing constructor we can ignore it
@@ -480,7 +480,7 @@ impl<'a> Compiler<'a> {
                 Ok(source) => source,
                 Err(_) => {
                     tracing::error!(target: "core", "FILE READ FAILED: \"{}\"!", fs.path);
-                    return Err(Arc::new(CompilerError::PathBufRead(OsString::from(&fs.path))));
+                    return Err(Arc::new(CompilerError::PathBufRead(OsString::from(&fs.path))))
                 }
             };
             new_fs.access = Some(SystemTime::now());
@@ -550,7 +550,7 @@ impl<'a> Compiler<'a> {
         // Exit if empty output location
         if output.0.is_empty() {
             tracing::warn!(target: "core", "Exiting artifact export with empty output location!");
-            return;
+            return
         }
 
         // Clean the Output Directory
@@ -597,7 +597,7 @@ impl<'a> Compiler<'a> {
                     }
                     Err(e) => {
                         tracing::error!(target: "core", "ERROR UNPACKING FILE: {:?}", e);
-                        return Err(CompilerError::FileUnpackError(e));
+                        return Err(CompilerError::FileUnpackError(e))
                     }
                 }
             }
