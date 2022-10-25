@@ -110,7 +110,7 @@ enum TestCommands {
 pub(crate) fn get_input(prompt: &str) -> String {
     // let mut sp = Spinner::new(Spinners::Line, format!("{}{}",
     // Paint::blue("[INTERACTIVE]".to_string()), prompt));
-    print!("{} {} ", Paint::blue("[INTERACTIVE]".to_string()), prompt);
+    print!("{} {prompt} ", Paint::blue("[INTERACTIVE]".to_string()));
     let mut input = String::new();
     let _ = std::io::stdout().flush();
     let _ = std::io::stdin().read_line(&mut input);
@@ -134,7 +134,7 @@ fn main() {
     let sources: Arc<Vec<String>> = match cli.get_inputs() {
         Ok(s) => Arc::new(s),
         Err(e) => {
-            eprintln!("{}", Paint::red(format!("{}", e)));
+            eprintln!("{}", Paint::red(format!("{e}")));
             std::process::exit(1);
         }
     };
@@ -149,12 +149,12 @@ fn main() {
                 // Check that constant override argument is valid
                 // Key rule: Alphabetic chars + underscore
                 // Value rule: Valid literal string (0x...)
-                if parts.len() != 2 ||
-                    parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_')) ||
-                    !parts[1].starts_with("0x") ||
-                    parts[1][2..].chars().any(|c| {
-                        !(c.is_numeric() ||
-                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
+                if parts.len() != 2
+                    || parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_'))
+                    || !parts[1].starts_with("0x")
+                    || parts[1][2..].chars().any(|c| {
+                        !(c.is_numeric()
+                            || matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
                     })
                 {
                     eprintln!("Invalid constant override argument: {}", Paint::red(c.to_string()));
@@ -221,7 +221,7 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        return
+        return;
     }
 
     // Create compiling spinner
@@ -263,7 +263,7 @@ fn main() {
                     token: None,
                 });
                 tracing::error!(target: "cli", "COMPILER ERRORED: {}", e);
-                eprintln!("{}", Paint::red(format!("{}", e)));
+                eprintln!("{}", Paint::red(format!("{e}")));
                 std::process::exit(1);
             }
 
@@ -277,7 +277,7 @@ fn main() {
                         .last()
                     {
                         Some(p) => match p.split('.').next() {
-                            Some(p) => Some(format!("I{}", p)),
+                            Some(p) => Some(format!("I{p}")),
                             None => {
                                 tracing::warn!(target: "cli", "No file name found for artifact");
                                 None
@@ -303,7 +303,7 @@ fn main() {
                         Paint::blue(
                             interfaces
                                 .into_iter()
-                                .map(|(_, i, _)| format!("{}.sol", i))
+                                .map(|(_, i, _)| format!("{i}.sol"))
                                 .collect::<Vec<_>>()
                                 .join(", ")
                         )
@@ -347,7 +347,7 @@ fn main() {
                                                         ethers_core::abi::encode(&[str.clone()]);
                                                     let hex_args: String =
                                                         hex::encode(inner.as_slice());
-                                                    format!("{}{}", acc, hex_args)
+                                                    format!("{acc}{hex_args}")
                                                 });
                                         appended_args.push_str(&encoded);
                                     }
@@ -362,7 +362,7 @@ fn main() {
                         }
                         match Arc::get_mut(artifact) {
                             Some(art) => {
-                                art.bytecode = format!("{}{}", art.bytecode, appended_args);
+                                art.bytecode = format!("{}{appended_args}", art.bytecode);
                             }
                             None => {
                                 tracing::warn!(target: "cli", "FAILED TO ACQUIRE MUTABLE REF TO ARTIFACT")
@@ -407,7 +407,7 @@ fn main() {
         }
         Err(e) => {
             tracing::error!(target: "cli", "COMPILER ERRORED: {}", e);
-            eprintln!("{}", Paint::red(format!("{}", e)));
+            eprintln!("{}", Paint::red(format!("{e}")));
             std::process::exit(1);
         }
     }

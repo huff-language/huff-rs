@@ -43,7 +43,7 @@ pub fn print_test_report(results: Vec<TestResult>, report_kind: ReportKind, star
                 ]));
             }
 
-            println!("{}", table);
+            println!("{table}");
         }
         ReportKind::List => {
             for result in results {
@@ -59,7 +59,7 @@ pub fn print_test_report(results: Vec<TestResult>, report_kind: ReportKind, star
 
                 if let Some(return_data) = result.return_data {
                     println!("├─ {}", Paint::cyan("RETURN DATA"));
-                    println!("{} {}", if num_logs == 0 { "╰─" } else { "├─" }, return_data);
+                    println!("{} {return_data}", if num_logs == 0 { "╰─" } else { "├─" });
                 }
 
                 if num_logs > 0 {
@@ -71,18 +71,19 @@ pub fn print_test_report(results: Vec<TestResult>, report_kind: ReportKind, star
                             Paint::yellow(pc),
                             log,
                         );
-                        println!("{} {}", if i == num_logs { "╰─" } else { "├─" }, log); // ├╌
+                        println!("{} {log}", if i == num_logs { "╰─" } else { "├─" });
+                        // ├╌
                     });
                 }
             }
         }
         ReportKind::JSON => {
             if let Ok(o) = serde_json::to_string_pretty(&results) {
-                println!("{}", o);
+                println!("{o}");
             } else {
                 eprintln!("Error serializing test results into JSON.");
             }
-            return
+            return;
         }
     }
     println!(
