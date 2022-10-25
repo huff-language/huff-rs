@@ -8,7 +8,7 @@ fn test_generate_remappings() {
     let subscriber_builder = tracing_subscriber::fmt();
     let env_filter = EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into());
     if let Err(e) = subscriber_builder.with_env_filter(env_filter).try_init() {
-        println!("Failed to initialize tracing!\nError: {:?}", e)
+        println!("Failed to initialize tracing!\nError: {e:?}")
     }
 
     let remapper = files::Remapper::new("../");

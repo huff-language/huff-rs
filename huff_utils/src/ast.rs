@@ -44,9 +44,9 @@ impl AstSpan {
             |s, fs| {
                 let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
                 let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
-                let newline_s = if s.is_empty() { "".to_string() } else { format!("{}\n", s) };
+                let newline_s = if s.is_empty() { "".to_string() } else { format!("{s}\n") };
                 if start.eq(&0) && end.eq(&0) {
-                    format!("{}-> {}:{}\n   > 0|", newline_s, fs.0, start)
+                    format!("{newline_s}-> {}:{start}\n   > 0|", fs.0)
                 } else {
                     format!(
                         "{}-> {}:{}-{}{}",
@@ -60,7 +60,7 @@ impl AstSpan {
                             .collect::<Vec<String>>()
                             .into_iter()
                             .unique()
-                            .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
+                            .fold("".to_string(), |acc, ss| { format!("{acc}{ss}") })
                     )
                 }
             },
@@ -68,7 +68,7 @@ impl AstSpan {
         // Add in optional hint message
         format!(
             "{}{}",
-            hint.map(|msg| format!("{}\n", /* " ".repeat(7), */ msg)).unwrap_or_default(),
+            hint.map(|msg| format!("{msg}\n")).unwrap_or_default(),
             source_str
         )
     }
@@ -76,7 +76,7 @@ impl AstSpan {
     /// Print just the file for missing
     pub fn file(&self) -> String {
         self.0.iter().fold("".to_string(), |acc, span| match &span.file {
-            Some(fs) => format!("-> {}\n{}", fs.path, acc),
+            Some(fs) => format!("-> {}\n{acc}", fs.path),
             None => Default::default(),
         })
     }
@@ -237,7 +237,7 @@ impl Contract {
                                     ConstVal::FreeStoragePointer(_) => {
                                         let old_p = *last_p;
                                         *last_p += 1;
-                                        str_to_bytes32(&format!("{}", old_p))
+                                        str_to_bytes32(&format!("{old_p}"))
                                     }
                                 };
                                 storage_pointers.push((const_name.to_string(), new_value));
@@ -548,7 +548,7 @@ impl MacroDefinition {
             match &statement.ty {
                 StatementType::Literal(l) => {
                     let hex_literal: String = bytes32_to_string(l, false);
-                    let push_bytes = format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal);
+                    let push_bytes = format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2);
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(push_bytes)),
                         span: statement.span.clone(),
@@ -824,15 +824,15 @@ impl Display for StatementType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             StatementType::Literal(l) => write!(f, "LITERAL: {}", bytes32_to_string(l, true)),
-            StatementType::Opcode(o) => write!(f, "OPCODE: {}", o),
-            StatementType::Code(s) => write!(f, "CODE: {}", s),
+            StatementType::Opcode(o) => write!(f, "OPCODE: {o}"),
+            StatementType::Code(s) => write!(f, "CODE: {s}"),
             StatementType::MacroInvocation(m) => {
                 write!(f, "MACRO INVOCATION: {}", m.macro_name)
             }
-            StatementType::Constant(c) => write!(f, "CONSTANT: {}", c),
-            StatementType::ArgCall(c) => write!(f, "ARG CALL: {}", c),
+            StatementType::Constant(c) => write!(f, "CONSTANT: {c}"),
+            StatementType::ArgCall(c) => write!(f, "ARG CALL: {c}"),
             StatementType::Label(l) => write!(f, "LABEL: {}", l.name),
-            StatementType::LabelCall(l) => write!(f, "LABEL CALL: {}", l),
+            StatementType::LabelCall(l) => write!(f, "LABEL CALL: {l}"),
             StatementType::BuiltinFunctionCall(b) => {
                 write!(f, "BUILTIN FUNCTION CALL: {:?}", b.kind)
             }

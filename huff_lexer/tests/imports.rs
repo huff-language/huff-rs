@@ -5,7 +5,7 @@ use std::ops::Deref;
 #[test]
 fn single_lex_imports() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
-    let source = format!("#include \"{}\"", import_str);
+    let source = format!("#include \"{import_str}\"");
     let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 1);
     assert_eq!(lexed_imports[0], import_str);
@@ -72,7 +72,7 @@ fn multiple_lex_imports_single_quotes() {
 #[test]
 fn lex_imports_no_ending_quote() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
-    let source = format!("#include '{}", import_str);
+    let source = format!("#include '{import_str}");
     let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 0);
 }
@@ -80,7 +80,7 @@ fn lex_imports_no_ending_quote() {
 #[test]
 fn lex_imports_no_starting_quote() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
-    let source = format!("#include {}'", import_str);
+    let source = format!("#include {import_str}'");
     let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 0);
 }

@@ -136,7 +136,7 @@ fn fails_to_parse_decorator_in_body() {
 
         for token in lexer.by_ref() {
             if let Err(e) = token {
-                panic!("{:?}", e);
+                panic!("{e:?}");
             }
         }
     }

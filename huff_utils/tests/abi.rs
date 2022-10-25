@@ -67,12 +67,12 @@ fn test_display_func_param_type() {
         // manual check for uints since "uint" is coalesced to "uint256"
         match ac_func_type {
             FunctionParamType::Uint(s) => {
-                assert_eq!(ac_func_type.to_string(), format!("uint{}", s));
-                assert_eq!(format!("{:?}", ac_func_type), format!("uint{}", s));
+                assert_eq!(ac_func_type.to_string(), format!("uint{s}"));
+                assert_eq!(format!("{ac_func_type:?}"), format!("uint{s}"));
             }
             _ => {
                 assert_eq!(ac_func_type.to_string(), func_types[index]);
-                assert_eq!(format!("{:?}", ac_func_type), func_types[index]);
+                assert_eq!(format!("{ac_func_type:?}"), func_types[index]);
             }
         }
     }

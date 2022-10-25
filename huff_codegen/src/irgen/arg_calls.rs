@@ -39,7 +39,7 @@ pub fn bubble_arg_call(
 
                         let hex_literal: String = bytes32_to_string(l, false);
                         let push_bytes =
-                            format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal);
+                            format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2);
                         let b = Bytes(push_bytes);
                         *offset += b.0.len() / 2;
                         bytes.push((starting_offset, b));
@@ -111,7 +111,7 @@ pub fn bubble_arg_call(
                             let push_bytes = match &constant.value {
                                 ConstVal::Literal(l) => {
                                     let hex_literal: String = bytes32_to_string(l, false);
-                                    format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
+                                    format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2)
                                 }
                                 ConstVal::FreeStoragePointer(fsp) => {
                                     // If this is reached in codegen stage,

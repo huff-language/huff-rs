@@ -166,13 +166,13 @@ fn recurse_macro_bytecode() {
     // Size config
     let contract_length = main_bytecode.len() / 2;
     let constructor_length = constructor_bytecode.len() / 2;
-    let contract_size = format!("{:04x}", contract_length);
+    let contract_size = format!("{contract_length:04x}");
     let contract_code_offset = format!("{:04x}", 13 + constructor_length);
 
     // Generate artifact bytecode and runtime code
-    let bootstrap_code = format!("61{}8061{}6000396000f3", contract_size, contract_code_offset);
-    let constructor_code = format!("{}{}", constructor_bytecode, bootstrap_code);
-    artifact.bytecode = format!("{}{}{}", constructor_code, main_bytecode, constructor_args);
+    let bootstrap_code = format!("61{contract_size}8061{contract_code_offset}6000396000f3");
+    let constructor_code = format!("{constructor_bytecode}{bootstrap_code}");
+    artifact.bytecode = format!("{constructor_code}{main_bytecode}{constructor_args}");
     artifact.runtime = main_bytecode;
 
     // Check the bytecode

@@ -60,7 +60,7 @@ pub trait ToBytecode<'a, E> {
 
 impl From<Vec<Bytes>> for Bytecode {
     fn from(b: Vec<Bytes>) -> Self {
-        Bytecode(b.iter().fold("".to_string(), |acc, b| format!("{}{}", acc, b.0)))
+        Bytecode(b.iter().fold("".to_string(), |acc, b| format!("{acc}{}", b.0)))
     }
 }
 
@@ -90,7 +90,7 @@ impl Display for BytecodeRes {
             unmatched_jumps: {:?}
             table_instances: {:?}
         )"#,
-            self.bytes.iter().fold("".to_string(), |acc, b| format!("{}{}", acc, b.0)),
+            self.bytes.iter().fold("".to_string(), |acc, b| format!("{acc}{}", b.0)),
             self.label_indices,
             self.unmatched_jumps,
             self.table_instances

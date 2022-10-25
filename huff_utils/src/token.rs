@@ -135,7 +135,7 @@ impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let x = match self {
             TokenKind::Eof => "EOF",
-            TokenKind::Comment(s) => return write!(f, "Comment({})", s),
+            TokenKind::Comment(s) => return write!(f, "Comment({s})"),
             TokenKind::Div => "/",
             TokenKind::Define => "#define",
             TokenKind::Include => "#include",
@@ -154,7 +154,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Takes => "takes",
             TokenKind::Returns => "returns",
             TokenKind::FreeStoragePointer => "FREE_STORAGE_POINTER()",
-            TokenKind::Ident(s) => return write!(f, "{}", s),
+            TokenKind::Ident(s) => return write!(f, "{s}"),
             TokenKind::Assign => "=",
             TokenKind::OpenParen => "(",
             TokenKind::CloseParen => ")",
@@ -170,36 +170,36 @@ impl fmt::Display for TokenKind {
             TokenKind::Colon => ":",
             TokenKind::Comma => ",",
             TokenKind::Pound => "#",
-            TokenKind::Num(num) => return write!(f, "{}", num),
+            TokenKind::Num(num) => return write!(f, "{num}"),
             TokenKind::Whitespace => " ",
             TokenKind::Str(str) => str,
             TokenKind::Literal(l) => {
                 let mut s = String::new();
                 for b in l.iter() {
-                    let _ = write!(&mut s, "{:02x}", b);
+                    let _ = write!(&mut s, "{b:02x}");
                 }
-                return write!(f, "{}", s)
+                return write!(f, "{s}")
             }
-            TokenKind::Opcode(o) => return write!(f, "{}", o),
-            TokenKind::Label(s) => return write!(f, "{}", s),
-            TokenKind::PrimitiveType(pt) => return write!(f, "{}", pt),
+            TokenKind::Opcode(o) => return write!(f, "{o}"),
+            TokenKind::Label(s) => return write!(f, "{s}"),
+            TokenKind::PrimitiveType(pt) => return write!(f, "{pt}"),
             TokenKind::ArrayType(pt, size_vec) => {
                 let mut s = String::new();
                 for size in size_vec {
-                    let brackets = if size > &0 { format!("[{}]", size) } else { "[]".to_string() };
+                    let brackets = if size > &0 { format!("[{size}]") } else { "[]".to_string() };
                     s.push_str(&brackets);
                 }
-                return write!(f, "{}{}", pt, s)
+                return write!(f, "{pt}{s}")
             }
             TokenKind::JumpTable => "jumptable",
             TokenKind::JumpTablePacked => "jumptable__packed",
             TokenKind::CodeTable => "table",
-            TokenKind::BuiltinFunction(s) => return write!(f, "BuiltinFunction({})", s),
+            TokenKind::BuiltinFunction(s) => return write!(f, "BuiltinFunction({s})"),
             TokenKind::Calldata => return write!(f, "calldata"),
             TokenKind::Memory => return write!(f, "memory"),
             TokenKind::Storage => return write!(f, "storage"),
         };
 
-        write!(f, "{}", x)
+        write!(f, "{x}")
     }
 }

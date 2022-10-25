@@ -12,10 +12,10 @@ fn opcodes() {
         let source = &format!(
             r#"
             #define macro TEST() = takes(0) returns(0) {}
-                {}
+                {opcode}
             {}
             "#,
-            "{", opcode, "}",
+            "{", "}",
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let lexer = Lexer::new(flattened_source);

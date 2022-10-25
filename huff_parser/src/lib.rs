@@ -155,7 +155,7 @@ impl Parser {
                 self.spans = vec![];
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidName(tok.clone()),
-                    hint: Some(format!("Expected import string. Got: \"{}\"", tok)),
+                    hint: Some(format!("Expected import string. Got: \"{tok}\"")),
                     spans: AstSpan(new_spans),
                 })
             }
@@ -174,7 +174,7 @@ impl Parser {
             tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED: {}, GOT: {}", kind, self.current_token.kind);
             Err(ParserError {
                 kind: ParserErrorKind::UnexpectedType(self.current_token.kind.clone()),
-                hint: Some(format!("Expected: \"{}\"", kind)),
+                hint: Some(format!("Expected: \"{kind}\"")),
                 spans: AstSpan(self.spans.clone()),
             })
         }
@@ -236,7 +236,7 @@ impl Parser {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidName(tok.clone()),
-                    hint: Some(format!("Expected function name, found: \"{}\"", tok)),
+                    hint: Some(format!("Expected function name, found: \"{tok}\"")),
                     spans: AstSpan(self.spans.clone()),
                 })
             }
@@ -271,7 +271,7 @@ impl Parser {
         let mut signature = [0u8; 4]; // Only keep first 4 bytes
         let input_types =
             inputs.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
-        hash_bytes(&mut signature, &format!("{}({})", name, input_types.join(",")));
+        hash_bytes(&mut signature, &format!("{name}({})", input_types.join(",")));
 
         Ok(Function {
             name,
@@ -298,7 +298,7 @@ impl Parser {
                 tracing::error!(target: "parser", "TOKEN MISMATCH - EXPECTED IDENT, GOT: {}", tok);
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidName(tok.clone()),
-                    hint: Some(format!("Expected event name, found: \"{}\"", tok)),
+                    hint: Some(format!("Expected event name, found: \"{tok}\"")),
                     spans: AstSpan(self.spans.clone()),
                 })
             }
@@ -310,7 +310,7 @@ impl Parser {
         let mut hash = [0u8; 32];
         let input_types =
             parameters.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
-        hash_bytes(&mut hash, &format!("{}({})", name, input_types.join(",")));
+        hash_bytes(&mut hash, &format!("{name}({})", input_types.join(",")));
 
         Ok(Event { name, parameters, span: AstSpan(self.spans.clone()), hash })
     }
@@ -394,7 +394,7 @@ impl Parser {
         let mut selector = [0u8; 4]; // Only keep first 4 bytes
         let input_types =
             parameters.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
-        hash_bytes(&mut selector, &format!("{}({})", name, input_types.join(",")));
+        hash_bytes(&mut selector, &format!("{name}({})", input_types.join(",")));
 
         // Clone spans and set to nothing
         let new_spans = self.spans.clone();
@@ -429,7 +429,7 @@ impl Parser {
                                 kind: ParserErrorKind::InvalidDecoratorFlagArg(
                                     self.current_token.kind.clone(),
                                 ),
-                                hint: Some(format!("Expected string for decorator flag: {}", s)),
+                                hint: Some(format!("Expected string for decorator flag: {s}")),
                                 spans: AstSpan(vec![self.current_token.span.clone()]),
                             })
                         }
@@ -445,7 +445,7 @@ impl Parser {
                                 kind: ParserErrorKind::InvalidDecoratorFlagArg(
                                     self.current_token.kind.clone(),
                                 ),
-                                hint: Some(format!("Expected literal for decorator flag: {}", s)),
+                                hint: Some(format!("Expected literal for decorator flag: {s}")),
                                 spans: AstSpan(vec![self.current_token.span.clone()]),
                             })
                         }
@@ -454,7 +454,7 @@ impl Parser {
                         tracing::error!(target: "parser", "DECORATOR FLAG NOT FOUND: {}", s);
                         return Err(ParserError {
                             kind: ParserErrorKind::InvalidDecoratorFlag(s.clone()),
-                            hint: Some(format!("Unknown decorator flag: {}", s)),
+                            hint: Some(format!("Unknown decorator flag: {s}")),
                             spans: AstSpan(self.spans.clone()),
                         })
                     }
@@ -936,7 +936,7 @@ impl Parser {
                                 kind: ParserErrorKind::InvalidTypeAsArgumentName(
                                     self.current_token.kind.clone(),
                                 ),
-                                hint: Some(format!("Argument names cannot be EVM types: {}", ty)),
+                                hint: Some(format!("Argument names cannot be EVM types: {ty}")),
                                 spans: AstSpan(vec![self.current_token.span.clone()]),
                             })
                         }
@@ -1095,7 +1095,7 @@ impl Parser {
             table_name,
             kind,
             table_statements,
-            str_to_bytes32(format!("{:02x}", size).as_str()),
+            str_to_bytes32(format!("{size:02x}").as_str()),
             AstSpan(self.spans.clone()),
         ))
     }
