@@ -87,6 +87,10 @@ struct Huff {
     #[clap(short = 'm', long = "alt-main")]
     alternative_main: Option<String>,
 
+    /// Compile a specific constructor macro
+    #[clap(short = 'l', long = "alt-constructor")]
+    alternative_constructor: Option<String>,
+
     /// Test subcommand
     #[clap(subcommand)]
     test: Option<TestCommands>,
@@ -188,6 +192,7 @@ fn main() {
         sources: Arc::clone(&sources),
         output,
         alternative_main: cli.alternative_main,
+        alternative_constructor: cli.alternative_constructor,
         construct_args: cli.inputs,
         constant_overrides: constants,
         optimize: cli.optimize,

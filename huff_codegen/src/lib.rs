@@ -82,9 +82,15 @@ impl Codegen {
     }
 
     /// Generates constructor bytecode from a Contract AST
-    pub fn generate_constructor_bytecode(contract: &Contract) -> Result<String, CodegenError> {
+    pub fn generate_constructor_bytecode(
+        contract: &Contract,
+        alternative_constructor: Option<String>,
+    ) -> Result<String, CodegenError> {
+        // If an alternative constructor macro is provided, then use it as the compilation target
+        let constructor_macro = alternative_constructor.unwrap_or(String::from("CONSTRUCTOR"));
+
         // Find the constructor macro
-        let c_macro = Codegen::get_macro_by_name("CONSTRUCTOR", contract)?;
+        let c_macro = Codegen::get_macro_by_name(&constructor_macro, contract)?;
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(

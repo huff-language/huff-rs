@@ -5,7 +5,8 @@ use huff_utils::prelude::{CompilerError, OutputLocation, UnpackError};
 
 #[test]
 fn test_get_outputs_no_output() {
-    let compiler: Compiler = Compiler::new(Arc::new(vec![]), None, None, None, None, false, false);
+    let compiler: Compiler =
+        Compiler::new(Arc::new(vec![]), None, None, None, None, None, false, false);
     let ol: OutputLocation = compiler.get_outputs();
     assert_eq!(ol, OutputLocation::default());
 }
@@ -15,6 +16,7 @@ fn test_get_outputs_with_output() {
     let compiler: Compiler = Compiler::new(
         Arc::new(vec![]),
         Some("./test_out/".to_string()),
+        None,
         None,
         None,
         None,
@@ -30,6 +32,7 @@ fn test_transform_paths() {
     let _compiler: Compiler = Compiler::new(
         Arc::new(vec![]),
         Some("./test_out/".to_string()),
+        None,
         None,
         None,
         None,
@@ -74,6 +77,7 @@ fn test_transform_paths_non_huff() {
         None,
         None,
         None,
+        None,
         false,
         false,
     );
@@ -95,6 +99,7 @@ fn test_transform_paths_no_dir() {
     let _compiler: Compiler = Compiler::new(
         Arc::new(vec![]),
         Some("./test_out/".to_string()),
+        None,
         None,
         None,
         None,
