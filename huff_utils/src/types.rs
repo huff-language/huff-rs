@@ -35,7 +35,7 @@ impl TryFrom<String> for PrimitiveEVMType {
                 Some(s) => match s.is_empty() {
                     false => match s.parse::<usize>() {
                         Ok(s) => s,
-                        Err(_) => return Err(format!("Invalid uint size : {}", s)),
+                        Err(_) => return Err(format!("Invalid uint size : {s}")),
                     },
                     true => 256,
                 },
@@ -49,7 +49,7 @@ impl TryFrom<String> for PrimitiveEVMType {
                 Some(s) => match s.is_empty() {
                     false => match s.parse::<usize>() {
                         Ok(s) => s,
-                        Err(_) => return Err(format!("Invalid int size : {}", s)),
+                        Err(_) => return Err(format!("Invalid int size : {s}")),
                     },
                     true => 256,
                 },
@@ -61,7 +61,7 @@ impl TryFrom<String> for PrimitiveEVMType {
             let remaining = input.get(5..input.len()).unwrap();
             let size = match remaining.parse::<usize>() {
                 Ok(s) => s,
-                Err(_) => return Err(format!("Invalid bytes size : {}", remaining)),
+                Err(_) => return Err(format!("Invalid bytes size : {remaining}")),
             };
             return Ok(PrimitiveEVMType::Bytes(size))
         }
@@ -77,7 +77,7 @@ impl TryFrom<String> for PrimitiveEVMType {
         if input == "bytes" {
             Ok(PrimitiveEVMType::DynBytes)
         } else {
-            Err(format!("Invalid PrimitiveEVMType type: {}", input))
+            Err(format!("Invalid PrimitiveEVMType type: {input}"))
         }
     }
 }
@@ -89,12 +89,12 @@ impl fmt::Display for PrimitiveEVMType {
             PrimitiveEVMType::String => "string",
             PrimitiveEVMType::Bool => "bool",
             PrimitiveEVMType::DynBytes => "bytes",
-            PrimitiveEVMType::Uint(s) => return write!(f, "uint{}", s),
-            PrimitiveEVMType::Int(s) => return write!(f, "int{}", s),
-            PrimitiveEVMType::Bytes(s) => return write!(f, "bytes{}", s),
+            PrimitiveEVMType::Uint(s) => return write!(f, "uint{s}"),
+            PrimitiveEVMType::Int(s) => return write!(f, "int{s}"),
+            PrimitiveEVMType::Bytes(s) => return write!(f, "bytes{s}"),
         };
 
-        write!(f, "{}", x)
+        write!(f, "{x}")
     }
 }
 
@@ -169,7 +169,7 @@ impl TryFrom<String> for EToken {
             let tokens: Vec<Token> = e_tokens?.into_iter().map(|x| x.0).collect();
             Ok(EToken(Token::Array(tokens)))
         } else {
-            Err(format!("Invalid input: {}", input))
+            Err(format!("Invalid input: {input}"))
         }
     }
 }

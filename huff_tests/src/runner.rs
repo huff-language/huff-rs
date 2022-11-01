@@ -48,11 +48,11 @@ impl TestRunner {
         let constructor_length = 0;
         let mut bootstrap_code_size = 9;
         let contract_size = if contract_length < 256 {
-            format!("60{}", pad_n_bytes(format!("{:x}", contract_length).as_str(), 1))
+            format!("60{}", pad_n_bytes(format!("{contract_length:x}").as_str(), 1))
         } else {
             bootstrap_code_size += 1;
 
-            format!("61{}", pad_n_bytes(format!("{:x}", contract_length).as_str(), 2))
+            format!("61{}", pad_n_bytes(format!("{contract_length:x}").as_str(), 2))
         };
         let contract_code_offset = if (bootstrap_code_size + constructor_length) < 256 {
             format!(
@@ -67,7 +67,7 @@ impl TestRunner {
                 pad_n_bytes(format!("{:x}", bootstrap_code_size + constructor_length).as_str(), 2)
             )
         };
-        let bootstrap = format!("{}80{}3d393df3{}", contract_size, contract_code_offset, code);
+        let bootstrap = format!("{contract_size}80{contract_code_offset}3d393df3{code}");
 
         let mut evm = EVM::new();
         self.set_balance(Address::zero(), U256::MAX);

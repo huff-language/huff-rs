@@ -32,7 +32,7 @@ pub fn constant_gen(
     let push_bytes = match &constant.value {
         ConstVal::Literal(l) => {
             let hex_literal: String = bytes32_to_string(l, false);
-            format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal)
+            format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2)
         }
         ConstVal::FreeStoragePointer(fsp) => {
             // If this is reached in codegen stage, the `derive_storage_pointers`

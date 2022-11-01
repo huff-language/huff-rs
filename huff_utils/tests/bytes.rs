@@ -13,7 +13,7 @@ fn test_bytes32_to_string() {
 #[test]
 fn test_hex_to_usize() {
     for i in 0..255 {
-        let str = format!("{:02x}", i);
+        let str = format!("{i:02x}");
         let converted_usize = hex_to_usize(&str).unwrap();
         assert_eq!(converted_usize, i);
     }

@@ -809,7 +809,7 @@ impl Opcode {
                         let zeros_needed = size - literal.len() as u8;
                         let zero_prefix =
                             (0..zeros_needed).map(|_| "0").collect::<Vec<&str>>().join("");
-                        return format!("{}{}", zero_prefix, literal)
+                        return format!("{zero_prefix}{literal}")
                     }
                 }
             }
@@ -836,7 +836,7 @@ impl Opcode {
 impl fmt::Display for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let opcode_str = self.string();
-        write!(f, "{}", opcode_str)
+        write!(f, "{opcode_str}")
     }
 }
 

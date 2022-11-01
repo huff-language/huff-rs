@@ -535,7 +535,7 @@ impl<'a> Iterator for Lexer<'a> {
                                                         ),
                                                         span: self.current_span().clone(),
                                                     };
-                                                    tracing::error!(target: "lexer", "{}", format!("{:?}", err));
+                                                    tracing::error!(target: "lexer", "{}", format!("{err:?}"));
                                                     err
                                                 })
                                                 .unwrap();
@@ -551,7 +551,7 @@ impl<'a> Iterator for Lexer<'a> {
                                         kind: LexicalErrorKind::InvalidPrimitiveType(&words[0]),
                                         span: self.current_span().clone(),
                                     };
-                                    tracing::error!(target: "lexer", "{}", format!("{:?}", err));
+                                    tracing::error!(target: "lexer", "{}", format!("{err:?}"));
                                 }
                             } else {
                                 // We don't want to consider any argument names or the "indexed"

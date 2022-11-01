@@ -19,10 +19,10 @@ fn parses_builtin_function_in_macro_body() {
         let source = &format!(
             r#"
             #define macro TEST() = takes(0) returns(0) {}
-                {}(MAIN)
+                {builtin}(MAIN)
             {}
             "#,
-            "{", builtin, "}",
+            "{", "}",
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let mut lexer = Lexer::new(flattened_source.clone());
@@ -90,7 +90,7 @@ fn fails_to_parse_builtin_outside_macro_body() {
     ];
 
     for builtin in builtin_funcs {
-        let source = &format!("{}(MAIN)", builtin);
+        let source = &format!("{builtin}(MAIN)");
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let mut lexer = Lexer::new(flattened_source.clone());
         assert_eq!(lexer.source, flattened_source);
@@ -123,10 +123,10 @@ fn fails_to_parse_invalid_builtin() {
         let source = &format!(
             r#"
             #define macro TEST() = takes(0) returns(0) {}
-                {}(MAIN)
+                {builtin}(MAIN)
             {}
             "#,
-            "{", builtin, "}",
+            "{", "}",
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let mut lexer = Lexer::new(flattened_source.clone());

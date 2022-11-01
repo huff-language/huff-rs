@@ -32,7 +32,7 @@ fn test_opcode_macro_args() {
     let expected_bytecode = "60088060093d393df360ff3d5260203df3";
 
     // Create bytecode
-    let bytecode = format!("60088060093d393df360ff{}", main_bytecode);
+    let bytecode = format!("60088060093d393df360ff{main_bytecode}");
 
     // Check the bytecode
     assert_eq!(bytecode.to_lowercase(), expected_bytecode.to_lowercase());
@@ -69,7 +69,7 @@ fn test_all_opcodes_in_macro_args() {
         let expected_bytecode = format!("60088060093d393df360ff{}", Opcode::from_str(o).unwrap());
 
         // Create bytecode
-        let bytecode = format!("60088060093d393df360ff{}", main_bytecode);
+        let bytecode = format!("60088060093d393df360ff{main_bytecode}");
 
         // Check the bytecode
         assert_eq!(bytecode.to_lowercase(), expected_bytecode.to_lowercase());
@@ -105,7 +105,7 @@ fn test_constant_macro_arg() {
     let expected_bytecode = "60088060093d393df360ff6002";
 
     // Create bytecode
-    let bytecode = format!("60088060093d393df360ff{}", main_bytecode);
+    let bytecode = format!("60088060093d393df360ff{main_bytecode}");
 
     // Check the bytecode
     assert_eq!(bytecode.to_lowercase(), expected_bytecode.to_lowercase());
@@ -143,7 +143,7 @@ fn test_bubbled_label_call_macro_arg() {
     let expected_bytecode = "60088060093d393df360ff5b610000";
 
     // Create bytecode
-    let bytecode = format!("60088060093d393df360ff{}", main_bytecode);
+    let bytecode = format!("60088060093d393df360ff{main_bytecode}");
 
     // Check the bytecode
     assert_eq!(bytecode.to_lowercase(), expected_bytecode.to_lowercase());
@@ -180,7 +180,7 @@ fn test_bubbled_literal_macro_arg() {
     let expected_bytecode = "60088060093d393df360ff610420";
 
     // Create bytecode
-    let bytecode = format!("60088060093d393df360ff{}", main_bytecode);
+    let bytecode = format!("60088060093d393df360ff{main_bytecode}");
 
     // Check the bytecode
     assert_eq!(bytecode.to_lowercase(), expected_bytecode.to_lowercase());
@@ -217,7 +217,7 @@ fn test_bubbled_opcode_macro_arg() {
     let expected_bytecode = "60088060093d393df360ff3d";
 
     // Create bytecode
-    let bytecode = format!("60088060093d393df360ff{}", main_bytecode);
+    let bytecode = format!("60088060093d393df360ff{main_bytecode}");
 
     // Check the bytecode
     assert_eq!(bytecode.to_lowercase(), expected_bytecode.to_lowercase());
@@ -256,7 +256,7 @@ fn test_bubbled_constant_macro_arg() {
     let expected_bytecode = "60088060093d393df360ff6002";
 
     // Create bytecode
-    let bytecode = format!("60088060093d393df360ff{}", main_bytecode);
+    let bytecode = format!("60088060093d393df360ff{main_bytecode}");
 
     // Check the bytecode
     assert_eq!(bytecode.to_lowercase(), expected_bytecode.to_lowercase());

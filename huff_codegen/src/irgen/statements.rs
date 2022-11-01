@@ -203,7 +203,7 @@ pub fn statement_gen(
                         "{:02x}",
                         (res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2)
                     ));
-                    let push_bytes = format!("{:02x}{}", 95 + size.len() / 2, size);
+                    let push_bytes = format!("{:02x}{size}", 95 + size.len() / 2);
 
                     *offset += push_bytes.len() / 2;
                     bytes.push((starting_offset, Bytes(push_bytes)));
@@ -229,7 +229,7 @@ pub fn statement_gen(
                     };
 
                     let size = bytes32_to_string(&ir_table.size, false);
-                    let push_bytes = format!("{:02x}{}", 95 + size.len() / 2, size);
+                    let push_bytes = format!("{:02x}{size}", 95 + size.len() / 2);
 
                     if !utilized_tables.contains(&ir_table) {
                         utilized_tables.push(ir_table);
@@ -352,7 +352,7 @@ pub fn statement_gen(
                         .find(|e| bf.args[0].name.as_ref().unwrap().eq(&e.name))
                     {
                         let hash = bytes32_to_string(&event.hash, false);
-                        let push_bytes = format!("{}{}", Opcode::Push32, hash);
+                        let push_bytes = format!("{}{hash}", Opcode::Push32);
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else if let Some(s) = &bf.args[0].name {
@@ -402,7 +402,7 @@ pub fn statement_gen(
                         // Add 28 bytes to left-pad the 4 byte selector
                         let selector =
                             format!("{}{}", hex::encode(error.selector), "00".repeat(28));
-                        let push_bytes = format!("{}{}", Opcode::Push32, selector);
+                        let push_bytes = format!("{}{selector}", Opcode::Push32);
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else {
@@ -439,7 +439,7 @@ pub fn statement_gen(
 
                     let hex = format_even_bytes(bf.args[0].name.as_ref().unwrap().clone());
                     let push_bytes =
-                        format!("{}{}{}", Opcode::Push32, hex, "0".repeat(64 - hex.len()));
+                        format!("{}{hex}{}", Opcode::Push32, "0".repeat(64 - hex.len()));
                     *offset += push_bytes.len() / 2;
                     bytes.push((starting_offset, Bytes(push_bytes)));
                 }
