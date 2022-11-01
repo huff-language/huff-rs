@@ -41,7 +41,7 @@ fn test_codesize_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_constructor_bytecode(&contract).unwrap();
+    let cbytes = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(cbytes, String::from("6004"));
 }
 
@@ -75,7 +75,7 @@ fn test_dyn_constructor_arg_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let constructor_code = Codegen::generate_constructor_bytecode(&contract).unwrap();
+    let constructor_code = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     let main_code = Codegen::generate_main_bytecode(&contract, None).unwrap();
 
     let args = Codegen::encode_constructor_args(vec![String::from("testing")]);
@@ -226,7 +226,7 @@ fn test_tablestart_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_constructor_bytecode(&contract).unwrap();
+    let cbytes = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(cbytes, String::from("61001e6100265b60006000f35b60006000f35b60006000f35b60006000f30006000c001200180000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000018"));
 }
 

@@ -45,6 +45,7 @@ pub(crate) mod cache;
 ///     None,
 ///     None,
 ///     None,
+///     None,
 ///     false,
 ///     false
 /// );
@@ -57,6 +58,8 @@ pub struct Compiler<'a> {
     pub output: Option<String>,
     /// Macro to use a main
     pub alternative_main: Option<String>,
+    /// Constructor macro to use
+    pub alternative_constructor: Option<String>,
     /// Constructor Input Arguments
     pub construct_args: Option<Vec<String>>,
     /// Constant Overrides
@@ -71,10 +74,12 @@ pub struct Compiler<'a> {
 
 impl<'a> Compiler<'a> {
     /// Public associated function to instantiate a new compiler.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         sources: Arc<Vec<String>>,
         output: Option<String>,
         alternative_main: Option<String>,
+        alternative_constructor: Option<String>,
         construct_args: Option<Vec<String>>,
         constant_overrides: Option<BTreeMap<&'a str, Literal>>,
         verbose: bool,
@@ -87,6 +92,7 @@ impl<'a> Compiler<'a> {
             sources,
             output,
             alternative_main,
+            alternative_constructor,
             construct_args,
             constant_overrides,
             optimize: false,
@@ -374,7 +380,10 @@ impl<'a> Compiler<'a> {
 
         // Generate Constructor Bytecode
         let inputs = self.get_constructor_args();
-        let constructor_bytecode = match Codegen::generate_constructor_bytecode(&contract) {
+        let constructor_bytecode = match Codegen::generate_constructor_bytecode(
+            &contract,
+            self.alternative_constructor.clone(),
+        ) {
             Ok(mb) => mb,
             Err(mut e) => {
                 // Return any errors except if the inputs is empty and the constructor definition is

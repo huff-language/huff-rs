@@ -13,11 +13,11 @@ The [generate_main_bytecode](struct.Codegen.html#method.generate_main_bytecode) 
 Likewise, the [generate_constructor_bytecode](struct.Codegen.html#method.generate_constructor_bytecode) function takes a reference of [Contract](../huff_utils/ast/struct.Contract.html) and produces a bytecode `String` on success or a [CodegenError](../huff_utils/error/struct.CodegenError.html) on failure.
 
 [churn](struct.Codegen.html#method.churn) takes the generated **CONSTRUCTOR** and **MAIN** macros' bytecode and produces an [Artifact](../huff_utils/artifact/struct.Artifact.html) containing:
+
 - The file source: [Artifact.file](../huff_utils/artifact/struct.Artifact.html#structfield.file)
 - The deployed bytecode: [Artifact.deployed](../huff_utils/artifact/struct.Artifact.html#structfield.deployed)
 - The runtime bytecode: [Artifact.runtime](../huff_utils/artifact/struct.Artifact.html#structfield.runtime)
 - The contract ABI: [Artifact.abi](../huff_utils/artifact/struct.Artifact.html#structfield.abi)
-
 
 #### Usage
 
@@ -47,7 +47,6 @@ assert_eq!(churn_res.unwrap().bytecode, "336000556101ac80600e3d393df360003560e01
 // Write the compile artifact out to a file
 // cg.export("./output.json");
 ```
-
 
 Let's say you have a [Contract](../huff_utils/ast/struct.Contract.html) instance with a simple **MAIN** macro. You can generate the main macro bytecode using the [generate_main_bytecode](struct.Codegen.html#method.generate_main_bytecode) function.
 
@@ -115,7 +114,7 @@ use std::sync::{Arc, Mutex};
 let contract = Contract {
   macros: vec![
     MacroDefinition {
-      name: "CONSTRUCTOR".to_string(), 
+      name: "CONSTRUCTOR".to_string(),
       decorator: None,
       parameters: vec![],
       statements: vec![
@@ -153,7 +152,7 @@ let contract = Contract {
 };
 
 // Generate the constructor bytecode
-let constructor_bytecode: String = Codegen::generate_constructor_bytecode(&contract).unwrap();
+let constructor_bytecode: String = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
 
 // Validate the output bytecode
 assert_eq!(constructor_bytecode, "60003560e01c");

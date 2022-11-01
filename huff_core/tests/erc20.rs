@@ -33,7 +33,7 @@ fn test_erc20_compile() {
 
     // Create main and constructor bytecode
     let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
-    let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract).unwrap();
+    let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
 
     // Churn
     let mut cg = Codegen::new();

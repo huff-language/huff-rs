@@ -142,7 +142,7 @@ fn test_missing_constructor() {
     contract.derive_storage_pointers();
 
     // Create constructor bytecode
-    match Codegen::generate_constructor_bytecode(&contract) {
+    match Codegen::generate_constructor_bytecode(&contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(

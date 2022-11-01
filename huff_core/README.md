@@ -23,7 +23,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 // Instantiate the Compiler Instance
-let mut compiler = Compiler::new(Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]), None, None, None, None, false, false);
+let mut compiler = Compiler::new(Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]), None, None, None, None, None, false, false);
 
 // Execute the compiler
 let res: Result<Vec<Arc<Artifact>>, Arc<CompilerError<'_>>> = compiler.execute();
@@ -31,9 +31,6 @@ assert!(res.is_ok());
 ```
 
 The [Compiler](struct.Compiler.html) is easily configurable upon instantiation.
-
-
-
 
 #### Inner Workings
 
@@ -44,4 +41,3 @@ The [Compiler](struct.Compiler.html) is composed of several compilation phases a
 [Files] -> Lexer -> Parser -> Codegen -> [Bytecode]
 
 ```
-

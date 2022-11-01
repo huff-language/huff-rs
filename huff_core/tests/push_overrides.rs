@@ -31,7 +31,7 @@ fn test_gracefully_pads_push_override() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_constructor_bytecode(&contract).unwrap();
+    let cbytes = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(
         cbytes,
         String::from("7f0000000000000000000000000000000000000000000000000000000000000234")
@@ -66,7 +66,7 @@ fn test_constructs_exact_push_override() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_constructor_bytecode(&contract).unwrap();
+    let cbytes = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(cbytes, String::from("6034"));
 }
 

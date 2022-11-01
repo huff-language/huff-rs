@@ -31,7 +31,7 @@ fn test_missing_constructor() {
     };
 
     // Instantiate a new compiler
-    let compiler = Compiler::new(Arc::new(vec![]), None, None, None, None, false, false);
+    let compiler = Compiler::new(Arc::new(vec![]), None, None, None, None, None, false, false);
 
     // Generate the compile artifact
     let arc_source = Arc::new(full_source);
@@ -78,6 +78,7 @@ fn test_missing_constructor_with_inputs() {
     // Instantiate a new compiler
     let compiler = Compiler::new(
         Arc::new(vec![]),
+        None,
         None,
         None,
         Some(vec!["0".to_string()]),
