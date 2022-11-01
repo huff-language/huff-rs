@@ -60,7 +60,7 @@ impl Codegen {
         alternative_main: Option<String>,
     ) -> Result<String, CodegenError> {
         // If an alternative main is provided, then use it as the compilation target
-        let main_macro = alternative_main.unwrap_or(String::from("MAIN"));
+        let main_macro = alternative_main.unwrap_or_else(|| String::from("MAIN"));
 
         // Find the main macro
         let m_macro = Codegen::get_macro_by_name(&main_macro, contract)?;
@@ -87,7 +87,8 @@ impl Codegen {
         alternative_constructor: Option<String>,
     ) -> Result<String, CodegenError> {
         // If an alternative constructor macro is provided, then use it as the compilation target
-        let constructor_macro = alternative_constructor.unwrap_or(String::from("CONSTRUCTOR"));
+        let constructor_macro =
+            alternative_constructor.unwrap_or_else(|| String::from("CONSTRUCTOR"));
 
         // Find the constructor macro
         let c_macro = Codegen::get_macro_by_name(&constructor_macro, contract)?;
