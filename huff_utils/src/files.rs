@@ -164,7 +164,7 @@ impl Remapper {
             if path.starts_with(k) {
                 tracing::debug!(target: "parser", "found key {} and value {}", k, v);
                 path = path.replace(k, v);
-                return Some(format!("{}{}", self.base_dir, path))
+                return Some(format!("{}{path}", self.base_dir))
             }
         }
         None
@@ -253,7 +253,7 @@ impl FileSource {
                                 if prefix.is_empty() || prefix == "." {
                                     prefix = "..".to_string();
                                 } else {
-                                    prefix = format!("../{}", prefix);
+                                    prefix = format!("../{prefix}");
                                 }
                             } else {
                                 prefix = pref
@@ -271,13 +271,13 @@ impl FileSource {
                 }
                 res_str = res_str.replacen("../", "", 1);
             }
-            Some(format!("{}/{}", prefix, res_str))
+            Some(format!("{prefix}/{res_str}"))
         } else if child.starts_with("./") {
-            Some(child.replacen("./", &format!("{}/", prefix), 1))
+            Some(child.replacen("./", &format!("{prefix}/"), 1))
         } else if child.starts_with('/') {
             Some(child.to_string())
         } else {
-            Some(format!("{}/{}", prefix, child))
+            Some(format!("{prefix}/{child}"))
         }
     }
 }

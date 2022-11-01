@@ -12,7 +12,7 @@ fn parses_function_type() {
     ];
 
     for (fn_type, fn_type_kind) in fn_types {
-        let source = &format!("#define function test() {} returns (uint256)", fn_type);
+        let source = &format!("#define function test() {fn_type} returns (uint256)");
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let mut lexer = Lexer::new(flattened_source.clone());
         assert_eq!(lexer.source, flattened_source);

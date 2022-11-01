@@ -96,7 +96,7 @@ pub fn gen_sol_interfaces(
                     artifact.file.path.split('/').last().unwrap().split('.').next().unwrap()
                 )
             });
-            let formatted_str = format!("interface {} {{\n{}\n}}", interface_name, defs.join("\n"));
+            let formatted_str = format!("interface {interface_name} {{\n{}\n}}", defs.join("\n"));
             interfaces.push((
                 Path::new(&artifact.file.path).parent().unwrap().to_path_buf(),
                 interface_name,
@@ -116,7 +116,7 @@ pub fn export_interfaces(
     interfaces: &Vec<(PathBuf, String, String)>,
 ) -> Result<(), std::io::Error> {
     for (path, name, interface) in interfaces {
-        let path_str = format!("{}/{}.sol", path.to_str().unwrap_or(""), name);
+        let path_str = format!("{}/{name}.sol", path.to_str().unwrap_or(""));
         let file_path = Path::new(&path_str);
         fs::write(file_path, interface)?;
     }

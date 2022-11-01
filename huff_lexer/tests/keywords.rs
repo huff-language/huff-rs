@@ -353,7 +353,7 @@ fn parses_function_definition_with_keyword_name() {
     ];
 
     for s in key_words {
-        let source = &format!("#define function {}(uint256) view returns(uint256)", s);
+        let source = &format!("#define function {s}(uint256) view returns(uint256)");
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let mut lexer = Lexer::new(flattened_source);
 
@@ -478,7 +478,7 @@ fn parses_function_with_keyword_name() {
     ];
 
     for s in key_words {
-        let source = &format!("dup1 0x7c09063f eq {} jumpi", s);
+        let source = &format!("dup1 0x7c09063f eq {s} jumpi");
 
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let mut lexer = Lexer::new(flattened_source);
@@ -532,10 +532,10 @@ fn parses_function_with_keyword_name_in_macro() {
         let source = &format!(
             r#"
             #define macro NUMS() = takes(0) returns(1) {}
-                0x01 0x02 {}
+                0x01 0x02 {s}
             {}
             "#,
-            "{", s, "}",
+            "{", "}",
         );
 
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
@@ -620,7 +620,7 @@ fn parses_keyword_arbitrary_whitespace() {
     ];
 
     for (key, kind) in key_words {
-        let source = &format!("#define     {}", key);
+        let source = &format!("#define     {key}");
 
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let mut lexer = Lexer::new(flattened_source);

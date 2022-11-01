@@ -113,7 +113,7 @@ impl<'a> Compiler<'a> {
             }
         }
         if let Err(e) = subscriber_builder.with_env_filter(env_filter).try_init() {
-            println!("Failed to initialize tracing!\nError: {:?}", e)
+            println!("Failed to initialize tracing!\nError: {e:?}")
         }
     }
 
