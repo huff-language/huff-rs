@@ -376,7 +376,7 @@ fn main() {
                         if cli.bin_runtime {
                             println!("\nbytecode: {}", artifacts[0].bytecode)
                         } else {
-                            print!("{}", artifacts[0].bytecode)
+                            println!("{}", artifacts[0].bytecode)
                         }
                     }
                     _ => artifacts
@@ -391,7 +391,7 @@ fn main() {
                         if cli.bytecode {
                             println!("\nruntime: {}", artifacts[0].runtime)
                         } else {
-                            print!("{}", artifacts[0].runtime)
+                            println!("{}", artifacts[0].runtime)
                         }
                     }
                     _ => artifacts
