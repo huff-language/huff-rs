@@ -1,4 +1,4 @@
-use itertools::Itertools;
+use itertools::{Itertools};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::Ref,
@@ -7,7 +7,6 @@ use std::{
     io::{BufReader, Read},
     path::{Path, PathBuf},
     sync::Arc,
-    time::SystemTime,
 };
 use uuid::Uuid;
 
@@ -182,7 +181,7 @@ pub struct FileSource {
     /// File Source
     pub source: Option<String>,
     /// Last File Access Time
-    pub access: Option<SystemTime>,
+    pub access: Option<time::Time>,
     /// An Ordered List of File Dependencies
     pub dependencies: Option<Vec<Arc<FileSource>>>,
 }
@@ -289,6 +288,7 @@ impl FileSource {
     }
 }
 
+use crate::time;
 use std::ops::{Add, Range};
 
 /// A Span is a section of a source file.

@@ -4,13 +4,15 @@ use huff_codegen::Codegen;
 use huff_core::*;
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::{files, prelude::*};
+use huff_utils::{files, prelude::*, file_provider::FileSystemFileProvider};
 
 #[test]
 fn test_erc721_compile() {
-    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
-        "../huff-examples/erc721/contracts/ERC721.huff".to_string(),
-    )])
+    let file_provider = Arc::new(FileSystemFileProvider {});
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(
+        vec![PathBuf::from("../huff-examples/erc721/contracts/ERC721.huff".to_string())],
+        file_provider.clone(),
+    )
     .iter()
     .map(|p| p.clone().unwrap())
     .collect();
@@ -18,7 +20,8 @@ fn test_erc721_compile() {
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
     let recursed_file_source =
-        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
+        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./"), file_provider)
+            .unwrap();
     let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
     let full_source = FullFileSource {
         source: &flattened.0,

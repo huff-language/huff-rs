@@ -13,7 +13,7 @@ keywords = ["huff", "rust", "ethereum", "bytecode", "compiler"]
 
 [dependencies]
 serde_json = "1.0.81"
-proptest = "1.0.0"
+#proptest = "1.0.0"
 huff_utils = { path = "../huff_utils" }
 ethers-core = "0.13.0"
 hex = "0.4.3"

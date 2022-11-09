@@ -12,7 +12,7 @@ Lexical Analysis Crate for the Huff-Language
 keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
 
 [dependencies]
-proptest = "1.0.0"
+#proptest = "1.0.0"
 huff_utils = { path = "../huff_utils", version = "0.3.0" }
 regex = "1"
 tracing = "0.1.34"
