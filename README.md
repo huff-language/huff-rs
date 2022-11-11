@@ -37,7 +37,7 @@ If you have the old [huffc (TypeScript version)](https://github.com/huff-languag
 sudo yarn global remove huffc
 ```
 
-To make sure you are running the rust version, you can run `huffc --version` and it should respond with `huff_cli <version>`.  If it responds with `2.0.0` that means you are running the Typescript version.
+To make sure you are running the rust version, you can run `huffc --version` and it should respond with `huff_cli <version>`.  If it responds with `^0.0.2` that means you are running the Typescript version.
 ```bash
 $ huffc --version
 huff_cli 0.3.0
