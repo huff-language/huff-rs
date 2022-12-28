@@ -6,7 +6,7 @@ use crate::{
     bytes_util::*,
     error::CodegenError,
     evm::Opcode,
-    prelude::{Span, TokenKind},
+    prelude::{MacroArg::Ident, Span, TokenKind},
 };
 use std::{
     collections::BTreeMap,
@@ -201,6 +201,7 @@ impl Contract {
         checking_constructor: bool,
     ) {
         let mut statements = macro_def.statements.clone();
+
         let mut i = 0;
         loop {
             if i >= statements.len() {
@@ -208,44 +209,36 @@ impl Contract {
             }
             match &statements[i].clone().ty {
                 StatementType::Constant(const_name) => {
-                    tracing::debug!(target: "ast", "Found constant \"{}\" in macro def \"{}\" statements!", const_name, macro_def.name);
-                    if storage_pointers
-                        .iter()
-                        .filter(|pointer| pointer.0.eq(const_name))
-                        .collect::<Vec<&(String, [u8; 32])>>()
-                        .get(0)
-                        .is_none()
-                    {
-                        tracing::debug!(target: "ast", "No storage pointer already set for \"{}\"!", const_name);
-                        // Get the associated constant
-                        match self
-                            .constants
-                            .lock()
-                            .unwrap()
-                            .iter()
-                            .filter(|c| c.name.eq(const_name))
-                            .collect::<Vec<&ConstantDefinition>>()
-                            .get(0)
-                        {
-                            Some(c) => {
-                                let new_value = match c.value {
-                                    ConstVal::Literal(l) => l,
-                                    ConstVal::FreeStoragePointer(_) => {
-                                        let old_p = *last_p;
-                                        *last_p += 1;
-                                        str_to_bytes32(&format!("{old_p}"))
-                                    }
-                                };
-                                storage_pointers.push((const_name.to_string(), new_value));
-                            }
-                            None => {
-                                tracing::warn!(target: "ast", "CONSTANT \"{}\" NOT FOUND IN AST CONSTANTS", const_name)
-                            }
-                        }
-                    }
+                    self.tag_constants(const_name, &macro_def.name, storage_pointers, last_p);
                 }
                 StatementType::MacroInvocation(mi) => {
                     tracing::debug!(target: "ast", "Found macro invocation: \"{}\" in macro def: \"{}\"!", mi.macro_name, macro_def.name);
+
+                    // Intermediate array to hold onto constant definitions in args
+                    let mut constant_args: Vec<String> = Vec::new();
+                    for arg in &mi.args {
+                        // check if it is a constant
+                        println!("loop args");
+                        if let Ident(name) = arg {
+                            self.constants.lock().unwrap().iter().for_each(|constant| {
+                                println!("for each loop");
+                                if name == &constant.name {
+                                    tracing::debug!(target: "ast", "CONSTANT FOUND AS MACRO PARAMETER {}", name);
+                                    constant_args.push(name.to_string());
+
+                                }
+                            })
+                        }
+                    }
+                    for constant_arg in constant_args {
+                        self.tag_constants(
+                            &constant_arg,
+                            &macro_def.name,
+                            storage_pointers,
+                            last_p,
+                        );
+                    }
+
                     match self
                         .macros
                         .iter()
@@ -319,6 +312,50 @@ impl Contract {
         //     let next_md = macros_to_recurse.remove(0);
         //     self.recurse_ast_constants(next_md, storage_pointers, last_p, macros_to_recurse);
         // }
+    }
+
+    fn tag_constants(
+        &self,
+        const_name: &String,
+        macro_name: &String,
+        storage_pointers: &mut Vec<(String, [u8; 32])>,
+        last_p: &mut i32,
+    ) {
+        tracing::debug!(target: "ast", "Found constant \"{}\" in macro def \"{}\" statements!", const_name, macro_name);
+        if storage_pointers
+            .iter()
+            .filter(|pointer| pointer.0.eq(const_name))
+            .collect::<Vec<&(String, [u8; 32])>>()
+            .get(0)
+            .is_none()
+        {
+            tracing::debug!(target: "ast", "No storage pointer already set for \"{}\"!", const_name);
+            // Get the associated constant
+            match self
+                .constants
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|c| c.name.eq(const_name))
+                .collect::<Vec<&ConstantDefinition>>()
+                .get(0)
+            {
+                Some(c) => {
+                    let new_value = match c.value {
+                        ConstVal::Literal(l) => l,
+                        ConstVal::FreeStoragePointer(_) => {
+                            let old_p = *last_p;
+                            *last_p += 1;
+                            str_to_bytes32(&format!("{old_p}"))
+                        }
+                    };
+                    storage_pointers.push((const_name.to_string(), new_value));
+                }
+                None => {
+                    tracing::warn!(target: "ast", "CONSTANT \"{}\" NOT FOUND IN AST CONSTANTS", const_name)
+                }
+            }
+        }
     }
 
     /// Add override constants to the AST

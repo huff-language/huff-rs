@@ -119,7 +119,7 @@ impl Parser {
                             kind: ParserErrorKind::InvalidDefinition(self.current_token.kind.clone()),
                             hint: Some("Definition must be one of: `function`, `event`, `constant`, `error`, `macro`, `fn`, or `test`.".to_string()),
                             spans: AstSpan(vec![self.current_token.span.clone()]),
-                        })
+                        });
                     }
                 };
             } else {
@@ -578,7 +578,7 @@ impl Parser {
                                             hex_literal, o
                                         )),
                                         spans: AstSpan(curr_spans),
-                                    })
+                                    });
                                 }
 
                                 // Otherwise we can push the literal
