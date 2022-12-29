@@ -48,10 +48,9 @@ fn test_all_opcodes_in_macro_args() {
             }}
 
             #define macro MAIN() = takes(0) returns(0) {{
-                RETURN1({})
+                RETURN1({o})
             }}
-        "#,
-            o
+        "#
         );
 
         // Lex + Parse

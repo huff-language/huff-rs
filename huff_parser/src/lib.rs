@@ -574,8 +574,7 @@ impl Parser {
                                     return Err(ParserError {
                                         kind: ParserErrorKind::InvalidPush(o),
                                         hint: Some(format!(
-                                            "Literal {:?} contains too many bytes for opcode \"{:?}\"",
-                                            hex_literal, o
+                                            "Literal {hex_literal:?} contains too many bytes for opcode \"{o:?}\""
                                         )),
                                         spans: AstSpan(curr_spans),
                                     });
@@ -924,8 +923,7 @@ impl Parser {
                                         self.current_token.kind.clone(),
                                     ),
                                     hint: Some(format!(
-                                        "Argument names cannot be EVM types: {}",
-                                        arg_str
+                                        "Argument names cannot be EVM types: {arg_str}"
                                     )),
                                     spans: AstSpan(vec![self.current_token.span.clone()]),
                                 })
