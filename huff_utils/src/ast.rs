@@ -209,29 +209,32 @@ impl Contract {
             }
             match &statements[i].clone().ty {
                 StatementType::Constant(const_name) => {
-                    self.tag_constants(const_name, &macro_def.name, storage_pointers, last_p);
+                    self.assign_free_storage_pointers(
+                        const_name,
+                        &macro_def.name,
+                        storage_pointers,
+                        last_p,
+                    );
                 }
                 StatementType::MacroInvocation(mi) => {
                     tracing::debug!(target: "ast", "Found macro invocation: \"{}\" in macro def: \"{}\"!", mi.macro_name, macro_def.name);
 
-                    // Intermediate array to hold onto constant definitions in args
+                    // Check for constant references in macro arguments
                     let mut constant_args: Vec<String> = Vec::new();
                     for arg in &mi.args {
                         // check if it is a constant
-                        println!("loop args");
                         if let Ident(name) = arg {
                             self.constants.lock().unwrap().iter().for_each(|constant| {
-                                println!("for each loop");
                                 if name == &constant.name {
                                     tracing::debug!(target: "ast", "CONSTANT FOUND AS MACRO PARAMETER {}", name);
                                     constant_args.push(name.to_string());
-
                                 }
                             })
                         }
                     }
+                    // Assign constants that reference the Free Storage Pointer
                     for constant_arg in constant_args {
-                        self.tag_constants(
+                        self.assign_free_storage_pointers(
                             &constant_arg,
                             &macro_def.name,
                             storage_pointers,
@@ -314,7 +317,7 @@ impl Contract {
         // }
     }
 
-    fn tag_constants(
+    fn assign_free_storage_pointers(
         &self,
         const_name: &String,
         macro_name: &String,
