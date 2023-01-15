@@ -16,13 +16,12 @@ fn commented_lex_imports() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!(
         r#"
-    // #include "{}"
-    /* #include "{}" */
+    // #include "{import_str}"
+    /* #include "{import_str}" */
     /* test test test */
     #define macro ()
-    #include "{}"
-    "#,
-        import_str, import_str, import_str
+    #include "{import_str}"
+    "#
     );
 
     let lexed_imports = Lexer::lex_imports(&source);
@@ -35,13 +34,12 @@ fn multiple_lex_imports() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!(
         r#"
-    #include "{}"
-    #include "{}"
+    #include "{import_str}"
+    #include "{import_str}"
     /* test test test */
     #define macro ()
-    #include "{}"
-    "#,
-        import_str, import_str, import_str
+    #include "{import_str}"
+    "#
     );
 
     let lexed_imports = Lexer::lex_imports(&source);
@@ -56,10 +54,9 @@ fn multiple_lex_imports_single_quotes() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!(
         r#"
-    #include '{}'
-    #include '{}'
-    "#,
-        import_str, import_str
+    #include '{import_str}'
+    #include '{import_str}'
+    "#
     );
 
     let lexed_imports = Lexer::lex_imports(&source);

@@ -457,7 +457,7 @@ pub fn statement_gen(
                             )),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     let arg_index = bf.args[0].name.as_ref().unwrap();
@@ -476,7 +476,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     // Insert a 17 byte placeholder- will be filled when constructor args are added

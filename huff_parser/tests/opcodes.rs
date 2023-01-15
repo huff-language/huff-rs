@@ -10,12 +10,11 @@ fn not_mistaken_as_opcode() {
             r#"
                 #define macro IS_AUTHORIZED(some_arg) = takes(0) returns(0) {{}}
                 #define macro MAIN() = takes(0) returns(0) {{
-                    IS_AUTHORIZED({})
-                    {}:
+                    IS_AUTHORIZED({label})
+                    {label}:
                         return
                 }}
-            "#,
-            label, label
+            "#
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let lexer = Lexer::new(flattened_source);
