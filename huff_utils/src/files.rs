@@ -111,7 +111,7 @@ impl Remapper {
                     .collect::<Vec<&toml::value::Map<String, toml::Value>>>();
                 let unwrapped_profiles = profiles
                     .iter()
-                    .flat_map(|t| t.values().into_iter().collect_vec())
+                    .flat_map(|t| t.values().collect_vec())
                     .collect::<Vec<&toml::Value>>();
 
                 // Extract the inner tables from each profile
