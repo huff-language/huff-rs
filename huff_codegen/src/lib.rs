@@ -392,9 +392,9 @@ impl Codegen {
         macro_def: MacroDefinition,
         contract: &Contract,
         scope: &mut Vec<MacroDefinition>,
-        offset: &mut usize,
+        _offset: &mut usize,
         mis: &mut Vec<(usize, MacroInvocation)>,
-        recursing_constructor: bool,
+        _recursing_constructor: bool,
         bytes: Vec<(usize, Bytes)>,
         circular_codesize_invocations: CircularCodeSizeIndices,
     ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
@@ -452,7 +452,7 @@ impl Codegen {
         );
 
         let real_size = length + (1 + offsets_num);
-        let real_size_formatted = format_even_bytes(format!("{}", real_size));
+        let real_size_formatted = format_even_bytes(format!("{real_size}"));
         tracing::debug!(
             target: "codegen",
             "REAL SIZE - {:?}",
@@ -477,7 +477,7 @@ impl Codegen {
         let bytes =
             bytes.into_iter().fold(Vec::default(), |mut acc, (code_index, mut formatted_bytes)| {
                 // Check if a jump table exists at `code_index` (starting offset of `b`)
-                if let Some(index) = circular_codesize_invocations.get(&code_index) {
+                if let Some(_index) = circular_codesize_invocations.get(&code_index) {
                     // Get the bytes before & after the placeholder
                     let before = &formatted_bytes.0[0..code_index];
                     let after = &formatted_bytes.0[code_index + 4..];
@@ -499,7 +499,7 @@ impl Codegen {
                 acc
             });
 
-        Ok((bytes))
+        Ok(bytes)
         // // Increase the offset by the new increase
         // for offset in circular_codesize_invocations.offsets {
         //     // Format the jump index as a 2 byte hex number
