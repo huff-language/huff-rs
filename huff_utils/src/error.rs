@@ -157,6 +157,8 @@ pub enum CodegenErrorKind {
     AbiGenerationFailure,
     /// Unmatched Jump
     UnmatchedJumpLabel,
+    /// Unhandled circular codesize invocation
+    // UnhandledCircularCodesizeInvocation(String),
     /// An IO Error
     IOError(String),
     /// ArgCall has an unknown type

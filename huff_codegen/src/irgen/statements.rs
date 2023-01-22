@@ -196,7 +196,7 @@ pub fn statement_gen(
 
                         // Progress offset by placeholder size
                         *offset += 2;
-                        bytes.push((starting_offset, Bytes(format!("cccc"))));
+                        bytes.push((starting_offset, Bytes("cccc".to_string())));
                     } else {
                         // We will still need to recurse to get accurate values
                         let res: BytecodeRes = match Codegen::macro_to_bytecode(
