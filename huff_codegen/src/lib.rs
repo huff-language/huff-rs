@@ -141,7 +141,7 @@ impl Codegen {
                         .collect::<Vec<Span>>(),
                 ),
                 token: None,
-            });
+            })
         }
 
         tracing::info!(target: "codegen", "GENERATING JUMPTABLE BYTECODE");
@@ -301,7 +301,7 @@ impl Codegen {
                     // if we have a codesize call for the constructor here, from within the
                     // constructor, we skip
                     if recursing_constructor {
-                        continue;
+                        continue
                     }
                     let mut push_bytes = statement_gen(
                         &s,
@@ -365,7 +365,8 @@ impl Codegen {
 
         // Fill in circular codesize invocations
         // let bytes =
-        // Workout how to increase the offset the correct amount within here if it is longer than 2 bytes
+        // Workout how to increase the offset the correct amount within here if it is longer than 2
+        // bytes
         let bytes = Codegen::fill_circular_codesize_invocations(
             macro_def,
             contract,
@@ -395,7 +396,7 @@ impl Codegen {
         // Get the length of the macro
         let offsets_num = circular_codesize_invocations.len();
         if offsets_num == 0 {
-            return Ok(bytes);
+            return Ok(bytes)
             // return Ok(bytes);
         }
 
@@ -412,7 +413,7 @@ impl Codegen {
                 kind: CodegenErrorKind::MissingMacroDefinition(macro_def.name /* yuck */),
                 span: macro_def.span.clone(),
                 token: None,
-            });
+            })
         };
 
         let length = {
@@ -431,13 +432,14 @@ impl Codegen {
                         "FAILED TO RECURSE INTO MACRO \"{}\"",
                         ir_macro.name
                     );
-                    return Err(e);
+                    return Err(e)
                 }
             };
             res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2
         };
 
-        // Fill in the circular codesize invocations depending on the length increase by injecting them
+        // Fill in the circular codesize invocations depending on the length increase by injecting
+        // them
         tracing::debug!(
             target: "codegen",
             "FILLING IN CIRCULAR CODESIZE INVOCATIONS: length without before fill - {:?}",
@@ -473,10 +475,10 @@ impl Codegen {
                 if let Some(_index) = circular_codesize_invocations.get(&code_index) {
                     // Get the bytes before & after the placeholder
                     let before = &formatted_bytes.0[0..0];
-                    let after = &formatted_bytes.0[0 + 4..];
+                    let after = &formatted_bytes.0[4..];
 
                     // Check if a jump dest placeholder is present
-                    if !&formatted_bytes.0[code_index..0 + 4].eq("cccc") {
+                    if !&formatted_bytes.0[code_index..4].eq("cccc") {
                         // TODO: fix up legacy error message
                         tracing::error!(
                             target: "codegen",
@@ -755,7 +757,7 @@ impl Codegen {
                 kind: CodegenErrorKind::InvalidDynArgIndex,
                 span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
                 token: None,
-            });
+            })
         }
 
         // Constructor size optimizations
@@ -832,7 +834,7 @@ impl Codegen {
                         })),
                     }]),
                     token: None,
-                });
+                })
             }
         }
         if let Err(e) = fs::write(file_path, serialized_artifact) {
@@ -850,7 +852,7 @@ impl Codegen {
                     })),
                 }]),
                 token: None,
-            });
+            })
         }
         Ok(())
     }

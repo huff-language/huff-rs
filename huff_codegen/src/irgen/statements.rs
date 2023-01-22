@@ -182,8 +182,9 @@ pub fn statement_gen(
                     };
 
                     // Special case:
-                    // If the macro provided to __codesize is the current macro, we need to avoid a circular reference
-                    // If this is the case we will store a place holder inside the bytecode and fill it in later when
+                    // If the macro provided to __codesize is the current macro, we need to avoid a
+                    // circular reference If this is the case we will store a
+                    // place holder inside the bytecode and fill it in later when
                     // we have adequate information about the macros eventual size.
                     //
                     // We
