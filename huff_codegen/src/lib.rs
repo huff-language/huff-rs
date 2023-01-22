@@ -451,7 +451,8 @@ impl Codegen {
             length
         );
 
-        let real_size = length + (1 + offsets_num);
+        // TODO: this needs to be smarter if the macro is massive
+        let real_size = length + (2 * offsets_num);
         let real_size_formatted = format_even_bytes(format!("{real_size}"));
         tracing::debug!(
             target: "codegen",
@@ -466,28 +467,27 @@ impl Codegen {
             real_size
         );
 
-        // Replace the "xxxx" placeholder with the jump value
+        // Replace the "cccc" placeholder with the calculated codesize value
         tracing::debug!(
             target: "codegen",
             "FILLING IN CIRCULAR CODESIZE INVOCATIONS: before - {:#?}",
             bytes
         );
 
-        // let bytecode_str = bytes.clone().into_iter().map(|(_, b)| b.0).collect::<String>();
         let bytes =
             bytes.into_iter().fold(Vec::default(), |mut acc, (code_index, mut formatted_bytes)| {
                 // Check if a jump table exists at `code_index` (starting offset of `b`)
                 if let Some(_index) = circular_codesize_invocations.get(&code_index) {
                     // Get the bytes before & after the placeholder
-                    let before = &formatted_bytes.0[0..code_index];
-                    let after = &formatted_bytes.0[code_index + 4..];
+                    let before = &formatted_bytes.0[0..0];
+                    let after = &formatted_bytes.0[0 + 4..];
 
                     // Check if a jump dest placeholder is present
-                    if !&formatted_bytes.0[code_index..code_index + 4].eq("cccc") {
+                    if !&formatted_bytes.0[code_index..0 + 4].eq("cccc") {
+                        // TODO: fix up legacy error message
                         tracing::error!(
                             target: "codegen",
-                            "JUMP DESTINATION PLACEHOLDER NOT FOUND FOR JUMPLABEL {}",
-                            push_bytes
+                            "CIRCULAR CODESIZE PLACEHOLDER NOT FOUND"
                         );
                     }
 
