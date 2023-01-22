@@ -15,6 +15,7 @@ pub fn statement_gen(
     label_indices: &mut LabelIndices,
     table_instances: &mut Jumps,
     utilized_tables: &mut Vec<TableDefinition>,
+    circular_codesize_invocations: &mut CircularCodeSizeIndices,
     starting_offset: usize,
 ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
     let mut bytes = vec![];
@@ -36,7 +37,7 @@ pub fn statement_gen(
                     kind: CodegenErrorKind::InvalidMacroInvocation(mi.macro_name.clone()),
                     span: mi.span.clone(),
                     token: None,
-                })
+                });
             };
 
             tracing::info!(target: "codegen", "FOUND INNER MACRO: {}", ir_macro.name);
@@ -48,7 +49,7 @@ pub fn statement_gen(
                     kind: CodegenErrorKind::TestInvocation(ir_macro.name.clone()),
                     span: ir_macro.span,
                     token: None,
-                })
+                });
             }
 
             // If invoked macro is a function (outlined), insert a jump to the function's code and a
@@ -110,7 +111,7 @@ pub fn statement_gen(
                             "FAILED TO RECURSE INTO MACRO \"{}\"",
                             ir_macro.name
                         );
-                        return Err(e)
+                        return Err(e);
                     }
                 };
 
@@ -177,36 +178,55 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     };
 
-                    let res: BytecodeRes = match Codegen::macro_to_bytecode(
-                        ir_macro.clone(),
-                        contract,
-                        scope,
-                        *offset,
-                        mis,
-                        ir_macro.name.eq("CONSTRUCTOR"),
-                    ) {
-                        Ok(r) => r,
-                        Err(e) => {
-                            tracing::error!(
-                                target: "codegen",
-                                "FAILED TO RECURSE INTO MACRO \"{}\"",
-                                ir_macro.name
-                            );
-                            return Err(e)
-                        }
-                    };
+                    // Special case:
+                    // If the macro provided to __codesize is the current macro, we need to avoid a circular reference
+                    // If this is the case we will store a place holder inside the bytecode and fill it in later when
+                    // we have adequate information about the macros eventual size.
+                    //
+                    // We
+                    // TODO: remove this unwrap / clone
+                    if bf.args[0].name.clone().unwrap() == ir_macro.name {
+                        tracing::debug!(target: "codegen", "CIRCULAR CODESIZE INVOCATION DETECTED INJECTING PLACEHOLDER | macro: {}", ir_macro.name);
 
-                    let size = format_even_bytes(format!(
-                        "{:02x}",
-                        (res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2)
-                    ));
-                    let push_bytes = format!("{:02x}{size}", 95 + size.len() / 2);
+                        // Save the invocation for later
+                        circular_codesize_invocations.insert(*offset);
 
-                    *offset += push_bytes.len() / 2;
-                    bytes.push((starting_offset, Bytes(push_bytes)));
+                        // Progress offset by placeholder size
+                        *offset += 2;
+                        bytes.push((starting_offset, Bytes(format!("cccc"))));
+                    } else {
+                        // We will still need to recurse to get accurate values
+                        let res: BytecodeRes = match Codegen::macro_to_bytecode(
+                            ir_macro.clone(),
+                            contract,
+                            scope,
+                            *offset,
+                            mis,
+                            ir_macro.name.eq("CONSTRUCTOR"),
+                        ) {
+                            Ok(r) => r,
+                            Err(e) => {
+                                tracing::error!(
+                                    target: "codegen",
+                                    "FAILED TO RECURSE INTO MACRO \"{}\"",
+                                    ir_macro.name
+                                );
+                                return Err(e);
+                            }
+                        };
+
+                        let size = format_even_bytes(format!(
+                            "{:02x}",
+                            (res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2)
+                        ));
+                        let push_bytes = format!("{:02x}{size}", 95 + size.len() / 2);
+
+                        *offset += push_bytes.len() / 2;
+                        bytes.push((starting_offset, Bytes(push_bytes)));
+                    }
                 }
                 BuiltinFunctionKind::Tablesize => {
                     let ir_table = if let Some(t) =
@@ -225,7 +245,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     };
 
                     let size = bytes32_to_string(&ir_table.size, false);
@@ -265,7 +285,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::FunctionSignature => {
@@ -324,7 +344,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::EventHash => {
@@ -374,7 +394,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::Error => {
@@ -391,7 +411,7 @@ pub fn statement_gen(
                             )),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     if let Some(error) = contract
@@ -417,7 +437,7 @@ pub fn statement_gen(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::RightPad => {
@@ -504,7 +524,7 @@ pub fn statement_gen(
                 kind: CodegenErrorKind::InvalidMacroStatement,
                 span: s.span.clone(),
                 token: None,
-            })
+            });
         }
     }
 
