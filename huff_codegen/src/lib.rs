@@ -455,7 +455,7 @@ impl Codegen {
 
         // TODO: this needs to be smarter if the macro is massive
         let real_size = length + (2 * offsets_num);
-        let real_size_formatted = format_even_bytes(format!("{real_size}"));
+        let real_size_formatted = format_even_bytes(format!("{real_size:02x}"));
         tracing::debug!(
             target: "codegen",
             "REAL SIZE - {:?}",
