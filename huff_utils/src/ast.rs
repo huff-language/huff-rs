@@ -205,7 +205,7 @@ impl Contract {
         let mut i = 0;
         loop {
             if i >= statements.len() {
-                break;
+                break
             }
             match &statements[i].clone().ty {
                 StatementType::Constant(const_name) => {
