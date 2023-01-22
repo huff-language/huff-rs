@@ -188,7 +188,7 @@ pub fn statement_gen(
                     //
                     // We
                     // TODO: remove this unwrap / clone
-                    if bf.args[0].name.clone().unwrap() == ir_macro.name {
+                    if bf.args[0].name.clone().unwrap() == macro_def.name {
                         tracing::debug!(target: "codegen", "CIRCULAR CODESIZE INVOCATION DETECTED INJECTING PLACEHOLDER | macro: {}", ir_macro.name);
 
                         // Save the invocation for later
