@@ -148,7 +148,7 @@ impl Codegen {
                         .collect::<Vec<Span>>(),
                 ),
                 token: None,
-            })
+            });
         }
 
         tracing::info!(target: "codegen", "GENERATING JUMPTABLE BYTECODE");
@@ -287,6 +287,8 @@ impl Codegen {
         let mut label_indices = LabelIndices::new();
         let mut table_instances = Jumps::new();
         let mut utilized_tables: Vec<TableDefinition> = Vec::new();
+        let mut circular_codesize_invocations: CircularCodeSizeIndices =
+            CircularCodeSizeIndices::new();
 
         // Loop through all intermediate bytecode representations generated from the AST
         for (_ir_bytes_index, ir_byte) in ir_bytes.into_iter().enumerate() {
@@ -306,7 +308,7 @@ impl Codegen {
                     // if we have a codesize call for the constructor here, from within the
                     // constructor, we skip
                     if recursing_constructor {
-                        continue
+                        continue;
                     }
                     let mut push_bytes = statement_gen(
                         &s,
@@ -319,6 +321,7 @@ impl Codegen {
                         &mut label_indices,
                         &mut table_instances,
                         &mut utilized_tables,
+                        &mut circular_codesize_invocations,
                         starting_offset,
                     )?;
                     bytes.append(&mut push_bytes);
@@ -367,7 +370,159 @@ impl Codegen {
         // Fill JUMPDEST placeholders
         let (bytes, unmatched_jumps) = Codegen::fill_unmatched(bytes, &jump_table, &label_indices)?;
 
+        // Fill in circular codesize invocations
+        // let bytes =
+        // Workout how to increase the offset the correct amount within here if it is longer than 2 bytes
+        let bytes = Codegen::fill_circular_codesize_invocations(
+            macro_def,
+            contract,
+            scope,
+            &mut offset,
+            mis,
+            recursing_constructor,
+            bytes,
+            circular_codesize_invocations,
+        )?;
+
         Ok(BytecodeRes { bytes, label_indices, unmatched_jumps, table_instances, utilized_tables })
+    }
+
+    // TODO: move this lower
+    pub fn fill_circular_codesize_invocations(
+        macro_def: MacroDefinition,
+        contract: &Contract,
+        scope: &mut Vec<MacroDefinition>,
+        offset: &mut usize,
+        mis: &mut Vec<(usize, MacroInvocation)>,
+        recursing_constructor: bool,
+        bytes: Vec<(usize, Bytes)>,
+        circular_codesize_invocations: CircularCodeSizeIndices,
+    ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
+        // ) -> Result<(), CodegenError> {
+        // Get the length of the macro
+        let offsets_num = circular_codesize_invocations.len();
+        if offsets_num == 0 {
+            return Ok(bytes);
+            // return Ok(bytes);
+        }
+
+        // TODO: MANUALLY COPIED FROM THE statement rs file - refactor
+        let ir_macro = if let Some(m) = contract.find_macro_by_name(&macro_def.name) {
+            m
+        } else {
+            tracing::error!(
+                target: "codegen",
+                "MISSING MACRO PASSED TO __codesize \"{}\"",
+                &macro_def.name
+            );
+            return Err(CodegenError {
+                kind: CodegenErrorKind::MissingMacroDefinition(macro_def.name /* yuck */),
+                span: macro_def.span.clone(),
+                token: None,
+            });
+        };
+
+        let length = {
+            let res: BytecodeRes = match Codegen::macro_to_bytecode(
+                ir_macro.clone(),
+                contract,
+                scope,
+                0,
+                mis,
+                ir_macro.name.eq("CONSTRUCTOR"),
+            ) {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        target: "codegen",
+                        "FAILED TO RECURSE INTO MACRO \"{}\"",
+                        ir_macro.name
+                    );
+                    return Err(e);
+                }
+            };
+            res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2
+        };
+
+        // Fill in the circular codesize invocations depending on the length increase by injecting them
+        tracing::debug!(
+            target: "codegen",
+            "FILLING IN CIRCULAR CODESIZE INVOCATIONS: length without before fill - {:?}",
+            length
+        );
+
+        let real_size = length + (1 + offsets_num);
+        let real_size_formatted = format_even_bytes(format!("{}", real_size));
+        tracing::debug!(
+            target: "codegen",
+            "REAL SIZE - {:?}",
+            real_size
+        );
+        let push_bytes = format!("{:02x}{real_size_formatted}", 95 + real_size_formatted.len() / 2);
+
+        tracing::debug!(
+            target: "codegen",
+            "FILLING IN CIRCULAR CODESIZE INVOCATIONS: length without after fill - {:?}",
+            real_size
+        );
+
+        // Replace the "xxxx" placeholder with the jump value
+        tracing::debug!(
+            target: "codegen",
+            "FILLING IN CIRCULAR CODESIZE INVOCATIONS: before - {:#?}",
+            bytes
+        );
+
+        // let bytecode_str = bytes.clone().into_iter().map(|(_, b)| b.0).collect::<String>();
+        let bytes =
+            bytes.into_iter().fold(Vec::default(), |mut acc, (code_index, mut formatted_bytes)| {
+                // Check if a jump table exists at `code_index` (starting offset of `b`)
+                if let Some(index) = circular_codesize_invocations.get(&code_index) {
+                    // Get the bytes before & after the placeholder
+                    let before = &formatted_bytes.0[0..code_index];
+                    let after = &formatted_bytes.0[code_index + 4..];
+
+                    // Check if a jump dest placeholder is present
+                    if !&formatted_bytes.0[code_index..code_index + 4].eq("cccc") {
+                        tracing::error!(
+                            target: "codegen",
+                            "JUMP DESTINATION PLACEHOLDER NOT FOUND FOR JUMPLABEL {}",
+                            push_bytes
+                        );
+                    }
+
+                    // Replace the "xxxx" placeholder with the jump value
+                    formatted_bytes = Bytes(format!("{before}{push_bytes}{after}"));
+                }
+
+                acc.push((code_index, formatted_bytes));
+                acc
+            });
+
+        Ok((bytes))
+        // // Increase the offset by the new increase
+        // for offset in circular_codesize_invocations.offsets {
+        //     // Format the jump index as a 2 byte hex number
+
+        //     let bytecode_str = bytes.clone().into_iter().map(|(_, b)| b.0).collect::<String>();
+        //     // Get the bytes before & after the placeholder
+        //     let before = &bytes[0..offset + 2];
+        //     let after = &bytes[offset + 4..];
+
+        //     // Check if a jump dest placeholder is present
+        //     if !&bytecode_str[offset + 2..offset + 6].eq("cccc") {
+        //         tracing::error!(
+        //             target: "codegen",
+        //             "CIRCULAR CODESIZE INVOCATION PLACEHOLDER NOT FOUND AT OFFSET {}",
+        //             offset
+        //         );
+        //     }
+
+        //     // bytes = (offset, Bytes(format!("{before}{push_bytes}{after}")));
+        // }
+
+        // // replace each instance with the real size
+        // Ok(bytes)
     }
 
     /// Helper associated function to fill unmatched jump dests.
@@ -608,7 +763,7 @@ impl Codegen {
                 kind: CodegenErrorKind::InvalidDynArgIndex,
                 span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
                 token: None,
-            })
+            });
         }
 
         // Constructor size optimizations
@@ -683,7 +838,7 @@ impl Codegen {
                         })),
                     }]),
                     token: None,
-                })
+                });
             }
         }
         if let Err(e) = fs::write(file_path, serialized_artifact) {
@@ -701,7 +856,7 @@ impl Codegen {
                     })),
                 }]),
                 token: None,
-            })
+            });
         }
         Ok(())
     }

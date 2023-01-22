@@ -205,7 +205,7 @@ impl Contract {
         let mut i = 0;
         loop {
             if i >= statements.len() {
-                break
+                break;
             }
             match &statements[i].clone().ty {
                 StatementType::Constant(const_name) => {
@@ -264,7 +264,7 @@ impl Contract {
                     }
                 }
                 StatementType::BuiltinFunctionCall(bfc) => {
-                    tracing::debug!(target: "ast", "Deriving Storage Pointrs: Found builtin function {:?}", bfc.kind);
+                    tracing::debug!(target: "ast", "Deriving Storage Pointers: Found builtin function {:?}", bfc.kind);
                     for a in &bfc.args {
                         if let Some(name) = &a.name {
                             match self
