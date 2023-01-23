@@ -495,29 +495,6 @@ impl Codegen {
             });
 
         Ok(bytes)
-        // // Increase the offset by the new increase
-        // for offset in circular_codesize_invocations.offsets {
-        //     // Format the jump index as a 2 byte hex number
-
-        //     let bytecode_str = bytes.clone().into_iter().map(|(_, b)| b.0).collect::<String>();
-        //     // Get the bytes before & after the placeholder
-        //     let before = &bytes[0..offset + 2];
-        //     let after = &bytes[offset + 4..];
-
-        //     // Check if a jump dest placeholder is present
-        //     if !&bytecode_str[offset + 2..offset + 6].eq("cccc") {
-        //         tracing::error!(
-        //             target: "codegen",
-        //             "CIRCULAR CODESIZE INVOCATION PLACEHOLDER NOT FOUND AT OFFSET {}",
-        //             offset
-        //         );
-        //     }
-
-        //     // bytes = (offset, Bytes(format!("{before}{push_bytes}{after}")));
-        // }
-
-        // // replace each instance with the real size
-        // Ok(bytes)
     }
 
     /// Helper associated function to fill unmatched jump dests.
