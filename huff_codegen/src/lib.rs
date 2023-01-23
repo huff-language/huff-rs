@@ -371,9 +371,7 @@ impl Codegen {
             macro_def,
             contract,
             scope,
-            &mut offset,
             mis,
-            recursing_constructor,
             bytes,
             circular_codesize_invocations,
         )?;
@@ -465,9 +463,7 @@ impl Codegen {
         macro_def: MacroDefinition,
         contract: &Contract,
         scope: &mut Vec<MacroDefinition>,
-        _offset: &mut usize,
         mis: &mut Vec<(usize, MacroInvocation)>,
-        _recursing_constructor: bool,
         bytes: Vec<(usize, Bytes)>,
         circular_codesize_invocations: CircularCodeSizeIndices,
     ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
