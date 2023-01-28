@@ -186,10 +186,7 @@ pub fn statement_gen(
                     // circular reference If this is the case we will store a
                     // place holder inside the bytecode and fill it in later when
                     // we have adequate information about the macros eventual size.
-                    //
-                    // We
-                    // TODO: remove this unwrap / clone
-                    if bf.args[0].name.clone().unwrap() == macro_def.name {
+                    if bf.args[0].name.as_ref().unwrap() == &macro_def.name {
                         tracing::debug!(target: "codegen", "CIRCULAR CODESIZE INVOCATION DETECTED INJECTING PLACEHOLDER | macro: {}", ir_macro.name);
 
                         // Save the invocation for later
