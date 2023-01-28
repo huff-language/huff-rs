@@ -495,6 +495,52 @@ pub fn statement_gen(
                         )),
                     ));
                 }
+                BuiltinFunctionKind::Verbatim => {
+                    if bf.args.len() != 1 {
+                        tracing::error!(
+                            target = "codegen",
+                            "Incorrect number of arguments passed to __INJECT, should be 1: {}",
+                            bf.args.len()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidArguments(format!(
+                                "Incorrect number of arguments passed to __INJECT, should be 1: {}",
+                                bf.args.len()
+                            )),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+
+                    let verbatim_str = bf.args[0].name.as_ref().unwrap();
+                    // check if verbatim was passed a hex string
+                    let mut is_hex = true;
+                    for c in verbatim_str.chars() {
+                        if !c.is_ascii_hexdigit() {
+                            is_hex = false;
+                            break
+                        }
+                    }
+                    if !is_hex {
+                        tracing::error!(
+                            target: "codegen",
+                            "INVALID HEX STRING PASSED TO __VERBATIM: \"{}\"",
+                            bf.args[0].name.as_ref().unwrap()
+                        );
+                        return Err(CodegenError {
+                            kind: CodegenErrorKind::InvalidHex(verbatim_str.to_string()),
+                            span: bf.span.clone(),
+                            token: None,
+                        })
+                    }
+
+                    tracing::debug!(target: "codegen", "INJECTING as verbatim: {}", verbatim_str);
+                    let hex = format_even_bytes(verbatim_str.clone());
+                    let push_bytes = hex.to_string();
+                    *offset += hex.len() / 2;
+
+                    bytes.push((starting_offset, Bytes(push_bytes)));
+                }
             }
         }
         sty => {
