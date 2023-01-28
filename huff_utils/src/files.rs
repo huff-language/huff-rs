@@ -232,7 +232,14 @@ impl FileSource {
 
     /// Localizes a file path, if path is relative
     pub fn localize_file(parent: &str, child: &str) -> Option<String> {
-        let mut prefix = match FileSource::derive_dir(parent) {
+        let mut prefixed_parent;
+        if !parent.starts_with('.') {
+            prefixed_parent = "./".to_owned();
+            prefixed_parent.push_str(parent);
+        } else {
+            prefixed_parent = parent.to_owned();
+        }
+        let mut prefix = match FileSource::derive_dir(prefixed_parent.as_str()) {
             Some(p) => {
                 if p.is_empty() {
                     String::from(".")

@@ -110,4 +110,8 @@ fn test_localize_file() {
         files::FileSource::localize_file("../../examples/ERC20.huff", "../../../Address.huff")
             .unwrap();
     assert_eq!(localized, "../../../../Address.huff");
+    let localized =
+        files::FileSource::localize_file("examples/ERC20.huff", "../random_dir/Address.huff")
+            .unwrap();
+    assert_eq!(localized, "./random_dir/Address.huff");
 }
