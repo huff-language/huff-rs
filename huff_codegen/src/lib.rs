@@ -493,7 +493,7 @@ impl Codegen {
                     }
 
                     // Replace the "cccc" placeholder with the jump value
-                    formatted_bytes = Bytes(format!("{push_bytes}"));
+                    formatted_bytes = Bytes(push_bytes.to_string());
                     running_increase += offset_increase;
                 } else {
                     // Increase the code index by the number of bytes added past the placeholder
