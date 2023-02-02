@@ -1,7 +1,6 @@
 # Huff CLI
 
-The `huffc` CLI is written using [clap's](https://docs.rs/clap) [derive feature](https://github.com/clap-rs/clap/blob/master/examples/derive_ref/README.md).
-
+The `huffc` CLI is written using [clap's](https://docs.rs/clap) [derive feature](https://docs.rs/clap/latest/clap/_derive/index.html).
 
 ## huffc
 
