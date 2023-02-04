@@ -52,109 +52,11 @@ fn recurse_macro_bytecode() {
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
 
-    // let contract = Contract {
-    //     macros: vec![
-    //         MacroDefinition {
-    //             name: "CONSTRUCTOR".to_string(),
-    //             parameters: vec![],
-    //             statements: vec![],
-    //             takes: 0,
-    //             returns: 0,
-    //         },
-    //         MacroDefinition {
-    //             name: "TRANSFER".to_string(),
-    //             parameters: vec![],
-    //             statements: vec![
-    //                 Statement::Literal(str_to_bytes32("04")),
-    //                 Statement::Opcode(Opcode::Calldataload),
-    //                 Statement::Opcode(Opcode::Caller),
-    //                 Statement::Literal(str_to_bytes32("24")),
-    //                 Statement::Opcode(Opcode::Calldataload),
-    //                 Statement::Literal(str_to_bytes32("01")),
-    //                 Statement::Literal(str_to_bytes32("00")),
-    //                 Statement::Opcode(Opcode::Mstore),
-    //                 Statement::Literal(str_to_bytes32("20")),
-    //                 Statement::Literal(str_to_bytes32("00")),
-    //                 Statement::Opcode(Opcode::Return),
-    //             ],
-    //             takes: 0,
-    //             returns: 1,
-    //         },
-    //         MacroDefinition {
-    //             name: "MINT".to_string(),
-    //             parameters: vec![],
-    //             statements: vec![
-    //                 Statement::Literal(str_to_bytes32("04")),
-    //                 Statement::Opcode(Opcode::Calldataload),
-    //                 Statement::Literal(str_to_bytes32("00")),
-    //                 Statement::Literal(str_to_bytes32("24")),
-    //                 Statement::Opcode(Opcode::Calldataload),
-    //                 Statement::Opcode(Opcode::Dup1),
-    //                 Statement::Constant("TOTAL_SUPPLY_LOCATION".to_string()),
-    //                 Statement::Opcode(Opcode::Sload),
-    //                 Statement::Opcode(Opcode::Add),
-    //                 Statement::Constant("TOTAL_SUPPLY_LOCATION".to_string()),
-    //                 Statement::Opcode(Opcode::Sstore),
-    //             ],
-    //             takes: 0,
-    //             returns: 0,
-    //         },
-    //         MacroDefinition {
-    //             name: "MAIN".to_string(),
-    //             parameters: vec![],
-    //             statements: vec![
-    //                 Statement::Literal(str_to_bytes32("00")),
-    //                 Statement::Opcode(Opcode::Calldataload),
-    //                 Statement::Literal(str_to_bytes32("E0")),
-    //                 Statement::Opcode(Opcode::Shr),
-    //                 Statement::Opcode(Opcode::Dup1),
-    //                 Statement::Literal(str_to_bytes32("a9059cbb")),
-    //                 Statement::Opcode(Opcode::Eq),
-    //                 Statement::LabelCall("transfer".to_string()),
-    //                 Statement::Opcode(Opcode::Jumpi),
-    //                 Statement::Opcode(Opcode::Dup1),
-    //                 Statement::Literal(str_to_bytes32("40c10f19")),
-    //                 Statement::Opcode(Opcode::Eq),
-    //                 Statement::LabelCall("mints".to_string()),
-    //                 Statement::Opcode(Opcode::Jumpi),
-    //                 Statement::Label(Label {
-    //                     name: "transfer".to_string(),
-    //                     inner: vec![Statement::MacroInvocation(MacroInvocation {
-    //                         macro_name: "TRANSFER".to_string(),
-    //                         args: vec![],
-    //                     })],
-    //                 }),
-    //                 Statement::Label(Label {
-    //                     name: "mints".to_string(),
-    //                     inner: vec![Statement::MacroInvocation(MacroInvocation {
-    //                         macro_name: "MINT".to_string(),
-    //                         args: vec![],
-    //                     })],
-    //                 }),
-    //             ],
-    //             takes: 0,
-    //             returns: 0,
-    //         },
-    //     ],
-    //     invocations: vec![],
-    //     imports: vec![],
-    //     constants: vec![ConstantDefinition {
-    //         name: "TOTAL_SUPPLY_LOCATION".to_string(),
-    //         value: ConstVal::FreeStoragePointer(FreeStoragePointer),
-    //     }],
-    //     functions: vec![],
-    //     events: vec![],
-    //     tables: vec![],
-    // };
-
-    // Sanity Check The AST
-    // assert_eq!(contract, ast);
-
     // Create main and constructor bytecode
     let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
     let (constructor_bytecode, has_custom_bootstrap) =
         Codegen::generate_constructor_bytecode(&contract, None).unwrap();
-    assert_eq!(has_custom_bootstrap, false);
+    assert!(!has_custom_bootstrap);
 
     // Full expected bytecode output (generated from huffc) (placed here as a reference)
     let expected_bytecode = "61003f8061000d6000396000f360003560E01c8063a9059cbb1461001c57806340c10f191461002e575b60043533602435600160005260206000f35b60043560006024358060005401600055";

@@ -60,7 +60,7 @@ fn compiles_constructor_bytecode() {
         Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     println!("Constructor Bytecode Result: {cbytes:?}");
     assert_eq!(cbytes, String::from("33600055"));
-    assert_eq!(custom_bootstrap, false);
+    assert!(!custom_bootstrap);
 }
 
 #[test]
@@ -85,7 +85,7 @@ fn compiles_runtime_bytecode() {
     // Have the Codegen create the constructor bytecode
     let (cbytes, cbootstrap) = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(cbytes, String::from("33600055"));
-    assert_eq!(cbootstrap, false);
+    assert!(!cbootstrap);
 
     let inputs: Vec<ethers_core::abi::Token> = vec![];
     // ERC20 Bytecode

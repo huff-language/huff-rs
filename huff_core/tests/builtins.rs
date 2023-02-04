@@ -44,7 +44,7 @@ fn test_codesize_builtin() {
     let (cbytes, custom_bootstrap) =
         Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(cbytes, String::from("6004"));
-    assert_eq!(custom_bootstrap, false);
+    assert!(!custom_bootstrap);
 }
 
 #[test]
@@ -233,7 +233,7 @@ fn test_tablestart_builtin() {
     let (cbytes, custom_bootstrap) =
         Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(cbytes, String::from("61001e6100265b60006000f35b60006000f35b60006000f35b60006000f30006000c001200180000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000018"));
-    assert_eq!(custom_bootstrap, true);
+    assert!(custom_bootstrap);
 }
 
 #[test]
