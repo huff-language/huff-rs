@@ -22,13 +22,6 @@ fn test_abi_uint_events() {
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
 
-    // let main_bytecode = Codegen::generate_main_bytecode(&contract).unwrap();
-    // let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract).unwrap();
-
-    // let mut cg = Codegen::new();
-    // let churn_res = cg.churn(std::sync::Arc::new(FileSource::default()), vec![], &main_bytecode,
-    // &constructor_bytecode).unwrap();
-
     let abi: Abi = contract.into();
     assert_eq!(
         abi.events,

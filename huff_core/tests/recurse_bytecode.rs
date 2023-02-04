@@ -152,7 +152,9 @@ fn recurse_macro_bytecode() {
 
     // Create main and constructor bytecode
     let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
-    let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+    let (constructor_bytecode, has_custom_bootstrap) =
+        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+    assert_eq!(has_custom_bootstrap, false);
 
     // Full expected bytecode output (generated from huffc) (placed here as a reference)
     let expected_bytecode = "61003f8061000d6000396000f360003560E01c8063a9059cbb1461001c57806340c10f191461002e575b60043533602435600160005260206000f35b60043560006024358060005401600055";

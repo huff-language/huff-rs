@@ -105,7 +105,7 @@ impl Codegen {
 
         // Check if the constructor performs its own code generation
         let has_custom_bootstrap =
-            bytecode_res.bytes.iter().any(|bytes| bytes.1 .0 == "f3".to_string());
+            bytecode_res.bytes.iter().any(|bytes| bytes.1 .0 == *"f3");
 
         tracing::info!(target: "codegen", "Constructor is self-generating: {}", has_custom_bootstrap);
 
