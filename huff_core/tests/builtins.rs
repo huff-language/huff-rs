@@ -41,8 +41,10 @@ fn test_codesize_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+    let (cbytes, custom_bootstrap) =
+        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(cbytes, String::from("6004"));
+    assert!(!custom_bootstrap);
 }
 
 #[test]
@@ -75,7 +77,8 @@ fn test_dyn_constructor_arg_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let constructor_code = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+    let (constructor_code, has_custom_bootstrap) =
+        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     let main_code = Codegen::generate_main_bytecode(&contract, None).unwrap();
 
     let args = Codegen::encode_constructor_args(vec![String::from("testing")]);
@@ -84,6 +87,7 @@ fn test_dyn_constructor_arg_builtin() {
         args,
         main_code.as_str(),
         constructor_code.as_str(),
+        has_custom_bootstrap,
     );
 
     assert_eq!(final_bytecode.unwrap().bytecode, String::from("60118060093d393df3610007610020526100076100116100403974657374696e6700000000000000000000000000000000000000000000000000"));
@@ -226,8 +230,10 @@ fn test_tablestart_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+    let (cbytes, custom_bootstrap) =
+        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(cbytes, String::from("61001e6100265b60006000f35b60006000f35b60006000f35b60006000f30006000c001200180000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000018"));
+    assert!(custom_bootstrap);
 }
 
 #[test]

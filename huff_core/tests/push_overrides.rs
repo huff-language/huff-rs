@@ -31,11 +31,13 @@ fn test_gracefully_pads_push_override() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+    let (cbytes, has_custom_bootstrap) =
+        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(
         cbytes,
         String::from("7f0000000000000000000000000000000000000000000000000000000000000234")
     );
+    assert!(!has_custom_bootstrap);
 }
 
 #[test]
@@ -66,8 +68,10 @@ fn test_constructs_exact_push_override() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+    let (cbytes, has_custom_bootstrap) =
+        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
     assert_eq!(cbytes, String::from("6034"));
+    assert!(!has_custom_bootstrap);
 }
 
 #[test]

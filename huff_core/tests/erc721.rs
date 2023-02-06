@@ -33,12 +33,20 @@ fn test_erc721_compile() {
 
     // Create main and constructor bytecode
     let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
-    let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+    let (constructor_bytecode, has_custom_bootstrap) =
+        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
 
     // Churn
     let mut cg = Codegen::new();
-    let artifact =
-        cg.churn(Arc::clone(file_source), vec![], &main_bytecode, &constructor_bytecode).unwrap();
+    let artifact = cg
+        .churn(
+            Arc::clone(file_source),
+            vec![],
+            &main_bytecode,
+            &constructor_bytecode,
+            has_custom_bootstrap,
+        )
+        .unwrap();
 
     // Full expected bytecode output (different from huffc since our storage pointer derivation is
     // depth first)
