@@ -63,6 +63,9 @@ impl Remapper {
         // Gracefully parse remappings from foundry.toml
         Remapper::from_foundry(root.as_ref(), &mut inner);
 
+        // And from remappings.txt
+        Remapper::from_file(root.as_ref(), &mut inner);
+
         // Return the constructed remappings
         Self { remappings: inner, base_dir: root.as_ref().to_string() }
     }
@@ -152,6 +155,30 @@ impl Remapper {
                 tracing::warn!(target: "parser", "Foundry.toml not found in specified \"{}\"", root);
                 tracing::warn!(target: "parser", "{:?}", e);
             }
+        }
+    }
+
+    /// Get remappings from a remappings.txt file
+    pub fn from_file(root: &str, inner: &mut HashMap<String, String>) {
+        let mut remappings: HashMap<String, String> = HashMap::new();
+        let remappings_file = PathBuf::new().join(root).join("remappings.txt");
+        if remappings_file.is_file() {
+            let content =
+                fs::read_to_string(remappings_file).map_err(|err| err.to_string()).unwrap();
+
+            let rem_lines = content.split('\n').collect::<Vec<&str>>();
+            let rem = rem_lines
+                .iter()
+                .filter(|l| l != &&"")
+                .map(|l| l.split_once('='))
+                .collect::<Vec<Option<(&str, &str)>>>();
+            rem.iter().for_each(|pair| {
+                if let Some((lib, path)) = pair {
+                    remappings.insert(lib.to_string(), path.to_string());
+                }
+            });
+
+            inner.extend(remappings);
         }
     }
 }
