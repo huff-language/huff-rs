@@ -169,6 +169,8 @@ pub enum CodegenErrorKind {
     UsizeConversion(String),
     /// Invalid Arguments
     InvalidArguments(String),
+    /// Invalid Hex String
+    InvalidHex(String),
     /// Invalid Table Statement
     InvalidTableStatement(String),
     /// Invalid Code Length
@@ -225,6 +227,9 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::InvalidArguments(msg) => {
                 write!(f.out, "Invalid arguments: \"{msg}\"")
+            }
+            CodegenErrorKind::InvalidHex(msg) => {
+                write!(f.out, "Invalid hex string: \"{msg}\"")
             }
             CodegenErrorKind::InvalidTableStatement(msg) => {
                 write!(f.out, "Invalid table statement: \"{msg}\"")
@@ -564,6 +569,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 }
                 CodegenErrorKind::InvalidArguments(_) => {
                     write!(f, "\nError: Invalid Arguments\n{}\n", ce.span.error(None))
+                }
+                CodegenErrorKind::InvalidHex(_) => {
+                    write!(f, "\nError: Invalid Hex\n{}\n", ce.span.error(None))
                 }
                 CodegenErrorKind::InvalidTableStatement(_) => {
                     write!(f, "\nError: Invalid Table Statement\n{}\n", ce.span.error(None))
