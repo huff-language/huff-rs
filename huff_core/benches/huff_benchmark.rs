@@ -3,13 +3,15 @@ use huff_codegen::*;
 use huff_core::Compiler;
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::{files, prelude::*};
+use huff_utils::{file_provider::FileSystemFileProvider, files, prelude::*};
 use std::{path::PathBuf, sync::Arc};
 
 fn lex_erc20_from_source_benchmark(c: &mut Criterion) {
-    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
-        "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-    )])
+    let file_provider = Arc::new(FileSystemFileProvider::new());
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(
+        vec![PathBuf::from("../huff-examples/erc20/contracts/ERC20.huff".to_string())],
+        file_provider.clone(),
+    )
     .into_iter()
     .map(|p| p.unwrap())
     .collect();
@@ -17,7 +19,8 @@ fn lex_erc20_from_source_benchmark(c: &mut Criterion) {
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
     let recursed_file_source =
-        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
+        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./"), file_provider)
+            .unwrap();
     let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
     let full_source = FullFileSource {
         source: &flattened.0,
@@ -35,9 +38,11 @@ fn lex_erc20_from_source_benchmark(c: &mut Criterion) {
 }
 
 fn parse_erc20_benchmark(c: &mut Criterion) {
-    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
-        "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-    )])
+    let file_provider = Arc::new(FileSystemFileProvider::new());
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(
+        vec![PathBuf::from("../huff-examples/erc20/contracts/ERC20.huff".to_string())],
+        file_provider.clone(),
+    )
     .into_iter()
     .map(|p| p.unwrap())
     .collect();
@@ -45,7 +50,8 @@ fn parse_erc20_benchmark(c: &mut Criterion) {
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
     let recursed_file_source =
-        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
+        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./"), file_provider)
+            .unwrap();
     let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
     let full_source = FullFileSource {
         source: &flattened.0,
@@ -68,9 +74,11 @@ fn parse_erc20_benchmark(c: &mut Criterion) {
 }
 
 fn codegen_erc20_benchmark(c: &mut Criterion) {
-    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
-        "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-    )])
+    let file_provider = Arc::new(FileSystemFileProvider::new());
+    let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(
+        vec![PathBuf::from("../huff-examples/erc20/contracts/ERC20.huff".to_string())],
+        file_provider.clone(),
+    )
     .into_iter()
     .map(|p| p.unwrap())
     .collect();
@@ -78,7 +86,8 @@ fn codegen_erc20_benchmark(c: &mut Criterion) {
     // Recurse file deps + generate flattened source
     let file_source = file_sources.get(0).unwrap();
     let recursed_file_source =
-        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
+        Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./"), file_provider)
+            .unwrap();
     let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
     let full_source = FullFileSource {
         source: &flattened.0,
@@ -113,16 +122,21 @@ fn codegen_erc20_benchmark(c: &mut Criterion) {
 
 fn erc20_compilation_benchmark(c: &mut Criterion) {
     c.bench_function("Full ERC-20 compilation", |b| b.iter(|| {
+        let file_provider = Arc::new(FileSystemFileProvider::new());
         let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
             "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-        )])
+        )], file_provider.clone())
             .into_iter()
             .map(|p| p.unwrap())
             .collect();
 
         // Recurse file deps + generate flattened source
         let file_source = file_sources.get(0).unwrap();
-        let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
+        let recursed_file_source = Compiler::recurse_deps(
+            Arc::clone(file_source),
+            &files::Remapper::new("./"),
+            file_provider
+        ).unwrap();
         let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
         let full_source = FullFileSource {
             source: &flattened.0,
@@ -153,16 +167,21 @@ fn erc20_compilation_benchmark(c: &mut Criterion) {
 
 fn erc721_compilation_benchmark(c: &mut Criterion) {
     c.bench_function("Full ERC-721 compilation", |b| b.iter(|| {
+        let file_provider = Arc::new(FileSystemFileProvider::new());
         let file_sources: Vec<Arc<FileSource>> = Compiler::fetch_sources(vec![PathBuf::from(
             "../huff-examples/erc721/contracts/ERC721.huff".to_string(),
-        )])
+        )], file_provider.clone())
             .into_iter()
             .map(|p| p.unwrap())
             .collect();
 
         // Recurse file deps + generate flattened source
         let file_source = file_sources.get(0).unwrap();
-        let recursed_file_source = Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./")).unwrap();
+        let recursed_file_source = Compiler::recurse_deps(
+            Arc::clone(file_source),
+            &files::Remapper::new("./"),
+            file_provider
+        ).unwrap();
         let flattened = FileSource::fully_flatten(Arc::clone(&recursed_file_source));
         let full_source = FullFileSource {
             source: &flattened.0,

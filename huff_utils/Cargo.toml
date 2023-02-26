@@ -28,3 +28,7 @@ tiny-keccak = { version = "2.0.2", features = ["keccak"] }
 toml = "0.5.9"
 tracing = "0.1.34"
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt"] }
+cfg-if = "1"
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+js-sys = { version = "0.3" }
