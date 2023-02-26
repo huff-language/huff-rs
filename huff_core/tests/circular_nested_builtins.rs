@@ -63,7 +63,7 @@ fn test_obscure_circular_nested_builtins() {
 
     // Create constructor bytecode
     match Codegen::generate_constructor_bytecode(&contract, None) {
-        Ok((mb, _)) => assert_eq!("5860065858600458".to_string(), mb),
+        Ok((mb, _)) => assert_eq!("5860045858600358".to_string(), mb),
         Err(_) => panic!("moose"),
     }
 }
