@@ -1,7 +1,7 @@
 use std::{str::FromStr, sync::Arc};
 
 use huff_core::Compiler;
-use huff_utils::{prelude::*, file_provider::FileSystemFileProvider};
+use huff_utils::{file_provider::FileSystemFileProvider, prelude::*};
 
 #[test]
 fn test_parses_foundry_aliased_imports() {

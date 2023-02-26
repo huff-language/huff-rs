@@ -25,6 +25,19 @@ pub trait FileProvider<'a>: Send + Sync + Debug {
 #[derive(Debug)]
 pub struct FileSystemFileProvider {}
 
+impl Default for FileSystemFileProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FileSystemFileProvider {
+    /// Creates a new instance of a FileSystemFileReader.
+    pub fn new() -> Self {
+        FileSystemFileProvider {}
+    }
+}
+
 impl<'a> FileProvider<'a> for FileSystemFileProvider {
     fn read_file(&self, pb: PathBuf) -> Result<Arc<FileSource>, CompilerError<'a>> {
         let file_loc = String::from(pb.to_string_lossy());
@@ -78,8 +91,8 @@ impl InMemoryFileProvider {
     /// Creates a new instance of a MemoryFileReader.
     pub fn new(mut sources: HashMap<String, String>) -> Self {
         // Localize all path keys to ./
-        let mut sources_localized:HashMap<String, String> = HashMap::new();
-        sources.drain().for_each(|(path, source)|{
+        let mut sources_localized: HashMap<String, String> = HashMap::new();
+        sources.drain().for_each(|(path, source)| {
             sources_localized.insert(strip_path_prefix(path.as_str()).to_owned(), source);
         });
         InMemoryFileProvider { sources: Arc::new(sources_localized) }
@@ -90,7 +103,7 @@ impl<'a> FileProvider<'a> for InMemoryFileProvider {
     fn read_file(&self, pb: PathBuf) -> Result<Arc<FileSource>, CompilerError<'a>> {
         let path = pb.to_str().unwrap_or_default();
         let localized = strip_path_prefix(path);
-        match self.sources.get(&*localized) {
+        match self.sources.get(localized) {
             Some(source) => Ok(Arc::new(FileSource {
                 id: Uuid::new_v4(),
                 path: path.to_string(),
@@ -120,9 +133,5 @@ impl<'a> FileProvider<'a> for InMemoryFileProvider {
 }
 
 fn strip_path_prefix(path: &str) -> &str {
-    if path.starts_with("./") {
-        &path[2..]
-    } else {
-        &path
-    }
+    path.strip_prefix("./").unwrap_or(path)
 }

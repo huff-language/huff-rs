@@ -8,15 +8,15 @@ use ethers_core::utils::hex;
 use huff_codegen::*;
 use huff_lexer::*;
 use huff_parser::*;
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+use huff_utils::wasm::IntoParallelIterator;
 use huff_utils::{
-    prelude::*,
     file_provider::{FileProvider, FileSystemFileProvider, InMemoryFileProvider},
+    prelude::*,
     time,
 };
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 use rayon::prelude::*;
-#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
-use huff_utils::wasm::IntoParallelIterator;
 use std::{
     collections::{BTreeMap, HashMap},
     ffi::OsString,
@@ -25,7 +25,7 @@ use std::{
     path::PathBuf,
     sync::Arc,
 };
-use tracing_subscriber::{EnvFilter, filter::Directive};
+use tracing_subscriber::{filter::Directive, EnvFilter};
 
 pub(crate) mod cache;
 
@@ -217,7 +217,9 @@ impl<'a> Compiler<'a> {
                 let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
                     files
                         .into_par_iter()
-                        .map(|v| Self::recurse_deps(v, &Remapper::new("./"), self.file_provider.clone()))
+                        .map(|v| {
+                            Self::recurse_deps(v, &Remapper::new("./"), self.file_provider.clone())
+                        })
                         .collect();
 
                 // Collect Recurse Deps errors and try to resolve to the first one
@@ -298,7 +300,11 @@ impl<'a> Compiler<'a> {
         let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> = files
             .into_par_iter()
             .map(|f| {
-                Self::recurse_deps(f, &huff_utils::files::Remapper::new("./"), self.file_provider.clone())
+                Self::recurse_deps(
+                    f,
+                    &huff_utils::files::Remapper::new("./"),
+                    self.file_provider.clone(),
+                )
             })
             .collect();
 

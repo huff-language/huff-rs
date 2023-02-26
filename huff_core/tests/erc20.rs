@@ -4,7 +4,7 @@ use huff_codegen::Codegen;
 use huff_core::*;
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::{files, prelude::*, file_provider::FileSystemFileProvider};
+use huff_utils::{file_provider::FileSystemFileProvider, files, prelude::*};
 
 #[test]
 fn test_erc20_compile() {
