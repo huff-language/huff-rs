@@ -17,6 +17,17 @@ fn test_generate_remappings() {
 }
 
 #[test]
+fn test_remappings_from_file() {
+    let remapper = files::Remapper::new("./tests");
+    assert_eq!(remapper.remappings.len(), 2);
+    assert_eq!(remapper.remappings.get("@huffmate/").unwrap(), "lib/huffmate/src/");
+    assert_eq!(
+        remapper.remappings.get("@openzeppelin/").unwrap(),
+        "lib/openzeppelin-contracts/contracts/"
+    );
+}
+
+#[test]
 fn test_source_seg() {
     let span = Span {
         start: 59,
@@ -110,4 +121,8 @@ fn test_localize_file() {
         files::FileSource::localize_file("../../examples/ERC20.huff", "../../../Address.huff")
             .unwrap();
     assert_eq!(localized, "../../../../Address.huff");
+    let localized =
+        files::FileSource::localize_file("examples/ERC20.huff", "../random_dir/Address.huff")
+            .unwrap();
+    assert_eq!(localized, "./random_dir/Address.huff");
 }

@@ -75,7 +75,7 @@ main() {
     rm -f "$HUFF_BIN_DIR/huffc"
 
     # Symlink from local repo binaries to bin dir
-    ensure ln -s "$PWD/target/release/huffc" "$HUFF_BIN_DIR/huff"
+    ensure ln -s "$PWD/target/release/huffc" "$HUFF_BIN_DIR/huffc"
 
     say "done"
     exit 0

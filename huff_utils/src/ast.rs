@@ -791,6 +791,8 @@ pub enum BuiltinFunctionKind {
     RightPad,
     /// Dynamic constructor arg function
     DynConstructorArg,
+    /// Inject Raw Bytes
+    Verbatim,
 }
 
 impl From<String> for BuiltinFunctionKind {
@@ -804,6 +806,7 @@ impl From<String> for BuiltinFunctionKind {
             "__ERROR" => BuiltinFunctionKind::Error,
             "__RIGHTPAD" => BuiltinFunctionKind::RightPad,
             "__CODECOPY_DYN_ARG" => BuiltinFunctionKind::DynConstructorArg,
+            "__VERBATIM" => BuiltinFunctionKind::Verbatim,
             _ => panic!("Invalid Builtin Function Kind"), /* This should never be reached,
                                                            * builtins are validated with a
                                                            * `try_from` call in the lexer. */
@@ -824,6 +827,7 @@ impl TryFrom<&String> for BuiltinFunctionKind {
             "__ERROR" => Ok(BuiltinFunctionKind::Error),
             "__RIGHTPAD" => Ok(BuiltinFunctionKind::RightPad),
             "__CODECOPY_DYN_ARG" => Ok(BuiltinFunctionKind::DynConstructorArg),
+            "__VERBATIM" => Ok(BuiltinFunctionKind::Verbatim),
             _ => Err(()),
         }
     }

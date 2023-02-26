@@ -86,7 +86,7 @@ impl Codegen {
     pub fn generate_constructor_bytecode(
         contract: &Contract,
         alternative_constructor: Option<String>,
-    ) -> Result<String, CodegenError> {
+    ) -> Result<(String, bool), CodegenError> {
         // If an alternative constructor macro is provided, then use it as the compilation target
         let constructor_macro =
             alternative_constructor.unwrap_or_else(|| String::from("CONSTRUCTOR"));
@@ -105,7 +105,14 @@ impl Codegen {
             None,
         )?;
 
-        Codegen::gen_table_bytecode(bytecode_res)
+        // Check if the constructor performs its own code generation
+        let has_custom_bootstrap = bytecode_res.bytes.iter().any(|bytes| bytes.1 .0 == *"f3");
+
+        tracing::info!(target: "codegen", "Constructor is self-generating: {}", has_custom_bootstrap);
+
+        let bytecode = Codegen::gen_table_bytecode(bytecode_res)?;
+
+        Ok((bytecode, has_custom_bootstrap))
     }
 
     /// Helper function to find a macro or generate a CodegenError
@@ -601,6 +608,7 @@ impl Codegen {
         mut args: Vec<ethers_core::abi::token::Token>,
         main_bytecode: &str,
         constructor_bytecode: &str,
+        has_custom_bootstrap: bool,
     ) -> Result<Artifact, CodegenError> {
         let mut artifact: &mut Artifact = if let Some(art) = &mut self.artifact {
             art
@@ -713,8 +721,6 @@ impl Codegen {
                 pad_n_bytes(format!("{:x}", bootstrap_code_size + constructor_length).as_str(), 2)
             )
         };
-
-        let has_custom_bootstrap = hex::decode(constructor_bytecode).unwrap().contains(&0xf3);
 
         let bootstrap_code = if has_custom_bootstrap {
             String::default()

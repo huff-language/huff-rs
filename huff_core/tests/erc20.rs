@@ -33,12 +33,20 @@ fn test_erc20_compile() {
 
     // Create main and constructor bytecode
     let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
-    let constructor_bytecode = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+    let (constructor_bytecode, has_custom_bootstrap) =
+        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
 
     // Churn
     let mut cg = Codegen::new();
-    let artifact =
-        cg.churn(Arc::clone(file_source), vec![], &main_bytecode, &constructor_bytecode).unwrap();
+    let artifact = cg
+        .churn(
+            Arc::clone(file_source),
+            vec![],
+            &main_bytecode,
+            &constructor_bytecode,
+            has_custom_bootstrap,
+        )
+        .unwrap();
 
     // Full expected bytecode output (generated from huffc)
     let expected_bytecode = "336000556101ac80600e3d393df360003560e01c8063a9059cbb1461004857806340c10f19146100de57806370a082311461014e57806318160ddd1461016b578063095ea7b314610177578063dd62ed3e1461018e575b600435336024358160016000526000602001526040600020548082116100d8578190038260016000526000602001526040600020558281906001600052600060200152604060002054018360016000526000602001526040600020556000527fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef60206000a3600160005260206000f35b60006000fd5b60005433146100ed5760006000fd5b600435600060243582819060016000526000602001526040600020540183600160005260006020015260406000205580600254016002556000527fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef60206000a35b600435600160005260006020015260406000205460005260206000f35b60025460005260206000f35b602435600435336000526000602001526040600020555b60243560043560005260006020015260406000205460005260206000f3";
