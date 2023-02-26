@@ -33,8 +33,10 @@ fn test_get_outputs_with_output() {
 #[test]
 fn test_transform_paths() {
     let file_provider = FileSystemFileProvider {};
-    let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> = file_provider.transform_paths(&["../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-        "../huff-examples/erc20/contracts/utils/".to_string()]);
+    let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> = file_provider.transform_paths(&[
+        "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
+        "../huff-examples/erc20/contracts/utils/".to_string(),
+    ]);
     assert!(path_bufs.is_ok());
     match path_bufs {
         Ok(bufs) => {
