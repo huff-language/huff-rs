@@ -116,7 +116,7 @@ pub type Jumps = Vec<Jump>;
 pub type LabelIndices = BTreeMap<String, usize>;
 
 /// Typw to map circular_codesize labels to their bytecode indices
-pub type CircularCodeSizeIndices = BTreeSet<usize>;
+pub type CircularCodeSizeIndices = BTreeSet<(String, usize)>;
 
 /// Type for a map of bytecode indexes to `Jumps`. Represents a Jump Table.
 pub type JumpTable = BTreeMap<usize, Jumps>;

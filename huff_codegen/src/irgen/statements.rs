@@ -103,6 +103,7 @@ pub fn statement_gen(
                     *offset,
                     mis,
                     false,
+                    Some(circular_codesize_invocations),
                 ) {
                     Ok(r) => r,
                     Err(e) => {
@@ -181,16 +182,22 @@ pub fn statement_gen(
                         })
                     };
 
+                    // Get the name of the macro being passed to __codesize
+                    let codesize_arg = bf.args[0].name.as_ref().unwrap();
+                    let is_previous_parent = scope.iter().any(|def| def.name == *codesize_arg);
+
                     // Special case:
                     // If the macro provided to __codesize is the current macro, we need to avoid a
                     // circular reference If this is the case we will store a
                     // place holder inside the bytecode and fill it in later when
                     // we have adequate information about the macros eventual size.
-                    if bf.args[0].name.as_ref().unwrap() == &macro_def.name {
+                    // We also need to avoid if the codesize arg is any of the previous macros to
+                    // avoid a circular reference
+                    if is_previous_parent || macro_def.name.eq(codesize_arg) {
                         tracing::debug!(target: "codegen", "CIRCULAR CODESIZE INVOCATION DETECTED INJECTING PLACEHOLDER | macro: {}", ir_macro.name);
 
                         // Save the invocation for later
-                        circular_codesize_invocations.insert(*offset);
+                        circular_codesize_invocations.insert((codesize_arg.to_string(), *offset));
 
                         // Progress offset by placeholder size
                         *offset += 2;
@@ -204,6 +211,7 @@ pub fn statement_gen(
                             *offset,
                             mis,
                             ir_macro.name.eq("CONSTRUCTOR"),
+                            Some(circular_codesize_invocations),
                         ) {
                             Ok(r) => r,
                             Err(e) => {

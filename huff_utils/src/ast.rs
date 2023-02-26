@@ -255,7 +255,12 @@ impl Contract {
                                     self.recurse_ast_constants(md, storage_pointers, last_p, true);
                                 }
                             } else {
-                                self.recurse_ast_constants(md, storage_pointers, last_p, false);
+                                self.recurse_ast_constants(
+                                    md,
+                                    storage_pointers,
+                                    last_p,
+                                    checking_constructor,
+                                );
                             }
                         }
                         None => {
@@ -289,7 +294,7 @@ impl Contract {
                                             md,
                                             storage_pointers,
                                             last_p,
-                                            false,
+                                            checking_constructor,
                                         );
                                     }
                                 }
