@@ -11,28 +11,32 @@ jobs:
     name: Create
     runs-on: ubuntu-latest
 
-  steps:
-    - name: "Checkout"
-      uses: actions/checkout@v2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
 
-    - name: Get version tag
+      - name: Get version tag
         id: vars
         run: |
-          pkg_version = ${GITHUB_REF#refs/*/}
+          export pkg_version=${GITHUB_REF#refs/*/}
           echo "tag=$pkg_version" >> $GITHUB_OUTPUT
 
-    - name: Huff js
-      run: cd huff_js
-
-    - name: Build
-      env:
-        PACKAGE_VERSION: ${{ steps.vars.outputs.tag }}
-      run: ./scripts/make_packages.sh
-
-    - name: Step into package
-      run: cd pkg
-
-    - name: Publish to NPM
-      uses: JS-DevTools/npm-publish@v1
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          token: ${{ secrets.NPM_TOKEN }}
+          toolchain: stable
+          components: cargo
+
+      - name: Install Wasm Pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build
+        env:
+          PACKAGE_VERSION: ${{ steps.vars.outputs.tag }}
+        working-directory: ./huff_js
+        run: ./scripts/make_packages.sh
+
+      - name: Publish to NPM
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
