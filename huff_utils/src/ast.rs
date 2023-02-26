@@ -255,7 +255,12 @@ impl Contract {
                                     self.recurse_ast_constants(md, storage_pointers, last_p, true);
                                 }
                             } else {
-                                self.recurse_ast_constants(md, storage_pointers, last_p, false);
+                                self.recurse_ast_constants(
+                                    md,
+                                    storage_pointers,
+                                    last_p,
+                                    checking_constructor,
+                                );
                             }
                         }
                         None => {
@@ -264,7 +269,7 @@ impl Contract {
                     }
                 }
                 StatementType::BuiltinFunctionCall(bfc) => {
-                    tracing::debug!(target: "ast", "Deriving Storage Pointrs: Found builtin function {:?}", bfc.kind);
+                    tracing::debug!(target: "ast", "Deriving Storage Pointers: Found builtin function {:?}", bfc.kind);
                     for a in &bfc.args {
                         if let Some(name) = &a.name {
                             match self
@@ -289,7 +294,7 @@ impl Contract {
                                             md,
                                             storage_pointers,
                                             last_p,
-                                            false,
+                                            checking_constructor,
                                         );
                                     }
                                 }

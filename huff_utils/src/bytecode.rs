@@ -4,7 +4,7 @@
 
 use crate::prelude::{AstSpan, Statement, TableDefinition};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fmt::{self, Display},
 };
 
@@ -114,6 +114,9 @@ pub type Jumps = Vec<Jump>;
 
 /// Type to map `Jump` labels to their bytecode indices
 pub type LabelIndices = BTreeMap<String, usize>;
+
+/// Typw to map circular_codesize labels to their bytecode indices
+pub type CircularCodeSizeIndices = BTreeSet<(String, usize)>;
 
 /// Type for a map of bytecode indexes to `Jumps`. Represents a Jump Table.
 pub type JumpTable = BTreeMap<usize, Jumps>;
