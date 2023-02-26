@@ -13,22 +13,28 @@ keywords = ["huff", "rust", "evm", "bytecode", "compiler"]
 
 [dependencies]
 serde_json = "1.0.81"
-proptest = "1.0.0"
+#proptest = "1.0.0"
 ethers-core = "0.13.0"
 tracing = "0.1.34"
 huff_codegen = { path = "../huff_codegen" }
 huff_lexer = { path = "../huff_lexer" }
 huff_utils = { path = "../huff_utils" }
 huff_parser = { path = "../huff_parser" }
-rayon = { version = "1.5.3" }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt"] }
 uuid = { version = "1.1.1", features = ["v4"] }
 tracing-test = "0.2.2"
 walkdir = "2"
+cfg-if = "1"
 
 [dev-dependencies]
 criterion = "0.3.5"
 rand = "0.8.5"
+
+[target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
+rayon = { version = "1.5.3" }
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
 
 [[bench]]
 name = "huff_benchmark"

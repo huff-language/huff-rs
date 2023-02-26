@@ -45,6 +45,15 @@ pub mod bytes_util;
 /// Solidity Interface Generator
 pub mod sol_interface;
 
+/// File Provider Module
+pub mod file_provider;
+
+/// Time Module
+pub mod time;
+
+/// Wasm Module
+pub mod wasm;
+
 /// Prelude wraps common utilities.
 pub mod prelude {
     pub use crate::{

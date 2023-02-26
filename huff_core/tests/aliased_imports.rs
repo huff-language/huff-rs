@@ -1,7 +1,7 @@
 use std::{str::FromStr, sync::Arc};
 
 use huff_core::Compiler;
-use huff_utils::prelude::*;
+use huff_utils::{prelude::*, file_provider::FileSystemFileProvider};
 
 #[test]
 fn test_parses_foundry_aliased_imports() {
@@ -22,7 +22,8 @@ fn test_parses_foundry_aliased_imports() {
         .collect();
 
     // Fetch sources and unwrap errors
-    let _ = Compiler::fetch_sources(import_bufs)
+    let file_provider = FileSystemFileProvider {};
+    let _ = Compiler::fetch_sources(import_bufs, Arc::new(file_provider))
         .into_iter()
         .map(|r| r.unwrap())
         .collect::<Vec<Arc<FileSource>>>();
@@ -33,9 +34,10 @@ fn test_parses_foundry_aliased_imports() {
 fn test_invalid_imports_break() {
     let import_bufs =
         vec![std::path::PathBuf::from_str("unaliased/erc20/contracts/ERC20.huff").unwrap()];
+    let file_provider = FileSystemFileProvider {};
 
     // Try to fetch sources
-    let _ = Compiler::fetch_sources(import_bufs)
+    let _ = Compiler::fetch_sources(import_bufs, Arc::new(file_provider))
         .into_iter()
         .map(|r| r.unwrap())
         .collect::<Vec<Arc<FileSource>>>();
