@@ -16,11 +16,11 @@ use huff_tests::{
     HuffTester,
 };
 use huff_utils::{
+    file_provider::FileSystemFileProvider,
     prelude::{
         export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
         CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
     },
-    file_provider::FileSystemFileProvider,
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};

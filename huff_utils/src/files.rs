@@ -1,4 +1,4 @@
-use itertools::{Itertools};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{
     cell::Ref,

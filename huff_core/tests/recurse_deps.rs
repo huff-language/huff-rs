@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use huff_core::Compiler;
-use huff_utils::{files, file_provider::FileSystemFileProvider};
+use huff_utils::{file_provider::FileSystemFileProvider, files};
 
 #[test]
 fn test_recursing_fs_dependencies() {

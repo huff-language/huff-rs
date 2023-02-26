@@ -1,8 +1,10 @@
 use std::{path::PathBuf, sync::Arc};
 
 use huff_core::Compiler;
-use huff_utils::{prelude::{CompilerError, OutputLocation, UnpackError}};
-use huff_utils::file_provider::{FileProvider, FileSystemFileProvider};
+use huff_utils::{
+    file_provider::{FileProvider, FileSystemFileProvider},
+    prelude::{CompilerError, OutputLocation, UnpackError},
+};
 
 #[test]
 fn test_get_outputs_no_output() {
@@ -31,10 +33,8 @@ fn test_get_outputs_with_output() {
 #[test]
 fn test_transform_paths() {
     let file_provider = FileSystemFileProvider {};
-    let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> = file_provider.transform_paths(&vec![
-        "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
-        "../huff-examples/erc20/contracts/utils/".to_string(),
-    ]);
+    let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> = file_provider.transform_paths(&["../huff-examples/erc20/contracts/ERC20.huff".to_string(),
+        "../huff-examples/erc20/contracts/utils/".to_string()]);
     assert!(path_bufs.is_ok());
     match path_bufs {
         Ok(bufs) => {
@@ -65,7 +65,7 @@ fn test_transform_paths() {
 fn test_transform_paths_non_huff() {
     let file_provider = FileSystemFileProvider {};
     let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> =
-        file_provider.transform_paths(&vec!["./ERC20.txt".to_string()]);
+        file_provider.transform_paths(&["./ERC20.txt".to_string()]);
     assert!(path_bufs.is_err());
     match path_bufs {
         Err(CompilerError::FileUnpackError(e)) => {
@@ -81,7 +81,7 @@ fn test_transform_paths_non_huff() {
 fn test_transform_paths_no_dir() {
     let file_provider = FileSystemFileProvider {};
     let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> =
-        file_provider.transform_paths(&vec!["./examples/random_dir/".to_string()]);
+        file_provider.transform_paths(&["./examples/random_dir/".to_string()]);
     assert!(path_bufs.is_err());
     match path_bufs {
         Err(CompilerError::FileUnpackError(e)) => {

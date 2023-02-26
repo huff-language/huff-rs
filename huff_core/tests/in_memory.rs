@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use huff_core::Compiler;
 
@@ -50,8 +49,6 @@ fn test_in_memory_compiler() {
 
     assert_eq!(
         artifact.bytecode,
-        "601a8060093d393df360003560e01c806340c10f1914610011575b6004356000602435"
-            .to_string()
+        "601a8060093d393df360003560e01c806340c10f1914610011575b6004356000602435".to_string()
     );
 }
-
