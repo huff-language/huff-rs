@@ -1,6 +1,7 @@
-use std::fmt;
+use std::{convert::Infallible, fmt};
 
 use huff_utils::prelude::CompilerError;
+use revm::primitives::EVMError;
 
 /// A Runner error
 #[derive(Debug)]
@@ -17,5 +18,12 @@ impl fmt::Display for RunnerError {
 impl From<CompilerError<'_>> for RunnerError {
     fn from(e: CompilerError) -> Self {
         RunnerError(e.to_string())
+    }
+}
+
+/// Convert a `EVMError` to a `RunnerError`
+impl From<EVMError<Infallible>> for RunnerError {
+    fn from(e: EVMError<Infallible>) -> Self {
+        RunnerError(format!("{:?}", e))
     }
 }

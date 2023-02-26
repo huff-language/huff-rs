@@ -15,7 +15,7 @@ keywords = ["huff", "rust", "ethereum", "bytecode", "compiler"]
 serde_json = "1.0.81"
 proptest = "1.0.0"
 huff_utils = { path = "../huff_utils" }
-ethers-core = "0.13.0"
+ethers-core = "1.0.2"
 hex = "0.4.3"
 tracing = "0.1.34"
 uuid = { version = "1.1.1", features = ["v4"] }

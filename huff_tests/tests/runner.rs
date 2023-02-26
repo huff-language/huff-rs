@@ -1,4 +1,4 @@
-use ethers::prelude::{Address, U256};
+use ethers_core::types::{Address, U256};
 use huff_tests::prelude::{TestRunner, TestStatus};
 
 #[test]
