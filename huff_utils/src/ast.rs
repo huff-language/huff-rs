@@ -129,6 +129,7 @@ impl Contract {
     pub fn derive_storage_pointers(&mut self) {
         let mut storage_pointers: Vec<(String, [u8; 32])> = Vec::new();
         let mut last_assigned_free_pointer = 0;
+        let mut recursed_builtins: Vec<String> = Vec::new();
 
         // Derive Constructor Storage Pointers
         match self.find_macro_by_name("CONSTRUCTOR") {
@@ -136,6 +137,7 @@ impl Contract {
                 &m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
+                &mut recursed_builtins,
                 false,
             ),
             None => {
@@ -150,6 +152,7 @@ impl Contract {
                 &m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
+                &mut recursed_builtins,
                 false,
             ),
             None => {
@@ -198,8 +201,10 @@ impl Contract {
         macro_def: &MacroDefinition,
         storage_pointers: &mut Vec<(String, [u8; 32])>,
         last_p: &mut i32,
+        recursed_builtins: &mut Vec<String>,
         checking_constructor: bool,
     ) {
+        recursed_builtins.push(macro_def.name.clone());
         let mut statements = macro_def.statements.clone();
 
         let mut i = 0;
@@ -252,13 +257,20 @@ impl Contract {
                         Some(&md) => {
                             if md.name.eq("CONSTRUCTOR") {
                                 if !checking_constructor {
-                                    self.recurse_ast_constants(md, storage_pointers, last_p, true);
+                                    self.recurse_ast_constants(
+                                        md,
+                                        storage_pointers,
+                                        last_p,
+                                        recursed_builtins,
+                                        true,
+                                    );
                                 }
                             } else {
                                 self.recurse_ast_constants(
                                     md,
                                     storage_pointers,
                                     last_p,
+                                    recursed_builtins,
                                     checking_constructor,
                                 );
                             }
@@ -280,12 +292,21 @@ impl Contract {
                                 .get(0)
                             {
                                 Some(&md) => {
+                                    // If we have already recursed this macro, skip it
+                                    if recursed_builtins.contains(&md.name) {
+                                        tracing::debug!(
+                                            "Already recursed into macro: {}, skipping...",
+                                            md.name
+                                        );
+                                        continue
+                                    }
                                     if md.name.eq("CONSTRUCTOR") {
                                         if !checking_constructor {
                                             self.recurse_ast_constants(
                                                 md,
                                                 storage_pointers,
                                                 last_p,
+                                                recursed_builtins,
                                                 true,
                                             );
                                         }
@@ -294,6 +315,7 @@ impl Contract {
                                             md,
                                             storage_pointers,
                                             last_p,
+                                            recursed_builtins,
                                             checking_constructor,
                                         );
                                     }

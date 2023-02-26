@@ -182,9 +182,17 @@ pub fn statement_gen(
                         })
                     };
 
+                    tracing::debug!("Statement gen, have ir macro: {:?}", ir_macro);
+
                     // Get the name of the macro being passed to __codesize
                     let codesize_arg = bf.args[0].name.as_ref().unwrap();
+                    tracing::debug!(
+                        "Using codesize arg: {}, curr macro def name: {}",
+                        codesize_arg,
+                        macro_def.name
+                    );
                     let is_previous_parent = scope.iter().any(|def| def.name == *codesize_arg);
+                    tracing::debug!("Is previous parent: {}", is_previous_parent);
 
                     // Special case:
                     // If the macro provided to __codesize is the current macro, we need to avoid a
@@ -204,6 +212,7 @@ pub fn statement_gen(
                         bytes.push((starting_offset, Bytes("cccc".to_string())));
                     } else {
                         // We will still need to recurse to get accurate values
+                        scope.push(ir_macro.clone());
                         let res: BytecodeRes = match Codegen::macro_to_bytecode(
                             ir_macro.clone(),
                             contract,
