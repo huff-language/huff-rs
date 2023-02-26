@@ -73,6 +73,7 @@ impl Codegen {
             0,
             &mut Vec::default(),
             false,
+            None,
         )?;
 
         tracing::debug!(target: "codegen", "Generated main bytecode. Appending table bytecode...");
@@ -101,6 +102,7 @@ impl Codegen {
             0,
             &mut Vec::default(),
             false,
+            None,
         )?;
 
         Codegen::gen_table_bytecode(bytecode_res)
@@ -270,6 +272,7 @@ impl Codegen {
         mut offset: usize,
         mis: &mut Vec<(usize, MacroInvocation)>,
         recursing_constructor: bool,
+        circular_codesize_invocations: Option<&mut CircularCodeSizeIndices>,
     ) -> Result<BytecodeRes, CodegenError> {
         // Get intermediate bytecode representation of the macro definition
         let mut bytes: Vec<(usize, Bytes)> = Vec::default();
@@ -280,8 +283,8 @@ impl Codegen {
         let mut label_indices = LabelIndices::new();
         let mut table_instances = Jumps::new();
         let mut utilized_tables: Vec<TableDefinition> = Vec::new();
-        let mut circular_codesize_invocations: CircularCodeSizeIndices =
-            CircularCodeSizeIndices::new();
+        let mut ccsi = CircularCodeSizeIndices::new();
+        let circular_codesize_invocations = circular_codesize_invocations.unwrap_or(&mut ccsi);
 
         // Loop through all intermediate bytecode representations generated from the AST
         for (_ir_bytes_index, ir_byte) in ir_bytes.into_iter().enumerate() {
@@ -314,7 +317,7 @@ impl Codegen {
                         &mut label_indices,
                         &mut table_instances,
                         &mut utilized_tables,
-                        &mut circular_codesize_invocations,
+                        circular_codesize_invocations,
                         starting_offset,
                     )?;
                     bytes.append(&mut push_bytes);
@@ -366,8 +369,11 @@ impl Codegen {
         // Fill in circular codesize invocations
         // Workout how to increase the offset the correct amount within here if it is longer than 2
         // bytes
-        let bytes =
-            Codegen::fill_circular_codesize_invocations(bytes, circular_codesize_invocations)?;
+        let bytes = Codegen::fill_circular_codesize_invocations(
+            bytes,
+            circular_codesize_invocations,
+            &macro_def.name,
+        )?;
 
         Ok(BytecodeRes { bytes, label_indices, unmatched_jumps, table_instances, utilized_tables })
     }
@@ -454,7 +460,8 @@ impl Codegen {
     /// On failure, returns a CodegenError.
     pub fn fill_circular_codesize_invocations(
         bytes: Vec<(usize, Bytes)>,
-        circular_codesize_invocations: CircularCodeSizeIndices,
+        circular_codesize_invocations: &mut CircularCodeSizeIndices,
+        macro_name: &str,
     ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
         // Get the length of the macro
         let num_invocations = circular_codesize_invocations.len();
@@ -483,7 +490,9 @@ impl Codegen {
             Vec::default(),
             |mut acc, (mut code_index, mut formatted_bytes)| {
                 // Check if a jump table exists at `code_index` (starting offset of `b`)
-                if let Some(_index) = circular_codesize_invocations.get(&code_index) {
+                if let Some((_, _index)) =
+                    circular_codesize_invocations.get(&(macro_name.to_string(), code_index))
+                {
                     // Check if a jump dest placeholder is present
                     if !&formatted_bytes.0.eq("cccc") {
                         tracing::error!(
@@ -540,6 +549,7 @@ impl Codegen {
                 *offset + 1,
                 mis,
                 false,
+                None,
             )?;
 
             for j in res.unmatched_jumps.iter_mut() {

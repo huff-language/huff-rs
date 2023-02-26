@@ -57,7 +57,6 @@ fn compiles_constructor_bytecode() {
 
     // Have the Codegen create the constructor bytecode
     let cbytes = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
-    println!("Constructor Bytecode Result: {cbytes:?}");
     assert_eq!(cbytes, String::from("33600055"));
 }
 
