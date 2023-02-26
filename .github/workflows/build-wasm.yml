@@ -1,0 +1,38 @@
+name: Publish-wasm
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Create
+    runs-on: ubuntu-latest
+
+  steps:
+    - name: "Checkout"
+      uses: actions/checkout@v2
+
+    - name: Get version tag
+        id: vars
+        run: |
+          pkg_version = ${GITHUB_REF#refs/*/}
+          echo "tag=$pkg_version" >> $GITHUB_OUTPUT
+
+    - name: Huff js
+      run: cd huff_js
+
+    - name: Build
+      env:
+        PACKAGE_VERSION: ${{ steps.vars.outputs.tag }}
+      run: ./scripts/make_packages.sh
+
+    - name: Step into package
+      run: cd pkg
+
+    - name: Publish to NPM
+      uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
