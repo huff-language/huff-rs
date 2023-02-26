@@ -15,9 +15,12 @@ use huff_tests::{
     prelude::{print_test_report, ReportKind},
     HuffTester,
 };
-use huff_utils::prelude::{
-    export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
-    CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
+use huff_utils::{
+    file_provider::FileSystemFileProvider,
+    prelude::{
+        export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
+        CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
+    },
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
@@ -198,6 +201,7 @@ fn main() {
         optimize: cli.optimize,
         bytecode: cli.bytecode,
         cached: use_cache,
+        file_provider: Arc::new(FileSystemFileProvider {}),
     };
 
     if let Some(TestCommands::Test { format, match_ }) = cli.test {
