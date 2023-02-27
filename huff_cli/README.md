@@ -5,7 +5,7 @@ The `huffc` CLI is written using [clap's](https://docs.rs/clap) [derive feature]
 ## huffc
 
 ```
-huffc 0.3.0
+huffc 0.3.1
 Huff Language Compiler built in Pure Rust.
 
 USAGE:
