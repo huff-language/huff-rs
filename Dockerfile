@@ -1,22 +1,47 @@
-from alpine as build-environment
-WORKDIR /opt
-RUN apk add pkgconfig gcc musl-dev python3-dev libffi-dev openssl-dev clang lld curl build-base linux-headers git \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh \
-    && chmod +x ./rustup.sh \
-    && ./rustup.sh -y
-WORKDIR /opt/huff-rs
+# ------------------ Chef stage -------------------
+# Use cargo chef to cache dependencies
+FROM rustlang/rust:nightly AS chef
+
+# Install cargo chef
+RUN cargo install cargo-chef 
+
+# Work in app
+WORKDIR /app
+
+# ------------------ Planner stage -------------------
+FROM chef as planner
+# Copy files into container
 COPY . .
-RUN apk add libressl-dev && source $HOME/.profile && cargo build --release \
-    && strip /opt/huff-rs/target/release/huffc
 
-from alpine as huff-client
-ENV GLIBC_KEY=https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub
-ENV GLIBC_KEY_FILE=/etc/apk/keys/sgerrand.rsa.pub
-ENV GLIBC_RELEASE=https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.35-r0/glibc-2.35-r0.apk
+# Create a lockfile for cargo chef
+RUN cargo +nightly chef prepare --recipe-path recipe.json
 
-RUN apk add linux-headers gcompat
-RUN wget -q -O ${GLIBC_KEY_FILE} ${GLIBC_KEY} \
-    && wget -O glibc.apk ${GLIBC_RELEASE} \
-    && apk add glibc.apk --force
-COPY --from=build-environment /opt/huff-rs/target/release/huffc /usr/local/bin/huffc
-ENTRYPOINT ["/bin/sh", "-c"]
+
+# ------------------ Builder stage -------------------
+FROM chef AS builder
+
+# Copy over our lock file
+COPY --from=planner  /app/recipe.json recipe.json
+
+# Build dependencies - not the app
+RUN cargo chef cook --release --recipe-path recipe.json
+
+### Above this all dependencies should be cached as long as our lock file stays the same
+
+COPY . .
+
+# Build binary
+RUN cargo build --release
+
+# ------------------ Runtime stage -------------------
+
+# Using super lightweight debian image to reduce overhead
+FROM debian:bullseye-slim AS runtime
+
+WORKDIR /app
+
+# Copy prebuild bin from the Builder stage
+COPY --from=builder /app/target/release/huffc /usr/local/bin/huffc
+
+# Run bin which has been copied from the builder stage :)
+ENTRYPOINT [ "/bin/sh", "-c" ]

@@ -6,7 +6,7 @@ use crate::{
     bytes_util::*,
     error::CodegenError,
     evm::Opcode,
-    prelude::{Span, TokenKind},
+    prelude::{MacroArg::Ident, Span, TokenKind},
 };
 use std::{
     collections::BTreeMap,
@@ -44,9 +44,9 @@ impl AstSpan {
             |s, fs| {
                 let start = fs.1.iter().map(|fs2| fs2.start).min().unwrap_or(0);
                 let end = fs.1.iter().map(|fs2| fs2.end).max().unwrap_or(0);
-                let newline_s = if s.is_empty() { "".to_string() } else { format!("{}\n", s) };
+                let newline_s = if s.is_empty() { "".to_string() } else { format!("{s}\n") };
                 if start.eq(&0) && end.eq(&0) {
-                    format!("{}-> {}:{}\n   > 0|", newline_s, fs.0, start)
+                    format!("{newline_s}-> {}:{start}\n   > 0|", fs.0)
                 } else {
                     format!(
                         "{}-> {}:{}-{}{}",
@@ -60,23 +60,19 @@ impl AstSpan {
                             .collect::<Vec<String>>()
                             .into_iter()
                             .unique()
-                            .fold("".to_string(), |acc, ss| { format!("{}{}", acc, ss) })
+                            .fold("".to_string(), |acc, ss| { format!("{acc}{ss}") })
                     )
                 }
             },
         );
         // Add in optional hint message
-        format!(
-            "{}{}",
-            hint.map(|msg| format!("{}\n", /* " ".repeat(7), */ msg)).unwrap_or_default(),
-            source_str
-        )
+        format!("{}{source_str}", hint.map(|msg| format!("{msg}\n")).unwrap_or_default())
     }
 
     /// Print just the file for missing
     pub fn file(&self) -> String {
         self.0.iter().fold("".to_string(), |acc, span| match &span.file {
-            Some(fs) => format!("-> {}\n{}", fs.path, acc),
+            Some(fs) => format!("-> {}\n{acc}", fs.path),
             None => Default::default(),
         })
     }
@@ -140,6 +136,7 @@ impl Contract {
                 &m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
+                false,
             ),
             None => {
                 // The constructor is not required, so we can just warn
@@ -153,6 +150,7 @@ impl Contract {
                 &m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
+                false,
             ),
             None => {
                 tracing::error!(target: "ast", "'MAIN' MACRO NOT FOUND WHILE DERIVING STORAGE POINTERS!")
@@ -200,8 +198,10 @@ impl Contract {
         macro_def: &MacroDefinition,
         storage_pointers: &mut Vec<(String, [u8; 32])>,
         last_p: &mut i32,
+        checking_constructor: bool,
     ) {
         let mut statements = macro_def.statements.clone();
+
         let mut i = 0;
         loop {
             if i >= statements.len() {
@@ -209,44 +209,39 @@ impl Contract {
             }
             match &statements[i].clone().ty {
                 StatementType::Constant(const_name) => {
-                    tracing::debug!(target: "ast", "Found constant \"{}\" in macro def \"{}\" statements!", const_name, macro_def.name);
-                    if storage_pointers
-                        .iter()
-                        .filter(|pointer| pointer.0.eq(const_name))
-                        .collect::<Vec<&(String, [u8; 32])>>()
-                        .get(0)
-                        .is_none()
-                    {
-                        tracing::debug!(target: "ast", "No storage pointer already set for \"{}\"!", const_name);
-                        // Get the associated constant
-                        match self
-                            .constants
-                            .lock()
-                            .unwrap()
-                            .iter()
-                            .filter(|c| c.name.eq(const_name))
-                            .collect::<Vec<&ConstantDefinition>>()
-                            .get(0)
-                        {
-                            Some(c) => {
-                                let new_value = match c.value {
-                                    ConstVal::Literal(l) => l,
-                                    ConstVal::FreeStoragePointer(_) => {
-                                        let old_p = *last_p;
-                                        *last_p += 1;
-                                        str_to_bytes32(&format!("{}", old_p))
-                                    }
-                                };
-                                storage_pointers.push((const_name.to_string(), new_value));
-                            }
-                            None => {
-                                tracing::warn!(target: "ast", "CONSTANT \"{}\" NOT FOUND IN AST CONSTANTS", const_name)
-                            }
-                        }
-                    }
+                    self.assign_free_storage_pointers(
+                        const_name,
+                        &macro_def.name,
+                        storage_pointers,
+                        last_p,
+                    );
                 }
                 StatementType::MacroInvocation(mi) => {
                     tracing::debug!(target: "ast", "Found macro invocation: \"{}\" in macro def: \"{}\"!", mi.macro_name, macro_def.name);
+
+                    // Check for constant references in macro arguments
+                    let mut constant_args: Vec<String> = Vec::new();
+                    for arg in &mi.args {
+                        // check if it is a constant
+                        if let Ident(name) = arg {
+                            self.constants.lock().unwrap().iter().for_each(|constant| {
+                                if name == &constant.name {
+                                    tracing::debug!(target: "ast", "CONSTANT FOUND AS MACRO PARAMETER {}", name);
+                                    constant_args.push(name.to_string());
+                                }
+                            })
+                        }
+                    }
+                    // Assign constants that reference the Free Storage Pointer
+                    for constant_arg in constant_args {
+                        self.assign_free_storage_pointers(
+                            &constant_arg,
+                            &macro_def.name,
+                            storage_pointers,
+                            last_p,
+                        );
+                    }
+
                     match self
                         .macros
                         .iter()
@@ -254,14 +249,27 @@ impl Contract {
                         .collect::<Vec<&MacroDefinition>>()
                         .get(0)
                     {
-                        Some(&md) => self.recurse_ast_constants(md, storage_pointers, last_p),
+                        Some(&md) => {
+                            if md.name.eq("CONSTRUCTOR") {
+                                if !checking_constructor {
+                                    self.recurse_ast_constants(md, storage_pointers, last_p, true);
+                                }
+                            } else {
+                                self.recurse_ast_constants(
+                                    md,
+                                    storage_pointers,
+                                    last_p,
+                                    checking_constructor,
+                                );
+                            }
+                        }
                         None => {
                             tracing::warn!(target: "ast", "MACRO \"{}\" INVOKED BUT NOT FOUND IN AST!", mi.macro_name)
                         }
                     }
                 }
                 StatementType::BuiltinFunctionCall(bfc) => {
-                    tracing::debug!(target: "ast", "Deriving Storage Pointrs: Found builtin function {:?}", bfc.kind);
+                    tracing::debug!(target: "ast", "Deriving Storage Pointers: Found builtin function {:?}", bfc.kind);
                     for a in &bfc.args {
                         if let Some(name) = &a.name {
                             match self
@@ -272,7 +280,23 @@ impl Contract {
                                 .get(0)
                             {
                                 Some(&md) => {
-                                    self.recurse_ast_constants(md, storage_pointers, last_p)
+                                    if md.name.eq("CONSTRUCTOR") {
+                                        if !checking_constructor {
+                                            self.recurse_ast_constants(
+                                                md,
+                                                storage_pointers,
+                                                last_p,
+                                                true,
+                                            );
+                                        }
+                                    } else {
+                                        self.recurse_ast_constants(
+                                            md,
+                                            storage_pointers,
+                                            last_p,
+                                            checking_constructor,
+                                        );
+                                    }
                                 }
                                 None => {
                                     tracing::warn!(target: "ast", "BUILTIN HAS ARG NAME \"{}\" BUT NOT FOUND IN AST!", name)
@@ -296,6 +320,50 @@ impl Contract {
         //     let next_md = macros_to_recurse.remove(0);
         //     self.recurse_ast_constants(next_md, storage_pointers, last_p, macros_to_recurse);
         // }
+    }
+
+    fn assign_free_storage_pointers(
+        &self,
+        const_name: &String,
+        macro_name: &String,
+        storage_pointers: &mut Vec<(String, [u8; 32])>,
+        last_p: &mut i32,
+    ) {
+        tracing::debug!(target: "ast", "Found constant \"{}\" in macro def \"{}\" statements!", const_name, macro_name);
+        if storage_pointers
+            .iter()
+            .filter(|pointer| pointer.0.eq(const_name))
+            .collect::<Vec<&(String, [u8; 32])>>()
+            .get(0)
+            .is_none()
+        {
+            tracing::debug!(target: "ast", "No storage pointer already set for \"{}\"!", const_name);
+            // Get the associated constant
+            match self
+                .constants
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|c| c.name.eq(const_name))
+                .collect::<Vec<&ConstantDefinition>>()
+                .get(0)
+            {
+                Some(c) => {
+                    let new_value = match c.value {
+                        ConstVal::Literal(l) => l,
+                        ConstVal::FreeStoragePointer(_) => {
+                            let old_p = *last_p;
+                            *last_p += 1;
+                            str_to_bytes32(&format!("{old_p}"))
+                        }
+                    };
+                    storage_pointers.push((const_name.to_string(), new_value));
+                }
+                None => {
+                    tracing::warn!(target: "ast", "CONSTANT \"{}\" NOT FOUND IN AST CONSTANTS", const_name)
+                }
+            }
+        }
     }
 
     /// Add override constants to the AST
@@ -516,11 +584,12 @@ impl MacroDefinition {
     pub fn to_irbytes(statements: &[Statement]) -> Vec<IRBytes> {
         let mut inner_irbytes: Vec<IRBytes> = vec![];
 
-        statements.iter().for_each(|statement| {
+        let mut statement_iter = statements.iter();
+        while let Some(statement) = statement_iter.next() {
             match &statement.ty {
                 StatementType::Literal(l) => {
                     let hex_literal: String = bytes32_to_string(l, false);
-                    let push_bytes = format!("{:02x}{}", 95 + hex_literal.len() / 2, hex_literal);
+                    let push_bytes = format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2);
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(push_bytes)),
                         span: statement.span.clone(),
@@ -532,6 +601,25 @@ impl MacroDefinition {
                         ty: IRByteType::Bytes(Bytes(opcode_str)),
                         span: statement.span.clone(),
                     });
+                    // If the opcode is a push, we need to consume the next statement, which must be
+                    // a literal as checked in the parser
+                    if o.is_push() {
+                        match statement_iter.next() {
+                            Some(Statement { ty: StatementType::Literal(l), span: _ }) => {
+                                let hex_literal: String = bytes32_to_string(l, false);
+                                let prefixed_hex_literal = o.prefix_push_literal(&hex_literal);
+                                inner_irbytes.push(IRBytes {
+                                    ty: IRByteType::Bytes(Bytes(prefixed_hex_literal)),
+                                    span: statement.span.clone(),
+                                });
+                            }
+                            _ => {
+                                // We have a push without a literal - this should be caught by the
+                                // parser
+                                panic!("Invalid push statement");
+                            }
+                        }
+                    }
                 }
                 StatementType::Code(c) => {
                     inner_irbytes.push(IRBytes {
@@ -595,7 +683,7 @@ impl MacroDefinition {
                     });
                 }
             }
-        });
+        }
 
         inner_irbytes
     }
@@ -703,6 +791,8 @@ pub enum BuiltinFunctionKind {
     RightPad,
     /// Dynamic constructor arg function
     DynConstructorArg,
+    /// Inject Raw Bytes
+    Verbatim,
 }
 
 impl From<String> for BuiltinFunctionKind {
@@ -716,6 +806,7 @@ impl From<String> for BuiltinFunctionKind {
             "__ERROR" => BuiltinFunctionKind::Error,
             "__RIGHTPAD" => BuiltinFunctionKind::RightPad,
             "__CODECOPY_DYN_ARG" => BuiltinFunctionKind::DynConstructorArg,
+            "__VERBATIM" => BuiltinFunctionKind::Verbatim,
             _ => panic!("Invalid Builtin Function Kind"), /* This should never be reached,
                                                            * builtins are validated with a
                                                            * `try_from` call in the lexer. */
@@ -736,6 +827,7 @@ impl TryFrom<&String> for BuiltinFunctionKind {
             "__ERROR" => Ok(BuiltinFunctionKind::Error),
             "__RIGHTPAD" => Ok(BuiltinFunctionKind::RightPad),
             "__CODECOPY_DYN_ARG" => Ok(BuiltinFunctionKind::DynConstructorArg),
+            "__VERBATIM" => Ok(BuiltinFunctionKind::Verbatim),
             _ => Err(()),
         }
     }
@@ -777,15 +869,15 @@ impl Display for StatementType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             StatementType::Literal(l) => write!(f, "LITERAL: {}", bytes32_to_string(l, true)),
-            StatementType::Opcode(o) => write!(f, "OPCODE: {}", o),
-            StatementType::Code(s) => write!(f, "CODE: {}", s),
+            StatementType::Opcode(o) => write!(f, "OPCODE: {o}"),
+            StatementType::Code(s) => write!(f, "CODE: {s}"),
             StatementType::MacroInvocation(m) => {
                 write!(f, "MACRO INVOCATION: {}", m.macro_name)
             }
-            StatementType::Constant(c) => write!(f, "CONSTANT: {}", c),
-            StatementType::ArgCall(c) => write!(f, "ARG CALL: {}", c),
+            StatementType::Constant(c) => write!(f, "CONSTANT: {c}"),
+            StatementType::ArgCall(c) => write!(f, "ARG CALL: {c}"),
             StatementType::Label(l) => write!(f, "LABEL: {}", l.name),
-            StatementType::LabelCall(l) => write!(f, "LABEL CALL: {}", l),
+            StatementType::LabelCall(l) => write!(f, "LABEL CALL: {l}"),
             StatementType::BuiltinFunctionCall(b) => {
                 write!(f, "BUILTIN FUNCTION CALL: {:?}", b.kind)
             }

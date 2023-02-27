@@ -8,18 +8,24 @@ use ethers_core::utils::hex;
 use huff_codegen::*;
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::prelude::*;
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+use huff_utils::wasm::IntoParallelIterator;
+use huff_utils::{
+    file_provider::{FileProvider, FileSystemFileProvider, InMemoryFileProvider},
+    prelude::*,
+    time,
+};
+#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 use rayon::prelude::*;
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     ffi::OsString,
     fs,
-    path::{Path, PathBuf},
+    iter::Iterator,
+    path::PathBuf,
     sync::Arc,
-    time::SystemTime,
 };
 use tracing_subscriber::{filter::Directive, EnvFilter};
-use uuid::Uuid;
 
 pub(crate) mod cache;
 
@@ -32,8 +38,8 @@ pub(crate) mod cache;
 ///
 /// Let's say we want to create a Compiler for the `ERC20.huff` contract located in [huff-examples](https://github.com/huff-language/huff-examples/blob/main/erc20/contracts/ERC20.huff).
 ///
-/// We want our Compiler to output to an `artifacts` directory, with no constructor arguments, and
-/// no verbose output:
+/// We want our Compiler to output to an `artifact:Vec<ethers_core::abi::token::Token>s` directory,
+/// with no constructor arguments, and no verbose output:
 ///
 /// ```rust
 /// use huff_core::Compiler;
@@ -44,16 +50,22 @@ pub(crate) mod cache;
 ///     Some("./artifacts".to_string()),
 ///     None,
 ///     None,
+///     None,
+///     None,
 ///     false,
 ///     false
 /// );
 /// ```
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Compiler<'a> {
     /// The location of the files to compile
     pub sources: Arc<Vec<String>>,
     /// The output location
     pub output: Option<String>,
+    /// Macro to use a main
+    pub alternative_main: Option<String>,
+    /// Constructor macro to use
+    pub alternative_constructor: Option<String>,
     /// Constructor Input Arguments
     pub construct_args: Option<Vec<String>>,
     /// Constant Overrides
@@ -64,13 +76,18 @@ pub struct Compiler<'a> {
     pub bytecode: bool,
     /// Whether to check cached artifacts
     pub cached: bool,
+    /// The implementation of a FileReader
+    pub file_provider: Arc<dyn FileProvider<'a>>,
 }
 
 impl<'a> Compiler<'a> {
     /// Public associated function to instantiate a new compiler.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         sources: Arc<Vec<String>>,
         output: Option<String>,
+        alternative_main: Option<String>,
+        alternative_constructor: Option<String>,
         construct_args: Option<Vec<String>>,
         constant_overrides: Option<BTreeMap<&'a str, Literal>>,
         verbose: bool,
@@ -82,11 +99,42 @@ impl<'a> Compiler<'a> {
         Self {
             sources,
             output,
+            alternative_main,
+            alternative_constructor,
             construct_args,
             constant_overrides,
             optimize: false,
             bytecode: false,
             cached,
+            file_provider: Arc::new(FileSystemFileProvider {}),
+        }
+    }
+
+    /// Creates a new instance of a compiler with an in-memory FileReader from the supplied sources
+    /// map.
+    pub fn new_in_memory(
+        sources: Arc<Vec<String>>,
+        file_sources: HashMap<String, String>,
+        alternative_main: Option<String>,
+        alternative_constructor: Option<String>,
+        construct_args: Option<Vec<String>>,
+        constant_overrides: Option<BTreeMap<&'a str, Literal>>,
+        verbose: bool,
+    ) -> Self {
+        if cfg!(feature = "verbose") || verbose {
+            Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
+        }
+        Self {
+            sources,
+            output: None,
+            alternative_main,
+            alternative_constructor,
+            construct_args,
+            constant_overrides,
+            optimize: false,
+            bytecode: false,
+            cached: false,
+            file_provider: Arc::new(InMemoryFileProvider::new(file_sources)),
         }
     }
 
@@ -102,7 +150,7 @@ impl<'a> Compiler<'a> {
             }
         }
         if let Err(e) = subscriber_builder.with_env_filter(env_filter).try_init() {
-            println!("Failed to initialize tracing!\nError: {:?}", e)
+            println!("Failed to initialize tracing!\nError: {e:?}")
         }
     }
 
@@ -120,11 +168,11 @@ impl<'a> Compiler<'a> {
     /// 5. Return the compiling error(s) or successfully generated artifacts.
     pub fn execute(&self) -> Result<Vec<Arc<Artifact>>, Arc<CompilerError<'a>>> {
         // Grab the input files
-        let file_paths: Vec<PathBuf> = Compiler::transform_paths(&self.sources)?;
+        let file_paths: Vec<PathBuf> = self.file_provider.transform_paths(&self.sources)?;
 
         // Parallel file fetching
         let files: Vec<Result<Arc<FileSource>, CompilerError>> =
-            Compiler::fetch_sources(file_paths);
+            Self::fetch_sources(file_paths, self.file_provider.clone());
 
         // Unwrap errors
         let mut errors =
@@ -169,7 +217,9 @@ impl<'a> Compiler<'a> {
                 let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
                     files
                         .into_par_iter()
-                        .map(|v| Compiler::recurse_deps(v, &Remapper::new("./")))
+                        .map(|v| {
+                            Self::recurse_deps(v, &Remapper::new("./"), self.file_provider.clone())
+                        })
                         .collect();
 
                 // Collect Recurse Deps errors and try to resolve to the first one
@@ -227,11 +277,11 @@ impl<'a> Compiler<'a> {
     ///    ASTs.
     pub fn grab_contracts(&self) -> Result<Vec<Contract>, Arc<CompilerError<'a>>> {
         // Grab the input files
-        let file_paths: Vec<PathBuf> = Compiler::transform_paths(&self.sources)?;
+        let file_paths: Vec<PathBuf> = self.file_provider.transform_paths(&self.sources)?;
 
         // Parallel file fetching
         let files: Vec<Result<Arc<FileSource>, CompilerError>> =
-            Compiler::fetch_sources(file_paths);
+            Self::fetch_sources(file_paths, self.file_provider.clone());
 
         // Unwrap errors
         let mut errors =
@@ -249,7 +299,13 @@ impl<'a> Compiler<'a> {
 
         let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> = files
             .into_par_iter()
-            .map(|f| Compiler::recurse_deps(f, &huff_utils::files::Remapper::new("./")))
+            .map(|f| {
+                Self::recurse_deps(
+                    f,
+                    &huff_utils::files::Remapper::new("./"),
+                    self.file_provider.clone(),
+                )
+            })
             .collect();
 
         // Collect Recurse Deps errors and try to resolve to the first one
@@ -343,7 +399,10 @@ impl<'a> Compiler<'a> {
 
         // Primary Bytecode Generation
         let mut cg = Codegen::new();
-        let main_bytecode = match Codegen::generate_main_bytecode(&contract) {
+        let main_bytecode = match Codegen::generate_main_bytecode(
+            &contract,
+            self.alternative_main.clone(),
+        ) {
             Ok(mb) => mb,
             Err(mut e) => {
                 tracing::error!(target: "core", "FAILED TO GENERATE MAIN BYTECODE FOR CONTRACT");
@@ -366,35 +425,39 @@ impl<'a> Compiler<'a> {
 
         // Generate Constructor Bytecode
         let inputs = self.get_constructor_args();
-        let constructor_bytecode = match Codegen::generate_constructor_bytecode(&contract) {
-            Ok(mb) => mb,
-            Err(mut e) => {
-                // Return any errors except if the inputs is empty and the constructor definition is
-                // missing
-                if e.kind != CodegenErrorKind::MissingMacroDefinition("CONSTRUCTOR".to_string()) ||
-                    !inputs.is_empty()
-                {
-                    // Add File Source to Span
-                    let mut errs = e
-                        .span
-                        .0
-                        .into_iter()
-                        .map(|mut s| {
-                            s.file = Some(Arc::clone(&file));
-                            s
-                        })
-                        .collect::<Vec<Span>>();
-                    errs.dedup();
-                    e.span = AstSpan(errs);
-                    tracing::error!(target: "codegen", "Constructor inputs provided, but contract missing \"CONSTRUCTOR\" macro!");
-                    return Err(CompilerError::CodegenError(e))
-                }
+        let (constructor_bytecode, has_custom_bootstrap) =
+            match Codegen::generate_constructor_bytecode(
+                &contract,
+                self.alternative_constructor.clone(),
+            ) {
+                Ok(mb) => mb,
+                Err(mut e) => {
+                    // Return any errors except if the inputs is empty and the constructor
+                    // definition is missing
+                    if e.kind != CodegenErrorKind::MissingMacroDefinition("CONSTRUCTOR".to_string()) ||
+                        !inputs.is_empty()
+                    {
+                        // Add File Source to Span
+                        let mut errs = e
+                            .span
+                            .0
+                            .into_iter()
+                            .map(|mut s| {
+                                s.file = Some(Arc::clone(&file));
+                                s
+                            })
+                            .collect::<Vec<Span>>();
+                        errs.dedup();
+                        e.span = AstSpan(errs);
+                        tracing::error!(target: "codegen", "Constructor inputs provided, but contract missing \"CONSTRUCTOR\" macro!");
+                        return Err(CompilerError::CodegenError(e))
+                    }
 
-                // If the kind is a missing constructor we can ignore it
-                tracing::warn!(target: "codegen", "Contract has no \"CONSTRUCTOR\" macro definition!");
-                String::default()
-            }
-        };
+                    // If the kind is a missing constructor we can ignore it
+                    tracing::warn!(target: "codegen", "Contract has no \"CONSTRUCTOR\" macro definition!");
+                    (String::default(), false)
+                }
+            };
         tracing::info!(target: "core", "CONSTRUCTOR BYTECODE GENERATED [{}]", constructor_bytecode);
 
         // Encode Constructor Arguments
@@ -402,7 +465,13 @@ impl<'a> Compiler<'a> {
         tracing::info!(target: "core", "ENCODED {} INPUTS", encoded_inputs.len());
 
         // Generate Artifact with ABI
-        let churn_res = cg.churn(file, encoded_inputs, &main_bytecode, &constructor_bytecode);
+        let churn_res = cg.churn(
+            file,
+            encoded_inputs,
+            &main_bytecode,
+            &constructor_bytecode,
+            has_custom_bootstrap,
+        );
         match churn_res {
             Ok(mut artifact) => {
                 // Then we can have the code gen output the artifact
@@ -426,32 +495,18 @@ impl<'a> Compiler<'a> {
     }
 
     /// Get the file sources for a vec of PathBufs
-    pub fn fetch_sources(paths: Vec<PathBuf>) -> Vec<Result<Arc<FileSource>, CompilerError<'a>>> {
-        paths
-            .into_par_iter()
-            .map(|pb| {
-                let file_loc = String::from(pb.to_string_lossy());
-                match std::fs::read_to_string(&file_loc) {
-                    Ok(source) => Ok(Arc::new(FileSource {
-                        id: Uuid::new_v4(),
-                        path: file_loc,
-                        source: Some(source),
-                        access: Some(SystemTime::now()),
-                        dependencies: None,
-                    })),
-                    Err(_) => {
-                        tracing::error!(target: "core", "FILE READ FAILED: \"{}\"!", file_loc);
-                        Err(CompilerError::FileUnpackError(UnpackError::MissingFile(file_loc)))
-                    }
-                }
-            })
-            .collect()
+    pub fn fetch_sources(
+        paths: Vec<PathBuf>,
+        reader: Arc<dyn FileProvider<'a>>,
+    ) -> Vec<Result<Arc<FileSource>, CompilerError<'a>>> {
+        paths.into_par_iter().map(|pb| reader.read_file(pb)).collect()
     }
 
     /// Recurses file dependencies
     pub fn recurse_deps(
         fs: Arc<FileSource>,
         remapper: &Remapper,
+        reader: Arc<dyn FileProvider<'a>>,
     ) -> Result<Arc<FileSource>, Arc<CompilerError<'a>>> {
         tracing::debug!(target: "core", "RECURSING DEPENDENCIES FOR {}", fs.path);
         let mut new_fs = FileSource { path: fs.path.clone(), ..Default::default() };
@@ -466,7 +521,7 @@ impl<'a> Compiler<'a> {
                     return Err(Arc::new(CompilerError::PathBufRead(OsString::from(&fs.path))))
                 }
             };
-            new_fs.access = Some(SystemTime::now());
+            new_fs.access = Some(time::get_current_time());
             new_source
         };
         let imports: Vec<String> = Lexer::lex_imports(&file_source);
@@ -496,9 +551,9 @@ impl<'a> Compiler<'a> {
         if !localized_imports.is_empty() {
             tracing::info!(target: "core", "LOCALIZED IMPORTS {:?}", localized_imports);
         }
-        let import_bufs: Vec<PathBuf> = Compiler::transform_paths(&localized_imports)?;
+        let import_bufs: Vec<PathBuf> = reader.transform_paths(&localized_imports)?;
         let potentials: Result<Vec<Arc<FileSource>>, CompilerError> =
-            Compiler::fetch_sources(import_bufs).into_iter().collect();
+            Self::fetch_sources(import_bufs, reader.clone()).into_iter().collect();
         let mut file_sources = match potentials {
             Ok(p) => p,
             Err(e) => return Err(Arc::new(e)),
@@ -510,7 +565,7 @@ impl<'a> Compiler<'a> {
         // Now that we have all the file sources, we have to recurse and get their source
         file_sources = file_sources
             .into_par_iter()
-            .map(|inner_fs| match Compiler::recurse_deps(Arc::clone(&inner_fs), remapper) {
+            .map(|inner_fs| match Self::recurse_deps(Arc::clone(&inner_fs), remapper, reader.clone()) {
                 Ok(new_fs) => new_fs,
                 Err(e) => {
                     tracing::error!(target: "core", "NESTED DEPENDENCY RESOLUTION FAILED: \"{:?}\"", e);
@@ -562,30 +617,6 @@ impl<'a> Compiler<'a> {
             }
             tracing::info!(target: "core", "EXPORTED ARTIFACT TO \"{}\"", json_out);
         });
-    }
-
-    /// Transforms File Strings into PathBufs
-    pub fn transform_paths(sources: &Vec<String>) -> Result<Vec<PathBuf>, CompilerError<'a>> {
-        let mut paths = vec![];
-        for f in sources {
-            // If the file is huff, use the path, otherwise unpack
-            let ext = Path::new(&f).extension().unwrap_or_default();
-            if ext.eq("huff") {
-                paths.push(Path::new(&f).to_path_buf())
-            } else {
-                // Otherwise, override the source files and use all files in the provided dir
-                match unpack_files(f) {
-                    Ok(files) => {
-                        files.iter().for_each(|fil| paths.push(Path::new(&fil).to_path_buf()))
-                    }
-                    Err(e) => {
-                        tracing::error!(target: "core", "ERROR UNPACKING FILE: {:?}", e);
-                        return Err(CompilerError::FileUnpackError(e))
-                    }
-                }
-            }
-        }
-        Ok(paths)
     }
 
     /// Derives Constructor Input Arguments

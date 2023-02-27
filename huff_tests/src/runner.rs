@@ -1,27 +1,28 @@
 use crate::prelude::{cheats_inspector::CheatsInspector, RunnerError, TestResult, TestStatus};
 use bytes::Bytes;
-use ethers::{prelude::Address, types::U256, utils::hex};
+use ethers_core::{
+    types::{Address, U256},
+    utils::hex,
+};
 use huff_codegen::Codegen;
 use huff_utils::{
     ast::{DecoratorFlag, MacroDefinition},
     prelude::{pad_n_bytes, CompilerError, Contract},
 };
 use revm::{
-    return_ok, return_revert, BlockEnv, CfgEnv, CreateScheme, Database, Env, InMemoryDB, Return,
-    SpecId, TransactOut, TransactTo, TxEnv, EVM,
+    db::DbAccount,
+    primitives::{
+        BlockEnv, CfgEnv, CreateScheme, Env, ExecutionResult, Output, SpecId, TransactTo, TxEnv,
+    },
+    Database, InMemoryDB, EVM,
 };
 
 /// The test runner allows execution of test macros within an in-memory REVM
 /// instance.
+#[derive(Default, Debug)]
 pub struct TestRunner {
     pub database: InMemoryDB,
     pub env: Env,
-}
-
-impl Default for TestRunner {
-    fn default() -> Self {
-        Self { database: InMemoryDB::default(), env: Env::default() }
-    }
 }
 
 impl TestRunner {
@@ -34,9 +35,13 @@ impl TestRunner {
     pub fn set_balance(&mut self, address: Address, amount: U256) -> &mut Self {
         let db = self.db_mut();
 
-        let mut account = db.basic(address);
-        account.balance = amount;
-        db.insert_account_info(address, account);
+        let revm_address = revm::primitives::B160::from_slice(address.as_bytes());
+        let mut account = match db.basic(revm_address) {
+            Ok(Some(info)) => DbAccount { info, ..Default::default() },
+            _ => DbAccount::new_not_existing(),
+        };
+        account.info.balance = amount.into();
+        db.insert_account_info(revm_address, account.info);
 
         self
     }
@@ -48,11 +53,11 @@ impl TestRunner {
         let constructor_length = 0;
         let mut bootstrap_code_size = 9;
         let contract_size = if contract_length < 256 {
-            format!("60{}", pad_n_bytes(format!("{:x}", contract_length).as_str(), 1))
+            format!("60{}", pad_n_bytes(format!("{contract_length:x}").as_str(), 1))
         } else {
             bootstrap_code_size += 1;
 
-            format!("61{}", pad_n_bytes(format!("{:x}", contract_length).as_str(), 2))
+            format!("61{}", pad_n_bytes(format!("{contract_length:x}").as_str(), 2))
         };
         let contract_code_offset = if (bootstrap_code_size + constructor_length) < 256 {
             format!(
@@ -67,7 +72,7 @@ impl TestRunner {
                 pad_n_bytes(format!("{:x}", bootstrap_code_size + constructor_length).as_str(), 2)
             )
         };
-        let bootstrap = format!("{}80{}3d393df3{}", contract_size, contract_code_offset, code);
+        let bootstrap = format!("{contract_size}80{contract_code_offset}3d393df3{code}");
 
         let mut evm = EVM::new();
         self.set_balance(Address::zero(), U256::MAX);
@@ -83,20 +88,15 @@ impl TestRunner {
         evm.database(self.db_mut());
 
         // Send our CREATE transaction
-        let (status, out, _, _) = evm.transact_commit();
+        let er = evm.transact_commit().map_err(RunnerError::from)?;
 
         // Check if deployment was successful
-        let address = match status {
-            return_ok!() => {
-                if let TransactOut::Create(_, Some(addr)) = out {
-                    addr
-                } else {
-                    return Err(RunnerError(String::from("Test deployment failed")))
-                }
-            }
+        let address = match er {
+            ExecutionResult::Success { output: Output::Create(_, Some(addr)), .. } => addr,
             _ => return Err(RunnerError(String::from("Test deployment failed"))),
         };
-        Ok(address)
+        let ethers_address = ethers_core::types::Address::from_slice(address.as_bytes());
+        Ok(ethers_address)
     }
 
     /// Perform a call to a deployed contract
@@ -111,21 +111,34 @@ impl TestRunner {
         let mut evm = EVM::new();
         let mut inspector = CheatsInspector::default();
         self.set_balance(caller, U256::MAX);
+        let revm_address = revm::primitives::B160::from_slice(address.as_bytes());
+
         evm.env = self.build_env(
             caller,
-            TransactTo::Call(address),
+            TransactTo::Call(revm_address),
             hex::decode(data).expect("Invalid calldata").into(),
             value,
         );
         evm.database(self.db_mut());
 
         // Send our CALL transaction
-        let (status, out, gas, _) = evm.inspect_commit(&mut inspector);
+        let er = evm.inspect_commit(&mut inspector).map_err(RunnerError::from)?;
+
+        // Extract execution params
+        let gas_used = match er {
+            ExecutionResult::Success { gas_used, .. } => gas_used,
+            ExecutionResult::Revert { gas_used, .. } => gas_used,
+            _ => return Err(RunnerError(String::from("Unexpected transaction status"))),
+        };
+        let status = match er {
+            ExecutionResult::Success { .. } => TestStatus::Success,
+            _ => TestStatus::Revert,
+        };
 
         // Check if the transaction was successful
-        let return_data = match status {
-            return_ok!() | return_revert!() => {
-                if let TransactOut::Call(b) = out {
+        let return_data = match er {
+            ExecutionResult::Success { output, .. } => {
+                if let Output::Call(b) = output {
                     if b.is_empty() {
                         None
                     } else {
@@ -135,22 +148,20 @@ impl TestRunner {
                     return Err(RunnerError(String::from("Unexpected transaction kind")))
                 }
             }
+            ExecutionResult::Revert { output, .. } => {
+                if output.is_empty() {
+                    None
+                } else {
+                    Some(hex::encode(output))
+                }
+            }
             _ => return Err(RunnerError(String::from("Unexpected transaction status"))),
         };
 
         // Return our test result
         // NOTE: We subtract 21000 gas from the gas result to account for the
         // base cost of the CALL.
-        Ok(TestResult {
-            name,
-            return_data,
-            gas: gas - 21000,
-            status: match status {
-                return_ok!() => TestStatus::Success,
-                _ => TestStatus::Revert,
-            },
-            logs: inspector.logs,
-        })
+        Ok(TestResult { name, return_data, gas: gas_used - 21000, status, logs: inspector.logs })
     }
 
     /// Compile a test macro and run it in an in-memory REVM instance.
@@ -168,6 +179,8 @@ impl TestRunner {
             &mut vec![m.to_owned()],
             0,
             &mut Vec::default(),
+            false,
+            None,
         ) {
             // Generate table bytecode for compiled test macro
             Ok(res) => match Codegen::gen_table_bytecode(res) {
@@ -206,15 +219,24 @@ impl TestRunner {
 
     /// Build an EVM transaction environment.
     fn build_env(&self, caller: Address, to: TransactTo, data: Bytes, value: U256) -> Env {
+        let revm_address = revm::primitives::B160::from_slice(caller.as_bytes());
         Env {
-            cfg: CfgEnv { chain_id: 1.into(), spec_id: SpecId::LATEST, ..Default::default() },
-            block: BlockEnv { basefee: 0.into(), gas_limit: U256::MAX, ..Default::default() },
+            cfg: CfgEnv {
+                chain_id: revm::primitives::U256::from(1),
+                spec_id: SpecId::LATEST,
+                ..Default::default()
+            },
+            block: BlockEnv {
+                basefee: revm::primitives::U256::from(0),
+                gas_limit: U256::MAX.into(),
+                ..Default::default()
+            },
             tx: TxEnv {
                 chain_id: 1.into(),
-                caller,
+                caller: revm_address,
                 transact_to: to,
                 data,
-                value,
+                value: value.into(),
                 ..Default::default()
             },
         }

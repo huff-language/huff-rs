@@ -15,9 +15,12 @@ use huff_tests::{
     prelude::{print_test_report, ReportKind},
     HuffTester,
 };
-use huff_utils::prelude::{
-    export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
-    CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
+use huff_utils::{
+    file_provider::FileSystemFileProvider,
+    prelude::{
+        export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
+        CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
+    },
 };
 use isatty::stdout_isatty;
 use spinners::{Spinner, Spinners};
@@ -83,6 +86,14 @@ struct Huff {
     #[clap(short = 'c', long = "constants", multiple_values = true)]
     constants: Option<Vec<String>>,
 
+    /// Compile a specific macro
+    #[clap(short = 'm', long = "alt-main")]
+    alternative_main: Option<String>,
+
+    /// Compile a specific constructor macro
+    #[clap(short = 'l', long = "alt-constructor")]
+    alternative_constructor: Option<String>,
+
     /// Test subcommand
     #[clap(subcommand)]
     test: Option<TestCommands>,
@@ -106,7 +117,7 @@ enum TestCommands {
 pub(crate) fn get_input(prompt: &str) -> String {
     // let mut sp = Spinner::new(Spinners::Line, format!("{}{}",
     // Paint::blue("[INTERACTIVE]".to_string()), prompt));
-    print!("{} {} ", Paint::blue("[INTERACTIVE]".to_string()), prompt);
+    print!("{} {prompt} ", Paint::blue("[INTERACTIVE]".to_string()));
     let mut input = String::new();
     let _ = std::io::stdout().flush();
     let _ = std::io::stdin().read_line(&mut input);
@@ -130,7 +141,7 @@ fn main() {
     let sources: Arc<Vec<String>> = match cli.get_inputs() {
         Ok(s) => Arc::new(s),
         Err(e) => {
-            eprintln!("{}", Paint::red(format!("{}", e)));
+            eprintln!("{}", Paint::red(format!("{e}")));
             std::process::exit(1);
         }
     };
@@ -183,11 +194,14 @@ fn main() {
     let compiler: Compiler = Compiler {
         sources: Arc::clone(&sources),
         output,
+        alternative_main: cli.alternative_main,
+        alternative_constructor: cli.alternative_constructor,
         construct_args: cli.inputs,
         constant_overrides: constants,
         optimize: cli.optimize,
         bytecode: cli.bytecode,
         cached: use_cache,
+        file_provider: Arc::new(FileSystemFileProvider {}),
     };
 
     if let Some(TestCommands::Test { format, match_ }) = cli.test {
@@ -258,7 +272,7 @@ fn main() {
                     token: None,
                 });
                 tracing::error!(target: "cli", "COMPILER ERRORED: {}", e);
-                eprintln!("{}", Paint::red(format!("{}", e)));
+                eprintln!("{}", Paint::red(format!("{e}")));
                 std::process::exit(1);
             }
 
@@ -272,7 +286,7 @@ fn main() {
                         .last()
                     {
                         Some(p) => match p.split('.').next() {
-                            Some(p) => Some(format!("I{}", p)),
+                            Some(p) => Some(format!("I{p}")),
                             None => {
                                 tracing::warn!(target: "cli", "No file name found for artifact");
                                 None
@@ -298,7 +312,7 @@ fn main() {
                         Paint::blue(
                             interfaces
                                 .into_iter()
-                                .map(|(_, i, _)| format!("{}.sol", i))
+                                .map(|(_, i, _)| format!("{i}.sol"))
                                 .collect::<Vec<_>>()
                                 .join(", ")
                         )
@@ -342,7 +356,7 @@ fn main() {
                                                         ethers_core::abi::encode(&[str.clone()]);
                                                     let hex_args: String =
                                                         hex::encode(inner.as_slice());
-                                                    format!("{}{}", acc, hex_args)
+                                                    format!("{acc}{hex_args}")
                                                 });
                                         appended_args.push_str(&encoded);
                                     }
@@ -357,7 +371,7 @@ fn main() {
                         }
                         match Arc::get_mut(artifact) {
                             Some(art) => {
-                                art.bytecode = format!("{}{}", art.bytecode, appended_args);
+                                art.bytecode = format!("{}{appended_args}", art.bytecode);
                             }
                             None => {
                                 tracing::warn!(target: "cli", "FAILED TO ACQUIRE MUTABLE REF TO ARTIFACT")
@@ -402,7 +416,7 @@ fn main() {
         }
         Err(e) => {
             tracing::error!(target: "cli", "COMPILER ERRORED: {}", e);
-            eprintln!("{}", Paint::red(format!("{}", e)));
+            eprintln!("{}", Paint::red(format!("{e}")));
             std::process::exit(1);
         }
     }

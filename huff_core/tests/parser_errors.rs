@@ -124,7 +124,7 @@ fn test_invalid_constant_value() {
     ];
 
     for (value, kind) in invalid_constant_values {
-        let source = &format!("#define constant CONSTANT = {}", value);
+        let source = &format!("#define constant CONSTANT = {value}");
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
         let lexer = Lexer::new(full_source);
@@ -169,9 +169,8 @@ fn test_invalid_token_in_macro_body() {
     for (value, kind) in invalids {
         let source = &format!(
             r#"#define macro CONSTANT() = takes (0) returns (0) {{
-            {}
-        }}"#,
-            value
+            {value}
+        }}"#
         );
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
@@ -215,9 +214,8 @@ fn test_invalid_token_in_label_definition() {
         let source = &format!(
             r#"#define macro CONSTANT() = takes (0) returns (0) {{
             lab:
-                {}
-        }}"#,
-            value
+                {value}
+        }}"#
         );
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
@@ -255,8 +253,7 @@ fn test_invalid_single_arg() {
         {
             continue
         }
-        let source =
-            &format!("#define macro CONSTANT() = takes ({}) returns (0) {{}}", random_char);
+        let source = &format!("#define macro CONSTANT() = takes ({random_char}) returns (0) {{}}");
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
         let lexer = Lexer::new(full_source);
@@ -278,8 +275,7 @@ fn test_invalid_single_arg() {
                     e,
                     ParserError {
                         kind: ParserErrorKind::InvalidSingleArg(TokenKind::Ident(format!(
-                            "{}",
-                            random_char
+                            "{random_char}"
                         ))),
                         hint: Some("Expected number representing stack item count.".to_string()),
                         spans: AstSpan(vec![Span { start: 34, end: 35, file: None }]),

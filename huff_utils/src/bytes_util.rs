@@ -25,13 +25,10 @@ pub fn str_to_bytes32(s: &str) -> [u8; 32] {
 pub fn bytes32_to_string(bytes: &[u8; 32], prefixed: bool) -> String {
     let mut s = String::default();
     let start = bytes.iter().position(|b| *b != 0).unwrap_or(bytes.len() - 1);
-    tracing::debug!(target: "bytes_util", "got start: {}", start);
     for b in &bytes[start..bytes.len()] {
-        tracing::debug!(target: "bytes_util", "Converting byte: {}", b);
-        s = format!("{}{:02x}", s, *b);
-        tracing::debug!(target: "bytes_util", "Converted byte: {} to string {}", b, s);
+        s = format!("{s}{:02x}", *b);
     }
-    format!("{}{}", if prefixed { "0x" } else { "" }, s)
+    format!("{}{s}", if prefixed { "0x" } else { "" })
 }
 
 /// Wrapper to convert a hex string to a usize.
@@ -44,7 +41,7 @@ pub fn hex_to_usize(s: &str) -> Result<usize, ParseIntError> {
 pub fn pad_n_bytes(hex: &str, num_bytes: usize) -> String {
     let mut hex = hex.to_owned();
     while hex.len() < num_bytes * 2 {
-        hex = format!("0{}", hex);
+        hex = format!("0{hex}");
     }
     hex
 }
@@ -52,7 +49,7 @@ pub fn pad_n_bytes(hex: &str, num_bytes: usize) -> String {
 /// Pad odd-length byte string with a leading 0
 pub fn format_even_bytes(hex: String) -> String {
     if hex.len() % 2 == 1 {
-        format!("0{}", hex)
+        format!("0{hex}")
     } else {
         hex
     }

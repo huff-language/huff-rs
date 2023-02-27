@@ -7,7 +7,6 @@ use std::{
     io::{BufReader, Read},
     path::{Path, PathBuf},
     sync::Arc,
-    time::SystemTime,
 };
 use uuid::Uuid;
 
@@ -63,6 +62,9 @@ impl Remapper {
         // Gracefully parse remappings from foundry.toml
         Remapper::from_foundry(root.as_ref(), &mut inner);
 
+        // And from remappings.txt
+        Remapper::from_file(root.as_ref(), &mut inner);
+
         // Return the constructed remappings
         Self { remappings: inner, base_dir: root.as_ref().to_string() }
     }
@@ -111,7 +113,7 @@ impl Remapper {
                     .collect::<Vec<&toml::value::Map<String, toml::Value>>>();
                 let unwrapped_profiles = profiles
                     .iter()
-                    .flat_map(|t| t.values().into_iter().collect_vec())
+                    .flat_map(|t| t.values().collect_vec())
                     .collect::<Vec<&toml::Value>>();
 
                 // Extract the inner tables from each profile
@@ -154,6 +156,30 @@ impl Remapper {
             }
         }
     }
+
+    /// Get remappings from a remappings.txt file
+    pub fn from_file(root: &str, inner: &mut HashMap<String, String>) {
+        let mut remappings: HashMap<String, String> = HashMap::new();
+        let remappings_file = PathBuf::new().join(root).join("remappings.txt");
+        if remappings_file.is_file() {
+            let content =
+                fs::read_to_string(remappings_file).map_err(|err| err.to_string()).unwrap();
+
+            let rem_lines = content.split('\n').collect::<Vec<&str>>();
+            let rem = rem_lines
+                .iter()
+                .filter(|l| l != &&"")
+                .map(|l| l.split_once('='))
+                .collect::<Vec<Option<(&str, &str)>>>();
+            rem.iter().for_each(|pair| {
+                if let Some((lib, path)) = pair {
+                    remappings.insert(lib.to_string(), path.to_string());
+                }
+            });
+
+            inner.extend(remappings);
+        }
+    }
 }
 
 impl Remapper {
@@ -164,7 +190,7 @@ impl Remapper {
             if path.starts_with(k) {
                 tracing::debug!(target: "parser", "found key {} and value {}", k, v);
                 path = path.replace(k, v);
-                return Some(format!("{}{}", self.base_dir, path))
+                return Some(format!("{}{path}", self.base_dir))
             }
         }
         None
@@ -182,7 +208,7 @@ pub struct FileSource {
     /// File Source
     pub source: Option<String>,
     /// Last File Access Time
-    pub access: Option<SystemTime>,
+    pub access: Option<time::Time>,
     /// An Ordered List of File Dependencies
     pub dependencies: Option<Vec<Arc<FileSource>>>,
 }
@@ -232,7 +258,14 @@ impl FileSource {
 
     /// Localizes a file path, if path is relative
     pub fn localize_file(parent: &str, child: &str) -> Option<String> {
-        let mut prefix = match FileSource::derive_dir(parent) {
+        let mut prefixed_parent;
+        if !parent.starts_with('.') {
+            prefixed_parent = "./".to_owned();
+            prefixed_parent.push_str(parent);
+        } else {
+            prefixed_parent = parent.to_owned();
+        }
+        let mut prefix = match FileSource::derive_dir(prefixed_parent.as_str()) {
             Some(p) => {
                 if p.is_empty() {
                     String::from(".")
@@ -253,7 +286,7 @@ impl FileSource {
                                 if prefix.is_empty() || prefix == "." {
                                     prefix = "..".to_string();
                                 } else {
-                                    prefix = format!("../{}", prefix);
+                                    prefix = format!("../{prefix}");
                                 }
                             } else {
                                 prefix = pref
@@ -271,17 +304,18 @@ impl FileSource {
                 }
                 res_str = res_str.replacen("../", "", 1);
             }
-            Some(format!("{}/{}", prefix, res_str))
+            Some(format!("{prefix}/{res_str}"))
         } else if child.starts_with("./") {
-            Some(child.replacen("./", &format!("{}/", prefix), 1))
+            Some(child.replacen("./", &format!("{prefix}/"), 1))
         } else if child.starts_with('/') {
             Some(child.to_string())
         } else {
-            Some(format!("{}/{}", prefix, child))
+            Some(format!("{prefix}/{child}"))
         }
     }
 }
 
+use crate::time;
 use std::ops::{Add, Range};
 
 /// A Span is a section of a source file.

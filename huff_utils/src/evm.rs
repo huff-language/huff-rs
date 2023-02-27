@@ -6,7 +6,7 @@ use strum_macros::EnumString;
 /// They are arranged in a particular order such that all the opcodes that have common
 /// prefixes are ordered by decreasing length to avoid mismatch when lexing.
 /// Example : [origin, or] or [push32, ..., push3]
-pub const OPCODES: [&str; 144] = [
+pub const OPCODES: [&str; 146] = [
     "lt",
     "gt",
     "slt",
@@ -77,6 +77,8 @@ pub const OPCODES: [&str; 144] = [
     "log2",
     "log3",
     "log4",
+    "tload",
+    "tstore",
     "create2",
     "create",
     "callcode",
@@ -289,6 +291,8 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "log2" => Opcode::Log2,
     "log3" => Opcode::Log3,
     "log4" => Opcode::Log4,
+    "tload" => Opcode::TLoad,
+    "tstore" => Opcode::TStore,
     "create" => Opcode::Create,
     "call" => Opcode::Call,
     "callcode" => Opcode::Callcode,
@@ -572,6 +576,10 @@ pub enum Opcode {
     Log3,
     /// Append Log Record with 4 Topics
     Log4,
+    /// Transaction-persistent, but storage-ephemeral variable load
+    TLoad,
+    /// Transaction-persistent, but storage-ephemeral variable store
+    TStore,
     /// Create a new account with associated code
     Create,
     /// Message-call into an account
@@ -735,6 +743,8 @@ impl Opcode {
             Opcode::Log2 => "a2",
             Opcode::Log3 => "a3",
             Opcode::Log4 => "a4",
+            Opcode::TLoad => "b3",
+            Opcode::TStore => "b4",
             Opcode::Create => "f0",
             Opcode::Call => "f1",
             Opcode::Callcode => "f2",
@@ -748,12 +758,85 @@ impl Opcode {
         };
         opcode_str.to_string()
     }
+
+    /// Returns if the current opcode is a push opcode
+    pub fn is_push(&self) -> bool {
+        matches!(
+            self,
+            Opcode::Push1 |
+                Opcode::Push2 |
+                Opcode::Push3 |
+                Opcode::Push4 |
+                Opcode::Push5 |
+                Opcode::Push6 |
+                Opcode::Push7 |
+                Opcode::Push8 |
+                Opcode::Push9 |
+                Opcode::Push10 |
+                Opcode::Push11 |
+                Opcode::Push12 |
+                Opcode::Push13 |
+                Opcode::Push14 |
+                Opcode::Push15 |
+                Opcode::Push16 |
+                Opcode::Push17 |
+                Opcode::Push18 |
+                Opcode::Push19 |
+                Opcode::Push20 |
+                Opcode::Push21 |
+                Opcode::Push22 |
+                Opcode::Push23 |
+                Opcode::Push24 |
+                Opcode::Push25 |
+                Opcode::Push26 |
+                Opcode::Push27 |
+                Opcode::Push28 |
+                Opcode::Push29 |
+                Opcode::Push30 |
+                Opcode::Push31 |
+                Opcode::Push32
+        )
+    }
+
+    /// Prefixes the literal if necessary
+    pub fn prefix_push_literal(&self, literal: &str) -> String {
+        if self.is_push() {
+            if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
+                if len >= 96 {
+                    let size = (len - 96 + 1) * 2;
+                    // This case should be caught in the parser
+                    if literal.len() <= size as usize {
+                        let zeros_needed = size - literal.len() as u8;
+                        let zero_prefix =
+                            (0..zeros_needed).map(|_| "0").collect::<Vec<&str>>().join("");
+                        return format!("{zero_prefix}{literal}")
+                    }
+                }
+            }
+        }
+
+        literal.to_string()
+    }
+
+    /// Checks if the value overflows the given push opcode
+    pub fn push_overflows(&self, literal: &str) -> bool {
+        if self.is_push() {
+            if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
+                if len >= 96 {
+                    let size = (len - 96 + 1) * 2;
+                    return literal.len() > size as usize
+                }
+            }
+        }
+
+        false
+    }
 }
 
 impl fmt::Display for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let opcode_str = self.string();
-        write!(f, "{}", opcode_str)
+        write!(f, "{opcode_str}")
     }
 }
 

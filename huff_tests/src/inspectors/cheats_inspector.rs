@@ -1,11 +1,12 @@
 use crate::cheats::{HuffCheatCode, HUFF_CHEATS_MAP};
 use bytes::Bytes;
-use ethers::{
-    prelude::{Address, H256},
-    utils::hex,
-};
+use ethers_core::{types::Address, utils::hex};
 use lazy_static::lazy_static;
-use revm::{CallInputs, CreateInputs, Database, EVMData, Gas, Inspector, Return};
+use revm::{
+    interpreter::{CallInputs, CreateInputs, Gas, InstructionResult},
+    primitives::B160,
+    Database, EVMData, Inspector,
+};
 use std::str::FromStr;
 
 lazy_static! {
@@ -22,29 +23,36 @@ impl<DB> Inspector<DB> for CheatsInspector
 where
     DB: Database,
 {
-    fn log(&mut self, _: &mut EVMData<'_, DB>, _: &Address, _: &[H256], _: &Bytes) {
+    fn log(
+        &mut self,
+        _: &mut EVMData<'_, DB>,
+        _: &revm::primitives::B160,
+        _: &[revm::primitives::B256],
+        _: &Bytes,
+    ) {
         unimplemented!()
     }
 
     fn call(
         &mut self,
-        _: &mut EVMData<'_, DB>,
-        call: &mut CallInputs,
-        _: bool,
-    ) -> (Return, Gas, Bytes) {
-        (Return::Continue, Gas::new(call.gas_limit), Bytes::new())
+        _data: &mut EVMData<'_, DB>,
+        inputs: &mut CallInputs,
+        _is_static: bool,
+    ) -> (InstructionResult, Gas, Bytes) {
+        (InstructionResult::Continue, Gas::new(inputs.gas_limit), Bytes::new())
     }
 
     fn call_end(
         &mut self,
-        _: &mut EVMData<'_, DB>,
+        _data: &mut EVMData<'_, DB>,
         call: &CallInputs,
-        gas: Gas,
-        status: Return,
-        retdata: Bytes,
-        _: bool,
-    ) -> (Return, Gas, Bytes) {
-        if call.contract == *CHEATS_ADDR && call.input.len() >= 64 {
+        remaining_gas: Gas,
+        status: InstructionResult,
+        out: Bytes,
+        _is_static: bool,
+    ) -> (InstructionResult, Gas, Bytes) {
+        let revm_cheats = revm::primitives::B160::from_slice(CHEATS_ADDR.as_bytes());
+        if call.contract == revm_cheats && call.input.len() >= 64 {
             // All cheatcodes calls must include the cheatcode key and the current pc in the first
             // 64 bytes of calldata.
             fn bytes_to_u32(b: &[u8]) -> u32 {
@@ -80,7 +88,7 @@ where
 
                 // Check if we have exactly one 32 byte input
                 if call.input.len() != 96 {
-                    return (Return::Revert, gas, retdata)
+                    return (InstructionResult::Revert, remaining_gas, out)
                 }
 
                 let log_item = hex::encode(&call.input[64..96]);
@@ -88,26 +96,26 @@ where
             }
         }
 
-        (status, gas, retdata)
+        (status, remaining_gas, out)
     }
 
     fn create(
         &mut self,
-        _: &mut EVMData<'_, DB>,
+        _data: &mut EVMData<'_, DB>,
         call: &mut CreateInputs,
-    ) -> (Return, Option<Address>, Gas, Bytes) {
-        (Return::Continue, None, Gas::new(call.gas_limit), Bytes::new())
+    ) -> (InstructionResult, Option<B160>, Gas, Bytes) {
+        (InstructionResult::Continue, None, Gas::new(call.gas_limit), Bytes::new())
     }
 
     fn create_end(
         &mut self,
-        _: &mut EVMData<'_, DB>,
-        _: &CreateInputs,
-        status: Return,
-        address: Option<Address>,
-        gas: Gas,
-        retdata: Bytes,
-    ) -> (Return, Option<Address>, Gas, Bytes) {
-        (status, address, gas, retdata)
+        _data: &mut EVMData<'_, DB>,
+        _inputs: &CreateInputs,
+        ret: InstructionResult,
+        address: Option<B160>,
+        remaining_gas: Gas,
+        out: Bytes,
+    ) -> (InstructionResult, Option<B160>, Gas, Bytes) {
+        (ret, address, remaining_gas, out)
     }
 }

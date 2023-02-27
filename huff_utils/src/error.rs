@@ -1,7 +1,7 @@
 use crate::{
     files::{Span, Spanned},
     io::UnpackError,
-    prelude::{parse_extension, AstSpan},
+    prelude::{parse_extension, AstSpan, Opcode},
     report::{Report, Reporter},
     token::TokenKind,
 };
@@ -21,6 +21,8 @@ pub struct ParserError {
 /// A Type of Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum ParserErrorKind {
+    /// An invalid literal was passed to a push opcode
+    InvalidPush(Opcode),
     /// Unexpected type
     UnexpectedType(TokenKind),
     /// Argument name is a reserved evm primitive type keyword
@@ -102,13 +104,13 @@ impl<'a> Spanned for LexicalError<'a> {
 impl<'a, W: Write> Report<W> for LexicalError<'a> {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match self.kind {
-            LexicalErrorKind::InvalidCharacter(ch) => write!(f.out, "Invalid character '{}'", ch),
+            LexicalErrorKind::InvalidCharacter(ch) => write!(f.out, "Invalid character '{ch}'"),
             LexicalErrorKind::UnexpectedEof => write!(f.out, "Found unexpected EOF"),
             LexicalErrorKind::InvalidArraySize(str) => {
-                write!(f.out, "Invalid array size: '{}'", str)
+                write!(f.out, "Invalid array size: '{str}'")
             }
             LexicalErrorKind::InvalidPrimitiveType(str) => {
-                write!(f.out, "Invalid Primitive EVM Type '{}'", str)
+                write!(f.out, "Invalid Primitive EVM Type '{str}'")
             }
         }
     }
@@ -167,6 +169,8 @@ pub enum CodegenErrorKind {
     UsizeConversion(String),
     /// Invalid Arguments
     InvalidArguments(String),
+    /// Invalid Hex String
+    InvalidHex(String),
     /// Invalid Table Statement
     InvalidTableStatement(String),
     /// Invalid Code Length
@@ -194,44 +198,47 @@ impl<W: Write> Report<W> for CodegenError {
             }
             CodegenErrorKind::InvalidMacroStatement => write!(f.out, "Invalid Macro Statement!"),
             CodegenErrorKind::InvalidMacroInvocation(str) => {
-                write!(f.out, "Missing Macro Definition for Invocation: \"{}\"!", str)
+                write!(f.out, "Missing Macro Definition for Invocation: \"{str}\"!")
             }
             CodegenErrorKind::MissingMacroDefinition(str) => {
-                write!(f.out, "Missing Macro \"{}\" Definition!", str)
+                write!(f.out, "Missing Macro \"{str}\" Definition!")
             }
             CodegenErrorKind::MissingFunctionInterface(str) => {
-                write!(f.out, "Missing Function Interface for \"{}\"!", str)
+                write!(f.out, "Missing Function Interface for \"{str}\"!")
             }
             CodegenErrorKind::MissingEventInterface(str) => {
-                write!(f.out, "Missing Event Interface for \"{}\"!", str)
+                write!(f.out, "Missing Event Interface for \"{str}\"!")
             }
             CodegenErrorKind::MissingConstantDefinition(cd) => {
-                write!(f.out, "Missing Constant Definition for \"{}\"!", cd)
+                write!(f.out, "Missing Constant Definition for \"{cd}\"!")
             }
             CodegenErrorKind::MissingErrorDefinition(ed) => {
-                write!(f.out, "Missing Error Definition for \"{}\"!", ed)
+                write!(f.out, "Missing Error Definition for \"{ed}\"!")
             }
             CodegenErrorKind::AbiGenerationFailure => write!(f.out, "Abi generation failure!"),
             CodegenErrorKind::UnmatchedJumpLabel => write!(f.out, "Unmatched jump label!"),
-            CodegenErrorKind::IOError(ioe) => write!(f.out, "IO ERROR: {:?}", ioe),
+            CodegenErrorKind::IOError(ioe) => write!(f.out, "IO ERROR: {ioe:?}"),
             CodegenErrorKind::UnkownArgcallType => write!(f.out, "Unknown Argcall Type!"),
             CodegenErrorKind::MissingMacroInvocation(str) => {
-                write!(f.out, "Missing Macro \"{}\" Invocation!", str)
+                write!(f.out, "Missing Macro \"{str}\" Invocation!")
             }
             CodegenErrorKind::UsizeConversion(input) => {
-                write!(f.out, "Usize Conversion Failed for \"{}\"", input)
+                write!(f.out, "Usize Conversion Failed for \"{input}\"")
             }
             CodegenErrorKind::InvalidArguments(msg) => {
-                write!(f.out, "Invalid arguments: \"{}\"", msg)
+                write!(f.out, "Invalid arguments: \"{msg}\"")
+            }
+            CodegenErrorKind::InvalidHex(msg) => {
+                write!(f.out, "Invalid hex string: \"{msg}\"")
             }
             CodegenErrorKind::InvalidTableStatement(msg) => {
-                write!(f.out, "Invalid table statement: \"{}\"", msg)
+                write!(f.out, "Invalid table statement: \"{msg}\"")
             }
             CodegenErrorKind::InvalidCodeLength(len) => {
-                write!(f.out, "Invalid code length: {}", len)
+                write!(f.out, "Invalid code length: {len}")
             }
             CodegenErrorKind::TestInvocation(msg) => {
-                write!(f.out, "Test cannot be invoked: \"{}\"", msg)
+                write!(f.out, "Test cannot be invoked: \"{msg}\"")
             }
             CodegenErrorKind::InvalidDynArgIndex => {
                 write!(f.out, "Invalid Dynamic Constructor Argument Index")
@@ -299,7 +306,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
             },
             CompilerError::FileUnpackError(ue) => match ue {
                 UnpackError::InvalidDirectory(id) => {
-                    write!(f, "\nError: Invalid File Directory {}\n", id)
+                    write!(f, "\nError: Invalid File Directory {id}\n")
                 }
                 UnpackError::UnsupportedExtension(unsupported) => {
                     write!(
@@ -310,10 +317,18 @@ impl<'a> fmt::Display for CompilerError<'a> {
                     )
                 }
                 UnpackError::MissingFile(file) => {
-                    write!(f, "\nError: File Not Found \"{}\"\n", file)
+                    write!(f, "\nError: File Not Found \"{file}\"\n")
                 }
             },
             CompilerError::ParserError(pe) => match &pe.kind {
+                ParserErrorKind::InvalidPush(op) => {
+                    write!(
+                        f,
+                        "\nError: Invalid use of \"{:?}\" \n{}\n",
+                        op,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
                 ParserErrorKind::UnexpectedType(ut) => {
                     write!(
                         f,
@@ -533,7 +548,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
                     write!(f, "\nError: ABI Generation Failed\n{}\n", ce.span.error(None))
                 }
                 CodegenErrorKind::IOError(ioe) => {
-                    write!(f, "\nError: IO Error: {}\n{}", ioe, ce.span.file())
+                    write!(f, "\nError: IO Error: {ioe}\n{}", ce.span.file())
                 }
                 CodegenErrorKind::UnkownArgcallType => {
                     write!(f, "\nError: Unknown Arg Call Type\n{}\n", ce.span.error(None))
@@ -555,6 +570,9 @@ impl<'a> fmt::Display for CompilerError<'a> {
                 CodegenErrorKind::InvalidArguments(_) => {
                     write!(f, "\nError: Invalid Arguments\n{}\n", ce.span.error(None))
                 }
+                CodegenErrorKind::InvalidHex(_) => {
+                    write!(f, "\nError: Invalid Hex\n{}\n", ce.span.error(None))
+                }
                 CodegenErrorKind::InvalidTableStatement(_) => {
                     write!(f, "\nError: Invalid Table Statement\n{}\n", ce.span.error(None))
                 }
@@ -574,7 +592,7 @@ impl<'a> fmt::Display for CompilerError<'a> {
             },
             CompilerError::FailedCompiles(v) => {
                 v.iter().for_each(|ce| {
-                    let _ = write!(f, "{}", ce);
+                    let _ = write!(f, "{ce}");
                 });
                 Ok(())
             }

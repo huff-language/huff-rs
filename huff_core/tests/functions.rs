@@ -110,11 +110,11 @@ fn test_function() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the runtime bytecode
-    let rbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let rbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     // Churn
     let mut cg = Codegen::new();
     let artifact =
-        cg.churn(Arc::clone(&Arc::new(FileSource::default())), vec![], &rbytes, "").unwrap();
+        cg.churn(Arc::clone(&Arc::new(FileSource::default())), vec![], &rbytes, "", false).unwrap();
     assert_eq!(artifact.bytecode, String::from("60ad8060093d393df360003560e01c8063075900201461002757806319715c0d1461004457806327902d6914610061575b60443560243560043561003b92919061007e565b60005260206000f35b60443560243560043561005892919061007e565b60005260206000f35b60443560243560043561007592919061007e565b60005260206000f35b828282026000521515908015906000510483141716156100a457506000510460016100aa575b60006000fd5b9056"));
 }
 
@@ -204,10 +204,10 @@ fn test_nested_function() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the runtime bytecode
-    let rbytes = Codegen::generate_main_bytecode(&contract).unwrap();
+    let rbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
     // Churn
     let mut cg = Codegen::new();
     let artifact =
-        cg.churn(Arc::clone(&Arc::new(FileSource::default())), vec![], &rbytes, "").unwrap();
+        cg.churn(Arc::clone(&Arc::new(FileSource::default())), vec![], &rbytes, "", false).unwrap();
     assert_eq!(artifact.bytecode, String::from("606b8060093d393df360003560e01c80630759002014610011575b60443560243560043561002592919061005d565b60005260206000f35b82828202600052151590801590600051048314171615610054575060005104600161005a575b60006000fd5b90565b61006892919061002e565b9056"));
 }

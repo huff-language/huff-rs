@@ -42,7 +42,7 @@ fn test_invocation_should_fail() {
 
     // Have the Codegen create the runtime bytecode. Should throw an error because test
     // invocation is not allowed.
-    match Codegen::generate_main_bytecode(&contract) {
+    match Codegen::generate_main_bytecode(&contract, None) {
         Ok(_) => panic!("Expected an error"),
         Err(e) => {
             assert_eq!(

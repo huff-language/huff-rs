@@ -8,12 +8,23 @@ fn test_generate_remappings() {
     let subscriber_builder = tracing_subscriber::fmt();
     let env_filter = EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into());
     if let Err(e) = subscriber_builder.with_env_filter(env_filter).try_init() {
-        println!("Failed to initialize tracing!\nError: {:?}", e)
+        eprintln!("Failed to initialize tracing!\nError: {e:?}")
     }
 
     let remapper = files::Remapper::new("../");
     assert_eq!(remapper.remappings.len(), 1);
     assert_eq!(remapper.remappings.get("examples/").unwrap(), "huff-examples/");
+}
+
+#[test]
+fn test_remappings_from_file() {
+    let remapper = files::Remapper::new("./tests");
+    assert_eq!(remapper.remappings.len(), 2);
+    assert_eq!(remapper.remappings.get("@huffmate/").unwrap(), "lib/huffmate/src/");
+    assert_eq!(
+        remapper.remappings.get("@openzeppelin/").unwrap(),
+        "lib/openzeppelin-contracts/contracts/"
+    );
 }
 
 #[test]
@@ -110,4 +121,8 @@ fn test_localize_file() {
         files::FileSource::localize_file("../../examples/ERC20.huff", "../../../Address.huff")
             .unwrap();
     assert_eq!(localized, "../../../../Address.huff");
+    let localized =
+        files::FileSource::localize_file("examples/ERC20.huff", "../random_dir/Address.huff")
+            .unwrap();
+    assert_eq!(localized, "./random_dir/Address.huff");
 }

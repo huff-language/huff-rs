@@ -6,6 +6,7 @@ members = [
   "huff_utils",
   "huff_cli",
   "huff_parser",
+  "huff_js",
   "huff_tests"
 ]
 exclude = [ "assets", "huffup", "huff-examples" ]

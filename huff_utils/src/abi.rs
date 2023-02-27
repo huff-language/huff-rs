@@ -329,8 +329,8 @@ impl FunctionParamType {
         match &self {
             FunctionParamType::Address => write!(f, "address"),
             FunctionParamType::Bytes => write!(f, "bytes"),
-            FunctionParamType::Int(size) => write!(f, "int{}", size),
-            FunctionParamType::Uint(size) => write!(f, "uint{}", size),
+            FunctionParamType::Int(size) => write!(f, "int{size}"),
+            FunctionParamType::Uint(size) => write!(f, "uint{size}"),
             FunctionParamType::Bool => write!(f, "bool"),
             FunctionParamType::String => write!(f, "string"),
             FunctionParamType::Array(fpt, sizes) => write!(
@@ -340,12 +340,12 @@ impl FunctionParamType {
                 sizes
                     .iter()
                     .map(|s| (!s.eq(&0))
-                        .then(|| format!("[{}]", s))
+                        .then(|| format!("[{s}]"))
                         .unwrap_or_else(|| "[]".to_string()))
                     .collect::<Vec<_>>()
                     .join("")
             ),
-            FunctionParamType::FixedBytes(size) => write!(f, "bytes{}", size),
+            FunctionParamType::FixedBytes(size) => write!(f, "bytes{size}"),
             FunctionParamType::Tuple(inner) => write!(
                 f,
                 "({})",
@@ -407,7 +407,7 @@ impl FunctionParamType {
             Ok(Self::Bytes)
         } else {
             tracing::error!("Failed to create FunctionParamType from string: {}", string);
-            Err(format!("Failed to create FunctionParamType from string: {}", string))?
+            Err(format!("Failed to create FunctionParamType from string: {string}"))?
         }
     }
 }
