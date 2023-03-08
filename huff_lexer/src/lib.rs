@@ -13,6 +13,8 @@ use std::{
     str::Chars,
 };
 
+mod lexer;
+
 /// Defines a context in which the lexing happens.
 /// Allows to differientate between EVM types and opcodes that can either
 /// be identical or the latter being a substring of the former (example : bytes32 and byte)
@@ -58,6 +60,9 @@ pub struct Lexer<'a> {
     pub eof_returned: bool,
     /// Current context.
     pub context: Context,
+
+
+    pub position: u32,
 }
 
 impl<'a> Lexer<'a> {
@@ -72,6 +77,7 @@ impl<'a> Lexer<'a> {
             eof: false,
             eof_returned: false,
             context: Context::Global,
+            position: 0,
         }
     }
 
@@ -225,6 +231,7 @@ impl<'a> Lexer<'a> {
     pub fn consume(&mut self) -> Option<char> {
         self.chars.next().map(|x| {
             self.current_span_mut().end += 1;
+            self.position += 1;
             x
         })
     }
@@ -641,7 +648,11 @@ impl<'a> Iterator for Lexer<'a> {
                 // identifiers
                 ',' => TokenKind::Comma,
                 '0'..='9' => {
+                    dbg!(self.position);
+                    dbg!(self.current_span());
                     self.dyn_consume(char::is_ascii_digit);
+                    dbg!(self.position);
+                    dbg!(self.current_span());
                     TokenKind::Num(self.slice().parse().unwrap())
                 }
                 // Lexes Spaces and Newlines as Whitespace
