@@ -111,28 +111,38 @@ impl<'a> LexerNew<'a> {
                 }
                 // If it's the start of a hex literal
                 ch if ch == '0' && self.peek().unwrap() == 'x' => {
-
+                    self.eat_hex_digit(ch)
                 }
-                '=' => TokenKind::Assign,
+                '=' => self.single_char_token(TokenKind::Assign),
                 '(' => {
-
+                    match self.context {
+                        Context::Abi => self.context = Context::AbiArgs,
+                        Context::MacroBody => self.context = Context::MacroArgs,
+                        _ => {}
+                    }
+                    self.single_char_token(TokenKind::OpenParen)
                 }
                 ')' => {
-
+                    match self.context {
+                        Context::AbiArgs => self.context = Context::Abi,
+                        Context::MacroArgs => self.context = Context::MacroBody,
+                        _ => {}
+                    }
+                    self.single_char_token(TokenKind::CloseParen)
                 }
-                '[' => TokenKind::OpenBracket,
-                ']' => TokenKind::CloseBracket,
+                '[' => self.single_char_token(TokenKind::OpenBracket),
+                ']' => self.single_char_token(TokenKind::CloseBracket),
                 '{' => {
                     if self.context == Context::MacroDefinition {
                         self.context = Context::MacroBody;
                     }
-                    TokenKind::OpenBrace
+                    self.single_char_token(TokenKind::OpenBrace)
                 }
                 '}' => {
                     if matches!(self.context, Context::MacroBody | Context::CodeTableBody) {
                         self.context = Context::Global;
                     }
-                    TokenKind::CloseBrace
+                    self.single_char_token(TokenKind::CloseBrace)
                 }
                 '+' => self.single_char_token(TokenKind::Add),
                 '-' => self.single_char_token(TokenKind::Sub),
@@ -149,32 +159,9 @@ impl<'a> LexerNew<'a> {
                     self.eat_whitespace();
                     self.next_token()
                 }
-                '"' => {
-                    // loop {
-                    //     match self.peek() {
-                    //         Some('"') => {
-                    //             self.consume();
-                    //             let str = self.slice();
-                    //             break TokenKind::Str((str[1..str.len() - 1]).to_string())
-                    //         }
-                    //         Some('\\') if matches!(self.nth_peek(1), Some('\\') | Some('"')) => {
-                    //             self.consume();
-                    //         }
-                    //         Some(_) => {}
-                    //         None => {
-                    //             self.eof = true;
-                    //             tracing::error!(target: "lexer", "UNEXPECTED EOF SPAN");
-                    //             return Some(Err(LexicalError::new(
-                    //                 LexicalErrorKind::UnexpectedEof,
-                    //                 self.current_span().clone(),
-                    //             )))
-                    //         }
-                    //     }
-                    //     self.consume();
-                    // }
-                }
-                '\'' => {
-
+                // String literals. String literals can also be wrapped by single quotes
+                '"' | '\'' => {
+                    Ok(self.eat_string_literal())
                 }
                 ch => {
                     tracing::error!(target: "lexer", "UNSUPPORTED TOKEN '{}'", ch);
@@ -184,8 +171,6 @@ impl<'a> LexerNew<'a> {
                     ))
                 }
             }
-            // TODO: change this to have a starting position 
-            // Ok(Token { kind: token_kind, span: Span { start: self.position as usize, end: self.position as usize, file: None } })
         } else {
             self.eof = true;
             Ok(Token { kind: TokenKind::Eof, span: Span { start: self.position as usize, end: self.position as usize, file: None } } )
@@ -242,15 +227,33 @@ impl<'a> LexerNew<'a> {
         Ok(Token { kind: integer_token, span })
     }
 
+    fn eat_hex_digit(&mut self, initial_char: char) -> TokenResult {
+        let (integer_str, start, end) = self.eat_while(Some(initial_char), |ch| {
+            ch.is_ascii_hexdigit() | (ch == 'x')
+        });
+
+        let kind = if self.context == Context::CodeTableBody {
+            // In codetables, the bytecode provided is of arbitrary length. We pass
+            // the code as an Ident, and it is appended to the end of the runtime
+            // bytecode in codegen.
+            TokenKind::Ident(integer_str)
+        } else {
+            TokenKind::Literal(str_to_bytes32(&integer_str.as_ref()))
+        };
+
+        let span = Span { start: start as usize, end: end as usize, file: None };
+        Ok(Token { kind, span })
+    }
+
     /// Skips white space. They are not significant in the source language
     fn eat_whitespace(&mut self) {
         self.eat_while(None, |ch| ch.is_whitespace());
     }
 
-    fn eat_string_literal(&mut self) -> SpannedToken {
+    fn eat_string_literal(&mut self) -> Token {
         let (str_literal, start_span, end_span) = self.eat_while(None, |ch| ch != '"');
-        let str_literal_token = Token::Str(str_literal);
-        self.next_char(); // Advance past the closing quote
+        let str_literal_token = TokenKind::Str(str_literal);
+        self.consume(); // Advance past the closing quote
         str_literal_token.into_span(start_span, end_span)
     }
 
