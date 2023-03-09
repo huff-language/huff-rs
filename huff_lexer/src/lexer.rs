@@ -96,9 +96,19 @@ impl<'a> LexerNew<'a> {
                         match ch2 {
                             '/' => {
                                 // Consume until newline
-                                // let c = self.eat_while(None, |c| *c != '\n');
+                                let (comment_string, start, end) = self.eat_while(None, |c| c != '\n');
+                                Ok(TokenKind::Comment(comment_string).into_span(start, end))
                             }
+                            '*' => {
+                                let (comment_string, start, end) = self.eat_while(None, |c| c != '*' && self.peek() != Some('/'));
+                                
+                                Ok(TokenKind::Comment(comment_string).into_span(start, end))
+                            }
+                            _ => self.single_char_token(TokenKind::Div)
                         }
+                    }
+                    else {
+                        self.single_char_token(TokenKind::Div)
                     }
                 }
                 // # keywords
