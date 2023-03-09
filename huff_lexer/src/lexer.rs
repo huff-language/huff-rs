@@ -4,7 +4,7 @@ use std::{
     iter::Peekable,
     str::Chars,
 };
-
+/* hiehgsebgoiesgoiseg */
 /// Defines a context in which the lexing happens.
 /// Allows to differientate between EVM types and opcodes that can either
 /// be identical or the latter being a substring of the former (example : bytes32 and byte)
@@ -105,7 +105,7 @@ impl<'a> LexerNew<'a> {
                             }
                             '*' => {
                                 let (comment_string, start, end) = self.eat_while(None, |c| c != '*' && self.peek() != Some('/'));
-                                
+
                                 Ok(TokenKind::Comment(comment_string).into_span(start, end))
                             }
                             _ => self.single_char_token(TokenKind::Div)
@@ -126,7 +126,7 @@ impl<'a> LexerNew<'a> {
                     let keys = [TokenKind::Define, TokenKind::Include];
                     for kind in keys.into_iter() {
                         let key = kind.to_string();
-                        let peeked = word;
+                        let peeked = word.clone();
 
                         if key == peeked {
                             found_kind = Some(kind);
@@ -180,7 +180,7 @@ impl<'a> LexerNew<'a> {
                             break
                         }
                         let key = kind.to_string();
-                        let peeked = word;
+                        let peeked = word.clone();
 
                         if key == peeked {
                             found_kind = Some(kind);
@@ -229,7 +229,7 @@ impl<'a> LexerNew<'a> {
                         self.consume();
                     }
 
-
+                    
 
 
                 }
