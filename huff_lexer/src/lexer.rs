@@ -96,6 +96,8 @@ impl<'a> LexerNew<'a> {
         if let Some(ch) = self.consume() {
             let token = match ch {
                 '/' => {
+
+
                     if let Some(ch2) = self.peek() {
                         match ch2 {
                             '/' => {
@@ -104,6 +106,29 @@ impl<'a> LexerNew<'a> {
                                 Ok(TokenKind::Comment(comment_string).into_span(start, end))
                             }
                             '*' => {
+                                self.consume();
+                                let mut depth = 1usize;
+                                while let Some(c) = self.consume() {
+                                    match c {
+                                        '/' if self.peek() == Some('*') => {
+                                            self.consume();
+                                            depth += 1;
+                                        }
+                                        '*' if self.peek() == Some('/') => {
+                                            self.consume();
+                                            depth -= 1;
+                                            if depth == 0 {
+
+                                                break;
+                                            }
+                                        }
+                                        _ => (),
+                                            
+
+                                    }
+                                }
+
+
                                 let (comment_string, start, end) = self.eat_while(None, |c| c != '*' && self.peek() != Some('/'));
 
                                 Ok(TokenKind::Comment(comment_string).into_span(start, end))
@@ -115,6 +140,7 @@ impl<'a> LexerNew<'a> {
                         self.single_char_token(TokenKind::Div)
                     }
                 }
+
                 // # keywords
                 '#' => {
                     let (word, start, end) = self.eat_while(Some(ch), |ch| {
@@ -232,6 +258,25 @@ impl<'a> LexerNew<'a> {
                     
 
 
+                    if !(self.context != Context::MacroBody || found_kind.is_some()) {
+                        if let Some(o) = OPCODES_MAP.get(&word) {
+                            found_kind = Some(TokenKind::Opcode(o.to_owned()));
+                        }
+                    }
+
+                    if let Some(kind) = &found_kind {
+                        return Ok(kind.clone().into_span(start, end))
+                    } 
+
+                    // let slice = self.slice();
+                    let kind = if self.context == Context::MacroBody &&
+                        BuiltinFunctionKind::try_from(&word).is_ok() {
+                        TokenKind::BuiltinFunction(word)
+                    } else {
+                        TokenKind::Ident(word)
+                    };
+
+                    Ok(kind.into_span(start, end))
                 }
                 // If it's the start of a hex literal
                 ch if ch == '0' && self.peek().unwrap() == 'x' => {
