@@ -13,8 +13,6 @@ use std::{
     str::Chars,
 };
 
-mod lexer;
-
 /// Defines a context in which the lexing happens.
 /// Allows to differientate between EVM types and opcodes that can either
 /// be identical or the latter being a substring of the former (example : bytes32 and byte)
@@ -360,16 +358,12 @@ impl<'a> Iterator for Lexer<'a> {
 
                     let keys = [TokenKind::Define, TokenKind::Include];
                     for kind in keys.into_iter() {
-                        dbg!(self.current_span());
-                        dbg!(self.position);
                         let key = kind.to_string();
                         let token_length = key.len() - 1;
                         let peeked = self.peek_n_chars(token_length);
 
                         if key == peeked {
                             self.nconsume(token_length);
-                            dbg!(self.current_span());
-                            dbg!(self.position);
                             found_kind = Some(kind);
                             break
                         }
