@@ -224,6 +224,13 @@ impl<'a> LexerNew<'a> {
                         found_kind = Some(TokenKind::FreeStoragePointer);
                     }
 
+                    if let Some(':') = self.peek() {
+                        found_kind = Some(TokenKind::Label(word));
+                        self.consume();
+                    }
+
+
+
 
                 }
                 // If it's the start of a hex literal
