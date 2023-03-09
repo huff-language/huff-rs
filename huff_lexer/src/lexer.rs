@@ -36,6 +36,9 @@ pub struct LexerNew<'a> {
     /// WARN: SHOULD NEVER BE MODIFIED!
     pub chars: Peekable<Chars<'a>>,
     position: u32,
+    /// The previous lexed Token.
+    /// NOTE: Cannot be a whitespace.
+    pub lookback: Option<Token>,
     eof: bool,
     /// Current context.
     pub context: Context,
@@ -49,6 +52,7 @@ impl<'a> LexerNew<'a> {
             // We zip with the character index here to ensure the first char has index 0
             chars: source.chars().peekable(),
             position: 0,
+            lookback: None,
             eof: false,
             context: Context::Global,
         }
@@ -90,7 +94,7 @@ impl<'a> LexerNew<'a> {
     fn next_token(&mut self) -> TokenResult {
         // let start = self.position;
         if let Some(ch) = self.consume() {
-            match ch {
+            let token = match ch {
                 '/' => {
                     if let Some(ch2) = self.peek() {
                         match ch2 {
@@ -122,7 +126,6 @@ impl<'a> LexerNew<'a> {
                     let keys = [TokenKind::Define, TokenKind::Include];
                     for kind in keys.into_iter() {
                         let key = kind.to_string();
-                        let token_length = key.len() - 1;
                         let peeked = word;
 
                         if key == peeked {
@@ -146,6 +149,81 @@ impl<'a> LexerNew<'a> {
                 }
                 // Alphabetical characters
                 ch if ch.is_alphabetic() || ch.eq(&'_') => {
+                    let (word, start, end) = self.eat_while(Some(ch), |c| {
+                        c.is_alphanumeric() || c == '_'
+                    });
+
+                    let mut found_kind: Option<TokenKind> = None;
+                    let keys = [
+                        TokenKind::Macro,
+                        TokenKind::Fn,
+                        TokenKind::Test,
+                        TokenKind::Function,
+                        TokenKind::Constant,
+                        TokenKind::Error,
+                        TokenKind::Takes,
+                        TokenKind::Returns,
+                        TokenKind::Event,
+                        TokenKind::NonPayable,
+                        TokenKind::Payable,
+                        TokenKind::Indexed,
+                        TokenKind::View,
+                        TokenKind::Pure,
+                        // First check for packed jump table
+                        TokenKind::JumpTablePacked,
+                        // Match with jump table if not
+                        TokenKind::JumpTable,
+                        TokenKind::CodeTable,
+                    ];
+                    for kind in keys.into_iter() {
+                        if self.context == Context::MacroBody {
+                            break
+                        }
+                        let key = kind.to_string();
+                        let peeked = word;
+
+                        if key == peeked {
+                            found_kind = Some(kind);
+                            break
+                        }
+                    }
+
+                    // Check to see if the found kind is, in fact, a keyword and not the name of
+                    // a function. If it is, set `found_kind` to `None` so that it is set to a
+                    // `TokenKind::Ident` in the following control flow.
+                    if !self.check_keyword_rules(&found_kind) {
+                        found_kind = None;
+                    }
+
+                    if let Some(kind) = &found_kind {
+                        match kind {
+                            TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
+                                self.context = Context::MacroDefinition
+                            }
+                            TokenKind::Function | TokenKind::Event | TokenKind::Error => {
+                                self.context = Context::Abi
+                            }
+                            TokenKind::Constant => self.context = Context::Constant,
+                            TokenKind::CodeTable => self.context = Context::CodeTableBody,
+                            _ => (),
+                        }
+                    }
+
+                    // Check for free storage pointer builtin
+                    let fsp = "FREE_STORAGE_POINTER";
+                    if fsp == word {
+                        // Consume the parenthesis following the FREE_STORAGE_POINTER
+                        // Note: This will consume `FREE_STORAGE_POINTER)` or
+                        // `FREE_STORAGE_POINTER(` as well
+                        if let Some('(') = self.peek() {
+                            self.consume();
+                        }
+                        if let Some(')') = self.peek() {
+                            self.consume();
+                        }
+                        found_kind = Some(TokenKind::FreeStoragePointer);
+                    }
+
 
                 }
                 // If it's the start of a hex literal
@@ -209,7 +287,13 @@ impl<'a> LexerNew<'a> {
                         Span { start: self.position as usize, end: self.position as usize, file: None },
                     ))
                 }
+            }?;
+
+            if token.kind != TokenKind::Whitespace {
+                self.lookback = Some(token.clone());
             }
+
+            return Ok(token)
         } else {
             self.eof = true;
             Ok(Token { kind: TokenKind::Eof, span: Span { start: self.position as usize, end: self.position as usize, file: None } } )
@@ -270,6 +354,7 @@ impl<'a> LexerNew<'a> {
         let (integer_str, start, end) = self.eat_while(Some(initial_char), |ch| {
             ch.is_ascii_hexdigit() | (ch == 'x')
         });
+        // TODO: check for sure that we have a correct hex string, eg. 0x56 and not 0x56x34
 
         let kind = if self.context == Context::CodeTableBody {
             // In codetables, the bytecode provided is of arbitrary length. We pass
@@ -296,22 +381,70 @@ impl<'a> LexerNew<'a> {
         str_literal_token.into_span(start_span, end_span)
     }
 
-    /// Try to peek at next n characters from the source
-    // pub fn peek_n_chars(&mut self, n: usize) -> String {
-    //     let cur_span: Ref<Span> = self.current_span();
-    //     // Break with an empty string if the bounds are exceeded
-    //     if cur_span.end + n > self.source.source.len() {
-    //         return String::default()
-    //     }
-    //     self.source.source[cur_span.start..cur_span.end + n].to_string()
-    // }
-
     // fn eat_alphabetic(&mut self, initial_char: char) -> (String, u32, u32) {
     //     let (word, start, end) = self.eat_while(Some(initial_char), |ch| {
     //         ch.is_ascii_alphabetic()
     //     });
     //     (word, start, end)
     // }
+
+    /// Checks the previous token kind against the input.
+    pub fn checked_lookback(&self, kind: TokenKind) -> bool {
+        self.lookback.clone().and_then(|t| if t.kind == kind { Some(true) } else { None }).is_some()
+    }
+
+    /// Check if a given keyword follows the keyword rules in the `source`. If not, it is a
+    /// `TokenKind::Ident`.
+    ///
+    /// Rules:
+    /// - The `macro`, `fn`, `test`, `function`, `constant`, `event`, `jumptable`,
+    ///   `jumptable__packed`, and `table` keywords must be preceded by a `#define` keyword.
+    /// - The `takes` keyword must be preceded by an assignment operator: `=`.
+    /// - The `nonpayable`, `payable`, `view`, and `pure` keywords must be preceeded by one of these
+    ///   keywords or a close paren.
+    /// - The `returns` keyword must be succeeded by an open parenthesis and must *not* be succeeded
+    ///   by a colon or preceded by the keyword `function`
+    pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
+        match found_kind {
+            Some(TokenKind::Macro) |
+            Some(TokenKind::Fn) |
+            Some(TokenKind::Test) |
+            Some(TokenKind::Function) |
+            Some(TokenKind::Constant) |
+            Some(TokenKind::Error) |
+            Some(TokenKind::Event) |
+            Some(TokenKind::JumpTable) |
+            Some(TokenKind::JumpTablePacked) |
+            Some(TokenKind::CodeTable) => self.checked_lookback(TokenKind::Define),
+            Some(TokenKind::NonPayable) |
+            Some(TokenKind::Payable) |
+            Some(TokenKind::View) |
+            Some(TokenKind::Pure) => {
+                let keys = [
+                    TokenKind::NonPayable,
+                    TokenKind::Payable,
+                    TokenKind::View,
+                    TokenKind::Pure,
+                    TokenKind::CloseParen,
+                ];
+                for key in keys {
+                    if self.checked_lookback(key) {
+                        return true
+                    }
+                }
+                false
+            }
+            Some(TokenKind::Takes) => self.checked_lookback(TokenKind::Assign),
+            Some(TokenKind::Returns) => {
+                let cur_span_end = self.position;
+                self.eat_whitespace();
+                // Allow for loose and tight syntax (e.g. `returns   (0)`, `returns(0)`, ...)
+                self.peek().unwrap_or(')') == '(' && 
+                    !self.checked_lookback(TokenKind::Function)
+            }
+            _ => true,
+        }
+    }
 
 }
 
