@@ -361,12 +361,16 @@ impl<'a> Iterator for Lexer<'a> {
 
                     let keys = [TokenKind::Define, TokenKind::Include];
                     for kind in keys.into_iter() {
+                        dbg!(self.current_span());
+                        dbg!(self.position);
                         let key = kind.to_string();
                         let token_length = key.len() - 1;
                         let peeked = self.peek_n_chars(token_length);
 
                         if key == peeked {
                             self.nconsume(token_length);
+                            dbg!(self.current_span());
+                            dbg!(self.position);
                             found_kind = Some(kind);
                             break
                         }

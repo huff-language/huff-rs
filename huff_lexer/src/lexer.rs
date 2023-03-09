@@ -103,7 +103,36 @@ impl<'a> LexerNew<'a> {
                 }
                 // # keywords
                 '#' => {
+                    let (word, start, end) = self.eat_while(Some(ch), |ch| {
+                        ch.is_ascii_alphabetic()
+                    });
 
+                    let mut found_kind: Option<TokenKind> = None;
+
+                    let keys = [TokenKind::Define, TokenKind::Include];
+                    for kind in keys.into_iter() {
+                        let key = kind.to_string();
+                        let token_length = key.len() - 1;
+                        let peeked = word;
+
+                        if key == peeked {
+                            found_kind = Some(kind);
+                            break
+                        }
+                    }
+
+                    if let Some(kind) = &found_kind {
+                        Ok(kind.clone().into_span(start, end))
+                    } else if self.context == Context::Global && self.peek().unwrap() == '[' {
+                        Ok(TokenKind::Pound.into_single_span(self.position))
+                    } else {
+                        // Otherwise we don't support # prefixed indentifiers
+                        tracing::error!(target: "lexer", "INVALID '#' CHARACTER USAGE");
+                        return Err(LexicalError::new(
+                            LexicalErrorKind::InvalidCharacter('#'),
+                            Span { start: self.position as usize, end: self.position as usize, file: None },
+                        ))
+                    }
                 }
                 // Alphabetical characters
                 ch if ch.is_alphabetic() || ch.eq(&'_') => {
@@ -256,6 +285,23 @@ impl<'a> LexerNew<'a> {
         self.consume(); // Advance past the closing quote
         str_literal_token.into_span(start_span, end_span)
     }
+
+    /// Try to peek at next n characters from the source
+    // pub fn peek_n_chars(&mut self, n: usize) -> String {
+    //     let cur_span: Ref<Span> = self.current_span();
+    //     // Break with an empty string if the bounds are exceeded
+    //     if cur_span.end + n > self.source.source.len() {
+    //         return String::default()
+    //     }
+    //     self.source.source[cur_span.start..cur_span.end + n].to_string()
+    // }
+
+    // fn eat_alphabetic(&mut self, initial_char: char) -> (String, u32, u32) {
+    //     let (word, start, end) = self.eat_while(Some(initial_char), |ch| {
+    //         ch.is_ascii_alphabetic()
+    //     });
+    //     (word, start, end)
+    // }
 
 }
 
