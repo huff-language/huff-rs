@@ -106,6 +106,7 @@ impl<'a> LexerNew<'a> {
                                 Ok(TokenKind::Comment(comment_string).into_span(start, end))
                             }
                             '*' => {
+                                // ref: https://github.com/rust-lang/rust/blob/900c3540378c8422b8087ffa3db60fa6c8abfcad/compiler/rustc_lexer/src/lib.rs#L474
                                 self.consume();
                                 let mut depth = 1usize;
                                 while let Some(c) = self.consume() {
@@ -118,20 +119,19 @@ impl<'a> LexerNew<'a> {
                                             self.consume();
                                             depth -= 1;
                                             if depth == 0 {
-
+                                                // This block comment is closed, so for a construction like "/* */ */"
+                                                // there will be a successfully parsed block comment "/* */"
+                                                // and " */" will be processed separately.
                                                 break;
                                             }
                                         }
                                         _ => (),
-                                            
 
                                     }
                                 }
-
-
-                                let (comment_string, start, end) = self.eat_while(None, |c| c != '*' && self.peek() != Some('/'));
-
-                                Ok(TokenKind::Comment(comment_string).into_span(start, end))
+                                
+                                // TODO add string or just not store comments
+                                self.single_char_token(TokenKind::Comment("".to_owned()))
                             }
                             _ => self.single_char_token(TokenKind::Div)
                         }
@@ -153,7 +153,6 @@ impl<'a> LexerNew<'a> {
                     for kind in keys.into_iter() {
                         let key = kind.to_string();
                         let peeked = word.clone();
-
                         if key == peeked {
                             found_kind = Some(kind);
                             break
