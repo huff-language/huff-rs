@@ -438,8 +438,8 @@ impl<'a> LexerNew<'a> {
                 // Lexes Spaces and Newlines as Whitespace
                 ch if ch.is_ascii_whitespace() => {
                     dbg!("Are we hitting this?");
-                    self.eat_whitespace();
-                    self.single_char_token(TokenKind::Whitespace)
+                    let (_, start, end) = self.eat_whitespace();
+                    Ok(TokenKind::Whitespace.into_span(start, end))
                 }
                 // String literals. String literals can also be wrapped by single quotes
                 '"' | '\'' => {
@@ -537,8 +537,8 @@ impl<'a> LexerNew<'a> {
     }
 
     /// Skips white space. They are not significant in the source language
-    fn eat_whitespace(&mut self) {
-        self.eat_while(None, |ch| ch.is_whitespace());
+    fn eat_whitespace(&mut self) -> (String, u32, u32) {
+        self.eat_while(None, |ch| ch.is_whitespace())
     }
 
     fn eat_string_literal(&mut self) -> Token {

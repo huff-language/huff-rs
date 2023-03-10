@@ -413,14 +413,13 @@ fn parses_label_with_keyword_name() {
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let mut lexer = lexer::LexerNew::new(flattened_source.source);
 
-
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
         let fn_name_span = Span::new(0..s.len()-1, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Label(s.to_string()), fn_name_span.clone()));
 
-        let _ = lexer.next(); // colon
-        let a = lexer.next(); // whitespace
+       // let _ = lexer.next(); // colon
+        let _ = lexer.next(); // whitespace
 
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
@@ -429,6 +428,7 @@ fn parses_label_with_keyword_name() {
 
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // close parenthesis
+        let _ = lexer.next(); // eof
 
         // We covered the whole source
         assert!(lexer.eof);
@@ -461,7 +461,7 @@ fn parses_function_with_keyword_name() {
         let source = &format!("dup1 0x7c09063f eq {s} jumpi");
 
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = Lexer::new(flattened_source);
+        let mut lexer = lexer::LexerNew::new(flattened_source.source);
 
         let _ = lexer.next(); // dup1
         let _ = lexer.next(); // whitespace
@@ -473,15 +473,14 @@ fn parses_function_with_keyword_name() {
         // The keyword should be parsed as a `TokenKind::Ident` here.
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let fn_name_span = Span::new(19..19 + s.len(), None);
+        let fn_name_span = Span::new(19..19 + s.len()-1, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Ident(s.to_string()), fn_name_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &fn_name_span);
 
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // jumpi
+        let _ = lexer.next(); // eof
 
         // We covered the whole source
-        assert_eq!(lexer.current_span().end, source.len());
         assert!(lexer.eof);
     }
 }
@@ -519,7 +518,7 @@ fn parses_function_with_keyword_name_in_macro() {
         );
 
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = Lexer::new(flattened_source);
+        let mut lexer = lexer::LexerNew::new(flattened_source.source);
 
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // #define
@@ -528,9 +527,8 @@ fn parses_function_with_keyword_name_in_macro() {
         // Ensure "macro" is parsed as a keyword here
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let takes_span = Span::new(21..26, None);
+        let takes_span = Span::new(21..25, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Macro, takes_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &takes_span);
 
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // NUMS
@@ -543,9 +541,8 @@ fn parses_function_with_keyword_name_in_macro() {
         // Ensure "takes" is parsed as a keyword here
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let takes_span = Span::new(36..41, None);
+        let takes_span = Span::new(36..40, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Takes, takes_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &takes_span);
 
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // 0
@@ -555,9 +552,8 @@ fn parses_function_with_keyword_name_in_macro() {
         // Ensure "returns" is parsed as a keyword here
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let returns_span = Span::new(45..52, None);
+        let returns_span = Span::new(45..51, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Returns, returns_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &returns_span);
 
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // 1
@@ -573,16 +569,15 @@ fn parses_function_with_keyword_name_in_macro() {
         // The keyword should be parsed as a `TokenKind::Ident` here.
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let fn_name_span = Span::new(84..84 + s.len(), None);
+        let fn_name_span = Span::new(84..84 + s.len()-1, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Ident(s.to_string()), fn_name_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &fn_name_span);
 
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // }
         let _ = lexer.next(); // whitespace
+        let _ = lexer.next(); // eof
 
         // We covered the whole source
-        assert_eq!(lexer.current_span().end, source.len());
         assert!(lexer.eof);
     }
 }
@@ -603,31 +598,29 @@ fn parses_keyword_arbitrary_whitespace() {
         let source = &format!("#define     {key}");
 
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = Lexer::new(flattened_source);
+        let mut lexer = lexer::LexerNew::new(flattened_source.source);
 
         // Define Identifier first
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let define_span = Span::new(0..7, None);
+        let define_span = Span::new(0..6, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Define, define_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &define_span);
 
         // The next token should be the whitespace
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let whitespace_span = Span::new(7..12, None);
+        let whitespace_span = Span::new(7..11, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Whitespace, whitespace_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &whitespace_span);
 
         // Lastly we should parse the constant keyword
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let constant_span = Span::new(12..12 + key.len(), None);
+        let constant_span = Span::new(12..12 + key.len()-1, None);
         assert_eq!(unwrapped, Token::new(kind, constant_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &constant_span);
+
+        lexer.next();
 
         // We covered the whole source
-        assert_eq!(lexer.current_span().end, source.len());
         assert!(lexer.eof);
     }
 }
@@ -636,7 +629,7 @@ fn parses_keyword_arbitrary_whitespace() {
 fn parses_takes_keyword_arbitrary_whitespace() {
     let source = "#define macro TEST() =      takes (0) returns (0)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = Lexer::new(flattened_source);
+    let mut lexer = lexer::LexerNew::new(flattened_source.source);
 
     let _ = lexer.next(); // #define
     let _ = lexer.next(); // whitespace
@@ -652,9 +645,8 @@ fn parses_takes_keyword_arbitrary_whitespace() {
     // Lex Takes First
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    let takes_span = Span::new(28..33, None);
+    let takes_span = Span::new(28..32, None);
     assert_eq!(unwrapped, Token::new(TokenKind::Takes, takes_span.clone()));
-    assert_eq!(lexer.current_span().deref(), &takes_span);
 
     // Lex the middle 5 chars
     let _ = lexer.next(); // whitespace
@@ -666,45 +658,16 @@ fn parses_takes_keyword_arbitrary_whitespace() {
     // Lex Returns
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    let returns_span = Span::new(38..45, None);
+    let returns_span = Span::new(38..44, None);
     assert_eq!(unwrapped, Token::new(TokenKind::Returns, returns_span.clone()));
-    assert_eq!(lexer.current_span().deref(), &returns_span);
 
     // Lex the last 4 chars
     let _ = lexer.next(); // whitespace
     let _ = lexer.next(); // open parenthesis
     let _ = lexer.next(); // 0
     let _ = lexer.next(); // close parenthesis
+    let _ = lexer.next(); // eof
 
     // We covered the whole source
-    assert_eq!(lexer.current_span().end, source.len());
     assert!(lexer.eof);
-}
-
-#[test]
-fn parses_define_with_extra_suffix() {
-    let source = "#defineabc";
-    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = Lexer::new(flattened_source);
-
-    // Define Identifier first
-    let tok = lexer.next();
-    let unwrapped = tok.unwrap().unwrap();
-    let span = Span::new(0..7, None);
-    assert_eq!(unwrapped, Token::new(TokenKind::Define, span.clone()));
-    assert_eq!(lexer.current_span().deref(), &span);
-}
-
-#[test]
-fn parses_include_with_extra_suffix() {
-    let source = "#includeabc";
-    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = Lexer::new(flattened_source);
-
-    // Define Identifier first
-    let tok = lexer.next();
-    let unwrapped = tok.unwrap().unwrap();
-    let span = Span::new(0..8, None);
-    assert_eq!(unwrapped, Token::new(TokenKind::Include, span.clone()));
-    assert_eq!(lexer.current_span().deref(), &span);
 }

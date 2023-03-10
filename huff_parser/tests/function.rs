@@ -25,7 +25,7 @@ fn parses_valid_function_definition() {
                         arg_type: Some(String::from("uint256")),
                         indexed: false,
                         arg_location: None,
-                        span: AstSpan(vec![Span { start: 22, end: 29, file: None }]),
+                        span: AstSpan(vec![Span { start: 22, end: 28, file: None }]),
                     },
                     Argument {
                         name: Some(String::from("b")),
@@ -33,8 +33,8 @@ fn parses_valid_function_definition() {
                         indexed: false,
                         arg_location: None,
                         span: AstSpan(vec![
-                            Span { start: 30, end: 34, file: None },
-                            Span { start: 35, end: 36, file: None },
+                            Span { start: 30, end: 33, file: None },
+                            Span { start: 35, end: 35, file: None },
                         ]),
                     },
                 ],
@@ -44,24 +44,24 @@ fn parses_valid_function_definition() {
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
                     arg_location: None,
-                    span: AstSpan(vec![Span { start: 51, end: 58, file: None }]),
+                    span: AstSpan(vec![Span { start: 51, end: 57, file: None }]),
                 }],
                 signature: [84, 204, 215, 119],
                 span: AstSpan(vec![
-                    Span { start: 0, end: 7, file: None },
-                    Span { start: 8, end: 16, file: None },
-                    Span { start: 17, end: 21, file: None },
-                    Span { start: 21, end: 22, file: None },
-                    Span { start: 22, end: 29, file: None },
-                    Span { start: 29, end: 30, file: None },
-                    Span { start: 30, end: 34, file: None },
-                    Span { start: 35, end: 36, file: None },
-                    Span { start: 36, end: 37, file: None },
-                    Span { start: 38, end: 42, file: None },
-                    Span { start: 43, end: 50, file: None },
-                    Span { start: 50, end: 51, file: None },
-                    Span { start: 51, end: 58, file: None },
-                    Span { start: 58, end: 59, file: None },
+                    Span { start: 0, end: 6, file: None },
+                    Span { start: 8, end: 15, file: None },
+                    Span { start: 17, end: 20, file: None },
+                    Span { start: 21, end: 21, file: None },
+                    Span { start: 22, end: 28, file: None },
+                    Span { start: 29, end: 29, file: None },
+                    Span { start: 30, end: 33, file: None },
+                    Span { start: 35, end: 35, file: None },
+                    Span { start: 36, end: 36, file: None },
+                    Span { start: 38, end: 41, file: None },
+                    Span { start: 43, end: 49, file: None },
+                    Span { start: 50, end: 50, file: None },
+                    Span { start: 51, end: 57, file: None },
+                    Span { start: 58, end: 58, file: None },
                 ]),
             },
         ),
@@ -74,7 +74,7 @@ fn parses_valid_function_definition() {
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
                     arg_location: None,
-                    span: AstSpan(vec![Span { start: 22, end: 29, file: None }]),
+                    span: AstSpan(vec![Span { start: 22, end: 28, file: None }]),
                 }],
                 fn_type: FunctionType::Pure,
                 outputs: vec![Argument {
@@ -82,21 +82,21 @@ fn parses_valid_function_definition() {
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
                     arg_location: None,
-                    span: AstSpan(vec![Span { start: 44, end: 51, file: None }]),
+                    span: AstSpan(vec![Span { start: 44, end: 50, file: None }]),
                 }],
                 signature: [41, 233, 159, 7],
                 span: AstSpan(vec![
-                    Span { start: 0, end: 7, file: None },
-                    Span { start: 8, end: 16, file: None },
-                    Span { start: 17, end: 21, file: None },
-                    Span { start: 21, end: 22, file: None },
-                    Span { start: 22, end: 29, file: None },
-                    Span { start: 29, end: 30, file: None },
-                    Span { start: 31, end: 35, file: None },
-                    Span { start: 36, end: 43, file: None },
-                    Span { start: 43, end: 44, file: None },
-                    Span { start: 44, end: 51, file: None },
-                    Span { start: 51, end: 52, file: None },
+                    Span { start: 0, end: 6, file: None },
+                    Span { start: 8, end: 15, file: None },
+                    Span { start: 17, end: 20, file: None },
+                    Span { start: 21, end: 21, file: None },
+                    Span { start: 22, end: 28, file: None },
+                    Span { start: 29, end: 29, file: None },
+                    Span { start: 31, end: 34, file: None },
+                    Span { start: 36, end: 42, file: None },
+                    Span { start: 43, end: 43, file: None },
+                    Span { start: 44, end: 50, file: None },
+                    Span { start: 51, end: 51, file: None },
                 ]),
             },
         ),
@@ -109,7 +109,7 @@ fn parses_valid_function_definition() {
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
                     arg_location: None,
-                    span: AstSpan(vec![Span { start: 22, end: 29, file: None }]),
+                    span: AstSpan(vec![Span { start: 22, end: 28, file: None }]),
                 }],
                 fn_type: FunctionType::NonPayable,
                 outputs: vec![Argument {
@@ -117,21 +117,21 @@ fn parses_valid_function_definition() {
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
                     arg_location: None,
-                    span: AstSpan(vec![Span { start: 50, end: 57, file: None }]),
+                    span: AstSpan(vec![Span { start: 50, end: 56, file: None }]),
                 }],
                 signature: [41, 233, 159, 7],
                 span: AstSpan(vec![
-                    Span { start: 0, end: 7, file: None },
-                    Span { start: 8, end: 16, file: None },
-                    Span { start: 17, end: 21, file: None },
-                    Span { start: 21, end: 22, file: None },
-                    Span { start: 22, end: 29, file: None },
-                    Span { start: 29, end: 30, file: None },
-                    Span { start: 31, end: 41, file: None },
-                    Span { start: 42, end: 49, file: None },
-                    Span { start: 49, end: 50, file: None },
-                    Span { start: 50, end: 57, file: None },
-                    Span { start: 57, end: 58, file: None },
+                    Span { start: 0, end: 6, file: None },
+                    Span { start: 8, end: 15, file: None },
+                    Span { start: 17, end: 20, file: None },
+                    Span { start: 21, end: 21, file: None },
+                    Span { start: 22, end: 28, file: None },
+                    Span { start: 29, end: 29, file: None },
+                    Span { start: 31, end: 40, file: None },
+                    Span { start: 42, end: 48, file: None },
+                    Span { start: 49, end: 49, file: None },
+                    Span { start: 50, end: 56, file: None },
+                    Span { start: 57, end: 57, file: None },
                 ]),
             },
         ),
@@ -144,7 +144,7 @@ fn parses_valid_function_definition() {
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
                     arg_location: None,
-                    span: AstSpan(vec![Span { start: 22, end: 29, file: None }]),
+                    span: AstSpan(vec![Span { start: 22, end: 28, file: None }]),
                 }],
                 fn_type: FunctionType::Payable,
                 outputs: vec![Argument {
@@ -152,21 +152,21 @@ fn parses_valid_function_definition() {
                     arg_type: Some(String::from("uint256")),
                     indexed: false,
                     arg_location: None,
-                    span: AstSpan(vec![Span { start: 47, end: 54, file: None }]),
+                    span: AstSpan(vec![Span { start: 47, end: 53, file: None }]),
                 }],
                 signature: [41, 233, 159, 7],
                 span: AstSpan(vec![
-                    Span { start: 0, end: 7, file: None },
-                    Span { start: 8, end: 16, file: None },
-                    Span { start: 17, end: 21, file: None },
-                    Span { start: 21, end: 22, file: None },
-                    Span { start: 22, end: 29, file: None },
-                    Span { start: 29, end: 30, file: None },
-                    Span { start: 31, end: 38, file: None },
-                    Span { start: 39, end: 46, file: None },
-                    Span { start: 46, end: 47, file: None },
-                    Span { start: 47, end: 54, file: None },
-                    Span { start: 54, end: 55, file: None },
+                    Span { start: 0, end: 6, file: None },
+                    Span { start: 8, end: 15, file: None },
+                    Span { start: 17, end: 20, file: None },
+                    Span { start: 21, end: 21, file: None },
+                    Span { start: 22, end: 28, file: None },
+                    Span { start: 29, end: 29, file: None },
+                    Span { start: 31, end: 37, file: None },
+                    Span { start: 39, end: 45, file: None },
+                    Span { start: 46, end: 46, file: None },
+                    Span { start: 47, end: 53, file: None },
+                    Span { start: 54, end: 54, file: None },
                 ]),
             },
         ),
@@ -197,7 +197,7 @@ fn parses_valid_function_definition() {
 
     for (index, source) in sources.into_iter().enumerate() {
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = Lexer::new(flattened_source);
+        let lexer = lexer::LexerNew::new(flattened_source.source);
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())
@@ -217,7 +217,7 @@ fn parses_valid_function_definition() {
 fn cannot_parse_invalid_function_definition() {
     let source = "#define function test(uint256) returns(uint256)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     parser.parse().unwrap();
@@ -229,7 +229,7 @@ fn test_functions_with_keyword_arg_names_errors() {
     // The function parameter's name is a reserved keyword; this should throw an error
     let source: &str = "#define function myFunc(uint256 uint256) pure returns(uint256)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     parser.parse().unwrap();
@@ -239,7 +239,7 @@ fn test_functions_with_keyword_arg_names_errors() {
 fn test_functions_with_argument_locations() {
     let source: &str = "#define function myFunc(string calldata test, uint256[] storage) pure returns(bytes memory)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     parser.parse().unwrap();
@@ -249,40 +249,39 @@ fn test_functions_with_argument_locations() {
 fn test_can_prefix_function_arg_names_with_reserved_keywords() {
     let source: &str = "#define function supportsInterface(bytes4 interfaceId) view returns (bool)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let expected_tokens: Vec<Token> = vec![
-        Token { kind: TokenKind::Define, span: Span { start: 0, end: 7, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 7, end: 8, file: None } },
-        Token { kind: TokenKind::Function, span: Span { start: 8, end: 16, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 16, end: 17, file: None } },
+        Token { kind: TokenKind::Define, span: Span { start: 0, end: 6, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 7, end: 7, file: None } },
+        Token { kind: TokenKind::Function, span: Span { start: 8, end: 15, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 16, end: 16, file: None } },
         Token {
             kind: TokenKind::Ident("supportsInterface".to_string()),
-            span: Span { start: 17, end: 34, file: None },
+            span: Span { start: 17, end: 33, file: None },
         },
-        Token { kind: TokenKind::OpenParen, span: Span { start: 34, end: 35, file: None } },
+        Token { kind: TokenKind::OpenParen, span: Span { start: 34, end: 34, file: None } },
         Token {
             kind: TokenKind::PrimitiveType(PrimitiveEVMType::Bytes(4)),
-            span: Span { start: 35, end: 41, file: None },
+            span: Span { start: 35, end: 40, file: None },
         },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 41, end: 42, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 41, end: 41, file: None } },
         Token {
             kind: TokenKind::Ident("interfaceId".to_string()),
-            span: Span { start: 42, end: 53, file: None },
+            span: Span { start: 42, end: 52, file: None },
         },
-        Token { kind: TokenKind::CloseParen, span: Span { start: 53, end: 54, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 54, end: 55, file: None } },
-        Token { kind: TokenKind::View, span: Span { start: 55, end: 59, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 59, end: 60, file: None } },
-        Token { kind: TokenKind::Returns, span: Span { start: 60, end: 67, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 67, end: 68, file: None } },
-        Token { kind: TokenKind::OpenParen, span: Span { start: 68, end: 69, file: None } },
+        Token { kind: TokenKind::CloseParen, span: Span { start: 53, end: 53, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 54, end: 54, file: None } },
+        Token { kind: TokenKind::View, span: Span { start: 55, end: 58, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 59, end: 59, file: None } },
+        Token { kind: TokenKind::Returns, span: Span { start: 60, end: 66, file: None } },
+        Token { kind: TokenKind::OpenParen, span: Span { start: 68, end: 68, file: None } },
         Token {
             kind: TokenKind::PrimitiveType(PrimitiveEVMType::Bool),
-            span: Span { start: 69, end: 73, file: None },
+            span: Span { start: 69, end: 72, file: None },
         },
-        Token { kind: TokenKind::CloseParen, span: Span { start: 73, end: 74, file: None } },
-        Token { kind: TokenKind::Eof, span: Span { start: 74, end: 74, file: None } },
+        Token { kind: TokenKind::CloseParen, span: Span { start: 73, end: 73, file: None } },
+        Token { kind: TokenKind::Eof, span: Span { start: 73, end: 73, file: None } },
     ];
     assert_eq!(expected_tokens, tokens);
     let mut parser = Parser::new(tokens, None);
