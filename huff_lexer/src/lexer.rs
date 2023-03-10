@@ -289,7 +289,7 @@ impl<'a> LexerNew<'a> {
                             found_kind = Some(TokenKind::Opcode(o.to_owned()));
                         }
                     }
-                    println!("self.context: {:?}", self.context);
+                  
                     if self.context == Context::AbiArgs {
                         let curr_char = self.peek().unwrap();
                         dbg!(curr_char);

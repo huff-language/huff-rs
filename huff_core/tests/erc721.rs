@@ -28,7 +28,7 @@ fn test_erc721_compile() {
         file: Some(Arc::clone(file_source)),
         spans: flattened.1,
     };
-    let lexer = Lexer::new(full_source);
+    let lexer = lexer::LexerNew::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("../huff-examples/erc20/contracts".to_string()));
     let mut contract = parser.parse().unwrap();
