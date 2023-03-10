@@ -920,7 +920,6 @@ fn empty_outlined_macro() {
 fn outlined_macro_with_simple_body() {
     let source = "#define fn HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    // let lexer = Lexer::new(flattened_source);
     let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
@@ -989,7 +988,7 @@ fn outlined_macro_with_simple_body() {
 fn empty_test() {
     let source = "#define test HELLO_WORLD() = takes(0) returns(4) {}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -1003,22 +1002,22 @@ fn empty_test() {
         takes: 0,
         returns: 4,
         span: AstSpan(vec![
-            Span { start: 0, end: 7, file: None },
-            Span { start: 8, end: 12, file: None },
-            Span { start: 13, end: 24, file: None },
-            Span { start: 24, end: 25, file: None },
-            Span { start: 25, end: 26, file: None },
-            Span { start: 27, end: 28, file: None },
-            Span { start: 29, end: 34, file: None },
-            Span { start: 34, end: 35, file: None },
-            Span { start: 35, end: 36, file: None },
-            Span { start: 36, end: 37, file: None },
-            Span { start: 38, end: 45, file: None },
-            Span { start: 45, end: 46, file: None },
-            Span { start: 46, end: 47, file: None },
-            Span { start: 47, end: 48, file: None },
-            Span { start: 49, end: 50, file: None },
-            Span { start: 50, end: 51, file: None },
+            Span { start: 0, end: 6, file: None },
+            Span { start: 8, end: 11, file: None },
+            Span { start: 13, end: 23, file: None },
+            Span { start: 24, end: 24, file: None },
+            Span { start: 25, end: 25, file: None },
+            Span { start: 27, end: 27, file: None },
+            Span { start: 29, end: 33, file: None },
+            Span { start: 34, end: 34, file: None },
+            Span { start: 35, end: 35, file: None },
+            Span { start: 36, end: 36, file: None },
+            Span { start: 38, end: 44, file: None },
+            Span { start: 45, end: 45, file: None },
+            Span { start: 46, end: 46, file: None },
+            Span { start: 47, end: 47, file: None },
+            Span { start: 49, end: 49, file: None },
+            Span { start: 50, end: 50, file: None },
         ]),
         outlined: false,
         test: true,
@@ -1032,7 +1031,7 @@ fn test_with_simple_body() {
     let source =
         "#define test HELLO_WORLD() = takes(3) returns(0) {\n0x00 0x00 mstore\n 0x01 0x02 add\n}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -1048,63 +1047,63 @@ fn test_with_simple_body() {
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     0, 0, 0, 0, 0, 0,
                 ]),
-                span: AstSpan(vec![Span { start: 53, end: 55, file: None }]),
+                span: AstSpan(vec![Span { start: 53, end: 54, file: None }]),
             },
             Statement {
                 ty: StatementType::Literal([
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     0, 0, 0, 0, 0, 0,
                 ]),
-                span: AstSpan(vec![Span { start: 58, end: 60, file: None }]),
+                span: AstSpan(vec![Span { start: 58, end: 59, file: None }]),
             },
             Statement {
                 ty: StatementType::Opcode(Opcode::Mstore),
-                span: AstSpan(vec![Span { start: 61, end: 67, file: None }]),
+                span: AstSpan(vec![Span { start: 61, end: 66, file: None }]),
             },
             Statement {
                 ty: StatementType::Literal([
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     0, 0, 0, 0, 0, 1,
                 ]),
-                span: AstSpan(vec![Span { start: 71, end: 73, file: None }]),
+                span: AstSpan(vec![Span { start: 71, end: 72, file: None }]),
             },
             Statement {
                 ty: StatementType::Literal([
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     0, 0, 0, 0, 0, 2,
                 ]),
-                span: AstSpan(vec![Span { start: 76, end: 78, file: None }]),
+                span: AstSpan(vec![Span { start: 76, end: 77, file: None }]),
             },
             Statement {
                 ty: StatementType::Opcode(Opcode::Add),
-                span: AstSpan(vec![Span { start: 79, end: 82, file: None }]),
+                span: AstSpan(vec![Span { start: 79, end: 81, file: None }]),
             },
         ],
         takes: 3,
         returns: 0,
         span: AstSpan(vec![
-            Span { start: 0, end: 7, file: None },
-            Span { start: 8, end: 12, file: None },
-            Span { start: 13, end: 24, file: None },
-            Span { start: 24, end: 25, file: None },
-            Span { start: 25, end: 26, file: None },
-            Span { start: 27, end: 28, file: None },
-            Span { start: 29, end: 34, file: None },
-            Span { start: 34, end: 35, file: None },
-            Span { start: 35, end: 36, file: None },
-            Span { start: 36, end: 37, file: None },
-            Span { start: 38, end: 45, file: None },
-            Span { start: 45, end: 46, file: None },
-            Span { start: 46, end: 47, file: None },
-            Span { start: 47, end: 48, file: None },
-            Span { start: 49, end: 50, file: None },
-            Span { start: 53, end: 55, file: None },
-            Span { start: 58, end: 60, file: None },
-            Span { start: 61, end: 67, file: None },
-            Span { start: 71, end: 73, file: None },
-            Span { start: 76, end: 78, file: None },
-            Span { start: 79, end: 82, file: None },
-            Span { start: 83, end: 84, file: None },
+            Span { start: 0, end: 6, file: None },
+            Span { start: 8, end: 11, file: None },
+            Span { start: 13, end: 23, file: None },
+            Span { start: 24, end: 24, file: None },
+            Span { start: 25, end: 25, file: None },
+            Span { start: 27, end: 27, file: None },
+            Span { start: 29, end: 33, file: None },
+            Span { start: 34, end: 34, file: None },
+            Span { start: 35, end: 35, file: None },
+            Span { start: 36, end: 36, file: None },
+            Span { start: 38, end: 44, file: None },
+            Span { start: 45, end: 45, file: None },
+            Span { start: 46, end: 46, file: None },
+            Span { start: 47, end: 47, file: None },
+            Span { start: 49, end: 49, file: None },
+            Span { start: 53, end: 54, file: None },
+            Span { start: 58, end: 59, file: None },
+            Span { start: 61, end: 66, file: None },
+            Span { start: 71, end: 72, file: None },
+            Span { start: 76, end: 77, file: None },
+            Span { start: 79, end: 81, file: None },
+            Span { start: 83, end: 83, file: None },
         ]),
         outlined: false,
         test: true,
@@ -1120,7 +1119,7 @@ fn empty_test_with_decorator() {
     #define test MY_TEST() = takes(0) returns(0) {}
     "#;
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -1139,29 +1138,29 @@ fn empty_test_with_decorator() {
         takes: 0,
         returns: 0,
         span: AstSpan(vec![
-            Span { start: 5, end: 6, file: None },
-            Span { start: 6, end: 7, file: None },
-            Span { start: 7, end: 12, file: None },
-            Span { start: 12, end: 13, file: None },
-            Span { start: 15, end: 17, file: None },
-            Span { start: 17, end: 18, file: None },
-            Span { start: 18, end: 19, file: None },
-            Span { start: 24, end: 31, file: None },
-            Span { start: 32, end: 36, file: None },
-            Span { start: 37, end: 44, file: None },
-            Span { start: 44, end: 45, file: None },
-            Span { start: 45, end: 46, file: None },
-            Span { start: 47, end: 48, file: None },
-            Span { start: 49, end: 54, file: None },
-            Span { start: 54, end: 55, file: None },
-            Span { start: 55, end: 56, file: None },
-            Span { start: 56, end: 57, file: None },
-            Span { start: 58, end: 65, file: None },
-            Span { start: 65, end: 66, file: None },
-            Span { start: 66, end: 67, file: None },
-            Span { start: 67, end: 68, file: None },
-            Span { start: 69, end: 70, file: None },
-            Span { start: 70, end: 71, file: None },
+            Span { start: 5, end: 5, file: None },
+            Span { start: 6, end: 6, file: None },
+            Span { start: 7, end: 11, file: None },
+            Span { start: 12, end: 12, file: None },
+            Span { start: 15, end: 16, file: None },
+            Span { start: 17, end: 17, file: None },
+            Span { start: 18, end: 18, file: None },
+            Span { start: 24, end: 30, file: None },
+            Span { start: 32, end: 35, file: None },
+            Span { start: 37, end: 43, file: None },
+            Span { start: 44, end: 44, file: None },
+            Span { start: 45, end: 45, file: None },
+            Span { start: 47, end: 47, file: None },
+            Span { start: 49, end: 53, file: None },
+            Span { start: 54, end: 54, file: None },
+            Span { start: 55, end: 55, file: None },
+            Span { start: 56, end: 56, file: None },
+            Span { start: 58, end: 64, file: None },
+            Span { start: 65, end: 65, file: None },
+            Span { start: 66, end: 66, file: None },
+            Span { start: 67, end: 67, file: None },
+            Span { start: 69, end: 69, file: None },
+            Span { start: 70, end: 70, file: None },
         ]),
         outlined: false,
         test: true,
@@ -1177,7 +1176,7 @@ fn empty_test_with_multi_flag_decorator() {
     #define test MY_TEST() = takes(0) returns(0) {}
     "#;
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -1199,34 +1198,34 @@ fn empty_test_with_multi_flag_decorator() {
         takes: 0,
         returns: 0,
         span: AstSpan(vec![
-            Span { start: 5, end: 6, file: None },
-            Span { start: 6, end: 7, file: None },
-            Span { start: 7, end: 15, file: None },
-            Span { start: 15, end: 16, file: None },
-            Span { start: 16, end: 22, file: None },
-            Span { start: 22, end: 23, file: None },
-            Span { start: 23, end: 24, file: None },
-            Span { start: 25, end: 30, file: None },
-            Span { start: 30, end: 31, file: None },
-            Span { start: 33, end: 35, file: None },
-            Span { start: 35, end: 36, file: None },
-            Span { start: 36, end: 37, file: None },
-            Span { start: 42, end: 49, file: None },
-            Span { start: 50, end: 54, file: None },
-            Span { start: 55, end: 62, file: None },
-            Span { start: 62, end: 63, file: None },
-            Span { start: 63, end: 64, file: None },
-            Span { start: 65, end: 66, file: None },
-            Span { start: 67, end: 72, file: None },
-            Span { start: 72, end: 73, file: None },
-            Span { start: 73, end: 74, file: None },
-            Span { start: 74, end: 75, file: None },
-            Span { start: 76, end: 83, file: None },
-            Span { start: 83, end: 84, file: None },
-            Span { start: 84, end: 85, file: None },
-            Span { start: 85, end: 86, file: None },
-            Span { start: 87, end: 88, file: None },
-            Span { start: 88, end: 89, file: None },
+            Span { start: 5, end: 5, file: None },
+            Span { start: 6, end: 6, file: None },
+            Span { start: 7, end: 14, file: None },
+            Span { start: 15, end: 15, file: None },
+            Span { start: 16, end: 21, file: None },
+            Span { start: 22, end: 22, file: None },
+            Span { start: 23, end: 23, file: None },
+            Span { start: 25, end: 29, file: None },
+            Span { start: 30, end: 30, file: None },
+            Span { start: 33, end: 34, file: None },
+            Span { start: 35, end: 35, file: None },
+            Span { start: 36, end: 36, file: None },
+            Span { start: 42, end: 48, file: None },
+            Span { start: 50, end: 53, file: None },
+            Span { start: 55, end: 61, file: None },
+            Span { start: 62, end: 62, file: None },
+            Span { start: 63, end: 63, file: None },
+            Span { start: 65, end: 65, file: None },
+            Span { start: 67, end: 71, file: None },
+            Span { start: 72, end: 72, file: None },
+            Span { start: 73, end: 73, file: None },
+            Span { start: 74, end: 74, file: None },
+            Span { start: 76, end: 82, file: None },
+            Span { start: 83, end: 83, file: None },
+            Span { start: 84, end: 84, file: None },
+            Span { start: 85, end: 85, file: None },
+            Span { start: 87, end: 87, file: None },
+            Span { start: 88, end: 88, file: None },
         ]),
         outlined: false,
         test: true,
