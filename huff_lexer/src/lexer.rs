@@ -179,7 +179,7 @@ impl<'a> LexerNew<'a> {
                 }
                 // Alphabetical characters
                 ch if ch.is_alphabetic() || ch.eq(&'_') => {
-                    let (word, start, end) = self.eat_while(Some(ch), |c| {
+                    let (word, start, mut end) = self.eat_while(Some(ch), |c| {
                         c.is_alphanumeric() || c == '_'
                     });
 
@@ -265,16 +265,93 @@ impl<'a> LexerNew<'a> {
                         }
                     }
 
-                    if let Some(kind) = &found_kind {
-                        return Ok(kind.clone().into_span(start, end))
-                    } 
+                    if self.context == Context::AbiArgs {
+                        let curr_char = self.peek().unwrap();
+                        if !['(', ')'].contains(&curr_char) {
+                            let (partial_raw_type, _, abi_args_end) = self
+                                .eat_while(Some(ch), |c| {
+                                    c.is_alphanumeric() || c == '[' || c == ']'
+                                });
+                            let raw_type = word.clone() + &partial_raw_type[1..];
 
-                    // let slice = self.slice();
-                    let kind = if self.context == Context::MacroBody &&
-                        BuiltinFunctionKind::try_from(&word).is_ok() {
-                        TokenKind::BuiltinFunction(word)
+                            if raw_type == TokenKind::Calldata.to_string() {
+                                found_kind = Some(TokenKind::Calldata);
+                            } else if raw_type == TokenKind::Memory.to_string() {
+                                found_kind = Some(TokenKind::Memory);
+                            } else if raw_type == TokenKind::Storage.to_string() {
+                                found_kind = Some(TokenKind::Storage);
+                            } else if EVM_TYPE_ARRAY_REGEX.is_match(&raw_type) {
+                                // split to get array size and type
+                                // TODO: support multi-dimensional arrays
+                                let words: Vec<String> = Regex::new(r"\[")
+                                    .unwrap()
+                                    .split(&raw_type)
+                                    .map(|x| x.replace(']', ""))
+                                    .collect();
+                                let mut size_vec: Vec<usize> = Vec::new();
+                                // go over all array sizes
+                                let sizes = words.get(1..words.len()).unwrap();
+                                for size in sizes.iter() {
+                                    match size.is_empty() {
+                                        true => size_vec.push(0),
+                                        false => {
+                                            let arr_size: usize = size
+                                                .parse::<usize>()
+                                                .map_err(|_| {
+                                                    let err = LexicalError {
+                                                        kind: LexicalErrorKind::InvalidArraySize(
+                                                            words[1].clone(),
+                                                        ),
+                                                        span: Span { start: start as usize, end: end as usize, file: None },
+                                                    };
+                                                    tracing::error!(target: "lexer", "{}", format!("{err:?}"));
+                                                    err
+                                                })
+                                                .unwrap();
+                                            size_vec.push(arr_size);
+                                        }
+                                    }
+                                }
+                                let primitive = PrimitiveEVMType::try_from(words[0].clone());
+                                if let Ok(primitive) = primitive {
+                                    found_kind = Some(TokenKind::ArrayType(primitive, size_vec));
+                                } else {
+                                    let err = LexicalError {
+                                        kind: LexicalErrorKind::InvalidPrimitiveType(
+                                            words[0].clone(),
+                                        ),
+                                        span: Span {
+                                            start: start as usize,
+                                            end: end as usize,
+                                            file: None,
+                                        },
+                                    };
+                                    tracing::error!(target: "lexer", "{}", format!("{err:?}"));
+                                }
+                            }
+                            end = abi_args_end;
+                        } else {
+                            // We don't want to consider any argument names or the "indexed"
+                            // keyword here.
+                            let primitive = PrimitiveEVMType::try_from(word.clone());
+                            if let Ok(primitive) = primitive {
+                                found_kind = Some(TokenKind::PrimitiveType(primitive));
+                            }
+                        }
+                    }
+
+                    let kind = if let Some(kind) = &found_kind {
+                        kind.clone()
                     } else {
-                        TokenKind::Ident(word)
+                        let kind = if self.context == Context::MacroBody
+                            && BuiltinFunctionKind::try_from(&word).is_ok()
+                        {
+                            TokenKind::BuiltinFunction(word)
+                        } else {
+                            TokenKind::Ident(word)
+                        };
+
+                        kind
                     };
 
                     Ok(kind.into_span(start, end))
