@@ -415,7 +415,7 @@ impl<'a> LexerNew<'a> {
             // bytecode in codegen.
             TokenKind::Ident(integer_str)
         } else {
-            TokenKind::Literal(str_to_bytes32(&integer_str.as_ref()))
+            TokenKind::Literal(str_to_bytes32(&integer_str[2..].as_ref()))
         };
 
         let span = Span { start: start as usize, end: end as usize, file: None };
