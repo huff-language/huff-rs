@@ -413,13 +413,14 @@ fn parses_label_with_keyword_name() {
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
         let mut lexer = lexer::LexerNew::new(flattened_source.source);
 
+
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
         let fn_name_span = Span::new(0..s.len()-1, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Label(s.to_string()), fn_name_span.clone()));
 
         let _ = lexer.next(); // colon
-        let _ = lexer.next(); // whitespace
+        let a = lexer.next(); // whitespace
 
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
@@ -428,7 +429,6 @@ fn parses_label_with_keyword_name() {
 
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // close parenthesis
-        //let _ = lexer.next(); // eof
 
         // We covered the whole source
         assert!(lexer.eof);
