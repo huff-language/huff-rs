@@ -17,13 +17,16 @@ fn not_mistaken_as_opcode() {
             "#
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = Lexer::new(flattened_source);
+        let lexer = lexer::LexerNew::new(flattened_source.source);
 
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())
             .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
             .collect::<Vec<Token>>();
+
+        dbg!(tokens.clone());
+
         let actual_label_arg = tokens[tokens.len() - 7].kind.clone();
         let actual_label = tokens[tokens.len() - 5].kind.clone();
         let mut parser = Parser::new(tokens, None);
@@ -48,7 +51,7 @@ fn test_invalid_push_non_literal() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -68,7 +71,8 @@ fn test_push_literals() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
+    // let lexer = Lexer::new(flattened_source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
     let expected_tokens = vec![

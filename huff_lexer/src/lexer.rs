@@ -272,7 +272,6 @@ impl<'a> LexerNew<'a> {
 
                     if let Some(':') = self.peek() {
                         found_kind = Some(TokenKind::Label(word.clone()));
-                        self.consume();
                     }
 
                     // Syntax sugar: true evaluates to 0x01, false evaluates to 0x00
