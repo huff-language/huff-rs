@@ -524,7 +524,11 @@ impl<'a> LexerNew<'a> {
             // In codetables, the bytecode provided is of arbitrary length. We pass
             // the code as an Ident, and it is appended to the end of the runtime
             // bytecode in codegen.
-            TokenKind::Ident(integer_str)
+            if &integer_str[0..2] == "0x" {
+                TokenKind::Ident(integer_str[2..].to_owned())
+            } else {
+                TokenKind::Ident(integer_str)
+            }
         } else {
             
             TokenKind::Literal(str_to_bytes32(&integer_str[2..].as_ref()))

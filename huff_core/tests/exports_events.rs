@@ -270,7 +270,7 @@ fn test_abi_nested_tuple_array_events() {
 
     // Lex + Parse
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let mut contract = parser.parse().unwrap();
