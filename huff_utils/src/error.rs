@@ -67,41 +67,41 @@ pub enum ParserErrorKind {
 
 /// A Lexing Error
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct LexicalError<'a> {
+pub struct LexicalError {
     /// The kind of error
-    pub kind: LexicalErrorKind<'a>,
+    pub kind: LexicalErrorKind,
     /// The span where the error occurred
     pub span: Span,
 }
 
-impl<'a> LexicalError<'a> {
+impl<'a> LexicalError {
     /// Public associated function to instatiate a new LexicalError.
-    pub fn new(kind: LexicalErrorKind<'a>, span: Span) -> Self {
+    pub fn new(kind: LexicalErrorKind, span: Span) -> Self {
         Self { kind, span }
     }
 }
 
 /// A Lexical Error Kind
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum LexicalErrorKind<'a> {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum LexicalErrorKind {
     /// Unexpected end of file
     UnexpectedEof,
     /// Invalid character
     InvalidCharacter(char),
     /// Invalid Array Size
     /// String param expected to be usize parsable
-    InvalidArraySize(&'a str),
+    InvalidArraySize(String),
     /// Invalid Primitive EVM Type
-    InvalidPrimitiveType(&'a str),
+    InvalidPrimitiveType(String),
 }
 
-impl<'a> Spanned for LexicalError<'a> {
+impl<'a> Spanned for LexicalError {
     fn span(&self) -> Span {
         self.span.clone()
     }
 }
 
-impl<'a, W: Write> Report<W> for LexicalError<'a> {
+impl<'a, W: Write> Report<W> for LexicalError {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match self.kind {
             LexicalErrorKind::InvalidCharacter(ch) => write!(f.out, "Invalid character '{ch}'"),
@@ -249,9 +249,9 @@ impl<W: Write> Report<W> for CodegenError {
 
 /// CompilerError
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CompilerError<'a> {
+pub enum CompilerError {
     /// Failed to Lex Source
-    LexicalError(LexicalError<'a>),
+    LexicalError(LexicalError),
     /// File unpacking error
     FileUnpackError(UnpackError),
     /// Parsing Error
@@ -261,10 +261,10 @@ pub enum CompilerError<'a> {
     /// Bytecode Generation Error
     CodegenError(CodegenError),
     /// Multiple Failed Compiles
-    FailedCompiles(Vec<CompilerError<'a>>),
+    FailedCompiles(Vec<CompilerError>),
 }
 
-impl<'a> fmt::Display for CompilerError<'a> {
+impl<'a> fmt::Display for CompilerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             CompilerError::LexicalError(le) => match le.kind {

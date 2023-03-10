@@ -31,7 +31,7 @@ pub enum Context {
 /// ## Lexer
 ///
 /// The lexer encapsulated in a struct.
-pub struct LexerNew<'a> {
+pub struct LexerNew<'a, 'e> {
     /// The source code as peekable chars.
     /// WARN: SHOULD NEVER BE MODIFIED!
     pub chars: Peekable<Chars<'a>>,
@@ -46,8 +46,8 @@ pub struct LexerNew<'a> {
 
 pub type TokenResult<'a> = Result<Token, LexicalError<'a>>;
 
-impl<'a> LexerNew<'a> {
-    fn new(source: &'a str) -> Self {
+impl<'a, 'e> LexerNew<'a, 'e> {
+    pub fn new(source: &'a str) -> Self {
         LexerNew {
             // We zip with the character index here to ensure the first char has index 0
             chars: source.chars().peekable(),
@@ -96,8 +96,6 @@ impl<'a> LexerNew<'a> {
         if let Some(ch) = self.consume() {
             let token = match ch {
                 '/' => {
-
-
                     if let Some(ch2) = self.peek() {
                         match ch2 {
                             '/' => {
@@ -250,15 +248,12 @@ impl<'a> LexerNew<'a> {
                     }
 
                     if let Some(':') = self.peek() {
-                        found_kind = Some(TokenKind::Label(word));
+                        found_kind = Some(TokenKind::Label(word.clone()));
                         self.consume();
                     }
 
-                    
-
-
                     if !(self.context != Context::MacroBody || found_kind.is_some()) {
-                        if let Some(o) = OPCODES_MAP.get(&word) {
+                        if let Some(o) = OPCODES_MAP.get(&word.clone()) {
                             found_kind = Some(TokenKind::Opcode(o.to_owned()));
                         }
                     }
@@ -325,7 +320,7 @@ impl<'a> LexerNew<'a> {
                 // Lexes Spaces and Newlines as Whitespace
                 ch if ch.is_ascii_whitespace() => {
                     self.eat_whitespace();
-                    self.next_token()
+                    self.single_char_token(TokenKind::Whitespace)
                 }
                 // String literals. String literals can also be wrapped by single quotes
                 '"' | '\'' => {
@@ -351,7 +346,7 @@ impl<'a> LexerNew<'a> {
         }
     }
 
-    fn single_char_token(&self, token_kind: TokenKind) -> TokenResult {
+    fn single_char_token(&self, token_kind: TokenKind) -> TokenResult<'a> {
         Ok(token_kind.into_single_span(self.position))
     }
     
@@ -487,7 +482,6 @@ impl<'a> LexerNew<'a> {
             }
             Some(TokenKind::Takes) => self.checked_lookback(TokenKind::Assign),
             Some(TokenKind::Returns) => {
-                let cur_span_end = self.position;
                 self.eat_whitespace();
                 // Allow for loose and tight syntax (e.g. `returns   (0)`, `returns(0)`, ...)
                 self.peek().unwrap_or(')') == '(' && 
@@ -499,8 +493,8 @@ impl<'a> LexerNew<'a> {
 
 }
 
-impl<'a> Iterator for LexerNew<'a> {
-    type Item = TokenResult<'a>;
+impl<'a, 'e> Iterator for LexerNew<'a, 'e> {
+    type Item = TokenResult<'e>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.eof {

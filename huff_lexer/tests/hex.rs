@@ -1,4 +1,5 @@
 use huff_lexer::*;
+use huff_lexer::lexer::LexerNew;
 use huff_utils::prelude::*;
 use std::ops::Deref;
 
@@ -7,6 +8,7 @@ fn parses_single_hex() {
     let source = "0xa57B";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let mut lexer = Lexer::new(flattened_source);
+    let mut lexer_new = LexerNew::new(flattened_source.source);
 
     // The first and only token should be lexed as Literal(0xa57B)
     let tok = lexer.next().unwrap().unwrap();
