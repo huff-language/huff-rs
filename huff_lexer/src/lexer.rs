@@ -264,9 +264,10 @@ impl<'a> LexerNew<'a> {
                             found_kind = Some(TokenKind::Opcode(o.to_owned()));
                         }
                     }
-
+                    println!("self.context: {:?}", self.context);
                     if self.context == Context::AbiArgs {
                         let curr_char = self.peek().unwrap();
+                        dbg!(curr_char);
                         if !['(', ')'].contains(&curr_char) {
                             let (partial_raw_type, _, abi_args_end) = self
                                 .eat_while(Some(ch), |c| {
@@ -327,6 +328,13 @@ impl<'a> LexerNew<'a> {
                                         },
                                     };
                                     tracing::error!(target: "lexer", "{}", format!("{err:?}"));
+                                }
+                            } else {
+                                // We don't want to consider any argument names or the "indexed"
+                                // keyword here.
+                                let primitive = PrimitiveEVMType::try_from(word.clone());
+                                if let Ok(primitive) = primitive {
+                                    found_kind = Some(TokenKind::PrimitiveType(primitive));
                                 }
                             }
                             end = abi_args_end;
