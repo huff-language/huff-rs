@@ -6,7 +6,7 @@ use huff_utils::prelude::*;
 fn parses_import() {
     let source = " /* .,*./. */  #include \"../huff-examples/erc20/contracts/ERC20.huff\"";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let contract = parser.parse().unwrap();
@@ -25,7 +25,7 @@ fn parses_deep_imports() {
         #include "../huff-examples/erc20/contracts/utils/Ownable.huff"
     "#;
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let contract = parser.parse().unwrap();
