@@ -103,7 +103,7 @@ impl<'a> Spanned for LexicalError {
 
 impl<'a, W: Write> Report<W> for LexicalError {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
-        match self.kind {
+        match &self.kind {
             LexicalErrorKind::InvalidCharacter(ch) => write!(f.out, "Invalid character '{ch}'"),
             LexicalErrorKind::UnexpectedEof => write!(f.out, "Found unexpected EOF"),
             LexicalErrorKind::InvalidArraySize(str) => {
@@ -267,7 +267,7 @@ pub enum CompilerError {
 impl<'a> fmt::Display for CompilerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            CompilerError::LexicalError(le) => match le.kind {
+            CompilerError::LexicalError(le) => match &le.kind {
                 LexicalErrorKind::UnexpectedEof => {
                     write!(
                         f,

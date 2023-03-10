@@ -15,7 +15,7 @@ impl fmt::Display for RunnerError {
 }
 
 /// Convert a `CompilerError` to a `RunnerError`
-impl From<CompilerError<'_>> for RunnerError {
+impl From<CompilerError> for RunnerError {
     fn from(e: CompilerError) -> Self {
         RunnerError(e.to_string())
     }

@@ -326,7 +326,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token, LexicalError<'a>>;
+    type Item = Result<Token, LexicalError>;
 
     /// Iterates over the source code
     fn next(&mut self) -> Option<Self::Item> {
@@ -361,16 +361,12 @@ impl<'a> Iterator for Lexer<'a> {
 
                     let keys = [TokenKind::Define, TokenKind::Include];
                     for kind in keys.into_iter() {
-                        dbg!(self.current_span());
-                        dbg!(self.position);
                         let key = kind.to_string();
                         let token_length = key.len() - 1;
                         let peeked = self.peek_n_chars(token_length);
 
                         if key == peeked {
                             self.nconsume(token_length);
-                            dbg!(self.current_span());
-                            dbg!(self.position);
                             found_kind = Some(kind);
                             break
                         }
@@ -542,7 +538,7 @@ impl<'a> Iterator for Lexer<'a> {
                                                 .map_err(|_| {
                                                     let err = LexicalError {
                                                         kind: LexicalErrorKind::InvalidArraySize(
-                                                            &words[1],
+                                                            words[1].clone(),
                                                         ),
                                                         span: self.current_span().clone(),
                                                     };
@@ -559,7 +555,7 @@ impl<'a> Iterator for Lexer<'a> {
                                     found_kind = Some(TokenKind::ArrayType(primitive, size_vec));
                                 } else {
                                     let err = LexicalError {
-                                        kind: LexicalErrorKind::InvalidPrimitiveType(&words[0]),
+                                        kind: LexicalErrorKind::InvalidPrimitiveType(words[0].clone()),
                                         span: self.current_span().clone(),
                                     };
                                     tracing::error!(target: "lexer", "{}", format!("{err:?}"));
@@ -652,11 +648,7 @@ impl<'a> Iterator for Lexer<'a> {
                 // identifiers
                 ',' => TokenKind::Comma,
                 '0'..='9' => {
-                    dbg!(self.position);
-                    dbg!(self.current_span());
                     self.dyn_consume(char::is_ascii_digit);
-                    dbg!(self.position);
-                    dbg!(self.current_span());
                     TokenKind::Num(self.slice().parse().unwrap())
                 }
                 // Lexes Spaces and Newlines as Whitespace

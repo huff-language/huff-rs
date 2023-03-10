@@ -1,8 +1,9 @@
 use huff_utils::prelude::*;
 use regex::Regex;
 use std::{
-    iter::Peekable,
+    iter::{Peekable, Zip},
     str::Chars,
+    ops::RangeFrom,
 };
 /* hiehgsebgoiesgoiseg */
 /// Defines a context in which the lexing happens.
@@ -31,10 +32,10 @@ pub enum Context {
 /// ## Lexer
 ///
 /// The lexer encapsulated in a struct.
-pub struct LexerNew<'a, 'e> {
+pub struct LexerNew<'a> {
     /// The source code as peekable chars.
     /// WARN: SHOULD NEVER BE MODIFIED!
-    pub chars: Peekable<Chars<'a>>,
+    pub chars: Peekable<Zip<Chars<'a>, RangeFrom<u32>>>,
     position: u32,
     /// The previous lexed Token.
     /// NOTE: Cannot be a whitespace.
@@ -44,13 +45,14 @@ pub struct LexerNew<'a, 'e> {
     pub context: Context,
 }
 
-pub type TokenResult<'a> = Result<Token, LexicalError<'a>>;
+pub type TokenResult = Result<Token, LexicalError>;
 
-impl<'a, 'e> LexerNew<'a, 'e> {
+impl<'a> LexerNew<'a> {
     pub fn new(source: &'a str) -> Self {
         LexerNew {
             // We zip with the character index here to ensure the first char has index 0
-            chars: source.chars().peekable(),
+            //chars: source.chars().peekable(),
+            chars: source.chars().zip(0..).peekable(),
             position: 0,
             lookback: None,
             eof: false,
@@ -60,15 +62,20 @@ impl<'a, 'e> LexerNew<'a, 'e> {
 
     /// Consumes the next character
     pub fn consume(&mut self) -> Option<char> {
-        self.chars.next().map(|x| {
-            self.position += 1;
-            x
-        })
+        // self.chars.next().map(|x| {
+        //     self.position += 1;
+        //     x
+        // })
+
+        let (c, index) = self.chars.next()?;
+        self.position = index;
+        Some(c)
     }
 
     /// Try to peek at the next character from the source
     pub fn peek(&mut self) -> Option<char> {
-        self.chars.peek().copied()
+        //self.chars.peek().copied()
+        self.chars.peek().map(|(c, _) | *c)
     }
 
     /// Consume characters until a sequence matches
@@ -346,7 +353,7 @@ impl<'a, 'e> LexerNew<'a, 'e> {
         }
     }
 
-    fn single_char_token(&self, token_kind: TokenKind) -> TokenResult<'a> {
+    fn single_char_token(&self, token_kind: TokenKind) -> TokenResult {
         Ok(token_kind.into_single_span(self.position))
     }
     
@@ -493,8 +500,8 @@ impl<'a, 'e> LexerNew<'a, 'e> {
 
 }
 
-impl<'a, 'e> Iterator for LexerNew<'a, 'e> {
-    type Item = TokenResult<'e>;
+impl<'a> Iterator for LexerNew<'a> {
+    type Item = TokenResult;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.eof {
