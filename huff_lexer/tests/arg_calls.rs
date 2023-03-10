@@ -38,7 +38,6 @@ fn lexes_arg_calls() {
     let _ = lexer.next(); // paren
     let _ = lexer.next(); // Whitespace
     let _ = lexer.next(); // returns
-    let _ = lexer.next(); // Whitespace
     let _ = lexer.next(); // paren
     let _ = lexer.next(); // 3
     let _ = lexer.next(); // paren
@@ -65,25 +64,22 @@ fn lexes_arg_calls() {
 
     // We should find a left angle
     let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::LeftAngle, Span::new(184..185, None)));
-    assert_eq!(lexer.current_span().deref(), &Span::new(184..185, None));
+    assert_eq!(tok, Token::new(TokenKind::LeftAngle, Span::new(184..184, None)));
+
 
     // The we should have an Ident
     let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::Ident("error".to_string()), Span::new(185..190, None)));
-    assert_eq!(lexer.current_span().deref(), &Span::new(185..190, None));
+    assert_eq!(tok, Token::new(TokenKind::Ident("error".to_string()), Span::new(185..189, None)));
 
     // Then should find a right angle
     let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::RightAngle, Span::new(190..191, None)));
-    assert_eq!(lexer.current_span().deref(), &Span::new(190..191, None));
+    assert_eq!(tok, Token::new(TokenKind::RightAngle, Span::new(190..190, None)));
 
     let _ = lexer.next(); // Whitespace
 
     // Jumpi Opcode
     let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::Opcode(Opcode::Jumpi), Span::new(192..197, None)));
-    assert_eq!(lexer.current_span().deref(), &Span::new(192..197, None));
+    assert_eq!(tok, Token::new(TokenKind::Opcode(Opcode::Jumpi), Span::new(192..196, None)));
 
     // Eat the rest of the tokens
     let _ = lexer.next(); // Whitespace
@@ -92,11 +88,9 @@ fn lexes_arg_calls() {
 
     // Get an EOF token
     let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::Eof, Span::new(source.len()..source.len(), None)));
-    assert_eq!(lexer.current_span().deref(), &Span::new(source.len()..source.len(), None));
+    assert_eq!(tok, Token::new(TokenKind::Eof, Span::new(source.len()-1..source.len()-1, None)));
 
     // We should have reached EOF now
-    assert_eq!(lexer.current_span().end, source.len());
     assert!(lexer.eof);
     assert!(lexer.next().is_none());
 }

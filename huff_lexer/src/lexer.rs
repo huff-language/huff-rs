@@ -40,7 +40,8 @@ pub struct LexerNew<'a> {
     /// The previous lexed Token.
     /// NOTE: Cannot be a whitespace.
     pub lookback: Option<Token>,
-    eof: bool,
+    /// Bool indicating if we have reached EOF
+    pub eof: bool,
     /// Current context.
     pub context: Context,
 }
@@ -103,40 +104,53 @@ impl<'a> LexerNew<'a> {
         if let Some(ch) = self.consume() {
             let token = match ch {
                 '/' => {
+                    let mut comment_string = String::new();
+                    let start = self.position;
+                    comment_string.push(ch);
                     if let Some(ch2) = self.peek() {
                         match ch2 {
                             '/' => {
                                 // Consume until newline
-                                let (comment_string, start, end) = self.eat_while(None, |c| c != '\n');
+                                comment_string.push(ch2);
+                                let (comment_string, start, end) = self.eat_while(Some(ch), |c| c != '\n');
                                 Ok(TokenKind::Comment(comment_string).into_span(start, end))
                             }
                             '*' => {
                                 // ref: https://github.com/rust-lang/rust/blob/900c3540378c8422b8087ffa3db60fa6c8abfcad/compiler/rustc_lexer/src/lib.rs#L474
-                                self.consume();
+                                let c = self.consume();
+                                comment_string.push(c.unwrap());
                                 let mut depth = 1usize;
                                 while let Some(c) = self.consume() {
                                     match c {
                                         '/' if self.peek() == Some('*') => {
-                                            self.consume();
+                                            comment_string.push(c);
+                                            let c2 = self.consume();
+                                            comment_string.push(c2.unwrap());
                                             depth += 1;
                                         }
                                         '*' if self.peek() == Some('/') => {
-                                            self.consume();
+                                            comment_string.push(c);
+                                            let c2 = self.consume();
+                                            comment_string.push(c2.unwrap());
                                             depth -= 1;
                                             if depth == 0 {
                                                 // This block comment is closed, so for a construction like "/* */ */"
                                                 // there will be a successfully parsed block comment "/* */"
                                                 // and " */" will be processed separately.
-                                                break;
+                                            
+                                               break;
                                             }
                                         }
-                                        _ => (),
+                                        _ => {
+                                            comment_string.push(c);
+                                        },
 
                                     }
                                 }
                                 
+                                Ok(TokenKind::Comment(comment_string).into_span(start, self.position))
                                 // TODO add string or just not store comments
-                                self.single_char_token(TokenKind::Comment("".to_owned()))
+                               // self.single_char_token(TokenKind::Comment("".to_owned()))
                             }
                             _ => self.single_char_token(TokenKind::Div)
                         }
@@ -403,14 +417,15 @@ impl<'a> LexerNew<'a> {
                 '-' => self.single_char_token(TokenKind::Sub),
                 '*' => self.single_char_token(TokenKind::Mul),
                 '<' => self.single_char_token(TokenKind::LeftAngle),
-                '>' => self.single_char_token(TokenKind::LeftAngle),
+                '>' => self.single_char_token(TokenKind::RightAngle),
                 // NOTE: TokenKind::Div is lexed further up since it overlaps with comment
-                ':' => self.single_char_token(TokenKind::LeftAngle),
+                ':' => self.single_char_token(TokenKind::Colon),
                 // identifiers
-                ',' => self.single_char_token(TokenKind::LeftAngle),
+                ',' => self.single_char_token(TokenKind::Comma),
                 '0'..='9' => self.eat_digit(ch),
                 // Lexes Spaces and Newlines as Whitespace
                 ch if ch.is_ascii_whitespace() => {
+                    dbg!("Are we hitting this?");
                     self.eat_whitespace();
                     self.single_char_token(TokenKind::Whitespace)
                 }
