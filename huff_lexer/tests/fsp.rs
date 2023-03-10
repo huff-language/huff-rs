@@ -7,18 +7,18 @@ use std::ops::Deref;
 fn free_storage_pointer() {
     let source = "FREE_STORAGE_POINTER() ";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = Lexer::new(flattened_source.clone());
-    assert_eq!(lexer.source, flattened_source);
+    let mut lexer = lexer::LexerNew::new(flattened_source.source.clone());
 
     // The first token should be the fsp
     let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::FreeStoragePointer, Span::new(0..22, None)));
-    assert_eq!(lexer.current_span().deref(), &Span::new(0..22, None));
+    assert_eq!(tok, Token::new(TokenKind::FreeStoragePointer, Span::new(0..21, None)));
 
     // Eats the whitespace
     let _ = lexer.next();
 
+    let tok = lexer.next().unwrap().unwrap();
+    assert_eq!(tok, Token::new(TokenKind::Eof, Span::new(22..22, None)));
+
     // We should have reached EOF now
-    assert_eq!(lexer.current_span().end, source.len());
     assert!(lexer.eof);
 }

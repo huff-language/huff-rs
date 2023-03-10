@@ -18,7 +18,7 @@ fn opcodes() {
             "{", "}",
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = Lexer::new(flattened_source);
+        let lexer = lexer::LexerNew::new(flattened_source.source);
 
         let tokens = lexer
             .into_iter()

@@ -1,4 +1,4 @@
-use huff_lexer::Lexer;
+use huff_lexer::*;
 use huff_utils::prelude::{str_to_bytes32, FullFileSource, Span, Token, TokenKind};
 use std::ops::Deref;
 
@@ -18,64 +18,58 @@ fn parses_decorator() {
         );
 
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = Lexer::new(flattened_source);
+        let mut lexer = lexer::LexerNew::new(flattened_source.source.clone());
 
         let _ = lexer.next(); // whitespace
 
         // #
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let returns_span = Span::new(13..14, None);
+        let returns_span = Span::new(13..13, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Pound, returns_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &returns_span);
 
         // [
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let returns_span = Span::new(14..15, None);
+        let returns_span = Span::new(14..14, None);
         assert_eq!(unwrapped, Token::new(TokenKind::OpenBracket, returns_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &returns_span);
 
         // calldata
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let returns_span = Span::new(15..23, None);
+        let returns_span = Span::new(15..22, None);
         assert_eq!(
             unwrapped,
             Token::new(TokenKind::Ident(String::from("calldata")), returns_span.clone())
         );
-        assert_eq!(lexer.current_span().deref(), &returns_span);
 
         // (
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let returns_span = Span::new(23..24, None);
+        let returns_span = Span::new(23..23, None);
         assert_eq!(unwrapped, Token::new(TokenKind::OpenParen, returns_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &returns_span);
+
 
         // 0x01
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let returns_span = Span::new(26..28, None);
+        let returns_span = Span::new(26..27, None);
         assert_eq!(
             unwrapped,
             Token::new(TokenKind::Literal(str_to_bytes32("01")), returns_span.clone())
         );
-        assert_eq!(lexer.current_span().deref(), &returns_span);
 
         // )
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let returns_span = Span::new(28..29, None);
+        let returns_span = Span::new(28..28, None);
         assert_eq!(unwrapped, Token::new(TokenKind::CloseParen, returns_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &returns_span);
 
         // ]
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let returns_span = Span::new(29..30, None);
+        let returns_span = Span::new(29..29, None);
         assert_eq!(unwrapped, Token::new(TokenKind::CloseBracket, returns_span.clone()));
-        assert_eq!(lexer.current_span().deref(), &returns_span);
 
         let _ = lexer.next(); // whitespace'
         let _ = lexer.next(); // define
@@ -108,9 +102,9 @@ fn parses_decorator() {
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // }
         let _ = lexer.next(); // whitespace
+        let _ = lexer.next(); // eof
 
         // We covered the whole source
-        assert_eq!(lexer.current_span().end, source.len());
         assert!(lexer.eof);
     }
 }
@@ -132,7 +126,7 @@ fn fails_to_parse_decorator_in_body() {
         );
 
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = Lexer::new(flattened_source);
+        let mut lexer = lexer::LexerNew::new(flattened_source.source.clone());
 
         for token in lexer.by_ref() {
             if let Err(e) = token {

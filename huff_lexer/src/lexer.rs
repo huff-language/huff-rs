@@ -242,6 +242,7 @@ impl<'a> LexerNew<'a> {
                     if let Some(kind) = &found_kind {
                         match kind {
                             TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
+                                dbg!("found macro!");
                                 self.context = Context::MacroDefinition
                             }
                             TokenKind::Function | TokenKind::Event | TokenKind::Error => {
@@ -265,12 +266,23 @@ impl<'a> LexerNew<'a> {
                         if let Some(')') = self.peek() {
                             self.consume();
                         }
+                        end = end + 2;
                         found_kind = Some(TokenKind::FreeStoragePointer);
                     }
 
                     if let Some(':') = self.peek() {
                         found_kind = Some(TokenKind::Label(word.clone()));
                         self.consume();
+                    }
+
+                    // Syntax sugar: true evaluates to 0x01, false evaluates to 0x00
+                    if matches!(word.as_str(), "true" | "false") {
+                        found_kind = Some(TokenKind::Literal(str_to_bytes32(
+                            if word.as_str() == "true" { "1" } else { "0" },
+                        )));
+                        self.eat_while(None, |c| {
+                            c.is_alphanumeric()
+                        });
                     }
 
                     if !(self.context != Context::MacroBody || found_kind.is_some()) {
@@ -504,7 +516,7 @@ impl<'a> LexerNew<'a> {
     }
 
     fn eat_hex_digit(&mut self, initial_char: char) -> TokenResult {
-        let (integer_str, start, end) = self.eat_while(Some(initial_char), |ch| {
+        let (integer_str, mut start, end) = self.eat_while(Some(initial_char), |ch| {
             ch.is_ascii_hexdigit() | (ch == 'x')
         });
         // TODO: check for sure that we have a correct hex string, eg. 0x56 and not 0x56x34
@@ -515,9 +527,11 @@ impl<'a> LexerNew<'a> {
             // bytecode in codegen.
             TokenKind::Ident(integer_str)
         } else {
+            
             TokenKind::Literal(str_to_bytes32(&integer_str[2..].as_ref()))
         };
 
+        start = start + 2;
         let span = Span { start: start as usize, end: end as usize, file: None };
         Ok(Token { kind, span })
     }
@@ -528,10 +542,10 @@ impl<'a> LexerNew<'a> {
     }
 
     fn eat_string_literal(&mut self) -> Token {
-        let (str_literal, start_span, end_span) = self.eat_while(None, |ch| ch != '"');
+        let (str_literal, start_span, end_span) = self.eat_while(None, |ch| ch != '"' && ch != '\'');
         let str_literal_token = TokenKind::Str(str_literal);
         self.consume(); // Advance past the closing quote
-        str_literal_token.into_span(start_span, end_span)
+        str_literal_token.into_span(start_span, end_span + 1)
     }
 
     // fn eat_alphabetic(&mut self, initial_char: char) -> (String, u32, u32) {
@@ -596,6 +610,79 @@ impl<'a> LexerNew<'a> {
             }
             _ => true,
         }
+    }
+
+    /// Lex all imports
+    /// Example import: `// #include "./Utils.huff"`
+    pub fn lex_imports(source: &str) -> Vec<String> {
+        let mut imports = vec![];
+        let mut peekable_source = source.chars().peekable();
+        let mut include_chars_iterator = "#include".chars().peekable();
+        while peekable_source.peek().is_some() {
+            while let Some(nc) = peekable_source.next() {
+                if nc.eq(&'/') {
+                    if let Some(nnc) = peekable_source.peek() {
+                        if nnc.eq(&'/') {
+                            // Iterate until newline
+                            while let Some(lc) = &peekable_source.next() {
+                                if lc.eq(&'\n') {
+                                    break
+                                }
+                            }
+                        } else if nnc.eq(&'*') {
+                            // Iterate until '*/'
+                            while let Some(lc) = peekable_source.next() {
+                                if lc.eq(&'*') {
+                                    if let Some(llc) = peekable_source.peek() {
+                                        if *llc == '/' {
+                                            break
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if include_chars_iterator.peek().is_none() {
+                    // Reset the include chars iterator
+                    include_chars_iterator = "#include".chars().peekable();
+
+                    // Skip over whitespace
+                    while peekable_source.peek().is_some() {
+                        if !peekable_source.peek().unwrap().is_whitespace() {
+                            break
+                        } else {
+                            peekable_source.next();
+                        }
+                    }
+
+                    // Then we should have an import path between quotes
+                    if let Some(char) = peekable_source.peek() {
+                        match char {
+                            '"' | '\'' => {
+                                peekable_source.next();
+                                let mut import = String::new();
+                                while peekable_source.peek().is_some() {
+                                    if let Some(c) = peekable_source.next() {
+                                        if matches!(c, '"' | '\'') {
+                                            imports.push(import);
+                                            break
+                                        } else {
+                                            import.push(c);
+                                        }
+                                    }
+                                }
+                            }
+                            _ => { /* Ignore non-include tokens */ }
+                        }
+                    }
+                } else if nc.ne(&include_chars_iterator.next().unwrap()) {
+                    include_chars_iterator = "#include".chars().peekable();
+                    break
+                }
+            }
+        }
+        imports
     }
 
 }
