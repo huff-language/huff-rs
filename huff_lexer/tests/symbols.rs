@@ -6,7 +6,7 @@ use std::ops::Deref;
 fn lexes_assign_op() {
     let source = "#define constant TRANSFER_EVENT_SIGNATURE =";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = lexer::LexerNew::new(flattened_source.source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // This token should be a Define identifier
     let tok = lexer.next();
@@ -62,7 +62,7 @@ fn lexes_assign_op() {
 fn lexes_brackets() {
     let source = "[TOTAL_SUPPLY_LOCATION] sload";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = lexer::LexerNew::new(flattened_source.source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // This token should be the open bracket
     let tok = lexer.next();
@@ -105,7 +105,7 @@ fn lexes_braces() {
     "#;
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
 
-    let mut lexer = lexer::LexerNew::new(flattened_source.source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // Eat the non-brace tokens
     let _ = lexer.next(); // whitespace
@@ -164,7 +164,7 @@ fn lexes_math_ops() {
     // MATHS
     let source = r#"100 + 10 - 20 * 5 / 4"#;
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = lexer::LexerNew::new(flattened_source.source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // Eat the number and whitespace
     let _ = lexer.next();
@@ -222,7 +222,7 @@ fn lexes_math_ops() {
 fn lexes_commas() {
     let source = "test,test";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = lexer::LexerNew::new(flattened_source.source);
+    let mut lexer = Lexer::new(flattened_source.source);
     // Eat alphanumerics
     let _ = lexer.next();
 
@@ -244,7 +244,7 @@ fn lexes_commas() {
 fn lexes_comma_sparse() {
     let source = "test , test";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = lexer::LexerNew::new(flattened_source.source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     let _ = lexer.next(); // alphanumerics
     let _ = lexer.next(); // whitespace

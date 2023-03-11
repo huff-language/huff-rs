@@ -197,7 +197,7 @@ fn parses_valid_function_definition() {
 
     for (index, source) in sources.into_iter().enumerate() {
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(flattened_source.source);
+        let lexer = Lexer::new(flattened_source.source);
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())
@@ -217,7 +217,7 @@ fn parses_valid_function_definition() {
 fn cannot_parse_invalid_function_definition() {
     let source = "#define function test(uint256) returns(uint256)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     parser.parse().unwrap();
@@ -229,7 +229,7 @@ fn test_functions_with_keyword_arg_names_errors() {
     // The function parameter's name is a reserved keyword; this should throw an error
     let source: &str = "#define function myFunc(uint256 uint256) pure returns(uint256)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     parser.parse().unwrap();
@@ -239,7 +239,7 @@ fn test_functions_with_keyword_arg_names_errors() {
 fn test_functions_with_argument_locations() {
     let source: &str = "#define function myFunc(string calldata test, uint256[] storage) pure returns(bytes memory)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     parser.parse().unwrap();
@@ -249,7 +249,7 @@ fn test_functions_with_argument_locations() {
 fn test_can_prefix_function_arg_names_with_reserved_keywords() {
     let source: &str = "#define function supportsInterface(bytes4 interfaceId) view returns (bool)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let expected_tokens: Vec<Token> = vec![
         Token { kind: TokenKind::Define, span: Span { start: 0, end: 6, file: None } },

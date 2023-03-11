@@ -7,7 +7,7 @@ fn build_abi_from_ast() {
     let source = "#define function test(uint256[2][],string) view returns(uint256)";
 
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source.clone());
+    let lexer = Lexer::new(flattened_source.source.clone());
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())

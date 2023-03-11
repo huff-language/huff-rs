@@ -1,4 +1,4 @@
-use huff_lexer::lexer::LexerNew;
+use huff_lexer::Lexer;
 use huff_utils::prelude::*;
 use std::ops::Deref;
 
@@ -6,7 +6,7 @@ use std::ops::Deref;
 fn single_lex_imports() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!("#include \"{import_str}\"");
-    let lexed_imports = LexerNew::lex_imports(&source);
+    let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 1);
     assert_eq!(lexed_imports[0], import_str);
 }
@@ -24,7 +24,7 @@ fn commented_lex_imports() {
     "#
     );
 
-    let lexed_imports = LexerNew::lex_imports(&source);
+    let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 1);
     assert_eq!(lexed_imports[0], import_str);
 }
@@ -42,7 +42,7 @@ fn multiple_lex_imports() {
     "#
     );
 
-    let lexed_imports = LexerNew::lex_imports(&source);
+    let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 3);
     for i in lexed_imports {
         assert_eq!(i, import_str);
@@ -59,7 +59,7 @@ fn multiple_lex_imports_single_quotes() {
     "#
     );
 
-    let lexed_imports = LexerNew::lex_imports(&source);
+    let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 2);
     for i in lexed_imports {
         assert_eq!(i, import_str);
@@ -70,7 +70,7 @@ fn multiple_lex_imports_single_quotes() {
 fn lex_imports_no_ending_quote() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!("#include '{import_str}");
-    let lexed_imports = LexerNew::lex_imports(&source);
+    let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 0);
 }
 
@@ -78,7 +78,7 @@ fn lex_imports_no_ending_quote() {
 fn lex_imports_no_starting_quote() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = format!("#include {import_str}'");
-    let lexed_imports = LexerNew::lex_imports(&source);
+    let lexed_imports = Lexer::lex_imports(&source);
     assert_eq!(lexed_imports.len(), 0);
 }
 
@@ -86,7 +86,7 @@ fn lex_imports_no_starting_quote() {
 fn lex_imports_empty_quotes() {
     // let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";
     let source = "#include ''";
-    let lexed_imports = LexerNew::lex_imports(source);
+    let lexed_imports = Lexer::lex_imports(source);
     assert_eq!(lexed_imports.len(), 1);
     assert_eq!(lexed_imports[0], "");
 }
@@ -95,7 +95,7 @@ fn lex_imports_empty_quotes() {
 fn include_no_quotes() {
     let source = "#include";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = LexerNew::new(flattened_source.source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // The first token should be a single line comment
     let tok = lexer.next();
@@ -109,7 +109,7 @@ fn include_no_quotes() {
 fn include_with_string() {
     let source = "#include \"../huff-examples/erc20/contracts/utils/Ownable.huff\"";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = LexerNew::new(flattened_source.source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // The first token should be a single line comment
     let tok = lexer.next();
@@ -144,7 +144,7 @@ fn include_with_string() {
 fn include_with_string_single_quote() {
     let source = "#include '../huff-examples/erc20/contracts/utils/Ownable.huff'";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = LexerNew::new(flattened_source.source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // The first token should be a single line comment
     let tok = lexer.next();

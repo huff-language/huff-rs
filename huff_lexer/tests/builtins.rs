@@ -25,7 +25,7 @@ fn parses_builtin_function_in_macro_body() {
             "{", "}",
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = lexer::LexerNew::new(flattened_source.source.clone());
+        let mut lexer = Lexer::new(flattened_source.source.clone());
 
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // #define
@@ -90,7 +90,7 @@ fn fails_to_parse_builtin_outside_macro_body() {
     for builtin in builtin_funcs {
         let source = &format!("{builtin}(MAIN)");
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = lexer::LexerNew::new(flattened_source.source.clone());
+        let mut lexer = Lexer::new(flattened_source.source.clone());
 
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
@@ -124,7 +124,7 @@ fn fails_to_parse_invalid_builtin() {
             "{", "}",
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = lexer::LexerNew::new(flattened_source.source.clone());
+        let mut lexer = Lexer::new(flattened_source.source.clone());
 
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // #define

@@ -17,7 +17,7 @@ fn not_mistaken_as_opcode() {
             "#
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(flattened_source.source);
+        let lexer = Lexer::new(flattened_source.source);
 
         let tokens = lexer
             .into_iter()
@@ -51,7 +51,7 @@ fn test_invalid_push_non_literal() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -71,77 +71,76 @@ fn test_push_literals() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
-    // let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
     let expected_tokens = vec![
-        Token { kind: TokenKind::Whitespace, span: Span { start: 0, end: 9, file: None } },
-        Token { kind: TokenKind::Define, span: Span { start: 9, end: 16, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 16, end: 17, file: None } },
-        Token { kind: TokenKind::Macro, span: Span { start: 17, end: 22, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 22, end: 23, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 0, end: 8, file: None } },
+        Token { kind: TokenKind::Define, span: Span { start: 9, end: 15, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 16, end: 16, file: None } },
+        Token { kind: TokenKind::Macro, span: Span { start: 17, end: 21, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 22, end: 22, file: None } },
         Token {
             kind: TokenKind::Ident("MAIN".to_string()),
-            span: Span { start: 23, end: 27, file: None },
+            span: Span { start: 23, end: 26, file: None },
         },
-        Token { kind: TokenKind::OpenParen, span: Span { start: 27, end: 28, file: None } },
-        Token { kind: TokenKind::CloseParen, span: Span { start: 28, end: 29, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 29, end: 30, file: None } },
-        Token { kind: TokenKind::Assign, span: Span { start: 30, end: 31, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 31, end: 32, file: None } },
-        Token { kind: TokenKind::OpenBrace, span: Span { start: 32, end: 33, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 33, end: 46, file: None } },
+        Token { kind: TokenKind::OpenParen, span: Span { start: 27, end: 27, file: None } },
+        Token { kind: TokenKind::CloseParen, span: Span { start: 28, end: 28, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 29, end: 29, file: None } },
+        Token { kind: TokenKind::Assign, span: Span { start: 30, end: 30, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 31, end: 31, file: None } },
+        Token { kind: TokenKind::OpenBrace, span: Span { start: 32, end: 32, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 33, end: 45, file: None } },
         Token {
             kind: TokenKind::Opcode(Opcode::Push1),
-            span: Span { start: 46, end: 51, file: None },
+            span: Span { start: 46, end: 50, file: None },
         },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 51, end: 52, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 51, end: 51, file: None } },
         Token {
             kind: TokenKind::Literal([
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 16,
             ]),
-            span: Span { start: 54, end: 56, file: None },
+            span: Span { start: 54, end: 55, file: None },
         },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 56, end: 69, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 56, end: 68, file: None } },
         Token {
             kind: TokenKind::Opcode(Opcode::Push32),
-            span: Span { start: 69, end: 75, file: None },
+            span: Span { start: 69, end: 74, file: None },
         },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 75, end: 76, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 75, end: 75, file: None } },
         Token {
             kind: TokenKind::Literal([
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 1, 8,
             ]),
-            span: Span { start: 78, end: 81, file: None },
+            span: Span { start: 78, end: 80, file: None },
         },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 81, end: 94, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 81, end: 93, file: None } },
         Token {
             kind: TokenKind::Opcode(Opcode::Push1),
-            span: Span { start: 94, end: 99, file: None },
+            span: Span { start: 94, end: 98, file: None },
         },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 99, end: 100, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 99, end: 99, file: None } },
         Token {
             kind: TokenKind::Literal([
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 16,
             ]),
-            span: Span { start: 102, end: 104, file: None },
+            span: Span { start: 102, end: 103, file: None },
         },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 104, end: 105, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 104, end: 104, file: None } },
         Token {
             kind: TokenKind::Literal([
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 16,
             ]),
-            span: Span { start: 107, end: 109, file: None },
+            span: Span { start: 107, end: 108, file: None },
         },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 109, end: 118, file: None } },
-        Token { kind: TokenKind::CloseBrace, span: Span { start: 118, end: 119, file: None } },
-        Token { kind: TokenKind::Whitespace, span: Span { start: 119, end: 124, file: None } },
-        Token { kind: TokenKind::Eof, span: Span { start: 124, end: 124, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 109, end: 117, file: None } },
+        Token { kind: TokenKind::CloseBrace, span: Span { start: 118, end: 118, file: None } },
+        Token { kind: TokenKind::Whitespace, span: Span { start: 119, end: 123, file: None } },
+        Token { kind: TokenKind::Eof, span: Span { start: 123, end: 123, file: None } },
     ];
     assert_eq!(expected_tokens, tokens);
 

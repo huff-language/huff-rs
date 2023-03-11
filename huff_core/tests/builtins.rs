@@ -24,7 +24,7 @@ fn test_codesize_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -60,7 +60,7 @@ fn test_dyn_constructor_arg_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -149,7 +149,7 @@ fn test_tablesize_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -213,7 +213,7 @@ fn test_tablestart_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -278,7 +278,7 @@ fn test_jump_table_exhaustive_usage() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -338,7 +338,7 @@ fn test_jump_table_packed_exhaustive_usage() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -405,7 +405,7 @@ fn test_label_clashing() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -449,7 +449,7 @@ fn test_func_sig_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -494,7 +494,7 @@ fn test_event_hash_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -569,7 +569,7 @@ fn test_error_selector_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -612,7 +612,7 @@ fn test_rightpad_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 

@@ -6,7 +6,7 @@ use huff_utils::prelude::*;
 fn test_parses_custom_error() {
     let source = "#define error TestError(uint256)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let contract = parser.parse().unwrap();
@@ -42,7 +42,7 @@ fn test_error_sel_no_param() {
     let source = "#define error NotOwner()";
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let contract = parser.parse().unwrap();

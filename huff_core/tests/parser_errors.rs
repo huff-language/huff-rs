@@ -28,7 +28,7 @@ fn test_invalid_macro_statement() {
     let const_end = const_start + "FREE_STORAGE_POINTER()".len() - 1;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -53,7 +53,7 @@ fn test_unexpected_type() {
     let source = "#define function func() internal returns ()";
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -83,7 +83,7 @@ fn test_invalid_definition() {
     let source = "#define invalid func() returns ()";
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -127,7 +127,7 @@ fn test_invalid_constant_value() {
         let source = &format!("#define constant CONSTANT = {value}");
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(full_source.source);
+        let lexer = Lexer::new(full_source.source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
         let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -174,7 +174,7 @@ fn test_invalid_token_in_macro_body() {
         );
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(full_source.source);
+        let lexer = Lexer::new(full_source.source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
         let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -219,7 +219,7 @@ fn test_invalid_token_in_label_definition() {
         );
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(full_source.source);
+        let lexer = Lexer::new(full_source.source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
         let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -256,7 +256,7 @@ fn test_invalid_single_arg() {
         let source = &format!("#define macro CONSTANT() = takes ({random_char}) returns (0) {{}}");
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(full_source.source);
+        let lexer = Lexer::new(full_source.source);
         let tokens = lexer
             .into_iter()
             .map(|x| match x {

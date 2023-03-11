@@ -33,7 +33,7 @@ fn test_storage_pointers_not_derived() {
     // let const_end = const_start + "UNKNOWN_CONSTANT_DEFINITION".len();
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let contract = parser.parse().unwrap();
@@ -92,7 +92,7 @@ fn test_invalid_constant_definition() {
     let const_end = const_start + "UNKNOWN_CONSTANT_DEFINITION".len() - 1;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
@@ -135,7 +135,7 @@ fn test_missing_constructor() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
@@ -168,7 +168,7 @@ fn test_missing_main() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
@@ -201,7 +201,7 @@ fn test_missing_when_alternative_main_provided() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
@@ -244,7 +244,7 @@ fn test_unknown_macro_definition() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
@@ -291,7 +291,7 @@ fn test_unmatched_jump_label() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();

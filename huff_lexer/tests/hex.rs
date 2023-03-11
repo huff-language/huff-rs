@@ -1,5 +1,5 @@
 use huff_lexer::*;
-use huff_lexer::lexer::LexerNew;
+use huff_lexer::Lexer;
 use huff_utils::prelude::*;
 use std::ops::Deref;
 
@@ -7,7 +7,7 @@ use std::ops::Deref;
 fn parses_single_hex() {
     let source = "0xa57B";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = lexer::LexerNew::new(flattened_source.source.clone());
+    let mut lexer = Lexer::new(flattened_source.source.clone());
 
     // The first and only token should be lexed as Literal(0xa57B)
     let tok = lexer.next().unwrap().unwrap();
@@ -22,7 +22,7 @@ fn parses_single_hex() {
 fn parses_bool() {
     let source = "false true";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = lexer::LexerNew::new(flattened_source.source.clone());
+    let mut lexer = Lexer::new(flattened_source.source.clone());
 
     // The first token should be lexed as a Literal representing 0x00
     let tok = lexer.next().unwrap().unwrap();
@@ -43,7 +43,7 @@ fn parses_bool() {
 fn parses_odd_len_hex() {
     let source = "0x1";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = lexer::LexerNew::new(flattened_source.source.clone());
+    let mut lexer = Lexer::new(flattened_source.source.clone());
 
     // The first and only token should be lexed as Literal(0x1)
     let tok = lexer.next().unwrap().unwrap();

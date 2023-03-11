@@ -16,7 +16,7 @@ fn primitive_type_parsing() {
     for (evm_type, evm_type_enum) in evm_types {
         let source = &format!("#define function test({evm_type}) view returns (uint256)");
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(flattened_source.source.clone());
+        let lexer = Lexer::new(flattened_source.source.clone());
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())
@@ -42,7 +42,7 @@ fn bounded_array_parsing() {
     for (evm_type, evm_type_enum) in evm_types {
         let source = &format!("#define function test({evm_type}) view returns (uint256)");
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(flattened_source.source.clone());
+        let lexer = Lexer::new(flattened_source.source.clone());
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())
@@ -68,7 +68,7 @@ fn unbounded_array_parsing() {
     for (evm_type, evm_type_enum) in evm_types {
         let source = &format!("#define function test({evm_type}) view returns (uint256)");
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(flattened_source.source.clone());
+        let lexer = Lexer::new(flattened_source.source.clone());
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())
@@ -93,7 +93,7 @@ fn multidim_array_parsing() {
     for (evm_type, evm_type_enum) in evm_types {
         let source = &format!("#define function test({evm_type}) view returns (uint256)");
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(flattened_source.source.clone());
+        let lexer = Lexer::new(flattened_source.source.clone());
         let tokens = lexer
             .into_iter()
             .map(|x| x.unwrap())

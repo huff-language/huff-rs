@@ -6,7 +6,7 @@ use huff_utils::prelude::*;
 fn function_context() {
     let source = "#define function test(bytes32) {} returns (address)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source.clone());
+    let lexer = Lexer::new(flattened_source.source.clone());
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())
@@ -26,7 +26,7 @@ fn function_context() {
 fn event_context() {
     let source = "#define event Transfer(bytes32,address)";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source.clone());
+    let lexer = Lexer::new(flattened_source.source.clone());
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())
@@ -44,7 +44,7 @@ fn event_context() {
 fn macro_context() {
     let source = "#define macro TEST() = takes (0) returns (0) {byte}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source.clone());
+    let lexer = Lexer::new(flattened_source.source.clone());
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())

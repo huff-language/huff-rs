@@ -9,7 +9,7 @@ Compiling source code with the [Compiler](struct.Compiler.html) is very straight
 Once you instantiate a [Compiler](struct.Compiler.html) (WLOG, `compiler`) with the file source, you can generate the compiled artifacts by simply running:
 
 ```rust,ignore
-let artifacts: Result<Vec<Artifact>, CompilerError<'_>> = compiler.execute();
+let artifacts: Result<Vec<Artifact>, CompilerError> = compiler.execute();
 ```
 
 Below we demonstrate taking a source file `../huff-examples/erc20/contracts/ERC20.huff`, and generating the copmiled artifacts.
@@ -26,7 +26,7 @@ use std::rc::Rc;
 let mut compiler = Compiler::new(Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]), None, None, None, None, None, false, false);
 
 // Execute the compiler
-let res: Result<Vec<Arc<Artifact>>, Arc<CompilerError<'_>>> = compiler.execute();
+let res: Result<Vec<Arc<Artifact>>, Arc<CompilerError>> = compiler.execute();
 assert!(res.is_ok());
 ```
 

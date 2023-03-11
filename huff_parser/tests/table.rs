@@ -9,7 +9,7 @@ fn table_with_no_body() {
     for kind in table_kinds {
         let source = &format!("#define {kind} TEST_TABLE() = {}{}", "{", "}");
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = lexer::LexerNew::new(flattened_source.source);
+        let lexer = Lexer::new(flattened_source.source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
         let mut parser = Parser::new(tokens, None);
@@ -54,8 +54,8 @@ fn table_with_body() {
         let lb2_start = source.find("label_call_2").unwrap_or(0);
         let lb3_start = source.find("label_call_3").unwrap_or(0);
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        // let lexer = Lexer::new(flattened_source);
-        let lexer = lexer::LexerNew::new(flattened_source.source);
+
+        let lexer = Lexer::new(flattened_source.source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
 
         let mut parser = Parser::new(tokens, None);

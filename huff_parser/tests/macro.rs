@@ -1,4 +1,4 @@
-use huff_lexer::{*, lexer::LexerNew};
+use huff_lexer::{*, Lexer};
 use huff_parser::*;
 use huff_utils::{evm::Opcode, prelude::*};
 use tracing::debug;
@@ -7,7 +7,7 @@ use tracing::debug;
 fn empty_macro() {
     let source = "#define macro HELLO_WORLD() = takes(0) returns(4) {}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -49,7 +49,7 @@ fn empty_macro() {
 fn empty_macro_without_takes_returns() {
     let source = "#define macro HELLO_WORLD() = {}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -83,7 +83,7 @@ fn empty_macro_without_takes_returns() {
 fn empty_macro_only_takes() {
     let source = "#define macro HELLO_WORLD() = takes(3) {}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -97,18 +97,18 @@ fn empty_macro_only_takes() {
         takes: 3,
         returns: 0,
         span: AstSpan(vec![
-            Span { start: 0, end: 7, file: None },
-            Span { start: 8, end: 13, file: None },
-            Span { start: 14, end: 25, file: None },
-            Span { start: 25, end: 26, file: None },
-            Span { start: 26, end: 27, file: None },
-            Span { start: 28, end: 29, file: None },
-            Span { start: 30, end: 35, file: None },
-            Span { start: 35, end: 36, file: None },
-            Span { start: 36, end: 37, file: None },
-            Span { start: 37, end: 38, file: None },
-            Span { start: 39, end: 40, file: None },
-            Span { start: 40, end: 41, file: None },
+            Span { start: 0, end: 6, file: None },
+            Span { start: 8, end: 12, file: None },
+            Span { start: 14, end: 24, file: None },
+            Span { start: 25, end: 25, file: None },
+            Span { start: 26, end: 26, file: None },
+            Span { start: 28, end: 28, file: None },
+            Span { start: 30, end: 34, file: None },
+            Span { start: 35, end: 35, file: None },
+            Span { start: 36, end: 36, file: None },
+            Span { start: 37, end: 37, file: None },
+            Span { start: 39, end: 39, file: None },
+            Span { start: 40, end: 40, file: None },
         ]),
         outlined: false,
         test: false,
@@ -121,7 +121,7 @@ fn empty_macro_only_takes() {
 fn empty_macro_only_returns() {
     let source = "#define macro HELLO_WORLD() = returns(10) {}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -160,7 +160,7 @@ fn macro_with_simple_body() {
     let source =
         "#define macro HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -250,7 +250,7 @@ fn macro_with_arg_calls() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -421,8 +421,8 @@ fn macro_labels() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    // let lexer = Lexer::new(flattened_source);
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    // let lexer = Lexer::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -597,7 +597,7 @@ fn macro_invocation_with_arg_call() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -739,7 +739,7 @@ fn test_macro_opcode_arguments() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -809,7 +809,7 @@ fn macro_with_builtin_fn_call() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
 
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
@@ -877,7 +877,7 @@ fn macro_with_builtin_fn_call() {
 fn empty_outlined_macro() {
     let source = "#define fn HELLO_WORLD() = takes(0) returns(4) {}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
 
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
@@ -920,7 +920,7 @@ fn empty_outlined_macro() {
 fn outlined_macro_with_simple_body() {
     let source = "#define fn HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -988,7 +988,7 @@ fn outlined_macro_with_simple_body() {
 fn empty_test() {
     let source = "#define test HELLO_WORLD() = takes(0) returns(4) {}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -1031,7 +1031,7 @@ fn test_with_simple_body() {
     let source =
         "#define test HELLO_WORLD() = takes(3) returns(0) {\n0x00 0x00 mstore\n 0x01 0x02 add\n}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -1119,7 +1119,7 @@ fn empty_test_with_decorator() {
     #define test MY_TEST() = takes(0) returns(0) {}
     "#;
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -1176,7 +1176,7 @@ fn empty_test_with_multi_flag_decorator() {
     #define test MY_TEST() = takes(0) returns(0) {}
     "#;
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 

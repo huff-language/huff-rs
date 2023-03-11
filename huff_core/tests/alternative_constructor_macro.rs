@@ -18,7 +18,7 @@ fn test_alternative_constructor_macro_provided() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(full_source.source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();

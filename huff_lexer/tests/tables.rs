@@ -5,7 +5,7 @@ use huff_utils::prelude::*;
 fn parses_jump_table() {
     let source = "#define jumptable JUMP_TABLE()";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())
@@ -23,7 +23,7 @@ fn parses_jump_table() {
 fn parses_packed_jump_table() {
     let source = "#define jumptable__packed JUMP_TABLE_PACKED()";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())
@@ -41,7 +41,7 @@ fn parses_packed_jump_table() {
 fn parses_code_table() {
     let source = "#define table CODE_TABLE()";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = lexer::LexerNew::new(flattened_source.source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer
         .into_iter()
         .map(|x| x.unwrap())

@@ -342,7 +342,7 @@ impl<'a> Compiler<'a> {
 
                 // Perform Lexical Analysis
                 // Create a new lexer from the FileSource, flattening dependencies
-                let lexer: Lexer = Lexer::new(full_source);
+                let lexer = Lexer::new(full_source.source);
 
                 // Grab the tokens from the lexer
                 let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
@@ -380,7 +380,7 @@ impl<'a> Compiler<'a> {
 
         // Perform Lexical Analysis
         // Create a new lexer from the FileSource, flattening dependencies
-        let lexer: Lexer = Lexer::new(full_source);
+         let lexer = Lexer::new(full_source.source);
 
         // Grab the tokens from the lexer
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();

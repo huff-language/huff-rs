@@ -6,7 +6,7 @@ use std::ops::Deref;
 fn end_of_file() {
     let source = " ";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = lexer::LexerNew::new(flattened_source.source.clone());
+    let mut lexer = Lexer::new(flattened_source.source.clone());
 
     // Eats the whitespace
     let _ = lexer.next();
