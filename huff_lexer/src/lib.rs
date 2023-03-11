@@ -265,7 +265,7 @@ impl<'a> Lexer<'a> {
                         if let Some(')') = self.peek() {
                             self.consume();
                         }
-                        end = end + 2;
+                        end += 2;
                         found_kind = Some(TokenKind::FreeStoragePointer);
                     }
 
@@ -284,7 +284,7 @@ impl<'a> Lexer<'a> {
                     }
 
                     if !(self.context != Context::MacroBody || found_kind.is_some()) {
-                        if let Some(o) = OPCODES_MAP.get(&word.clone()) {
+                        if let Some(o) = OPCODES_MAP.get(&word) {
                             found_kind = Some(TokenKind::Opcode(o.to_owned()));
                         }
                     }
@@ -373,16 +373,11 @@ impl<'a> Lexer<'a> {
 
                     let kind = if let Some(kind) = &found_kind {
                         kind.clone()
+                    } else if self.context == Context::MacroBody
+                    && BuiltinFunctionKind::try_from(&word).is_ok() {
+                        TokenKind::BuiltinFunction(word)
                     } else {
-                        let kind = if self.context == Context::MacroBody
-                            && BuiltinFunctionKind::try_from(&word).is_ok()
-                        {
-                            TokenKind::BuiltinFunction(word)
-                        } else {
-                            TokenKind::Ident(word)
-                        };
-
-                        kind
+                        TokenKind::Ident(word)
                     };
 
                     Ok(kind.into_span(start, end))
@@ -454,7 +449,7 @@ impl<'a> Lexer<'a> {
                 self.lookback = Some(token.clone());
             }
 
-            return Ok(token)
+            Ok(token)
         } else {
             self.eof = true;
             Ok(Token { kind: TokenKind::Eof, span: Span { start: self.position as usize, end: self.position as usize, file: None } } )
@@ -528,10 +523,10 @@ impl<'a> Lexer<'a> {
             }
         } else {
             
-            TokenKind::Literal(str_to_bytes32(&integer_str[2..].as_ref()))
+            TokenKind::Literal(str_to_bytes32(integer_str[2..].as_ref()))
         };
 
-        start = start + 2;
+        start += 2;
         let span = Span { start: start as usize, end: end as usize, file: None };
         Ok(Token { kind, span })
     }

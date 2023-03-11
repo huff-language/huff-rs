@@ -74,7 +74,7 @@ pub struct LexicalError {
     pub span: Span,
 }
 
-impl<'a> LexicalError {
+impl LexicalError {
     /// Public associated function to instatiate a new LexicalError.
     pub fn new(kind: LexicalErrorKind, span: Span) -> Self {
         Self { kind, span }
@@ -95,13 +95,13 @@ pub enum LexicalErrorKind {
     InvalidPrimitiveType(String),
 }
 
-impl<'a> Spanned for LexicalError {
+impl Spanned for LexicalError {
     fn span(&self) -> Span {
         self.span.clone()
     }
 }
 
-impl<'a, W: Write> Report<W> for LexicalError {
+impl<W: Write> Report<W> for LexicalError {
     fn report(&self, f: &mut Reporter<'_, W>) -> std::io::Result<()> {
         match &self.kind {
             LexicalErrorKind::InvalidCharacter(ch) => write!(f.out, "Invalid character '{ch}'"),
@@ -264,7 +264,7 @@ pub enum CompilerError {
     FailedCompiles(Vec<CompilerError>),
 }
 
-impl<'a> fmt::Display for CompilerError {
+impl fmt::Display for CompilerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             CompilerError::LexicalError(le) => match &le.kind {

@@ -24,6 +24,6 @@ impl From<CompilerError> for RunnerError {
 /// Convert a `EVMError` to a `RunnerError`
 impl From<EVMError<Infallible>> for RunnerError {
     fn from(e: EVMError<Infallible>) -> Self {
-        RunnerError(format!("{:?}", e))
+        RunnerError(format!("{e:?}"))
     }
 }
