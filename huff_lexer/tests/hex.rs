@@ -1,5 +1,4 @@
-use huff_lexer::*;
-use huff_lexer::Lexer;
+use huff_lexer::{Lexer, *};
 use huff_utils::prelude::*;
 use std::ops::Deref;
 

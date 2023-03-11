@@ -132,7 +132,6 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
-
     /// Transform a single char TokenKind into a Token given a single position
     pub fn into_single_span(self, position: u32) -> Token {
         self.into_span(position, position)

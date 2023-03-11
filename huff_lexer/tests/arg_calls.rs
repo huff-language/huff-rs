@@ -66,7 +66,6 @@ fn lexes_arg_calls() {
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::LeftAngle, Span::new(184..184, None)));
 
-
     // The we should have an Ident
     let tok = lexer.next().unwrap().unwrap();
     assert_eq!(tok, Token::new(TokenKind::Ident("error".to_string()), Span::new(185..189, None)));
@@ -88,7 +87,10 @@ fn lexes_arg_calls() {
 
     // Get an EOF token
     let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::Eof, Span::new(source.len()-1..source.len()-1, None)));
+    assert_eq!(
+        tok,
+        Token::new(TokenKind::Eof, Span::new(source.len() - 1..source.len() - 1, None))
+    );
 
     // We should have reached EOF now
     assert!(lexer.eof);

@@ -2,8 +2,8 @@ use huff_utils::prelude::*;
 use regex::Regex;
 use std::{
     iter::{Peekable, Zip},
-    str::Chars,
     ops::RangeFrom,
+    str::Chars,
 };
 /* hiehgsebgoiesgoiseg */
 /// Defines a context in which the lexing happens.
@@ -76,7 +76,7 @@ impl<'a> Lexer<'a> {
     /// Try to peek at the next character from the source
     pub fn peek(&mut self) -> Option<char> {
         //self.chars.peek().copied()
-        self.chars.peek().map(|(c, _) | *c)
+        self.chars.peek().map(|(c, _)| *c)
     }
 
     /// Consume characters until a sequence matches
@@ -91,7 +91,7 @@ impl<'a> Lexer<'a> {
     //         current_pos += 1;
     //     }
     // }
-    
+
     /// Dynamically consumes characters based on filters
     pub fn dyn_consume(&mut self, f: impl Fn(&char) -> bool + Copy) {
         while self.peek().map(|x| f(&x)).unwrap_or(false) {
@@ -112,7 +112,8 @@ impl<'a> Lexer<'a> {
                             '/' => {
                                 // Consume until newline
                                 comment_string.push(ch2);
-                                let (comment_string, start, end) = self.eat_while(Some(ch), |c| c != '\n');
+                                let (comment_string, start, end) =
+                                    self.eat_while(Some(ch), |c| c != '\n');
                                 Ok(TokenKind::Comment(comment_string).into_span(start, end))
                             }
                             '*' => {
@@ -134,37 +135,37 @@ impl<'a> Lexer<'a> {
                                             comment_string.push(c2.unwrap());
                                             depth -= 1;
                                             if depth == 0 {
-                                                // This block comment is closed, so for a construction like "/* */ */"
-                                                // there will be a successfully parsed block comment "/* */"
+                                                // This block comment is closed, so for a
+                                                // construction like "/* */ */"
+                                                // there will be a successfully parsed block comment
+                                                // "/* */"
                                                 // and " */" will be processed separately.
-                                            
-                                               break;
+
+                                                break
                                             }
                                         }
                                         _ => {
                                             comment_string.push(c);
-                                        },
-
+                                        }
                                     }
                                 }
-                                
-                                Ok(TokenKind::Comment(comment_string).into_span(start, self.position))
+
+                                Ok(TokenKind::Comment(comment_string)
+                                    .into_span(start, self.position))
                                 // TODO add string or just not store comments
-                               // self.single_char_token(TokenKind::Comment("".to_owned()))
+                                // self.single_char_token(TokenKind::Comment("".to_owned()))
                             }
-                            _ => self.single_char_token(TokenKind::Div)
+                            _ => self.single_char_token(TokenKind::Div),
                         }
-                    }
-                    else {
+                    } else {
                         self.single_char_token(TokenKind::Div)
                     }
                 }
 
                 // # keywords
                 '#' => {
-                    let (word, start, end) = self.eat_while(Some(ch), |ch| {
-                        ch.is_ascii_alphabetic()
-                    });
+                    let (word, start, end) =
+                        self.eat_while(Some(ch), |ch| ch.is_ascii_alphabetic());
 
                     let mut found_kind: Option<TokenKind> = None;
 
@@ -187,15 +188,18 @@ impl<'a> Lexer<'a> {
                         tracing::error!(target: "lexer", "INVALID '#' CHARACTER USAGE");
                         return Err(LexicalError::new(
                             LexicalErrorKind::InvalidCharacter('#'),
-                            Span { start: self.position as usize, end: self.position as usize, file: None },
+                            Span {
+                                start: self.position as usize,
+                                end: self.position as usize,
+                                file: None,
+                            },
                         ))
                     }
                 }
                 // Alphabetical characters
                 ch if ch.is_alphabetic() || ch.eq(&'_') => {
-                    let (word, start, mut end) = self.eat_while(Some(ch), |c| {
-                        c.is_alphanumeric() || c == '_'
-                    });
+                    let (word, start, mut end) =
+                        self.eat_while(Some(ch), |c| c.is_alphanumeric() || c == '_');
 
                     let mut found_kind: Option<TokenKind> = None;
                     let keys = [
@@ -275,12 +279,13 @@ impl<'a> Lexer<'a> {
 
                     // Syntax sugar: true evaluates to 0x01, false evaluates to 0x00
                     if matches!(word.as_str(), "true" | "false") {
-                        found_kind = Some(TokenKind::Literal(str_to_bytes32(
-                            if word.as_str() == "true" { "1" } else { "0" },
-                        )));
-                        self.eat_while(None, |c| {
-                            c.is_alphanumeric()
-                        });
+                        found_kind =
+                            Some(TokenKind::Literal(str_to_bytes32(if word.as_str() == "true" {
+                                "1"
+                            } else {
+                                "0"
+                            })));
+                        self.eat_while(None, |c| c.is_alphanumeric());
                     }
 
                     if !(self.context != Context::MacroBody || found_kind.is_some()) {
@@ -288,7 +293,7 @@ impl<'a> Lexer<'a> {
                             found_kind = Some(TokenKind::Opcode(o.to_owned()));
                         }
                     }
-                  
+
                     if self.context == Context::AbiArgs {
                         let curr_char = self.peek().unwrap();
                         if !['(', ')'].contains(&curr_char) {
@@ -373,8 +378,9 @@ impl<'a> Lexer<'a> {
 
                     let kind = if let Some(kind) = &found_kind {
                         kind.clone()
-                    } else if self.context == Context::MacroBody
-                    && BuiltinFunctionKind::try_from(&word).is_ok() {
+                    } else if self.context == Context::MacroBody &&
+                        BuiltinFunctionKind::try_from(&word).is_ok()
+                    {
                         TokenKind::BuiltinFunction(word)
                     } else {
                         TokenKind::Ident(word)
@@ -383,9 +389,7 @@ impl<'a> Lexer<'a> {
                     Ok(kind.into_span(start, end))
                 }
                 // If it's the start of a hex literal
-                ch if ch == '0' && self.peek().unwrap() == 'x' => {
-                    self.eat_hex_digit(ch)
-                }
+                ch if ch == '0' && self.peek().unwrap() == 'x' => self.eat_hex_digit(ch),
                 '=' => self.single_char_token(TokenKind::Assign),
                 '(' => {
                     match self.context {
@@ -433,14 +437,16 @@ impl<'a> Lexer<'a> {
                     Ok(TokenKind::Whitespace.into_span(start, end))
                 }
                 // String literals. String literals can also be wrapped by single quotes
-                '"' | '\'' => {
-                    Ok(self.eat_string_literal())
-                }
+                '"' | '\'' => Ok(self.eat_string_literal()),
                 ch => {
                     tracing::error!(target: "lexer", "UNSUPPORTED TOKEN '{}'", ch);
                     return Err(LexicalError::new(
                         LexicalErrorKind::InvalidCharacter(ch),
-                        Span { start: self.position as usize, end: self.position as usize, file: None },
+                        Span {
+                            start: self.position as usize,
+                            end: self.position as usize,
+                            file: None,
+                        },
                     ))
                 }
             }?;
@@ -452,14 +458,21 @@ impl<'a> Lexer<'a> {
             Ok(token)
         } else {
             self.eof = true;
-            Ok(Token { kind: TokenKind::Eof, span: Span { start: self.position as usize, end: self.position as usize, file: None } } )
+            Ok(Token {
+                kind: TokenKind::Eof,
+                span: Span {
+                    start: self.position as usize,
+                    end: self.position as usize,
+                    file: None,
+                },
+            })
         }
     }
 
     fn single_char_token(&self, token_kind: TokenKind) -> TokenResult {
         Ok(token_kind.into_single_span(self.position))
     }
-    
+
     /// Keeps consuming tokens as long as the predicate is satisfied
     fn eat_while<F: Fn(char) -> bool>(
         &mut self,
@@ -468,8 +481,8 @@ impl<'a> Lexer<'a> {
     ) -> (String, u32, u32) {
         let start = self.position;
 
-        // This function is only called when we want to continue consuming a character of the same type.
-        // For example, we see a digit and we want to consume the whole integer
+        // This function is only called when we want to continue consuming a character of the same
+        // type. For example, we see a digit and we want to consume the whole integer
         // Therefore, the current character which triggered this function will need to be appended
         let mut word = String::new();
         if let Some(init_char) = initial_char {
@@ -478,26 +491,25 @@ impl<'a> Lexer<'a> {
 
         // Keep checking that we are not at the EOF
         while let Some(peek_char) = self.peek() {
-            // Then check for the predicate, if predicate matches append char and increment the cursor
-            // If not, return word. The next character will be analyzed on the next iteration of next_token,
-            // Which will increment the cursor
+            // Then check for the predicate, if predicate matches append char and increment the
+            // cursor If not, return word. The next character will be analyzed on the
+            // next iteration of next_token, Which will increment the cursor
             if !predicate(peek_char) {
-                return (word, start, self.position);
+                return (word, start, self.position)
             }
             word.push(peek_char);
 
-            // If we arrive at this point, then the char has been added to the word and we should increment the cursor
+            // If we arrive at this point, then the char has been added to the word and we should
+            // increment the cursor
             self.consume();
         }
 
         (word, start, self.position)
     }
 
-
     fn eat_digit(&mut self, initial_char: char) -> TokenResult {
-        let (integer_str, start, end) = self.eat_while(Some(initial_char), |ch| {
-            ch.is_ascii_digit()
-        });
+        let (integer_str, start, end) =
+            self.eat_while(Some(initial_char), |ch| ch.is_ascii_digit());
 
         let integer = integer_str.parse().unwrap();
 
@@ -507,9 +519,8 @@ impl<'a> Lexer<'a> {
     }
 
     fn eat_hex_digit(&mut self, initial_char: char) -> TokenResult {
-        let (integer_str, mut start, end) = self.eat_while(Some(initial_char), |ch| {
-            ch.is_ascii_hexdigit() | (ch == 'x')
-        });
+        let (integer_str, mut start, end) =
+            self.eat_while(Some(initial_char), |ch| ch.is_ascii_hexdigit() | (ch == 'x'));
         // TODO: check for sure that we have a correct hex string, eg. 0x56 and not 0x56x34
 
         let kind = if self.context == Context::CodeTableBody {
@@ -522,7 +533,6 @@ impl<'a> Lexer<'a> {
                 TokenKind::Ident(integer_str)
             }
         } else {
-            
             TokenKind::Literal(str_to_bytes32(integer_str[2..].as_ref()))
         };
 
@@ -537,7 +547,8 @@ impl<'a> Lexer<'a> {
     }
 
     fn eat_string_literal(&mut self) -> Token {
-        let (str_literal, start_span, end_span) = self.eat_while(None, |ch| ch != '"' && ch != '\'');
+        let (str_literal, start_span, end_span) =
+            self.eat_while(None, |ch| ch != '"' && ch != '\'');
         let str_literal_token = TokenKind::Str(str_literal);
         self.consume(); // Advance past the closing quote
         str_literal_token.into_span(start_span, end_span + 1)
@@ -600,8 +611,7 @@ impl<'a> Lexer<'a> {
             Some(TokenKind::Returns) => {
                 self.eat_whitespace();
                 // Allow for loose and tight syntax (e.g. `returns   (0)`, `returns(0)`, ...)
-                self.peek().unwrap_or(')') == '(' && 
-                    !self.checked_lookback(TokenKind::Function)
+                self.peek().unwrap_or(')') == '(' && !self.checked_lookback(TokenKind::Function)
             }
             _ => true,
         }
@@ -679,7 +689,6 @@ impl<'a> Lexer<'a> {
         }
         imports
     }
-
 }
 
 impl<'a> Iterator for Lexer<'a> {

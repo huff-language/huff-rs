@@ -214,13 +214,12 @@ impl<'a> Compiler<'a> {
             None => {
                 tracing::debug!(target: "core", "FINISHED RECURSING DEPENDENCIES!");
                 // Parallel Dependency Resolution
-                let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError>>> =
-                    files
-                        .into_par_iter()
-                        .map(|v| {
-                            Self::recurse_deps(v, &Remapper::new("./"), self.file_provider.clone())
-                        })
-                        .collect();
+                let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError>>> = files
+                    .into_par_iter()
+                    .map(|v| {
+                        Self::recurse_deps(v, &Remapper::new("./"), self.file_provider.clone())
+                    })
+                    .collect();
 
                 // Collect Recurse Deps errors and try to resolve to the first one
                 let mut errors = recursed_file_sources
@@ -380,7 +379,7 @@ impl<'a> Compiler<'a> {
 
         // Perform Lexical Analysis
         // Create a new lexer from the FileSource, flattening dependencies
-         let lexer = Lexer::new(full_source.source);
+        let lexer = Lexer::new(full_source.source);
 
         // Grab the tokens from the lexer
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();

@@ -1,4 +1,4 @@
-use huff_lexer::{*, Lexer};
+use huff_lexer::{Lexer, *};
 use huff_parser::*;
 use huff_utils::{evm::Opcode, prelude::*};
 use tracing::debug;

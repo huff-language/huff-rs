@@ -118,7 +118,6 @@ fn parses_function_keyword() {
 
     lexer.next();
 
-
     // We covered the whole source
     assert!(lexer.eof);
 }
@@ -153,7 +152,6 @@ fn parses_event_keyword() {
     let _ = lexer.next(); // uint256
     let _ = lexer.next(); // close parenthesis
     let _ = lexer.next(); // eof
-
 
     // We covered the whole source
     assert!(lexer.eof);
@@ -351,7 +349,7 @@ fn parses_function_definition_with_keyword_name() {
         // Keyword as a function name (s)
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let ident_span = Span::new(17..end_span_s-1, None);
+        let ident_span = Span::new(17..end_span_s - 1, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Ident(s.to_string()), ident_span.clone()));
 
         let _ = lexer.next(); // open parenthesis
@@ -415,7 +413,7 @@ fn parses_label_with_keyword_name() {
 
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let fn_name_span = Span::new(0..s.len()-1, None);
+        let fn_name_span = Span::new(0..s.len() - 1, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Label(s.to_string()), fn_name_span.clone()));
 
         let _ = lexer.next(); // colon
@@ -473,7 +471,7 @@ fn parses_function_with_keyword_name() {
         // The keyword should be parsed as a `TokenKind::Ident` here.
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let fn_name_span = Span::new(19..19 + s.len()-1, None);
+        let fn_name_span = Span::new(19..19 + s.len() - 1, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Ident(s.to_string()), fn_name_span.clone()));
 
         let _ = lexer.next(); // whitespace
@@ -569,7 +567,7 @@ fn parses_function_with_keyword_name_in_macro() {
         // The keyword should be parsed as a `TokenKind::Ident` here.
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let fn_name_span = Span::new(84..84 + s.len()-1, None);
+        let fn_name_span = Span::new(84..84 + s.len() - 1, None);
         assert_eq!(unwrapped, Token::new(TokenKind::Ident(s.to_string()), fn_name_span.clone()));
 
         let _ = lexer.next(); // whitespace
@@ -615,7 +613,7 @@ fn parses_keyword_arbitrary_whitespace() {
         // Lastly we should parse the constant keyword
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let constant_span = Span::new(12..12 + key.len()-1, None);
+        let constant_span = Span::new(12..12 + key.len() - 1, None);
         assert_eq!(unwrapped, Token::new(kind, constant_span.clone()));
 
         lexer.next();

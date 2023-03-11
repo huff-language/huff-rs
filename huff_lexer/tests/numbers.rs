@@ -26,7 +26,7 @@ fn lexes_large_numbers() {
 
     // The first and only token should be lexed
     let tok = lexer.next().unwrap().unwrap();
-    assert_eq!(tok, Token::new(TokenKind::Num(usize::MAX), Span::new(0..source.len()-1, None)));
+    assert_eq!(tok, Token::new(TokenKind::Num(usize::MAX), Span::new(0..source.len() - 1, None)));
 
     lexer.next();
 

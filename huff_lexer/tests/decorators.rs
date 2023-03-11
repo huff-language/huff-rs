@@ -49,7 +49,6 @@ fn parses_decorator() {
         let returns_span = Span::new(23..23, None);
         assert_eq!(unwrapped, Token::new(TokenKind::OpenParen, returns_span.clone()));
 
-
         // 0x01
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
