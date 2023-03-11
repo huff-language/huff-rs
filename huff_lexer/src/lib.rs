@@ -5,7 +5,7 @@ use std::{
     ops::RangeFrom,
     str::Chars,
 };
-/* hiehgsebgoiesgoiseg */
+
 /// Defines a context in which the lexing happens.
 /// Allows to differientate between EVM types and opcodes that can either
 /// be identical or the latter being a substring of the former (example : bytes32 and byte)
@@ -52,7 +52,6 @@ impl<'a> Lexer<'a> {
     pub fn new(source: &'a str) -> Self {
         Lexer {
             // We zip with the character index here to ensure the first char has index 0
-            //chars: source.chars().peekable(),
             chars: source.chars().zip(0..).peekable(),
             position: 0,
             lookback: None,
@@ -63,11 +62,6 @@ impl<'a> Lexer<'a> {
 
     /// Consumes the next character
     pub fn consume(&mut self) -> Option<char> {
-        // self.chars.next().map(|x| {
-        //     self.position += 1;
-        //     x
-        // })
-
         let (c, index) = self.chars.next()?;
         self.position = index;
         Some(c)
@@ -79,28 +73,7 @@ impl<'a> Lexer<'a> {
         self.chars.peek().map(|(c, _)| *c)
     }
 
-    /// Consume characters until a sequence matches
-    // pub fn seq_consume(&mut self, word: &str) {
-    //     let mut current_pos = self.current_span().start;
-    //     while self.peek().is_some() {
-    //         let peeked = self.peek_n_chars_from(word.len(), current_pos);
-    //         if word == peeked {
-    //             break
-    //         }
-    //         self.consume();
-    //         current_pos += 1;
-    //     }
-    // }
-
-    /// Dynamically consumes characters based on filters
-    pub fn dyn_consume(&mut self, f: impl Fn(&char) -> bool + Copy) {
-        while self.peek().map(|x| f(&x)).unwrap_or(false) {
-            self.consume();
-        }
-    }
-
     fn next_token(&mut self) -> TokenResult {
-        // let start = self.position;
         if let Some(ch) = self.consume() {
             let token = match ch {
                 '/' => {
@@ -140,7 +113,6 @@ impl<'a> Lexer<'a> {
                                                 // there will be a successfully parsed block comment
                                                 // "/* */"
                                                 // and " */" will be processed separately.
-
                                                 break
                                             }
                                         }
@@ -152,8 +124,6 @@ impl<'a> Lexer<'a> {
 
                                 Ok(TokenKind::Comment(comment_string)
                                     .into_span(start, self.position))
-                                // TODO add string or just not store comments
-                                // self.single_char_token(TokenKind::Comment("".to_owned()))
                             }
                             _ => self.single_char_token(TokenKind::Div),
                         }
@@ -521,8 +491,8 @@ impl<'a> Lexer<'a> {
     fn eat_hex_digit(&mut self, initial_char: char) -> TokenResult {
         let (integer_str, mut start, end) =
             self.eat_while(Some(initial_char), |ch| ch.is_ascii_hexdigit() | (ch == 'x'));
+        
         // TODO: check for sure that we have a correct hex string, eg. 0x56 and not 0x56x34
-
         let kind = if self.context == Context::CodeTableBody {
             // In codetables, the bytecode provided is of arbitrary length. We pass
             // the code as an Ident, and it is appended to the end of the runtime
@@ -553,13 +523,6 @@ impl<'a> Lexer<'a> {
         self.consume(); // Advance past the closing quote
         str_literal_token.into_span(start_span, end_span + 1)
     }
-
-    // fn eat_alphabetic(&mut self, initial_char: char) -> (String, u32, u32) {
-    //     let (word, start, end) = self.eat_while(Some(initial_char), |ch| {
-    //         ch.is_ascii_alphabetic()
-    //     });
-    //     (word, start, end)
-    // }
 
     /// Checks the previous token kind against the input.
     pub fn checked_lookback(&self, kind: TokenKind) -> bool {
