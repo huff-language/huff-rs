@@ -491,7 +491,7 @@ impl<'a> Lexer<'a> {
     fn eat_hex_digit(&mut self, initial_char: char) -> TokenResult {
         let (integer_str, mut start, end) =
             self.eat_while(Some(initial_char), |ch| ch.is_ascii_hexdigit() | (ch == 'x'));
-        
+
         // TODO: check for sure that we have a correct hex string, eg. 0x56 and not 0x56x34
         let kind = if self.context == Context::CodeTableBody {
             // In codetables, the bytecode provided is of arbitrary length. We pass
