@@ -1,5 +1,5 @@
 use huff_codegen::Codegen;
-use huff_lexer::Lexer;
+use huff_lexer::*;
 use huff_parser::Parser;
 use huff_utils::prelude::{FileSource, FullFileSource, Token};
 use std::sync::Arc;
@@ -93,7 +93,7 @@ fn test_function() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -187,7 +187,7 @@ fn test_nested_function() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 

@@ -37,7 +37,7 @@ fn test_circular_large_constructors() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = lexer::LexerNew::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
@@ -85,7 +85,7 @@ fn test_circular_constructor_at_word_boundry() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = lexer::LexerNew::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
@@ -118,7 +118,7 @@ fn test_double_circular_constructor_multiple_macro_invocations() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = lexer::LexerNew::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
@@ -155,7 +155,7 @@ fn test_double_circular_constructor_nested_macro_invocations() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = lexer::LexerNew::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();

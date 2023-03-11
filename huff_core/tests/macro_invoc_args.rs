@@ -1,5 +1,5 @@
 use huff_codegen::Codegen;
-use huff_lexer::Lexer;
+use huff_lexer::*;
 use huff_parser::Parser;
 use huff_utils::prelude::*;
 use std::str::FromStr;
@@ -19,7 +19,7 @@ fn test_opcode_macro_args() {
 
     // Lex + Parse
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let mut contract = parser.parse().unwrap();
@@ -55,7 +55,7 @@ fn test_all_opcodes_in_macro_args() {
 
         // Lex + Parse
         let flattened_source = FullFileSource { source: &source, file: None, spans: vec![] };
-        let lexer = Lexer::new(flattened_source);
+        let lexer = lexer::LexerNew::new(flattened_source.source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
         let mut parser = Parser::new(tokens, None);
         let mut contract = parser.parse().unwrap();
@@ -91,7 +91,7 @@ fn test_constant_macro_arg() {
 
     // Lex + Parse
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let mut contract = parser.parse().unwrap();
@@ -129,7 +129,7 @@ fn test_bubbled_label_call_macro_arg() {
 
     // Lex + Parse
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let mut contract = parser.parse().unwrap();
@@ -166,7 +166,7 @@ fn test_bubbled_literal_macro_arg() {
 
     // Lex + Parse
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let mut contract = parser.parse().unwrap();
@@ -203,7 +203,7 @@ fn test_bubbled_opcode_macro_arg() {
 
     // Lex + Parse
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let mut contract = parser.parse().unwrap();
@@ -242,7 +242,7 @@ fn test_bubbled_constant_macro_arg() {
 
     // Lex + Parse
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = lexer::LexerNew::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let mut contract = parser.parse().unwrap();

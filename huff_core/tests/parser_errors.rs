@@ -25,10 +25,10 @@ fn test_invalid_macro_statement() {
     "#;
 
     let const_start = source.find("FREE_STORAGE_POINTER()").unwrap_or(0);
-    let const_end = const_start + "FREE_STORAGE_POINTER()".len();
+    let const_end = const_start + "FREE_STORAGE_POINTER()".len() - 1;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = lexer::LexerNew::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -53,7 +53,7 @@ fn test_unexpected_type() {
     let source = "#define function func() internal returns ()";
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = lexer::LexerNew::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -69,7 +69,7 @@ fn test_unexpected_type() {
                     ),
                     spans: AstSpan(vec![Span {
                         start: source.find("internal").unwrap_or(0),
-                        end: source.find("internal").unwrap_or(0) + "internal".len(),
+                        end: source.find("internal").unwrap_or(0) + "internal".len() - 1,
                         file: None
                     }]),
                 }
@@ -83,7 +83,7 @@ fn test_invalid_definition() {
     let source = "#define invalid func() returns ()";
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = lexer::LexerNew::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -100,7 +100,7 @@ fn test_invalid_definition() {
                     ),
                     spans: AstSpan(vec![Span {
                         start: source.find("invalid").unwrap_or(0),
-                        end: source.find("invalid").unwrap_or(0) + "invalid".len(),
+                        end: source.find("invalid").unwrap_or(0) + "invalid".len() - 1,
                         file: None
                     }]),
                 }
@@ -127,7 +127,7 @@ fn test_invalid_constant_value() {
         let source = &format!("#define constant CONSTANT = {value}");
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = Lexer::new(full_source);
+        let lexer = lexer::LexerNew::new(full_source.source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
         let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -144,7 +144,7 @@ fn test_invalid_constant_value() {
                         ),
                         spans: AstSpan(vec![Span {
                             start: source.find(value).unwrap_or(0),
-                            end: source.find(value).unwrap_or(0) + value.len(),
+                            end: source.find(value).unwrap_or(0) + value.len() - 1,
                             file: None
                         }]),
                     }
@@ -174,7 +174,7 @@ fn test_invalid_token_in_macro_body() {
         );
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = Lexer::new(full_source);
+        let lexer = lexer::LexerNew::new(full_source.source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
         let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -188,7 +188,7 @@ fn test_invalid_token_in_macro_body() {
                         hint: None,
                         spans: AstSpan(vec![Span {
                             start: source.rfind(value).unwrap_or(0),
-                            end: source.rfind(value).unwrap_or(0) + value.len(),
+                            end: source.rfind(value).unwrap_or(0) + value.len() - 1,
                             file: None
                         }]),
                     }
@@ -219,7 +219,7 @@ fn test_invalid_token_in_label_definition() {
         );
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = Lexer::new(full_source);
+        let lexer = lexer::LexerNew::new(full_source.source);
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
         let mut parser = Parser::new(tokens, Some("".to_string()));
 
@@ -233,7 +233,7 @@ fn test_invalid_token_in_label_definition() {
                         hint: None,
                         spans: AstSpan(vec![Span {
                             start: source.rfind(value).unwrap_or(0),
-                            end: source.rfind(value).unwrap_or(0) + value.len(),
+                            end: source.rfind(value).unwrap_or(0) + value.len() - 1,
                             file: None
                         }]),
                     }
@@ -256,7 +256,7 @@ fn test_invalid_single_arg() {
         let source = &format!("#define macro CONSTANT() = takes ({random_char}) returns (0) {{}}");
 
         let full_source = FullFileSource { source, file: None, spans: vec![] };
-        let lexer = Lexer::new(full_source);
+        let lexer = lexer::LexerNew::new(full_source.source);
         let tokens = lexer
             .into_iter()
             .map(|x| match x {
@@ -278,7 +278,7 @@ fn test_invalid_single_arg() {
                             "{random_char}"
                         ))),
                         hint: Some("Expected number representing stack item count.".to_string()),
-                        spans: AstSpan(vec![Span { start: 34, end: 35, file: None }]),
+                        spans: AstSpan(vec![Span { start: 34, end: 34, file: None }]),
                     }
                 )
             }
