@@ -18,8 +18,8 @@ use huff_tests::{
 use huff_utils::{
     file_provider::FileSystemFileProvider,
     prelude::{
-        export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
-        CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
+        export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, BytecodeRes,
+        CodegenError, CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
     },
 };
 use isatty::stdout_isatty;
@@ -81,6 +81,10 @@ struct Huff {
     /// Verbose output.
     #[clap(short = 'v', long = "verbose")]
     verbose: bool,
+
+    /// Prints out the jump label PC indices for the specified contract.
+    #[clap(short = 'x', long = "label-indices")]
+    label_indices: bool,
 
     /// Override / set constants for the compilation environment.
     #[clap(short = 'c', long = "constants", multiple_values = true)]
@@ -156,12 +160,12 @@ fn main() {
                 // Check that constant override argument is valid
                 // Key rule: Alphabetic chars + underscore
                 // Value rule: Valid literal string (0x...)
-                if parts.len() != 2 ||
-                    parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_')) ||
-                    !parts[1].starts_with("0x") ||
-                    parts[1][2..].chars().any(|c| {
-                        !(c.is_numeric() ||
-                            matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
+                if parts.len() != 2
+                    || parts[0].chars().any(|c| !(c.is_alphabetic() || c == '_'))
+                    || !parts[1].starts_with("0x")
+                    || parts[1][2..].chars().any(|c| {
+                        !(c.is_numeric()
+                            || matches!(c, '\u{0041}'..='\u{0046}' | '\u{0061}'..='\u{0066}'))
                     })
                 {
                     eprintln!("Invalid constant override argument: {}", Paint::red(c.to_string()));
@@ -204,6 +208,58 @@ fn main() {
         file_provider: Arc::new(FileSystemFileProvider {}),
     };
 
+    if cli.label_indices {
+        match compiler.grab_contracts() {
+            Ok(contracts) => {
+                if contracts.len() > 1 {
+                    eprintln!(
+                        "{}",
+                        Paint::red("Multiple contracts found. Please specify a single contract and try again.")
+                    );
+                    std::process::exit(1);
+                }
+
+                if let Some(contract) = contracts.first() {
+                    let m_macro = contract.find_macro_by_name("MAIN").unwrap();
+
+                    // Recurse through the macro and generate bytecode
+                    let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
+                        m_macro.clone(),
+                        contract,
+                        &mut vec![m_macro],
+                        0,
+                        &mut Vec::default(),
+                        false,
+                        None,
+                    )
+                    .unwrap();
+
+                    // Format the label indices nicely
+                    let label_indices = bytecode_res
+                        .label_indices
+                        .iter()
+                        .map(|(label, index)| format!("{}: 0x{:04x}", label, index))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+
+                    println!("Label indices:\n{}", label_indices);
+                } else {
+                    eprintln!(
+                        "{}",
+                        Paint::red("No contract found. Please specify a contract and try again.")
+                    );
+                    std::process::exit(1);
+                }
+            }
+            Err(e) => {
+                tracing::error!(target: "cli", "PARSER ERRORED!");
+                eprintln!("{}", Paint::red(e));
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
+
     if let Some(TestCommands::Test { format, match_ }) = cli.test {
         match compiler.grab_contracts() {
             Ok(contracts) => {
@@ -230,7 +286,7 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        return
+        return;
     }
 
     // Create compiling spinner
