@@ -238,7 +238,7 @@ fn main() {
                     let label_indices = bytecode_res
                         .label_indices
                         .iter()
-                        .map(|(label, index)| format!("{}: 0x{:04x}", label, index))
+                        .map(|(label, index)| format!("{}: {:#04x}", label, index))
                         .collect::<Vec<_>>()
                         .join("\n");
 
