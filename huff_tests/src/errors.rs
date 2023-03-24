@@ -15,7 +15,7 @@ impl fmt::Display for RunnerError {
 }
 
 /// Convert a `CompilerError` to a `RunnerError`
-impl From<CompilerError<'_>> for RunnerError {
+impl From<CompilerError> for RunnerError {
     fn from(e: CompilerError) -> Self {
         RunnerError(e.to_string())
     }
@@ -24,6 +24,6 @@ impl From<CompilerError<'_>> for RunnerError {
 /// Convert a `EVMError` to a `RunnerError`
 impl From<EVMError<Infallible>> for RunnerError {
     fn from(e: EVMError<Infallible>) -> Self {
-        RunnerError(format!("{:?}", e))
+        RunnerError(format!("{e:?}"))
     }
 }

@@ -1110,6 +1110,7 @@ impl Parser {
             let new_spans = vec![self.current_token.span.clone()];
             match &self.current_token.kind {
                 TokenKind::Ident(ident_str) => {
+                    dbg!(ident_str);
                     statements.push(Statement {
                         ty: if is_code_table {
                             if code_statement_regex.is_match(ident_str) {

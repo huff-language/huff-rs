@@ -1,4 +1,4 @@
-use huff_lexer::*;
+use huff_lexer::Lexer;
 use huff_utils::prelude::*;
 use std::ops::Deref;
 
@@ -95,13 +95,13 @@ fn lex_imports_empty_quotes() {
 fn include_no_quotes() {
     let source = "#include";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = Lexer::new(flattened_source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // The first token should be a single line comment
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    assert_eq!(unwrapped, Token::new(TokenKind::Include, Span::new(0..8, None)));
-    assert_eq!(lexer.current_span().deref(), &Span::new(0..8, None));
+    assert_eq!(unwrapped, Token::new(TokenKind::Include, Span::new(0..7, None)));
+    lexer.next();
     assert!(lexer.eof);
 }
 
@@ -109,25 +109,23 @@ fn include_no_quotes() {
 fn include_with_string() {
     let source = "#include \"../huff-examples/erc20/contracts/utils/Ownable.huff\"";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = Lexer::new(flattened_source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // The first token should be a single line comment
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    assert_eq!(unwrapped, Token::new(TokenKind::Include, Span::new(0..8, None)));
-    assert_eq!(lexer.current_span().deref(), &Span::new(0..8, None));
+    assert_eq!(unwrapped, Token::new(TokenKind::Include, Span::new(0..7, None)));
 
     // Lex the whitespace char
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    let literal_span = Span::new(8..9, None);
+    let literal_span = Span::new(8..8, None);
     assert_eq!(unwrapped, Token::new(TokenKind::Whitespace, literal_span.clone()));
-    assert_eq!(lexer.current_span().deref(), &literal_span);
 
     // Then we should parse the string literal
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    let literal_span = Span::new(9..62, None);
+    let literal_span = Span::new(9..61, None);
     assert_eq!(
         unwrapped,
         Token::new(
@@ -135,10 +133,10 @@ fn include_with_string() {
             literal_span.clone()
         )
     );
-    assert_eq!(lexer.current_span().deref(), &literal_span);
+
+    lexer.next();
 
     // We should have reached EOF now
-    assert_eq!(lexer.current_span().end, source.len());
     assert!(lexer.eof);
 }
 
@@ -146,25 +144,23 @@ fn include_with_string() {
 fn include_with_string_single_quote() {
     let source = "#include '../huff-examples/erc20/contracts/utils/Ownable.huff'";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = Lexer::new(flattened_source);
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // The first token should be a single line comment
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    assert_eq!(unwrapped, Token::new(TokenKind::Include, Span::new(0..8, None)));
-    assert_eq!(lexer.current_span().deref(), &Span::new(0..8, None));
+    assert_eq!(unwrapped, Token::new(TokenKind::Include, Span::new(0..7, None)));
 
     // Lex the whitespace char
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    let literal_span = Span::new(8..9, None);
+    let literal_span = Span::new(8..8, None);
     assert_eq!(unwrapped, Token::new(TokenKind::Whitespace, literal_span.clone()));
-    assert_eq!(lexer.current_span().deref(), &literal_span);
 
     // Then we should parse the string literal
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
-    let literal_span = Span::new(9..62, None);
+    let literal_span = Span::new(9..61, None);
     assert_eq!(
         unwrapped,
         Token::new(
@@ -172,9 +168,9 @@ fn include_with_string_single_quote() {
             literal_span.clone()
         )
     );
-    assert_eq!(lexer.current_span().deref(), &literal_span);
+
+    lexer.next();
 
     // We should have reached EOF now
-    assert_eq!(lexer.current_span().end, source.len());
     assert!(lexer.eof);
 }
