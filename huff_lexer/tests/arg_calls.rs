@@ -1,6 +1,6 @@
 use huff_lexer::*;
 use huff_utils::{evm::Opcode, prelude::*};
-use std::ops::Deref;
+
 
 #[test]
 fn lexes_arg_calls() {

@@ -1,6 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::{str_to_bytes32, FullFileSource, Span, Token, TokenKind};
-use std::ops::Deref;
+
 
 #[test]
 fn parses_decorator() {
