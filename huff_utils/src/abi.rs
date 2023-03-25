@@ -77,7 +77,7 @@ impl From<ast::Contract> for Abi {
             .iter()
             .filter(|m| m.name.to_lowercase() == "constructor")
             .cloned()
-            .collect::<Vec<ast::Function>>()
+            .collect::<Vec<ast::FunctionDefinition>>()
             .get(0)
             .map(|func| Constructor {
                 inputs: func
@@ -122,7 +122,7 @@ impl From<ast::Contract> for Abi {
             contract
                 .functions
                 .iter()
-                .filter(|function: &&ast::Function| function.name != "CONSTRUCTOR")
+                .filter(|function: &&ast::FunctionDefinition| function.name != "CONSTRUCTOR")
                 .map(|function| {
                     (
                         function.name.to_string(),
