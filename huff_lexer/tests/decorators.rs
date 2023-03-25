@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::{str_to_bytes32, FullFileSource, Span, Token, TokenKind};
 
-
 #[test]
 fn parses_decorator() {
     let key_words = ["macro", "fn", "test"];

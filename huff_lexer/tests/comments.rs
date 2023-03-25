@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
 
-
 // use proptest::prelude::*;
 
 // proptest! {
@@ -67,10 +66,7 @@ fn single_line_comments() {
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
     let function_span = Span::new(35..45, None);
-    assert_eq!(
-        unwrapped,
-        Token::new(TokenKind::Ident("HELLO_WORLD".to_string()), function_span)
-    );
+    assert_eq!(unwrapped, Token::new(TokenKind::Ident("HELLO_WORLD".to_string()), function_span));
 
     // Then we should have an open paren
     let tok = lexer.next();
@@ -136,10 +132,7 @@ fn multi_line_comments() {
     let tok = lexer.next();
     let unwrapped = tok.unwrap().unwrap();
     let function_span = Span::new(35..45, None);
-    assert_eq!(
-        unwrapped,
-        Token::new(TokenKind::Ident("HELLO_WORLD".to_string()), function_span)
-    );
+    assert_eq!(unwrapped, Token::new(TokenKind::Ident("HELLO_WORLD".to_string()), function_span));
 
     // Then we should have an open paren
     let tok = lexer.next();

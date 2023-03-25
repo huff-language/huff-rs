@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
 
-
 #[test]
 fn parses_macro_keyword() {
     let source = "#define macro";

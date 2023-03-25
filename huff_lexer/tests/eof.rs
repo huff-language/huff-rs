@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
 
-
 #[test]
 fn end_of_file() {
     let source = " ";

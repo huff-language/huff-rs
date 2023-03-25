@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
 
-
 #[test]
 fn lexes_assign_op() {
     let source = "#define constant TRANSFER_EVENT_SIGNATURE =";

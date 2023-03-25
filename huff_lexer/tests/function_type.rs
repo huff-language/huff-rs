@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
 
-
 #[test]
 fn parses_function_type() {
     let fn_types = [

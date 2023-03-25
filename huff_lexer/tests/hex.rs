@@ -1,6 +1,5 @@
-use huff_lexer::{Lexer};
+use huff_lexer::Lexer;
 use huff_utils::prelude::*;
-
 
 #[test]
 fn parses_single_hex() {

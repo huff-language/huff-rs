@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
 
-
 #[test]
 fn lexes_zero_prefixed_numbers() {
     let source = "00";

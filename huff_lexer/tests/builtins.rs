@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::{FullFileSource, Span, Token, TokenKind};
 
-
 #[test]
 fn parses_builtin_function_in_macro_body() {
     let builtin_funcs = [

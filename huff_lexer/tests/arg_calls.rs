@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_utils::{evm::Opcode, prelude::*};
 
-
 #[test]
 fn lexes_arg_calls() {
     let source = r#"

@@ -1,7 +1,6 @@
 use huff_lexer::Lexer;
 use huff_utils::prelude::*;
 
-
 #[test]
 fn single_lex_imports() {
     let import_str = "../huff-examples/erc20/contracts/utils/Ownable.huff";

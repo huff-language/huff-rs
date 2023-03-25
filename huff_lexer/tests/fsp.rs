@@ -1,7 +1,6 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
 
-
 #[test]
 fn free_storage_pointer() {
     let source = "FREE_STORAGE_POINTER() ";
