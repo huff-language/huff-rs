@@ -20,7 +20,7 @@
 //!     imports: vec![],
 //!     constants: Arc::new(Mutex::new(vec![])),
 //!     errors: vec![],
-//!     functions: vec![huff_utils::ast::Function {
+//!     functions: vec![huff_utils::ast::FunctionDefinition {
 //!         name: "CONSTRUCTOR".to_string(),
 //!         signature: [0u8, 0u8, 0u8, 0u8],
 //!         inputs: vec![],
