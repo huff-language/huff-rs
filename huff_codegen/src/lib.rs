@@ -348,6 +348,9 @@ impl Codegen {
                         &mut offset,
                         mis,
                         &mut jump_table,
+                        circular_codesize_invocations,
+                        &mut label_indices,
+                        &mut table_instances,
                     )?
                 }
             }
