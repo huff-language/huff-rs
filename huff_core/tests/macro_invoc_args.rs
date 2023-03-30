@@ -260,3 +260,37 @@ fn test_bubbled_constant_macro_arg() {
     // Check the bytecode
     assert_eq!(bytecode.to_lowercase(), expected_bytecode.to_lowercase());
 }
+
+
+#[test]
+fn test_bubbled_arg_with_different_name() {
+  let source = r#"
+          #define macro MACRO_A(arg_a) = takes(0) returns(0) {
+            <arg_a>
+          }
+          #define macro MACRO_B(arg_b) =takes(0) returns(0) {
+            MACRO_A(<arg_b>)
+          }
+          #define macro MAIN() = takes(0) returns(0){
+            MACRO_B(0x01)
+          }
+      "#;
+
+  // Lex + Parse
+  let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+  let lexer = Lexer::new(flattened_source);
+  let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+  let mut parser = Parser::new(tokens, None);
+  let mut contract = parser.parse().unwrap();
+  contract.derive_storage_pointers();
+
+  // Create main and constructor bytecode
+  let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
+
+  // Full expected bytecode output (generated from huffc) (placed here as a reference)
+  let expected_bytecode = "6001";
+
+  // Check the bytecode
+  assert_eq!(main_bytecode, expected_bytecode);
+
+}
