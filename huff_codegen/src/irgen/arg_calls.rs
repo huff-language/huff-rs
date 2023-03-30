@@ -104,7 +104,12 @@ pub fn bubble_arg_call(
                         tracing::debug!(target: "codegen", "Found MacroArg::Ident IN \"{}\" Macro Invocation: \"{}\"!", macro_invoc.1.macro_name, iden);
 
                         // Check for a constant first
-                        if let Some(constant) = contract
+                        if let Ok(o) = Opcode::from_str(iden) {
+                          tracing::debug!(target: "codegen", "Found Opcode: {}", o);
+                          let b = Bytes(o.to_string());
+                          *offset += b.0.len() / 2;
+                          bytes.push((starting_offset, b));
+                        } else if let Some(constant) = contract
                             .constants
                             .lock()
                             .map_err(|_| {
@@ -192,11 +197,6 @@ pub fn bubble_arg_call(
                             *offset += res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
                             // Add the macro's bytecode to the final result
                             res.bytes.iter().for_each(|(a, b)| bytes.push((*a, b.clone())));
-                        } else if let Ok(o) = Opcode::from_str(iden) {
-                            tracing::debug!(target: "codegen", "Found Opcode: {}", o);
-                            let b = Bytes(o.to_string());
-                            *offset += b.0.len() / 2;
-                            bytes.push((starting_offset, b));
                         } else {
                             tracing::debug!(target: "codegen", "Found Label Call: {}", iden);
 
