@@ -1,6 +1,8 @@
 use huff_utils::prelude::*;
 use std::str::FromStr;
 
+use crate::Codegen;
+
 // Arguments can be literals, labels, opcodes, or constants
 // !! IF THERE IS AMBIGUOUS NOMENCLATURE
 // !! (E.G. BOTH OPCODE AND LABEL ARE THE SAME STRING)
@@ -18,6 +20,9 @@ pub fn bubble_arg_call(
     // mis: Parent macro invocations and their indices
     mis: &mut Vec<(usize, MacroInvocation)>,
     jump_table: &mut JumpTable,
+    circular_codesize_invocations: &mut CircularCodeSizeIndices,
+    label_indices: &mut LabelIndices,
+    table_instances: &mut Jumps,
 ) -> Result<(), CodegenError> {
     let starting_offset = *offset;
 
@@ -75,6 +80,9 @@ pub fn bubble_arg_call(
                                 offset,
                                 &mut Vec::from(&mis[..mis.len().saturating_sub(1)]),
                                 jump_table,
+                                circular_codesize_invocations,
+                                label_indices,
+                                table_instances,
                             )
                         } else {
                             bubble_arg_call(
@@ -86,6 +94,9 @@ pub fn bubble_arg_call(
                                 offset,
                                 mis,
                                 jump_table,
+                                circular_codesize_invocations,
+                                label_indices,
+                                table_instances,
                             )
                         }
                     }
@@ -121,12 +132,66 @@ pub fn bubble_arg_call(
                                         kind: CodegenErrorKind::StoragePointersNotDerived,
                                         span: AstSpan(vec![]),
                                         token: None,
-                                    })
+                                    });
                                 }
                             };
                             *offset += push_bytes.len() / 2;
                             tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                             bytes.push((starting_offset, Bytes(push_bytes)));
+                        } else if let Some(ir_macro) = contract.find_macro_by_name(iden) {
+                            let new_scope = ir_macro.clone();
+                            scope.push(new_scope);
+                            tracing::debug!(target: "codegen", "ARG CALL IS MACRO: {}", iden);
+                            tracing::debug!(target: "codegen", "CURRENT MACRO DEF: {}", macro_def.name);
+
+                            mis.push((
+                                *offset,
+                                MacroInvocation {
+                                    args: vec![],
+                                    span: AstSpan(vec![]),
+                                    macro_name: iden.to_string(),
+                                },
+                            ));
+
+                            let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
+                                ir_macro.clone(),
+                                contract,
+                                scope,
+                                *offset,
+                                mis,
+                                false,
+                                Some(circular_codesize_invocations),
+                            ) {
+                                Ok(r) => r,
+                                Err(e) => {
+                                    tracing::error!(
+                                        target: "codegen",
+                                        "FAILED TO RECURSE INTO MACRO \"{}\"",
+                                        ir_macro.name
+                                    );
+                                    return Err(e);
+                                }
+                            };
+
+                            for j in res.unmatched_jumps.iter_mut() {
+                                let new_index = j.bytecode_index;
+                                j.bytecode_index = 0;
+                                let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index)
+                                {
+                                    jumps.clone()
+                                } else {
+                                    vec![]
+                                };
+                                new_jumps.push(j.clone());
+                                jump_table.insert(new_index, new_jumps);
+                            }
+                            table_instances.extend(res.table_instances);
+                            label_indices.extend(res.label_indices);
+
+                            // Increase offset by byte length of recursed macro
+                            *offset += res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
+                            // Add the macro's bytecode to the final result
+                            res.bytes.iter().for_each(|(a, b)| bytes.push((*a, b.clone())));
                         } else if let Ok(o) = Opcode::from_str(iden) {
                             tracing::debug!(target: "codegen", "Found Opcode: {}", o);
                             let b = Bytes(o.to_string());
