@@ -106,7 +106,9 @@ pub fn bubble_arg_call(
                     MacroArg::Ident(iden) => {
                         tracing::debug!(target: "codegen", "Found MacroArg::Ident IN \"{}\" Macro Invocation: \"{}\"!", macro_invoc.1.macro_name, iden);
 
-                        // Check for a constant first
+                        // The opcode check needs to happens before the constants lookup
+                        // because otherwise the mutex can deadlock when bubbling up to
+                        // resolve macros as arguments.
                         if let Ok(o) = Opcode::from_str(iden) {
                           tracing::debug!(target: "codegen", "Found Opcode: {}", o);
                           let b = Bytes(o.to_string());
