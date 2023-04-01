@@ -224,7 +224,7 @@ impl Parser {
 
     /// Parses a function.
     /// Adheres to <https://github.com/huff-language/huffc/blob/master/src/parser/high-level.ts#L87-L111>
-    pub fn parse_function(&mut self) -> Result<Function, ParserError> {
+    pub fn parse_function(&mut self) -> Result<FunctionDefinition, ParserError> {
         // the first token should be of `TokenKind::Function`
         self.match_kind(TokenKind::Function)?;
         // function name should be next
@@ -273,7 +273,7 @@ impl Parser {
             inputs.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
         hash_bytes(&mut signature, &format!("{name}({})", input_types.join(",")));
 
-        Ok(Function {
+        Ok(FunctionDefinition {
             name,
             signature,
             inputs,
@@ -284,7 +284,7 @@ impl Parser {
     }
 
     /// Parse an event.
-    pub fn parse_event(&mut self) -> Result<Event, ParserError> {
+    pub fn parse_event(&mut self) -> Result<EventDefinition, ParserError> {
         // The event should start with `TokenKind::Event`
         self.match_kind(TokenKind::Event)?;
 
@@ -312,7 +312,7 @@ impl Parser {
             parameters.iter().map(|i| i.arg_type.as_ref().unwrap().clone()).collect::<Vec<_>>();
         hash_bytes(&mut hash, &format!("{name}({})", input_types.join(",")));
 
-        Ok(Event { name, parameters, span: AstSpan(self.spans.clone()), hash })
+        Ok(EventDefinition { name, parameters, span: AstSpan(self.spans.clone()), hash })
     }
 
     /// Parse a constant.

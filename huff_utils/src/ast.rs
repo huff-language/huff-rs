@@ -97,9 +97,9 @@ pub struct Contract {
     /// Custom Errors
     pub errors: Vec<ErrorDefinition>,
     /// Functions
-    pub functions: Vec<Function>,
+    pub functions: Vec<FunctionDefinition>,
     /// Events
-    pub events: Vec<Event>,
+    pub events: Vec<EventDefinition>,
     /// Tables
     pub tables: Vec<TableDefinition>,
 }
@@ -419,7 +419,7 @@ pub struct Argument {
 
 /// A Function Signature
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Function {
+pub struct FunctionDefinition {
     /// The name of the function
     pub name: String,
     /// The function signature
@@ -461,7 +461,7 @@ impl FunctionType {
 
 /// An Event Signature
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Event {
+pub struct EventDefinition {
     /// The name of the event
     pub name: String,
     /// The parameters of the event

@@ -1,6 +1,5 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
-use std::ops::Deref;
 
 #[test]
 fn end_of_file() {
