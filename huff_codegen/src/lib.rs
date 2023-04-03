@@ -335,7 +335,7 @@ impl Codegen {
                     bubble_arg_call(
                         &arg_name,
                         &mut bytes,
-                        &macro_def,
+                        macro_def.clone(),
                         contract,
                         scope,
                         &mut offset,
