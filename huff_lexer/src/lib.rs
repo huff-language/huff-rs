@@ -136,14 +136,10 @@ impl<'a> Lexer<'a> {
                     let (word, start, end) =
                         self.eat_while(Some(ch), |ch| ch.is_ascii_alphabetic());
 
-                    let found_kind = if self.context == Context::MacroBody {
-                        None
-                    } else {
-                        match word.as_str() {
+                    let found_kind = match word.as_str() {
                             "define" => Some(TokenKind::Define),
                             "include" => Some(TokenKind::Include),
                             _ => None,
-                        }
                     };
 
                     if let Some(kind) = found_kind {
