@@ -528,7 +528,6 @@ impl<'a> Lexer<'a> {
     ///   by a colon or preceded by the keyword `function`
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
         match found_kind {
-            // TODO: We surely should do this backwards right?
             Some(TokenKind::Macro) |
             Some(TokenKind::Fn) |
             Some(TokenKind::Test) |
