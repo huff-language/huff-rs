@@ -1,7 +1,7 @@
 use huff_utils::prelude::*;
 use regex::Regex;
 use std::{
-    iter::{Peekable, Enumerate},
+    iter::{Enumerate, Peekable},
     str::Chars,
 };
 
@@ -137,9 +137,9 @@ impl<'a> Lexer<'a> {
                         self.eat_while(Some(ch), |ch| ch.is_ascii_alphabetic());
 
                     let found_kind = match word.as_str() {
-                            "#define" => Some(TokenKind::Define),
-                            "#include" => Some(TokenKind::Include),
-                            _ => None,
+                        "#define" => Some(TokenKind::Define),
+                        "#include" => Some(TokenKind::Include),
+                        _ => None,
                     };
 
                     if let Some(kind) = found_kind {
