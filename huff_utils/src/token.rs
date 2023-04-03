@@ -1,5 +1,5 @@
 use crate::{evm::Opcode, files::Span, types::PrimitiveEVMType};
-use std::{fmt, fmt::Write, str::FromStr};
+use std::{fmt, fmt::Write};
 
 type Literal = [u8; 32];
 
@@ -213,57 +213,5 @@ impl fmt::Display for TokenKind {
         };
 
         write!(f, "{x}")
-    }
-}
-
-impl FromStr for TokenKind {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "EOF" => Ok(TokenKind::Eof),
-            "Comment" => Ok(TokenKind::Comment(String::new())),
-            "/" => Ok(TokenKind::Div),
-            "#define" => Ok(TokenKind::Define),
-            "#include" => Ok(TokenKind::Include),
-            "macro" => Ok(TokenKind::Macro),
-            "fn" => Ok(TokenKind::Fn),
-            "test" => Ok(TokenKind::Test),
-            "function" => Ok(TokenKind::Function),
-            "event" => Ok(TokenKind::Event),
-            "constant" => Ok(TokenKind::Constant),
-            "error" => Ok(TokenKind::Error),
-            "view" => Ok(TokenKind::View),
-            "pure" => Ok(TokenKind::Pure),
-            "payable" => Ok(TokenKind::Payable),
-            "nonpayable" => Ok(TokenKind::NonPayable),
-            "indexed" => Ok(TokenKind::Indexed),
-            "takes" => Ok(TokenKind::Takes),
-            "returns" => Ok(TokenKind::Returns),
-            "FREE_STORAGE_POINTER()" => Ok(TokenKind::FreeStoragePointer),
-            "Ident" => Ok(TokenKind::Ident(String::new())),
-            "=" => Ok(TokenKind::Assign),
-            "(" => Ok(TokenKind::OpenParen),
-            ")" => Ok(TokenKind::CloseParen),
-            "[" => Ok(TokenKind::OpenBracket),
-            "]" => Ok(TokenKind::CloseBracket),
-            "{" => Ok(TokenKind::OpenBrace),
-            "}" => Ok(TokenKind::CloseBrace),
-            "<" => Ok(TokenKind::LeftAngle),
-            ">" => Ok(TokenKind::RightAngle),
-            "+" => Ok(TokenKind::Add),
-            "-" => Ok(TokenKind::Sub),
-            "*" => Ok(TokenKind::Mul),
-            ":" => Ok(TokenKind::Colon),
-            "," => Ok(TokenKind::Comma),
-            "#" => Ok(TokenKind::Pound),
-            "Num" => Ok(TokenKind::Num(0)),
-            " " => Ok(TokenKind::Whitespace),
-            "Str" => Ok(TokenKind::Str(String::new())),
-            "Literal" => Ok(TokenKind::Literal(Literal::new())),
-            "Opcode" => Ok(TokenKind::Opcode(Opcode::ADD)),
-            "Label" => Ok(TokenKind::Label(String::new())),
-            "PrimitiveType" => Ok(TokenKind::PrimitiveType(PrimitiveEVMType::Uint(256))),
-        }
     }
 }
