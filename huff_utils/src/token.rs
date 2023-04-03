@@ -139,7 +139,7 @@ impl TokenKind {
 
     /// Transform a TokenKind into a Token given a start and end position
     pub fn into_span(self, start: usize, end: usize) -> Token {
-        Token { kind: self, span: Span { start: start as usize, end: end as usize, file: None } }
+        Token { kind: self, span: Span { start, end, file: None } }
     }
 }
 
