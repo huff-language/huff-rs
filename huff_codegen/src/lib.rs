@@ -69,7 +69,7 @@ impl Codegen {
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
             m_macro,
             contract,
-            &mut vec![m_macro.clone()],
+            &mut vec![m_macro],
             0,
             &mut Vec::default(),
             false,
@@ -98,7 +98,7 @@ impl Codegen {
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
             c_macro,
             contract,
-            &mut vec![c_macro.clone()],
+            &mut vec![c_macro],
             0,
             &mut Vec::default(),
             false,
@@ -272,10 +272,10 @@ impl Codegen {
     /// * `scope` - Current scope of the recursion. Contains all macro definitions recursed so far.
     /// * `offset` - Current bytecode offset
     /// * `mis` - Vector of tuples containing parent macro invocations as well as their offsets.
-    pub fn macro_to_bytecode(
-        macro_def: &MacroDefinition,
-        contract: &Contract,
-        scope: &mut Vec<MacroDefinition>,
+    pub fn macro_to_bytecode<'a>(
+        macro_def: &'a MacroDefinition,
+        contract: &'a Contract,
+        scope: &mut Vec<&'a MacroDefinition>,
         mut offset: usize,
         mis: &mut Vec<(usize, MacroInvocation)>,
         recursing_constructor: bool,
@@ -316,7 +316,7 @@ impl Codegen {
                     let mut push_bytes = statement_gen(
                         &s,
                         contract,
-                        &macro_def,
+                        macro_def,
                         scope,
                         &mut offset,
                         mis,
@@ -335,7 +335,7 @@ impl Codegen {
                     bubble_arg_call(
                         &arg_name,
                         &mut bytes,
-                        macro_def.clone(),
+                        macro_def,
                         contract,
                         scope,
                         &mut offset,
@@ -534,9 +534,9 @@ impl Codegen {
     /// On success, passes ownership of `bytes` back to the caller.
     /// On failure, returns a CodegenError.
     #[allow(clippy::too_many_arguments)]
-    pub fn append_functions(
-        contract: &Contract,
-        scope: &mut Vec<MacroDefinition>,
+    pub fn append_functions<'a>(
+        contract: &'a Contract,
+        scope: &mut Vec<&'a MacroDefinition>,
         offset: &mut usize,
         mis: &mut Vec<(usize, MacroInvocation)>,
         jump_table: &mut JumpTable,
@@ -546,7 +546,7 @@ impl Codegen {
     ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
         for macro_def in contract.macros.iter().filter(|m| m.outlined) {
             // Push the function to the scope
-            scope.push(macro_def.clone());
+            scope.push(macro_def);
 
             // Add 1 to starting offset to account for the JUMPDEST opcode
             let mut res = Codegen::macro_to_bytecode(

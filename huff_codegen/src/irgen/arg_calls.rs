@@ -11,9 +11,9 @@ use std::str::FromStr;
 pub fn bubble_arg_call(
     arg_name: &str,
     bytes: &mut Vec<(usize, Bytes)>,
-    macro_def: MacroDefinition,
+    macro_def: &MacroDefinition,
     contract: &Contract,
-    scope: &mut [MacroDefinition],
+    scope: &mut [&MacroDefinition],
     offset: &mut usize,
     // mis: Parent macro invocations and their indices
     mis: &mut [(usize, MacroInvocation)],
