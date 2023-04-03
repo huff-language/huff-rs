@@ -137,8 +137,8 @@ impl<'a> Lexer<'a> {
                         self.eat_while(Some(ch), |ch| ch.is_ascii_alphabetic());
 
                     let found_kind = match word.as_str() {
-                            "define" => Some(TokenKind::Define),
-                            "include" => Some(TokenKind::Include),
+                            "#define" => Some(TokenKind::Define),
+                            "#include" => Some(TokenKind::Include),
                             _ => None,
                     };
 
