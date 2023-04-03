@@ -184,7 +184,7 @@ impl<'a> Lexer<'a> {
                             "pure" => Some(TokenKind::Pure),
                             "jumptable__packed" => Some(TokenKind::JumpTablePacked),
                             "jumptable" => Some(TokenKind::JumpTable),
-                            "codetable" => Some(TokenKind::CodeTable),
+                            "table" => Some(TokenKind::CodeTable),
                             _ => None,
                         }
                     };
