@@ -47,7 +47,7 @@ pub fn statement_gen(
                 tracing::error!(target: "codegen", "Tests may not be invoked: {}", ir_macro.name);
                 return Err(CodegenError {
                     kind: CodegenErrorKind::TestInvocation(ir_macro.name.clone()),
-                    span: ir_macro.span,
+                    span: ir_macro.span.clone(),
                     token: None,
                 })
             }
@@ -97,7 +97,7 @@ pub fn statement_gen(
                 mis.push((*offset, mi.clone()));
 
                 let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
-                    ir_macro.clone(),
+                    ir_macro,
                     contract,
                     scope,
                     *offset,
@@ -205,7 +205,7 @@ pub fn statement_gen(
                     } else {
                         // We will still need to recurse to get accurate values
                         let res: BytecodeRes = match Codegen::macro_to_bytecode(
-                            ir_macro.clone(),
+                            ir_macro,
                             contract,
                             scope,
                             *offset,

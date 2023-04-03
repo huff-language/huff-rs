@@ -67,9 +67,9 @@ impl Codegen {
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
-            m_macro.clone(),
+            m_macro,
             contract,
-            &mut vec![m_macro],
+            &mut vec![m_macro.clone()],
             0,
             &mut Vec::default(),
             false,
@@ -96,9 +96,9 @@ impl Codegen {
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
-            c_macro.clone(),
+            c_macro,
             contract,
-            &mut vec![c_macro],
+            &mut vec![c_macro.clone()],
             0,
             &mut Vec::default(),
             false,
@@ -116,10 +116,10 @@ impl Codegen {
     }
 
     /// Helper function to find a macro or generate a CodegenError
-    pub(crate) fn get_macro_by_name(
+    pub(crate) fn get_macro_by_name<'a>(
         name: &str,
-        contract: &Contract,
-    ) -> Result<MacroDefinition, CodegenError> {
+        contract: &'a Contract,
+    ) -> Result<&'a MacroDefinition, CodegenError> {
         if let Some(m) = contract.find_macro_by_name(name) {
             Ok(m)
         } else {
@@ -273,7 +273,7 @@ impl Codegen {
     /// * `offset` - Current bytecode offset
     /// * `mis` - Vector of tuples containing parent macro invocations as well as their offsets.
     pub fn macro_to_bytecode(
-        macro_def: MacroDefinition,
+        macro_def: &MacroDefinition,
         contract: &Contract,
         scope: &mut Vec<MacroDefinition>,
         mut offset: usize,
@@ -294,15 +294,15 @@ impl Codegen {
         let circular_codesize_invocations = circular_codesize_invocations.unwrap_or(&mut ccsi);
 
         // Loop through all intermediate bytecode representations generated from the AST
-        for (_ir_bytes_index, ir_byte) in ir_bytes.into_iter().enumerate() {
+        for (_ir_bytes_index, ir_byte) in ir_bytes.iter().enumerate() {
             let starting_offset = offset;
-            match ir_byte.ty {
+            match &ir_byte.ty {
                 IRByteType::Bytes(b) => {
                     offset += b.0.len() / 2;
-                    bytes.push((starting_offset, b));
+                    bytes.push((starting_offset, b.to_owned()));
                 }
                 IRByteType::Constant(name) => {
-                    let push_bytes = constant_gen(&name, contract, ir_byte.span)?;
+                    let push_bytes = constant_gen(&name, contract, &ir_byte.span)?;
                     offset += push_bytes.len() / 2;
                     tracing::debug!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                     bytes.push((starting_offset, Bytes(push_bytes)));
@@ -550,7 +550,7 @@ impl Codegen {
 
             // Add 1 to starting offset to account for the JUMPDEST opcode
             let mut res = Codegen::macro_to_bytecode(
-                macro_def.clone(),
+                macro_def,
                 contract,
                 scope,
                 *offset + 1,
