@@ -136,16 +136,15 @@ impl<'a> Lexer<'a> {
                     let (word, start, end) =
                         self.eat_while(Some(ch), |ch| ch.is_ascii_alphabetic());
 
-                    let mut found_kind: Option<TokenKind> = None;
-                    // TODO: This is bad.
-                    let keys = [TokenKind::Define, TokenKind::Include];
-                    for kind in keys.into_iter() {
-                        let key = kind.to_string();
-                        if key == word {
-                            found_kind = Some(kind);
-                            break
+                    let found_kind = if self.context == Context::MacroBody {
+                        None
+                    } else {
+                        match word.as_str() {
+                            "define" => Some(TokenKind::Define),
+                            "include" => Some(TokenKind::Include),
+                            _ => None,
                         }
-                    }
+                    };
 
                     if let Some(kind) = found_kind {
                         Ok(kind.into_span(start, end))
