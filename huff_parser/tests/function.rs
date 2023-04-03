@@ -1,7 +1,7 @@
 use huff_lexer::*;
 use huff_parser::*;
 use huff_utils::{
-    ast::{Function, FunctionType},
+    ast::{FunctionDefinition, FunctionType},
     prelude::*,
 };
 use std::collections::HashMap;
@@ -17,7 +17,7 @@ fn parses_valid_function_definition() {
     let expected_fns = HashMap::from([
         (
             0,
-            Function {
+            FunctionDefinition {
                 name: "test".to_string(),
                 inputs: vec![
                     Argument {
@@ -67,7 +67,7 @@ fn parses_valid_function_definition() {
         ),
         (
             1,
-            Function {
+            FunctionDefinition {
                 name: "test".to_string(),
                 inputs: vec![Argument {
                     name: None,
@@ -102,7 +102,7 @@ fn parses_valid_function_definition() {
         ),
         (
             2,
-            Function {
+            FunctionDefinition {
                 name: "test".to_string(),
                 inputs: vec![Argument {
                     name: None,
@@ -137,7 +137,7 @@ fn parses_valid_function_definition() {
         ),
         (
             3,
-            Function {
+            FunctionDefinition {
                 name: "test".to_string(),
                 inputs: vec![Argument {
                     name: None,
@@ -172,7 +172,7 @@ fn parses_valid_function_definition() {
         ),
         (
             4,
-            Function {
+            FunctionDefinition {
                 name: "test".to_string(),
                 inputs: vec![Argument {
                     name: None,

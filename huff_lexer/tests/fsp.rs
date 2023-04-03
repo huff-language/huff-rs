@@ -1,7 +1,5 @@
 use huff_lexer::*;
 use huff_utils::prelude::*;
-/// Tests lexing the Free Storage Pointer Keyword
-use std::ops::Deref;
 
 #[test]
 fn free_storage_pointer() {

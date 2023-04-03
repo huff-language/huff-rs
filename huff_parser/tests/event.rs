@@ -1,6 +1,6 @@
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::{ast::Event, prelude::*};
+use huff_utils::{ast::EventDefinition, prelude::*};
 
 #[test]
 fn test_prefix_event_arg_names_with_reserved_keywords() {
@@ -75,7 +75,7 @@ fn test_parse_event() {
     let sources = [
         (
             "#define event TestEvent(uint256 indexed a,uint8 indexed)",
-            Event {
+            EventDefinition {
                 name: "TestEvent".to_string(),
                 parameters: vec![
                     Argument {
@@ -137,7 +137,7 @@ fn test_parse_event() {
         ),
         (
             "#define event TestEvent(uint256,uint8 b)",
-            Event {
+            EventDefinition {
                 name: "TestEvent".to_string(),
                 parameters: vec![
                     Argument {
@@ -191,7 +191,7 @@ fn test_parse_event() {
         ),
         (
             "#define event TestEvent(uint256 indexed,uint8)",
-            Event {
+            EventDefinition {
                 name: "TestEvent".to_string(),
                 parameters: vec![
                     Argument {
