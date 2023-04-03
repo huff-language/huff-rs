@@ -47,8 +47,8 @@ pub fn bubble_arg_call(
                         tracing::info!(target: "codegen", "GOT ARG CALL \"{}\" ARG FROM MACRO INVOCATION", ac);
                         tracing::debug!(target: "codegen", "~~~ BUBBLING UP ARG CALL");
                         let scope_len = scope.len();
-                        let mut new_scope = &mut scope[..scope_len.saturating_sub(1)];
-                        let bubbled_macro_invocation = new_scope.last().unwrap().clone();
+                        let new_scope = &mut scope[..scope_len.saturating_sub(1)];
+                        let bubbled_macro_invocation = new_scope.last().unwrap();
                         tracing::debug!(target: "codegen", "BUBBLING UP WITH MACRO DEF: {}", &bubbled_macro_invocation.name);
                         tracing::debug!(target: "codegen", "CURRENT MACRO DEF: {}", macro_def.name);
 
@@ -73,7 +73,7 @@ pub fn bubble_arg_call(
                                 bytes,
                                 bubbled_macro_invocation,
                                 contract,
-                                &mut new_scope,
+                                new_scope,
                                 offset,
                                 &mut mis[..mis_len.saturating_sub(1)],
                                 jump_table,
@@ -84,7 +84,7 @@ pub fn bubble_arg_call(
                                 bytes,
                                 bubbled_macro_invocation,
                                 contract,
-                                &mut new_scope,
+                                new_scope,
                                 offset,
                                 mis,
                                 jump_table,

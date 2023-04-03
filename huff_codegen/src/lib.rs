@@ -302,7 +302,7 @@ impl Codegen {
                     bytes.push((starting_offset, b.to_owned()));
                 }
                 IRByteType::Constant(name) => {
-                    let push_bytes = constant_gen(&name, contract, &ir_byte.span)?;
+                    let push_bytes = constant_gen(name, contract, ir_byte.span)?;
                     offset += push_bytes.len() / 2;
                     tracing::debug!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                     bytes.push((starting_offset, Bytes(push_bytes)));
@@ -314,7 +314,7 @@ impl Codegen {
                         continue
                     }
                     let mut push_bytes = statement_gen(
-                        &s,
+                        s,
                         contract,
                         macro_def,
                         scope,
@@ -333,7 +333,7 @@ impl Codegen {
                     // Bubble up arg call by looking through the previous scopes.
                     // Once the arg value is found, add it to `bytes`
                     bubble_arg_call(
-                        &arg_name,
+                        arg_name,
                         &mut bytes,
                         macro_def,
                         contract,
