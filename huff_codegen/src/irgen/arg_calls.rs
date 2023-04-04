@@ -69,7 +69,7 @@ pub fn bubble_arg_call(
                         let mis_len = mis.len();
                         return if last_mi.1.macro_name.eq(&macro_def.name) {
                             bubble_arg_call(
-                                arg_name,
+                                ac,
                                 bytes,
                                 bubbled_macro_invocation,
                                 contract,
@@ -80,7 +80,7 @@ pub fn bubble_arg_call(
                             )
                         } else {
                             bubble_arg_call(
-                                arg_name,
+                                &ac.to_string(),
                                 bytes,
                                 bubbled_macro_invocation,
                                 contract,
