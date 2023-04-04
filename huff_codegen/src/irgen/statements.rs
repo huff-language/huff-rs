@@ -4,11 +4,11 @@ use crate::Codegen;
 
 /// Generates the respective Bytecode for a given Statement
 #[allow(clippy::too_many_arguments)]
-pub fn statement_gen(
+pub fn statement_gen<'a>(
     s: &Statement,
-    contract: &Contract,
+    contract: &'a Contract,
     macro_def: &MacroDefinition,
-    scope: &mut Vec<MacroDefinition>,
+    scope: &mut Vec<&'a MacroDefinition>,
     offset: &mut usize,
     mis: &mut Vec<(usize, MacroInvocation)>,
     jump_table: &mut JumpTable,
@@ -47,7 +47,7 @@ pub fn statement_gen(
                 tracing::error!(target: "codegen", "Tests may not be invoked: {}", ir_macro.name);
                 return Err(CodegenError {
                     kind: CodegenErrorKind::TestInvocation(ir_macro.name.clone()),
-                    span: ir_macro.span,
+                    span: ir_macro.span.clone(),
                     token: None,
                 })
             }
@@ -93,11 +93,11 @@ pub fn statement_gen(
                 *offset += stack_swaps.len() + 8;
             } else {
                 // Recurse into macro invocation
-                scope.push(ir_macro.clone());
+                scope.push(ir_macro);
                 mis.push((*offset, mi.clone()));
 
                 let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
-                    ir_macro.clone(),
+                    ir_macro,
                     contract,
                     scope,
                     *offset,
@@ -205,7 +205,7 @@ pub fn statement_gen(
                     } else {
                         // We will still need to recurse to get accurate values
                         let res: BytecodeRes = match Codegen::macro_to_bytecode(
-                            ir_macro.clone(),
+                            ir_macro,
                             contract,
                             scope,
                             *offset,

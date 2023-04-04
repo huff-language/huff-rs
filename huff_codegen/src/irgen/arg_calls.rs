@@ -13,10 +13,10 @@ pub fn bubble_arg_call(
     bytes: &mut Vec<(usize, Bytes)>,
     macro_def: &MacroDefinition,
     contract: &Contract,
-    scope: &mut Vec<MacroDefinition>,
+    scope: &mut [&MacroDefinition],
     offset: &mut usize,
     // mis: Parent macro invocations and their indices
-    mis: &mut Vec<(usize, MacroInvocation)>,
+    mis: &mut [(usize, MacroInvocation)],
     jump_table: &mut JumpTable,
 ) -> Result<(), CodegenError> {
     let starting_offset = *offset;
@@ -46,9 +46,10 @@ pub fn bubble_arg_call(
                     MacroArg::ArgCall(ac) => {
                         tracing::info!(target: "codegen", "GOT ARG CALL \"{}\" ARG FROM MACRO INVOCATION", ac);
                         tracing::debug!(target: "codegen", "~~~ BUBBLING UP ARG CALL");
-                        let mut new_scope = Vec::from(&scope[..scope.len().saturating_sub(1)]);
-                        let bubbled_macro_invocation = new_scope.last().unwrap().clone();
-                        tracing::debug!(target: "codegen", "BUBBLING UP WITH MACRO DEF: {}", bubbled_macro_invocation.name);
+                        let scope_len = scope.len();
+                        let new_scope = &mut scope[..scope_len.saturating_sub(1)];
+                        let bubbled_macro_invocation = new_scope.last().unwrap();
+                        tracing::debug!(target: "codegen", "BUBBLING UP WITH MACRO DEF: {}", &bubbled_macro_invocation.name);
                         tracing::debug!(target: "codegen", "CURRENT MACRO DEF: {}", macro_def.name);
 
                         // Only remove an invocation if not at bottom level, otherwise we'll
@@ -60,29 +61,30 @@ pub fn bubble_arg_call(
                                     kind: CodegenErrorKind::MissingMacroInvocation(
                                         macro_def.name.clone(),
                                     ),
-                                    span: bubbled_macro_invocation.span,
+                                    span: bubbled_macro_invocation.span.clone(),
                                     token: None,
                                 })
                             }
                         };
+                        let mis_len = mis.len();
                         return if last_mi.1.macro_name.eq(&macro_def.name) {
                             bubble_arg_call(
                                 arg_name,
                                 bytes,
-                                &bubbled_macro_invocation,
+                                bubbled_macro_invocation,
                                 contract,
-                                &mut new_scope,
+                                new_scope,
                                 offset,
-                                &mut Vec::from(&mis[..mis.len().saturating_sub(1)]),
+                                &mut mis[..mis_len.saturating_sub(1)],
                                 jump_table,
                             )
                         } else {
                             bubble_arg_call(
                                 arg_name,
                                 bytes,
-                                &bubbled_macro_invocation,
+                                bubbled_macro_invocation,
                                 contract,
-                                &mut new_scope,
+                                new_scope,
                                 offset,
                                 mis,
                                 jump_table,

@@ -6,7 +6,7 @@ use huff_utils::prelude::{
 pub fn constant_gen(
     name: &str,
     contract: &Contract,
-    ir_byte_span: AstSpan,
+    ir_byte_span: &AstSpan,
 ) -> Result<String, CodegenError> {
     // Get the first `ConstantDefinition` that matches the constant's name
     let constants = contract
@@ -20,7 +20,7 @@ pub fn constant_gen(
 
         return Err(CodegenError {
             kind: CodegenErrorKind::MissingConstantDefinition(name.to_string()),
-            span: ir_byte_span,
+            span: ir_byte_span.clone(),
             token: None,
         })
     };

@@ -106,9 +106,9 @@ pub struct Contract {
 
 impl Contract {
     /// Returns the first macro that matches the provided name
-    pub fn find_macro_by_name(&self, name: &str) -> Option<MacroDefinition> {
+    pub fn find_macro_by_name(&self, name: &str) -> Option<&MacroDefinition> {
         if let Some(m) = self.macros.iter().find(|m| m.name == name) {
-            Some(m.clone())
+            Some(m)
         } else {
             tracing::warn!("Failed to find macro \"{}\" in contract", name);
             None
@@ -133,7 +133,7 @@ impl Contract {
         // Derive Constructor Storage Pointers
         match self.find_macro_by_name("CONSTRUCTOR") {
             Some(m) => self.recurse_ast_constants(
-                &m,
+                m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
                 false,
@@ -147,7 +147,7 @@ impl Contract {
         // Derive Main Storage Pointers
         match self.find_macro_by_name("MAIN") {
             Some(m) => self.recurse_ast_constants(
-                &m,
+                m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
                 false,
@@ -592,14 +592,14 @@ impl MacroDefinition {
                     let push_bytes = format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2);
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(push_bytes)),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::Opcode(o) => {
                     let opcode_str = o.string();
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(opcode_str)),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                     // If the opcode is a push, we need to consume the next statement, which must be
                     // a literal as checked in the parser
@@ -610,7 +610,7 @@ impl MacroDefinition {
                                 let prefixed_hex_literal = o.prefix_push_literal(&hex_literal);
                                 inner_irbytes.push(IRBytes {
                                     ty: IRByteType::Bytes(Bytes(prefixed_hex_literal)),
-                                    span: statement.span.clone(),
+                                    span: &statement.span,
                                 });
                             }
                             _ => {
@@ -624,7 +624,7 @@ impl MacroDefinition {
                 StatementType::Code(c) => {
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(c.to_owned())),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::MacroInvocation(mi) => {
@@ -633,21 +633,21 @@ impl MacroDefinition {
                             ty: StatementType::MacroInvocation(mi.clone()),
                             span: statement.span.clone(),
                         }),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::Constant(name) => {
                     // Constant needs to be evaluated at the top-level
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Constant(name.to_owned()),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::ArgCall(arg_name) => {
                     // Arg call needs to use a destination defined in the calling macro context
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::ArgCall(arg_name.to_owned()),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::LabelCall(jump_to) => {
@@ -657,7 +657,7 @@ impl MacroDefinition {
                             ty: StatementType::LabelCall(jump_to.to_string()),
                             span: statement.span.clone(),
                         }),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::Label(l) => {
@@ -667,7 +667,7 @@ impl MacroDefinition {
                             ty: StatementType::Label(l.clone()),
                             span: statement.span.clone(),
                         }),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
 
                     // Recurse label statements to IRBytes Bytes
@@ -679,7 +679,7 @@ impl MacroDefinition {
                             ty: StatementType::BuiltinFunctionCall(builtin.clone()),
                             span: statement.span.clone(),
                         }),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
             }
