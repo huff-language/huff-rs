@@ -104,7 +104,7 @@ fn test_no_push0_override() {
     // Have the Codegen create the constructor bytecode
     let (cbytes, has_custom_bootstrap) =
         Codegen::generate_constructor_bytecode(&contract, None).unwrap();
-    assert_eq!(cbytes, String::from("5F"));
+    assert_eq!(cbytes, String::from("5f"));
     assert!(!has_custom_bootstrap);
 }
 
