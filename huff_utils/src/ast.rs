@@ -601,8 +601,9 @@ impl MacroDefinition {
                         ty: IRByteType::Bytes(Bytes(opcode_str)),
                         span: &statement.span,
                     });
-                    // If the opcode is a push that takes a literal value, we need to consume the next statement, which must be
-                    // a literal as checked in the parser
+                    // If the opcode is a push that takes a literal value, we need to consume the
+                    // next statement, which must be a literal as checked in the
+                    // parser
                     if o.is_value_push() {
                         match statement_iter.next() {
                             Some(Statement { ty: StatementType::Literal(l), span: _ }) => {
