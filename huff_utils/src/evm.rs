@@ -764,7 +764,7 @@ impl Opcode {
         opcode_str.to_string()
     }
 
-    /// Returns if the current opcode is a push opcode that takes a literal value
+    /// Returns true if the current opcode is a push opcode that takes a literal value
     pub fn is_value_push(&self) -> bool {
         matches!(
             self,
