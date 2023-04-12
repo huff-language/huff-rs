@@ -764,10 +764,8 @@ impl Opcode {
         opcode_str.to_string()
     }
 
-    /// Returns if the current opcode is a push opcode
-    /// Note: This function excludes `PUSH0`, as it behaves differently than the other push
-    /// opcodes.
-    pub fn is_push(&self) -> bool {
+    /// Returns if the current opcode is a push opcode that takes a literal value
+    pub fn is_value_push(&self) -> bool {
         matches!(
             self,
             Opcode::Push1 |
@@ -807,7 +805,7 @@ impl Opcode {
 
     /// Prefixes the literal if necessary
     pub fn prefix_push_literal(&self, literal: &str) -> String {
-        if self.is_push() {
+        if self.is_value_push() {
             if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
                 if len >= 96 {
                     let size = (len - 96 + 1) * 2;
@@ -827,7 +825,7 @@ impl Opcode {
 
     /// Checks if the value overflows the given push opcode
     pub fn push_overflows(&self, literal: &str) -> bool {
-        if self.is_push() {
+        if self.is_value_push() {
             if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
                 if len >= 96 {
                     let size = (len - 96 + 1) * 2;

@@ -560,8 +560,8 @@ impl Parser {
                         ty: StatementType::Opcode(o),
                         span: AstSpan(curr_spans),
                     });
-                    // If the opcode is a push, we need to parse the next literal
-                    if o.is_push() {
+                    // If the opcode is a push that takes a literal value, we need to parse the next literal
+                    if o.is_value_push() {
                         match self.current_token.kind.clone() {
                             TokenKind::Literal(val) => {
                                 let curr_spans = vec![self.current_token.span.clone()];
