@@ -440,7 +440,7 @@ pub enum Opcode {
     Gas,
     /// Marks a valid destination for jumps
     Jumpdest,
-    /// Place a zero on top of the stack
+    /// Places a zero on top of the stack
     Push0,
     /// Places 1 byte item on top of the stack
     Push1,
@@ -678,7 +678,7 @@ impl Opcode {
             Opcode::Msize => "59",
             Opcode::Gas => "5a",
             Opcode::Jumpdest => "5b",
-            Opcode::Push0 => "5F",
+            Opcode::Push0 => "5f",
             Opcode::Push1 => "60",
             Opcode::Push2 => "61",
             Opcode::Push3 => "62",
