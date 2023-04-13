@@ -601,9 +601,9 @@ impl MacroDefinition {
                         ty: IRByteType::Bytes(Bytes(opcode_str)),
                         span: &statement.span,
                     });
-                    // If the opcode is a push, we need to consume the next statement, which must be
-                    // a literal as checked in the parser
-                    if o.is_push() {
+                    // If the opcode is a push that takes a literal value, we need to consume the
+                    // next statement, which must be a literal as checked in the parser
+                    if o.is_value_push() {
                         match statement_iter.next() {
                             Some(Statement { ty: StatementType::Literal(l), span: _ }) => {
                                 let hex_literal: String = bytes32_to_string(l, false);

@@ -6,7 +6,7 @@ use strum_macros::EnumString;
 /// They are arranged in a particular order such that all the opcodes that have common
 /// prefixes are ordered by decreasing length to avoid mismatch when lexing.
 /// Example : [origin, or] or [push32, ..., push3]
-pub const OPCODES: [&str; 146] = [
+pub const OPCODES: [&str; 147] = [
     "lt",
     "gt",
     "slt",
@@ -121,6 +121,7 @@ pub const OPCODES: [&str; 146] = [
     "push3",
     "push2",
     "push1",
+    "push0",
     "swap16",
     "swap15",
     "swap14",
@@ -198,6 +199,7 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "jumpi" => Opcode::Jumpi,
     "pc" => Opcode::Pc,
     "msize" => Opcode::Msize,
+    "push0" => Opcode::Push0,
     "push1" => Opcode::Push1,
     "push2" => Opcode::Push2,
     "push3" => Opcode::Push3,
@@ -438,6 +440,8 @@ pub enum Opcode {
     Gas,
     /// Marks a valid destination for jumps
     Jumpdest,
+    /// Places a zero on top of the stack
+    Push0,
     /// Places 1 byte item on top of the stack
     Push1,
     /// Places 2 byte item on top of the stack
@@ -674,6 +678,7 @@ impl Opcode {
             Opcode::Msize => "59",
             Opcode::Gas => "5a",
             Opcode::Jumpdest => "5b",
+            Opcode::Push0 => "5f",
             Opcode::Push1 => "60",
             Opcode::Push2 => "61",
             Opcode::Push3 => "62",
@@ -759,8 +764,8 @@ impl Opcode {
         opcode_str.to_string()
     }
 
-    /// Returns if the current opcode is a push opcode
-    pub fn is_push(&self) -> bool {
+    /// Returns true if the current opcode is a push opcode that takes a literal value
+    pub fn is_value_push(&self) -> bool {
         matches!(
             self,
             Opcode::Push1 |
@@ -800,7 +805,7 @@ impl Opcode {
 
     /// Prefixes the literal if necessary
     pub fn prefix_push_literal(&self, literal: &str) -> String {
-        if self.is_push() {
+        if self.is_value_push() {
             if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
                 if len >= 96 {
                     let size = (len - 96 + 1) * 2;
@@ -820,7 +825,7 @@ impl Opcode {
 
     /// Checks if the value overflows the given push opcode
     pub fn push_overflows(&self, literal: &str) -> bool {
-        if self.is_push() {
+        if self.is_value_push() {
             if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
                 if len >= 96 {
                     let size = (len - 96 + 1) * 2;
