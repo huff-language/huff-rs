@@ -240,9 +240,11 @@ fn main() {
                         .iter()
                         .map(|(label, index)| format!("{}: {:#04x}", label, index))
                         .collect::<Vec<_>>()
-                        .join("\n");
+                        .join("\n  ");
 
-                    println!("Label indices:\n{}", label_indices);
+                    println!("\n------ JUMP LABEL INDICES ------");
+                    println!("{}", format!("  {}", label_indices).to_string());
+                    println!("--------------------------------\n")
                 } else {
                     eprintln!(
                         "{}",
