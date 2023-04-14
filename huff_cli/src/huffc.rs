@@ -243,7 +243,7 @@ fn main() {
                         .join("\n  ");
 
                     println!("\n------ JUMP LABEL INDICES ------");
-                    println!("{}", format!("  {}", label_indices).to_string());
+                    println!("  {}", label_indices);
                     println!("--------------------------------\n")
                 } else {
                     eprintln!(
