@@ -699,6 +699,7 @@ name = "huff_cli"
 version = "0.3.1"
 dependencies = [
  "clap 3.2.23",
+ "comfy-table",
  "ethers-core",
  "huff_codegen",
  "huff_core",

@@ -8,6 +8,7 @@
 #![allow(deprecated)]
 
 use clap::{App, CommandFactory, Parser as ClapParser, Subcommand};
+use comfy_table::{modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL, Cell, Color, Row, Table};
 use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
@@ -83,7 +84,7 @@ struct Huff {
     verbose: bool,
 
     /// Prints out the jump label PC indices for the specified contract.
-    #[clap(short = 'x', long = "label-indices")]
+    #[clap(short = 'l', long = "label-indices")]
     label_indices: bool,
 
     /// Override / set constants for the compilation environment.
@@ -95,7 +96,7 @@ struct Huff {
     alternative_main: Option<String>,
 
     /// Compile a specific constructor macro
-    #[clap(short = 'l', long = "alt-constructor")]
+    #[clap(short = 't', long = "alt-constructor")]
     alternative_constructor: Option<String>,
 
     /// Test subcommand
@@ -198,7 +199,7 @@ fn main() {
     let compiler: Compiler = Compiler {
         sources: Arc::clone(&sources),
         output,
-        alternative_main: cli.alternative_main,
+        alternative_main: cli.alternative_main.clone(),
         alternative_constructor: cli.alternative_constructor,
         construct_args: cli.inputs,
         constant_overrides: constants,
@@ -220,13 +221,25 @@ fn main() {
                 }
 
                 if let Some(contract) = contracts.first() {
-                    let m_macro = contract.find_macro_by_name("MAIN").unwrap();
+                    let macro_def = contract
+                        .find_macro_by_name(
+                            &cli.alternative_main.unwrap_or_else(|| "MAIN".to_string()),
+                        )
+                        .unwrap_or_else(|| {
+                            eprintln!(
+                                "{}",
+                                Paint::red(
+                                    "Macro not found. Please specify a valid macro and try again."
+                                )
+                            );
+                            std::process::exit(1);
+                        });
 
                     // Recurse through the macro and generate bytecode
                     let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
-                        m_macro.clone(),
+                        macro_def.clone(),
                         contract,
-                        &mut vec![m_macro],
+                        &mut vec![macro_def.clone()],
                         0,
                         &mut Vec::default(),
                         false,
@@ -234,17 +247,31 @@ fn main() {
                     )
                     .unwrap();
 
-                    // Format the label indices nicely
-                    let label_indices = bytecode_res
-                        .label_indices
-                        .iter()
-                        .map(|(label, index)| format!("{}: {:#04x}", label, index))
-                        .collect::<Vec<_>>()
-                        .join("\n  ");
-
-                    println!("\n------ JUMP LABEL INDICES ------");
-                    println!("  {}", label_indices);
-                    println!("--------------------------------\n")
+                    if !bytecode_res.label_indices.is_empty() {
+                        // Format the label indices nicely in a table
+                        let mut table = Table::new();
+                        table.load_preset(UTF8_FULL).apply_modifier(UTF8_ROUND_CORNERS);
+                        table
+                            .set_header(vec![
+                                Cell::new("Jump Label").fg(Color::Cyan),
+                                Cell::new("Program counter offset (in hex)").fg(Color::Cyan),
+                            ])
+                            .add_rows(bytecode_res.label_indices.iter().map(|(label, index)| {
+                                Row::from(vec![
+                                    Cell::new(label),
+                                    Cell::new(&format!("{:#04x}", index)),
+                                ])
+                            }));
+                        println!("{table}");
+                    } else {
+                        eprintln!(
+                            "{}",
+                            Paint::red(
+                                "No jump labels found. Please try again.\nHint: you can run this command on a specific macro by adding the `-m <macro_name>` flag.\n"
+                            )
+                        );
+                        std::process::exit(1);
+                    }
                 } else {
                     eprintln!(
                         "{}",
