@@ -488,6 +488,9 @@ impl<'a> Iterator for Lexer<'a> {
                             self.dyn_consume(|c| c.is_alphanumeric());
                             if let Some(o) = OPCODES_MAP.get(opcode) {
                                 found_kind = Some(TokenKind::Opcode(o.to_owned()));
+                                if *o == Opcode::Selfdestruct {
+                                    println!("Warning: \"selfdestruct\" has been deprecated. The underlying opcode will eventually undergo breaking changes, and its use is not recommended.")
+                                }
                             } else {
                                 tracing::error!(target: "lexer", "[huff_lexer] Fatal Opcode Mapping!");
                             }
