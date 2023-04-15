@@ -15,10 +15,10 @@ use uuid::Uuid;
 /// Provides functions to supply file contents by paths.
 pub trait FileProvider<'a>: Send + Sync + Debug {
     /// Returns a FileSource containing the file contents referred to by the supplied path.
-    fn read_file(&self, pb: PathBuf) -> Result<Arc<FileSource>, CompilerError<'a>>;
+    fn read_file(&self, pb: PathBuf) -> Result<Arc<FileSource>, CompilerError>;
 
     /// Takes a list of strings and returns a transformed list PathBufs.
-    fn transform_paths(&self, sources: &[String]) -> Result<Vec<PathBuf>, CompilerError<'a>>;
+    fn transform_paths(&self, sources: &[String]) -> Result<Vec<PathBuf>, CompilerError>;
 }
 
 /// A FileReader that reads files from the filesystem.
@@ -39,7 +39,7 @@ impl FileSystemFileProvider {
 }
 
 impl<'a> FileProvider<'a> for FileSystemFileProvider {
-    fn read_file(&self, pb: PathBuf) -> Result<Arc<FileSource>, CompilerError<'a>> {
+    fn read_file(&self, pb: PathBuf) -> Result<Arc<FileSource>, CompilerError> {
         let file_loc = String::from(pb.to_string_lossy());
         match std::fs::read_to_string(&file_loc) {
             Ok(source) => Ok(Arc::new(FileSource {
@@ -56,7 +56,7 @@ impl<'a> FileProvider<'a> for FileSystemFileProvider {
         }
     }
 
-    fn transform_paths(&self, sources: &[String]) -> Result<Vec<PathBuf>, CompilerError<'a>> {
+    fn transform_paths(&self, sources: &[String]) -> Result<Vec<PathBuf>, CompilerError> {
         let mut paths = vec![];
         for f in sources {
             // If the file is huff, use the path, otherwise unpack
@@ -100,7 +100,7 @@ impl InMemoryFileProvider {
 }
 
 impl<'a> FileProvider<'a> for InMemoryFileProvider {
-    fn read_file(&self, pb: PathBuf) -> Result<Arc<FileSource>, CompilerError<'a>> {
+    fn read_file(&self, pb: PathBuf) -> Result<Arc<FileSource>, CompilerError> {
         let path = pb.to_str().unwrap_or_default();
         let localized = strip_path_prefix(path);
         match self.sources.get(localized) {
@@ -118,7 +118,7 @@ impl<'a> FileProvider<'a> for InMemoryFileProvider {
         }
     }
 
-    fn transform_paths(&self, sources: &[String]) -> Result<Vec<PathBuf>, CompilerError<'a>> {
+    fn transform_paths(&self, sources: &[String]) -> Result<Vec<PathBuf>, CompilerError> {
         let mut paths = vec![];
         for f in sources {
             // If the file is huff, use the path, otherwise ignore

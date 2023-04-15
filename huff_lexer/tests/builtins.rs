@@ -1,6 +1,5 @@
-use huff_lexer::Lexer;
+use huff_lexer::*;
 use huff_utils::prelude::{FullFileSource, Span, Token, TokenKind};
-use std::ops::Deref;
 
 #[test]
 fn parses_builtin_function_in_macro_body() {
@@ -25,8 +24,7 @@ fn parses_builtin_function_in_macro_body() {
             "{", "}",
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = Lexer::new(flattened_source.clone());
-        assert_eq!(lexer.source, flattened_source);
+        let mut lexer = Lexer::new(flattened_source.source.clone());
 
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // #define
@@ -55,12 +53,11 @@ fn parses_builtin_function_in_macro_body() {
         // The builtin fn should be parsed as a `TokenKind::BuiltinFunction` here.
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let builtin_span = Span::new(74..74 + builtin.len(), None);
+        let builtin_span = Span::new(74..74 + builtin.len() - 1, None);
         assert_eq!(
             unwrapped,
             Token::new(TokenKind::BuiltinFunction(builtin.to_string()), builtin_span.clone())
         );
-        assert_eq!(lexer.current_span().deref(), &builtin_span);
 
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // MAIN
@@ -68,9 +65,9 @@ fn parses_builtin_function_in_macro_body() {
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // }
         let _ = lexer.next(); // whitespace
+        let _ = lexer.next(); // eof
 
         // We covered the whole source
-        assert_eq!(lexer.current_span().end, source.len());
         assert!(lexer.eof);
     }
 }
@@ -92,24 +89,21 @@ fn fails_to_parse_builtin_outside_macro_body() {
     for builtin in builtin_funcs {
         let source = &format!("{builtin}(MAIN)");
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = Lexer::new(flattened_source.clone());
-        assert_eq!(lexer.source, flattened_source);
+        let mut lexer = Lexer::new(flattened_source.source.clone());
 
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let fn_name_span = Span::new(0..builtin.len(), None);
+        let fn_name_span = Span::new(0..builtin.len() - 1, None);
         assert_eq!(
             unwrapped,
             Token::new(TokenKind::BuiltinFunction(builtin.to_string()), fn_name_span.clone())
         );
-        assert_eq!(lexer.current_span().deref(), &fn_name_span);
 
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // MAIN
         let _ = lexer.next(); // close parenthesis
 
         // We covered the whole source
-        assert_eq!(lexer.current_span().end, source.len());
         assert!(lexer.eof);
     }
 }
@@ -129,8 +123,7 @@ fn fails_to_parse_invalid_builtin() {
             "{", "}",
         );
         let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-        let mut lexer = Lexer::new(flattened_source.clone());
-        assert_eq!(lexer.source, flattened_source);
+        let mut lexer = Lexer::new(flattened_source.source.clone());
 
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // #define
@@ -159,12 +152,11 @@ fn fails_to_parse_invalid_builtin() {
         // The builtin fn should be parsed as a `TokenKind::BuiltinFunction` here.
         let tok = lexer.next();
         let unwrapped = tok.unwrap().unwrap();
-        let builtin_span = Span::new(74..74 + builtin.len(), None);
+        let builtin_span = Span::new(74..74 + builtin.len() - 1, None);
         assert_eq!(
             unwrapped,
             Token::new(TokenKind::BuiltinFunction(builtin.to_string()), builtin_span.clone())
         );
-        assert_eq!(lexer.current_span().deref(), &builtin_span);
 
         let _ = lexer.next(); // open parenthesis
         let _ = lexer.next(); // MAIN
@@ -172,9 +164,9 @@ fn fails_to_parse_invalid_builtin() {
         let _ = lexer.next(); // whitespace
         let _ = lexer.next(); // }
         let _ = lexer.next(); // whitespace
+        let _ = lexer.next(); // eof
 
         // We covered the whole source
-        assert_eq!(lexer.current_span().end, source.len());
         assert!(lexer.eof);
     }
 }

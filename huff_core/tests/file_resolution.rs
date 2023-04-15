@@ -33,7 +33,7 @@ fn test_get_outputs_with_output() {
 #[test]
 fn test_transform_paths() {
     let file_provider = FileSystemFileProvider {};
-    let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> = file_provider.transform_paths(&[
+    let path_bufs: Result<Vec<PathBuf>, CompilerError> = file_provider.transform_paths(&[
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
         "../huff-examples/erc20/contracts/utils/".to_string(),
     ]);
@@ -66,7 +66,7 @@ fn test_transform_paths() {
 #[test]
 fn test_transform_paths_non_huff() {
     let file_provider = FileSystemFileProvider {};
-    let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> =
+    let path_bufs: Result<Vec<PathBuf>, CompilerError> =
         file_provider.transform_paths(&["./ERC20.txt".to_string()]);
     assert!(path_bufs.is_err());
     match path_bufs {
@@ -82,7 +82,7 @@ fn test_transform_paths_non_huff() {
 #[test]
 fn test_transform_paths_no_dir() {
     let file_provider = FileSystemFileProvider {};
-    let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> =
+    let path_bufs: Result<Vec<PathBuf>, CompilerError> =
         file_provider.transform_paths(&["./examples/random_dir/".to_string()]);
     assert!(path_bufs.is_err());
     match path_bufs {

@@ -174,9 +174,9 @@ impl TestRunner {
 
         // Compile the passed test macro
         match Codegen::macro_to_bytecode(
-            m.to_owned(),
+            m,
             contract,
-            &mut vec![m.to_owned()],
+            &mut vec![m],
             0,
             &mut Vec::default(),
             false,

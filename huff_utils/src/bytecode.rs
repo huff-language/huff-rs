@@ -14,11 +14,11 @@ pub struct Bytes(pub String);
 
 /// Intermediate Bytecode Representation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct IRBytes {
+pub struct IRBytes<'a> {
     /// The type of IRByte
     pub ty: IRByteType,
     /// The Span of the IRBytes
-    pub span: AstSpan,
+    pub span: &'a AstSpan,
 }
 
 /// IRBytes Type
@@ -36,7 +36,7 @@ pub enum IRByteType {
 
 /// Full Intermediate Bytecode Representation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct IRBytecode(pub Vec<IRBytes>);
+pub struct IRBytecode<'a>(pub Vec<IRBytes<'a>>);
 
 /// ToIRBytecode
 ///
