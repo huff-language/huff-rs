@@ -436,9 +436,9 @@ pub fn statement_gen(
                         hash_bytes(&mut signature, s);
 
                         let push_bytes = format!(
-                            "{}{}{}", 
-                            Opcode::Push32, 
-                            "00".repeat(28), 
+                            "{}{}{}",
+                            Opcode::Push32,
+                            "00".repeat(28),
                             hex::encode(signature)
                         );
                         *offset += push_bytes.len() / 2;
