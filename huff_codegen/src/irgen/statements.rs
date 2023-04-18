@@ -435,7 +435,12 @@ pub fn statement_gen(
                         let mut signature = [0u8; 4]; // Only keep first 4 bytes
                         hash_bytes(&mut signature, s);
 
-                        let push_bytes = format!("{}{}{}", Opcode::Push32, "00".repeat(28), hex::encode(signature));
+                        let push_bytes = format!(
+                            "{}{}{}", 
+                            Opcode::Push32, 
+                            "00".repeat(28), 
+                            hex::encode(signature)
+                        );
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else {
