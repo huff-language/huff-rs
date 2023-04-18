@@ -425,10 +425,17 @@ pub fn statement_gen(
                         .iter()
                         .find(|e| bf.args[0].name.as_ref().unwrap().eq(&e.name))
                     {
-                        // Add 28 bytes to left-pad the 4 byte selector
+                        // Add 28 bytes to right-pad the 4 byte selector
                         let selector =
-                            format!("{}{}", hex::encode(error.selector), "00".repeat(28));
+                            format!("{}{}", "00".repeat(28), hex::encode(error.selector));
                         let push_bytes = format!("{}{selector}", Opcode::Push32);
+                        *offset += push_bytes.len() / 2;
+                        bytes.push((starting_offset, Bytes(push_bytes)));
+                    } else if let Some(s) = &bf.args[0].name {
+                        let mut signature = [0u8; 4]; // Only keep first 4 bytes
+                        hash_bytes(&mut signature, s);
+
+                        let push_bytes = format!("{}{}{}", Opcode::Push32, "00".repeat(28), hex::encode(signature));
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
                     } else {

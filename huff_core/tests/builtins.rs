@@ -548,7 +548,7 @@ fn test_error_selector_builtin() {
             // Input stack:          [condition, message_length, message]
             continue jumpi        // [message]
 
-            __ERROR(Error)        // [error_selector, message_length, message]
+            __ERROR("Error(string)")        // [error_selector, message_length, message]
             0x00 mstore           // [message_length, message]
             0x20 0x04 mstore      // [message_length, message]
             0x24 mstore           // [message]
@@ -587,15 +587,15 @@ fn test_error_selector_builtin() {
 
     // Have Codegen create the runtime bytecode
     let r_bytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
-    assert_eq!(&r_bytes[2..66], "be20788c00000000000000000000000000000000000000000000000000000000");
+    assert_eq!(&r_bytes[2..66], "00000000000000000000000000000000000000000000000000000000be20788c");
     assert_eq!(
         &r_bytes[98..162],
-        "08c379a000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000008c379a0"
     );
     assert_eq!(
         r_bytes,
         String::from(
-            "7fbe20788c0000000000000000000000000000000000000000000000000000000060005260045260246000fd610064577f08c379a000000000000000000000000000000000000000000000000000000000600052602060045260245260445260646000fd5b50"
+            "7f00000000000000000000000000000000000000000000000000000000be20788c60005260045260246000fd610064577f0000000000000000000000000000000000000000000000000000000008c379a0600052602060045260245260445260646000fd5b50"
         )
     );
 }
