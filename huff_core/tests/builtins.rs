@@ -587,10 +587,10 @@ fn test_error_selector_builtin() {
 
     // Have Codegen create the runtime bytecode
     let r_bytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
-    assert_eq!(&r_bytes[2..66], "00000000000000000000000000000000000000000000000000000000be20788c");
+    assert_eq!(&r_bytes[2..66], "be20788c00000000000000000000000000000000000000000000000000000000");
     assert_eq!(
         &r_bytes[98..162],
-        "0000000000000000000000000000000000000000000000000000000008c379a0"
+        "08c379a000000000000000000000000000000000000000000000000000000000"
     );
     assert_eq!(
         r_bytes,
