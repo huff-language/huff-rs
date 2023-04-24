@@ -548,7 +548,7 @@ fn test_error_selector_builtin() {
             // Input stack:          [condition, message_length, message]
             continue jumpi        // [message]
 
-            __ERROR(Error)        // [error_selector, message_length, message]
+            __ERROR("Error(string)")        // [error_selector, message_length, message]
             0x00 mstore           // [message_length, message]
             0x20 0x04 mstore      // [message_length, message]
             0x24 mstore           // [message]

@@ -431,6 +431,17 @@ pub fn statement_gen<'a>(
                         let push_bytes = format!("{}{selector}", Opcode::Push32);
                         *offset += push_bytes.len() / 2;
                         bytes.push((starting_offset, Bytes(push_bytes)));
+                    } else if let Some(s) = &bf.args[0].name {
+                        let mut signature = [0u8; 4]; // Only keep first 4 bytes
+                        hash_bytes(&mut signature, s);
+
+                        let push_bytes = format!(
+                            "{}{}",
+                            Opcode::Push4,
+                            hex::encode(signature)
+                        );
+                        *offset += push_bytes.len() / 2;
+                        bytes.push((starting_offset, Bytes(push_bytes)));
                     } else {
                         tracing::error!(
                             target: "codegen",
