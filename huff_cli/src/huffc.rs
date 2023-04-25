@@ -8,6 +8,7 @@
 #![allow(deprecated)]
 
 use clap::{App, CommandFactory, Parser as ClapParser, Subcommand};
+use comfy_table::{modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL, Cell, Color, Row, Table};
 use ethers_core::utils::hex;
 use huff_codegen::Codegen;
 use huff_core::Compiler;
@@ -18,8 +19,8 @@ use huff_tests::{
 use huff_utils::{
     file_provider::FileSystemFileProvider,
     prelude::{
-        export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, CodegenError,
-        CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
+        export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, BytecodeRes,
+        CodegenError, CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
     },
 };
 use isatty::stdout_isatty;
@@ -82,6 +83,10 @@ struct Huff {
     #[clap(short = 'v', long = "verbose")]
     verbose: bool,
 
+    /// Prints out the jump label PC indices for the specified contract.
+    #[clap(short = 'l', long = "label-indices")]
+    label_indices: bool,
+
     /// Override / set constants for the compilation environment.
     #[clap(short = 'c', long = "constants", multiple_values = true)]
     constants: Option<Vec<String>>,
@@ -91,7 +96,7 @@ struct Huff {
     alternative_main: Option<String>,
 
     /// Compile a specific constructor macro
-    #[clap(short = 'l', long = "alt-constructor")]
+    #[clap(short = 't', long = "alt-constructor")]
     alternative_constructor: Option<String>,
 
     /// Test subcommand
@@ -194,7 +199,7 @@ fn main() {
     let compiler: Compiler = Compiler {
         sources: Arc::clone(&sources),
         output,
-        alternative_main: cli.alternative_main,
+        alternative_main: cli.alternative_main.clone(),
         alternative_constructor: cli.alternative_constructor,
         construct_args: cli.inputs,
         constant_overrides: constants,
@@ -203,6 +208,86 @@ fn main() {
         cached: use_cache,
         file_provider: Arc::new(FileSystemFileProvider {}),
     };
+
+    if cli.label_indices {
+        match compiler.grab_contracts() {
+            Ok(contracts) => {
+                if contracts.len() > 1 {
+                    eprintln!(
+                        "{}",
+                        Paint::red("Multiple contracts found. Please specify a single contract and try again.")
+                    );
+                    std::process::exit(1);
+                }
+
+                if let Some(contract) = contracts.first() {
+                    let macro_def = contract
+                        .find_macro_by_name(
+                            &cli.alternative_main.unwrap_or_else(|| "MAIN".to_string()),
+                        )
+                        .unwrap_or_else(|| {
+                            eprintln!(
+                                "{}",
+                                Paint::red(
+                                    "Macro not found. Please specify a valid macro and try again."
+                                )
+                            );
+                            std::process::exit(1);
+                        });
+
+                    // Recurse through the macro and generate bytecode
+                    let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
+                        macro_def.clone(),
+                        contract,
+                        &mut vec![macro_def.clone()],
+                        0,
+                        &mut Vec::default(),
+                        false,
+                        None,
+                    )
+                    .unwrap();
+
+                    if !bytecode_res.label_indices.is_empty() {
+                        // Format the label indices nicely in a table
+                        let mut table = Table::new();
+                        table.load_preset(UTF8_FULL).apply_modifier(UTF8_ROUND_CORNERS);
+                        table
+                            .set_header(vec![
+                                Cell::new("Jump Label").fg(Color::Cyan),
+                                Cell::new("Program counter offset (in hex)").fg(Color::Cyan),
+                            ])
+                            .add_rows(bytecode_res.label_indices.iter().map(|(label, index)| {
+                                Row::from(vec![
+                                    Cell::new(label),
+                                    Cell::new(&format!("{:#04x}", index)),
+                                ])
+                            }));
+                        println!("{table}");
+                    } else {
+                        eprintln!(
+                            "{}",
+                            Paint::red(
+                                "No jump labels found. Please try again.\nHint: you can run this command on a specific macro by adding the `-m <macro_name>` flag.\n"
+                            )
+                        );
+                        std::process::exit(1);
+                    }
+                } else {
+                    eprintln!(
+                        "{}",
+                        Paint::red("No contract found. Please specify a contract and try again.")
+                    );
+                    std::process::exit(1);
+                }
+            }
+            Err(e) => {
+                tracing::error!(target: "cli", "PARSER ERRORED!");
+                eprintln!("{}", Paint::red(e));
+                std::process::exit(1);
+            }
+        }
+        return
+    }
 
     if let Some(TestCommands::Test { format, match_ }) = cli.test {
         match compiler.grab_contracts() {
