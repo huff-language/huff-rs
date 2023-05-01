@@ -610,7 +610,7 @@ impl Codegen {
         constructor_bytecode: &str,
         has_custom_bootstrap: bool,
     ) -> Result<Artifact, CodegenError> {
-        let mut artifact: &mut Artifact = if let Some(art) = &mut self.artifact {
+        let artifact: &mut Artifact = if let Some(art) = &mut self.artifact {
             art
         } else {
             self.artifact = Some(Artifact::default());

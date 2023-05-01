@@ -237,9 +237,9 @@ fn main() {
 
                     // Recurse through the macro and generate bytecode
                     let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
-                        macro_def.clone(),
+                        macro_def,
                         contract,
-                        &mut vec![macro_def.clone()],
+                        &mut vec![macro_def],
                         0,
                         &mut Vec::default(),
                         false,
@@ -259,7 +259,7 @@ fn main() {
                             .add_rows(bytecode_res.label_indices.iter().map(|(label, index)| {
                                 Row::from(vec![
                                     Cell::new(label),
-                                    Cell::new(&format!("{:#04x}", index)),
+                                    Cell::new(format!("{:#04x}", index)),
                                 ])
                             }));
                         println!("{table}");
