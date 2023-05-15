@@ -1,5 +1,5 @@
 use huff_utils::prelude::{
-    bytes32_to_string, AstSpan, CodegenError, CodegenErrorKind, ConstVal, Contract,
+    literal_gen, AstSpan, CodegenError, CodegenErrorKind, ConstVal, Contract,
 };
 
 /// Transforms a constant definition into it's respective bytecode
@@ -30,10 +30,7 @@ pub fn constant_gen(
     // prior to generating the IR bytes.
     tracing::info!(target: "codegen", "FOUND CONSTANT DEFINITION: {}", constant.name);
     let push_bytes = match &constant.value {
-        ConstVal::Literal(l) => {
-            let hex_literal: String = bytes32_to_string(l, false);
-            format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2)
-        }
+        ConstVal::Literal(l) => literal_gen(l),
         ConstVal::FreeStoragePointer(fsp) => {
             // If this is reached in codegen stage, the `derive_storage_pointers`
             // method was not called on the AST.

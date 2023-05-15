@@ -588,8 +588,7 @@ impl MacroDefinition {
         while let Some(statement) = statement_iter.next() {
             match &statement.ty {
                 StatementType::Literal(l) => {
-                    let hex_literal: String = bytes32_to_string(l, false);
-                    let push_bytes = format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2);
+                    let push_bytes = literal_gen(l);
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(push_bytes)),
                         span: &statement.span,
