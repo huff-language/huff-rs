@@ -59,7 +59,7 @@ fn recurse_macro_bytecode() {
     assert!(!has_custom_bootstrap);
 
     // Full expected bytecode output (generated from huffc) (placed here as a reference)
-    let expected_bytecode = "61003f8061000d6000396000f360003560E01c8063a9059cbb1461001c57806340c10f191461002e575b60043533602435600160005260206000f35b60043560006024358060005401600055";
+    let expected_bytecode = "6100398061000d6000396000f35f3560e01c8063a9059cbb1461001b57806340c10f191461002b575b6004353360243560015f5260205ff35b6004355f602435805f54015f55";
 
     // Construct the expected output
     let mut artifact = Artifact::default();
