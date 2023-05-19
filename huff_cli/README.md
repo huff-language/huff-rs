@@ -33,15 +33,16 @@ OPTIONS:
 
 _NOTE: To generate the above output, run: `huffc --help`_
 
-
 ## Usage
 
 To run `huffc` from the command line, you can simply run:
+
 ```bash
 huffc --help
 ```
 
 By default, huffc will attempt to compile all contracts in the `contracts` directory. If there is no `contracts` directory present, the following will spit out an error like so:
+
 ```bash,color=red
 ~ huffc
 
@@ -90,18 +91,19 @@ huffc -o ./artifact.json ./huff-examples/erc20/contracts/ERC20.huff
 ```
 
 **NOTE**: The following will _not_ compile since multiple artifacts cannot be output to the same artifact json file.
+
 ```bash
 huffc -o ./artifact.json ./contracts/
 ```
-
 
 #### Entering Constructor Arguments
 
 `huffc` supports passing in constructor arguments to the contract. This is done by passing in the `--interactive` (shorthand: `-n`) flag or passing the `--inputs` (shorthand: `-i`) flag.
 
- and passing in the arguments as a comma separated list.
+and passing in the arguments as a comma separated list.
 
 For example, to compile a contract (let's call it `example.huff`) with the following constructor definition:
+
 ```huff
 #define macro CONSTRUCTOR(uint256, address) = takes(0) returns (0) {
     0x04 calldataload
@@ -119,14 +121,14 @@ $ huffc -b -n ./contracts/example.huff
 [INTERACTIVE] Enter a uint256 for constructor param: 100
 [INTERACTIVE] Enter a address for constructor param: 0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
 
-33600.....f30000000000000000000000000000000000000000000000000000000000000064000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+335f.....f30000000000000000000000000000000000000000000000000000000000000064000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
 ```
 
 Alternatively, you can enter the arguments as a comma separated list by using the `-i` or `--inputs` flag like so:
 
 ```bash
 $ huffc -b -i 100, 0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef ./contracts/example.huff
-33600.....f30000000000000000000000000000000000000000000000000000000000000064000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+335f0.....f30000000000000000000000000000000000000000000000000000000000000064000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
 ```
 
 #### Other Options
@@ -136,15 +138,16 @@ $ huffc -b -i 100, 0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef ./contracts/exampl
 - `-z` or `--optimize`: Optimizes the contract compilation - a work in progress.
 - `-g` or `--interface`: Generates a solidity interface for the contract.
 
-
 ## Building huffc from source
 
 To run `huffc` from the command line, you can use the following command:
+
 ```bash
 cargo run --bin huffc
 ```
 
 To pass arguments into the `huffc` binary, simply pass them in after a `--` flag. For example, to get the `huffc` version (a `-V` flag), you can run:
+
 ```bash
 cargo run --bin huffc -- -V
 ```
