@@ -9,7 +9,7 @@ use std::{collections::HashMap, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 use huff_core::Compiler;
-use huff_utils::{abi::Abi, artifact::Artifact, error::CompilerError};
+use huff_utils::{abi::Abi, artifact::Artifact, error::CompilerError, prelude::EVMVersion};
 use serde::{Deserialize, Serialize};
 
 /// Converts a CompilerError into a returnable JsValue
@@ -20,6 +20,7 @@ fn compiler_error_to_js_value(ce: Arc<CompilerError>) -> JsValue {
 
 #[derive(Serialize, Deserialize)]
 struct CompilerInput {
+    evm_version: Option<String>,
     sources: Vec<String>,
     files: HashMap<String, String>,
     construct_args: Option<Vec<String>>,
@@ -45,7 +46,10 @@ struct CompilerOutput {
 pub fn compile(input: JsValue) -> Result<JsValue, JsValue> {
     let input: CompilerInput = serde_wasm_bindgen::from_value(input)?;
 
+    let evm_version = EVMVersion::from(input.evm_version);
+
     let compiler = Compiler::new_in_memory(
+        &evm_version,
         Arc::new(input.sources),
         input.files,
         input.alternative_main,

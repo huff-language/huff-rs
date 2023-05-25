@@ -20,7 +20,8 @@ use huff_utils::{
     file_provider::FileSystemFileProvider,
     prelude::{
         export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, BytecodeRes,
-        CodegenError, CodegenErrorKind, CompilerError, FileSource, Literal, OutputLocation, Span,
+        CodegenError, CodegenErrorKind, CompilerError, EVMVersion, FileSource, Literal,
+        OutputLocation, Span,
     },
 };
 use isatty::stdout_isatty;
@@ -182,6 +183,9 @@ fn main() {
             .collect()
     });
 
+    // Parse the EVM version
+    let evm_version = EVMVersion::from(cli.evm_version);
+
     let mut use_cache = true;
     if cli.interactive {
         // Don't accept configured inputs
@@ -201,6 +205,7 @@ fn main() {
     };
 
     let compiler: Compiler = Compiler {
+        evm_version: &evm_version,
         sources: Arc::clone(&sources),
         output,
         alternative_main: cli.alternative_main.clone(),
@@ -241,6 +246,7 @@ fn main() {
 
                     // Recurse through the macro and generate bytecode
                     let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
+                        &evm_version,
                         macro_def,
                         contract,
                         &mut vec![macro_def],

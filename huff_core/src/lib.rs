@@ -57,7 +57,9 @@ pub(crate) mod cache;
 /// );
 /// ```
 #[derive(Debug, Clone)]
-pub struct Compiler<'a> {
+pub struct Compiler<'a, 'l> {
+    /// The EVM version to compile for
+    pub evm_version: &'l EVMVersion,
     /// The location of the files to compile
     pub sources: Arc<Vec<String>>,
     /// The output location
@@ -80,10 +82,11 @@ pub struct Compiler<'a> {
     pub file_provider: Arc<dyn FileProvider<'a>>,
 }
 
-impl<'a> Compiler<'a> {
+impl<'a, 'l> Compiler<'a, 'l> {
     /// Public associated function to instantiate a new compiler.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
+        evm_version: &'l EVMVersion,
         sources: Arc<Vec<String>>,
         output: Option<String>,
         alternative_main: Option<String>,
@@ -97,6 +100,7 @@ impl<'a> Compiler<'a> {
             Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
         Self {
+            evm_version,
             sources,
             output,
             alternative_main,
@@ -113,6 +117,7 @@ impl<'a> Compiler<'a> {
     /// Creates a new instance of a compiler with an in-memory FileReader from the supplied sources
     /// map.
     pub fn new_in_memory(
+        evm_version: &'l EVMVersion,
         sources: Arc<Vec<String>>,
         file_sources: HashMap<String, String>,
         alternative_main: Option<String>,
@@ -125,6 +130,7 @@ impl<'a> Compiler<'a> {
             Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
         Self {
+            evm_version: &evm_version,
             sources,
             output: None,
             alternative_main,
@@ -399,6 +405,7 @@ impl<'a> Compiler<'a> {
         // Primary Bytecode Generation
         let mut cg = Codegen::new();
         let main_bytecode = match Codegen::generate_main_bytecode(
+            self.evm_version,
             &contract,
             self.alternative_main.clone(),
         ) {
@@ -426,6 +433,7 @@ impl<'a> Compiler<'a> {
         let inputs = self.get_constructor_args();
         let (constructor_bytecode, has_custom_bootstrap) =
             match Codegen::generate_constructor_bytecode(
+                self.evm_version,
                 &contract,
                 self.alternative_constructor.clone(),
             ) {
