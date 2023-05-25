@@ -54,6 +54,9 @@ pub mod time;
 /// Wasm Module
 pub mod wasm;
 
+/// EVM Version Module
+pub mod evm_version;
+
 /// Prelude wraps common utilities.
 pub mod prelude {
     pub use crate::{

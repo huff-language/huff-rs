@@ -99,6 +99,10 @@ struct Huff {
     #[clap(short = 't', long = "alt-constructor")]
     alternative_constructor: Option<String>,
 
+    /// Set the EVM version
+    #[clap(short = 'e', long = "evm-version")]
+    evm_version: Option<String>,
+
     /// Test subcommand
     #[clap(subcommand)]
     test: Option<TestCommands>,
