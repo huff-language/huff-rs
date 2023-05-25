@@ -5,30 +5,73 @@ The `huffc` CLI is written using [clap's](https://docs.rs/clap) [derive feature]
 ## huffc
 
 ```
-huffc 0.3.1
+huffc 0.3.2
 Huff Language Compiler built in Pure Rust.
 
 USAGE:
-    huffc [OPTIONS] [--] [PATH]
+    huffc [OPTIONS] [PATH] [SUBCOMMAND]
 
 ARGS:
     <PATH>    The contract(s) to compile
 
 OPTIONS:
-    -a, --artifacts                       Whether to generate artifacts or not
-    -b, --bytecode                        Generate and log bytecode
-    -d, --output-directory <OUTPUTDIR>    The output directory [default: ./artifacts]
-    -g, --interface                       Generate solidity interface for a Huff artifact
-    -h, --help                            Print help information
-    -i, --inputs <INPUTS>...              The input constructor arguments
-    -n, --interactive                     Interactively input the constructor args
-    -o, --output <OUTPUT>                 The output file path
-    -p, --print                           Prints out to the terminal
-    -r, --bin-runtime                     Generate and log runtime bytecode
-    -s, --source-path <SOURCE>            The contracts source path [default: ./contracts]
-    -v, --verbose                         Verbose output
-    -V, --version                         Print version information
-    -z, --optimize                        Optimize compilation [WIP]
+    -a, --artifacts
+            Whether to generate artifacts or not
+
+    -b, --bytecode
+            Generate and log bytecode
+
+    -c, --constants <CONSTANTS>...
+            Override / set constants for the compilation environment
+
+    -d, --output-directory <OUTPUTDIR>
+            The output directory [default: ./artifacts]
+
+    -e, --evm-version <EVM_VERSION>
+            Set the EVM version
+
+    -g, --interface [<INTERFACE>...]
+            Generate solidity interface for a Huff artifact
+
+    -h, --help
+            Print help information
+
+    -i, --inputs <INPUTS>...
+            The input constructor arguments
+
+    -l, --label-indices
+            Prints out the jump label PC indices for the specified contract
+
+    -m, --alt-main <ALTERNATIVE_MAIN>
+            Compile a specific macro
+
+    -n, --interactive
+            Interactively input the constructor args
+
+    -o, --output <OUTPUT>
+            The output file path
+
+    -p, --print
+            Prints out to the terminal
+
+    -r, --bin-runtime
+            Generate and log runtime bytecode
+
+    -s, --source-path <SOURCE>
+            The contracts source path [default: ./contracts]
+
+    -t, --alt-constructor <ALTERNATIVE_CONSTRUCTOR>
+            Compile a specific constructor macro
+
+    -v, --verbose
+            Verbose output
+
+    -V, --version
+            Print version information
+
+    -z, --optimize
+            Optimize compilation [WIP]
+
 ```
 
 _NOTE: To generate the above output, run: `huffc --help`_

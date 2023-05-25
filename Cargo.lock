@@ -696,7 +696,7 @@ dependencies = [
 
 [[package]]
 name = "huff_cli"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "clap 3.2.23",
  "comfy-table",
@@ -714,7 +714,7 @@ dependencies = [
 
 [[package]]
 name = "huff_codegen"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "ethers-core",
  "hex",
@@ -727,7 +727,7 @@ dependencies = [
 
 [[package]]
 name = "huff_core"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "cfg-if 1.0.0",
  "criterion",
@@ -749,7 +749,7 @@ dependencies = [
 
 [[package]]
 name = "huff_lexer"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "huff_utils",
  "regex",
@@ -758,7 +758,7 @@ dependencies = [
 
 [[package]]
 name = "huff_parser"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "hex",
  "huff_lexer",
@@ -812,7 +812,7 @@ dependencies = [
 
 [[package]]
 name = "huffc-js"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "huff_core",
  "huff_utils",
