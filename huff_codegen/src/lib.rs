@@ -276,6 +276,7 @@ impl Codegen {
     /// * `scope` - Current scope of the recursion. Contains all macro definitions recursed so far.
     /// * `offset` - Current bytecode offset
     /// * `mis` - Vector of tuples containing parent macro invocations as well as their offsets.
+    #[allow(clippy::too_many_arguments)]
     pub fn macro_to_bytecode<'a>(
         evm_version: &EVMVersion,
         macro_def: &'a MacroDefinition,

@@ -118,6 +118,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
 
     /// Creates a new instance of a compiler with an in-memory FileReader from the supplied sources
     /// map.
+    #[allow(clippy::too_many_arguments)]
     pub fn new_in_memory(
         evm_version: &'l EVMVersion,
         sources: Arc<Vec<String>>,
