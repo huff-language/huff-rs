@@ -81,7 +81,7 @@ pub fn literal_gen(evm_version: &EVMVersion, l: &[u8; 32]) -> String {
 }
 
 fn format_push0(evm_version: &EVMVersion, hex_literal: String) -> String {
-    if evm_version.is_shanghai_and_later() {
+    if evm_version.has_push0() {
         Opcode::Push0.to_string()
     } else {
         format_literal(hex_literal)

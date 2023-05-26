@@ -25,7 +25,7 @@ impl EVMVersion {
     }
 
     /// As PartialOrd is implemented in the struct, all versions after shanghai will support this
-    pub fn is_shanghai_and_later(&self) -> bool {
+    pub fn has_push0(&self) -> bool {
         self.version >= SupportedEVMVersions::Shanghai
     }
 }
