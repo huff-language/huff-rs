@@ -132,7 +132,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
             Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
         Self {
-            evm_version: &evm_version,
+            evm_version,
             sources,
             output: None,
             alternative_main,

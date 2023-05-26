@@ -550,7 +550,7 @@ pub struct MacroDefinition {
 impl ToIRBytecode<CodegenError> for MacroDefinition {
     fn to_irbytecode(&self, evm_version: &EVMVersion) -> Result<IRBytecode, CodegenError> {
         let inner_irbytes: Vec<IRBytes> =
-            MacroDefinition::to_irbytes(&evm_version, &self.statements);
+            MacroDefinition::to_irbytes(evm_version, &self.statements);
         Ok(IRBytecode(inner_irbytes))
     }
 }
@@ -675,7 +675,7 @@ impl MacroDefinition {
                     });
 
                     // Recurse label statements to IRBytes Bytes
-                    inner_irbytes.append(&mut MacroDefinition::to_irbytes(&evm_version, &l.inner));
+                    inner_irbytes.append(&mut MacroDefinition::to_irbytes(evm_version, &l.inner));
                 }
                 StatementType::BuiltinFunctionCall(builtin) => {
                     inner_irbytes.push(IRBytes {

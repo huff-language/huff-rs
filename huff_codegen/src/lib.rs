@@ -68,7 +68,7 @@ impl Codegen {
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
-            &evm_version,
+            evm_version,
             m_macro,
             contract,
             &mut vec![m_macro],
@@ -276,8 +276,8 @@ impl Codegen {
     /// * `scope` - Current scope of the recursion. Contains all macro definitions recursed so far.
     /// * `offset` - Current bytecode offset
     /// * `mis` - Vector of tuples containing parent macro invocations as well as their offsets.
-    pub fn macro_to_bytecode<'a, 'l>(
-        evm_version: &'l EVMVersion,
+    pub fn macro_to_bytecode<'a>(
+        evm_version: &EVMVersion,
         macro_def: &'a MacroDefinition,
         contract: &'a Contract,
         scope: &mut Vec<&'a MacroDefinition>,
@@ -307,7 +307,7 @@ impl Codegen {
                     bytes.push((starting_offset, b.to_owned()));
                 }
                 IRByteType::Constant(name) => {
-                    let push_bytes = constant_gen(&evm_version, name, contract, ir_byte.span)?;
+                    let push_bytes = constant_gen(evm_version, name, contract, ir_byte.span)?;
                     offset += push_bytes.len() / 2;
                     tracing::debug!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                     bytes.push((starting_offset, Bytes(push_bytes)));
