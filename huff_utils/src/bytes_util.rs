@@ -1,5 +1,5 @@
+use crate::evm::Opcode;
 use std::num::ParseIntError;
-
 use tiny_keccak::{Hasher, Keccak};
 
 /// Convert a string slice to a `[u8; 32]`
@@ -72,8 +72,8 @@ pub fn hash_bytes(dest: &mut [u8], to_hash: &String) {
 /// Converts a value literal to its smallest equivalent `PUSHX` bytecode
 pub fn literal_gen(l: &[u8; 32]) -> String {
     let hex_literal: String = bytes32_to_string(l, false);
-    if hex_literal == "00" {
-        return "5f".to_string()
+    match hex_literal.as_str() {
+        "00" => Opcode::Push0.to_string(),
+        _ => format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2),
     }
-    format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2)
 }
