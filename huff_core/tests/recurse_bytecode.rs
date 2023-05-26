@@ -52,10 +52,12 @@ fn recurse_macro_bytecode() {
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
 
+    let evm_version = &EVMVersion::default();
+
     // Create main and constructor bytecode
-    let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let main_bytecode = Codegen::generate_main_bytecode(evm_version, &contract, None).unwrap();
     let (constructor_bytecode, has_custom_bootstrap) =
-        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+        Codegen::generate_constructor_bytecode(evm_version, &contract, None).unwrap();
     assert!(!has_custom_bootstrap);
 
     // Full expected bytecode output (generated from huffc) (placed here as a reference)

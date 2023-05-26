@@ -18,12 +18,14 @@ Below we demonstrate taking a source file `../huff-examples/erc20/contracts/ERC2
 use huff_core::Compiler;
 use huff_utils::error::CompilerError;
 use huff_utils::artifact::Artifact;
+use huff_utils::prelude::EVMVersion;
 use std::sync::Arc;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-// Instantiate the Compiler Instance
-let mut compiler = Compiler::new(Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]), None, None, None, None, None, false, false);
+// Instantiate the Compiler Instance with a targeted evm version.
+let evm_version = &EVMVersion::default();
+let mut compiler = Compiler::new(evm_version, Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]), None, None, None, None, None, false, false);
 
 // Execute the compiler
 let res: Result<Vec<Arc<Artifact>>, Arc<CompilerError>> = compiler.execute();

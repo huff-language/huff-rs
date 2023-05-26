@@ -43,9 +43,11 @@ pub(crate) mod cache;
 ///
 /// ```rust
 /// use huff_core::Compiler;
+/// use huff_utils::prelude::EVMVersion;
 /// use std::sync::Arc;
 ///
 /// let compiler = Compiler::new(
+///     &EVMVersion::default(),
 ///     Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]),
 ///     Some("./artifacts".to_string()),
 ///     None,

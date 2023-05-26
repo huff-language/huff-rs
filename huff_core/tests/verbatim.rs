@@ -19,7 +19,7 @@ fn test_verbatim() {
     contract.derive_storage_pointers();
 
     // Get main bytecode with verbatim
-    match Codegen::generate_main_bytecode(&contract, None) {
+    match Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None) {
         Ok(mb) => assert_eq!(mb, "1234567890abcdef".to_string()),
         Err(_) => panic!("moose"),
     }
@@ -41,5 +41,5 @@ fn test_verbatim_invalid_hex() {
     contract.derive_storage_pointers();
 
     // Expect failure to generate bytecode with verbatim
-    assert!(Codegen::generate_main_bytecode(&contract, None).is_err());
+    assert!(Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).is_err());
 }

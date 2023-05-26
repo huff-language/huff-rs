@@ -26,8 +26,8 @@ fn test_alternative_main_macro_provided() {
 
     let alternative_main = Some(String::from("MINT"));
 
-    // Createconstructor bytecode
-    match Codegen::generate_main_bytecode(&contract, alternative_main) {
+    // Create main bytecode
+    match Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, alternative_main) {
         Ok(mb) => assert_eq!(mb, "6004355f602435".to_string()),
         Err(_) => panic!("moose"),
     }

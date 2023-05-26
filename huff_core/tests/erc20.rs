@@ -35,9 +35,10 @@ fn test_erc20_compile() {
     contract.derive_storage_pointers();
 
     // Create main and constructor bytecode
-    let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let main_bytecode =
+        Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
     let (constructor_bytecode, has_custom_bootstrap) =
-        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+        Codegen::generate_constructor_bytecode(&EVMVersion::default(), &contract, None).unwrap();
 
     // Churn
     let mut cg = Codegen::new();
