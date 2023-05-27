@@ -17,6 +17,7 @@ use huff_tests::{
     HuffTester,
 };
 use huff_utils::{
+    config::HuffConfig,
     file_provider::FileSystemFileProvider,
     prelude::{
         export_interfaces, gen_sol_interfaces, str_to_bytes32, unpack_files, AstSpan, BytecodeRes,
@@ -190,6 +191,9 @@ fn main() {
             .collect()
     });
 
+    // Parse external config
+    let config = HuffConfig::new("./");
+
     // Parse the EVM version
     let evm_version = EVMVersion::from(cli.evm_version);
 
@@ -212,7 +216,7 @@ fn main() {
     };
 
     let compiler: Compiler = Compiler {
-        evm_version: &evm_version,
+        huff_config: config,
         sources: Arc::clone(&sources),
         output,
         alternative_main: cli.alternative_main.clone(),

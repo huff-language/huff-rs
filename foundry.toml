@@ -3,3 +3,4 @@ optimizer = true
 remappings = [
     "examples/=huff-examples/",
 ]
+evm_version = "paris"

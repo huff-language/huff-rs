@@ -6,9 +6,10 @@
 
 use huff_utils::{
     ast::*,
+    config::HuffConfig,
     error::*,
-    files,
     prelude::{bytes32_to_string, hash_bytes, str_to_bytes32, Span},
+    remapper::Remapper,
     token::{Token, TokenKind},
     types::*,
 };
@@ -17,6 +18,8 @@ use regex::Regex;
 /// The Parser
 #[derive(Debug, Clone)]
 pub struct Parser {
+    /// Config
+    pub config: HuffConfig,
     /// Vector of the tokens
     pub tokens: Vec<Token>,
     /// Current position
@@ -27,16 +30,13 @@ pub struct Parser {
     pub base: Option<String>,
     /// A collection of current spans
     pub spans: Vec<Span>,
-    /// Our remapper
-    pub remapper: files::Remapper,
 }
 
 impl Parser {
     /// Public associated function that instantiates a Parser.
-    pub fn new(tokens: Vec<Token>, base: Option<String>) -> Self {
+    pub fn new(config: HuffConfig, tokens: Vec<Token>, base: Option<String>) -> Self {
         let initial_token = tokens.get(0).unwrap().clone();
-        let remapper = files::Remapper::new("./");
-        Self { tokens, cursor: 0, current_token: initial_token, base, spans: vec![], remapper }
+        Self { config, tokens, cursor: 0, current_token: initial_token, base, spans: vec![] }
     }
 
     /// Resets the current token and cursor to the first token in the parser's token vec
