@@ -137,7 +137,7 @@ pub(crate) fn get_input(prompt: &str) -> String {
 
 fn main() {
     // Into App
-    let app: App = Huff::into_app();
+    let mut app: App = Huff::into_app();
 
     // Parse the command line arguments
     let mut cli = Huff::parse();
@@ -145,6 +145,13 @@ fn main() {
     // Initiate Tracing if Verbose
     if cli.verbose {
         Compiler::init_tracing_subscriber(Some(vec![tracing::Level::DEBUG.into()]));
+    }
+
+    // Check if no argument is provided
+    if cli.path.is_none() {
+        // Print help and exit
+        app.print_help().unwrap();
+        return
     }
 
     // Create compiler from the Huff Args
