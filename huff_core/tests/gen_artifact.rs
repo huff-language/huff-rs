@@ -40,8 +40,7 @@ fn test_missing_constructor() {
             assert_eq!(artifact.file, arc_source);
             assert_eq!(
                 artifact.bytecode,
-                "601a8060093d393df360003560e01c806340c10f1914610011575b6004356000602435"
-                    .to_string()
+                "60188060093d393df35f3560e01c806340c10f1914610010575b6004355f602435".to_string()
             );
         }
         _ => panic!("moose"),

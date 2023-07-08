@@ -28,7 +28,7 @@ fn test_alternative_main_macro_provided() {
 
     // Createconstructor bytecode
     match Codegen::generate_main_bytecode(&contract, alternative_main) {
-        Ok(mb) => assert_eq!(mb, "6004356000602435".to_string()),
+        Ok(mb) => assert_eq!(mb, "6004355f602435".to_string()),
         Err(_) => panic!("moose"),
     }
 }

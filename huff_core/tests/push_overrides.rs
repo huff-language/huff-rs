@@ -124,3 +124,40 @@ fn test_fails_on_push_underflow() {
     let mut parser = Parser::new(tokens, None);
     parser.parse().unwrap();
 }
+
+#[test]
+fn test_literal_to_push0() {
+    const LITERAL_PUSH: &str = r#"
+        #define constant ALICE = 0x0000
+        #define constant BOB = 0x0001
+
+        #define macro MAIN() = {
+            push0
+            0x00
+            0x000000
+            push1 0x00
+            [ALICE]
+            [BOB]
+        }
+    "#;
+
+    let flattened_source = FullFileSource { source: LITERAL_PUSH, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source.source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let mut contract = parser.parse().unwrap();
+    // Derive storage pointers
+    contract.derive_storage_pointers();
+
+    // Instantiate Codegen
+    let cg = Codegen::new();
+
+    // The codegen instance should have no artifact
+    assert!(cg.artifact.is_none());
+
+    // Have the Codegen create the constructor bytecode
+    let cbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    assert_eq!(cbytes, String::from("5f5f5f60005f6001"));
+}
