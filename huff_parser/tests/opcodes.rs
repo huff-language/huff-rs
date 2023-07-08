@@ -25,8 +25,6 @@ fn not_mistaken_as_opcode() {
             .filter(|x| !matches!(x.kind, TokenKind::Whitespace))
             .collect::<Vec<Token>>();
 
-        dbg!(tokens.clone());
-
         let actual_label_arg = tokens[tokens.len() - 7].kind.clone();
         let actual_label = tokens[tokens.len() - 5].kind.clone();
         let mut parser = Parser::new(tokens, None);
