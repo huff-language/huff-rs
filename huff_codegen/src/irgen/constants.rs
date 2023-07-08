@@ -1,12 +1,13 @@
 use huff_utils::prelude::{
-    bytes32_to_string, AstSpan, CodegenError, CodegenErrorKind, ConstVal, Contract,
+    literal_gen, AstSpan, CodegenError, CodegenErrorKind, ConstVal, Contract, EVMVersion,
 };
 
 /// Transforms a constant definition into it's respective bytecode
 pub fn constant_gen(
+    evm_version: &EVMVersion,
     name: &str,
     contract: &Contract,
-    ir_byte_span: AstSpan,
+    ir_byte_span: &AstSpan,
 ) -> Result<String, CodegenError> {
     // Get the first `ConstantDefinition` that matches the constant's name
     let constants = contract
@@ -20,7 +21,7 @@ pub fn constant_gen(
 
         return Err(CodegenError {
             kind: CodegenErrorKind::MissingConstantDefinition(name.to_string()),
-            span: ir_byte_span,
+            span: ir_byte_span.clone(),
             token: None,
         })
     };
@@ -30,10 +31,7 @@ pub fn constant_gen(
     // prior to generating the IR bytes.
     tracing::info!(target: "codegen", "FOUND CONSTANT DEFINITION: {}", constant.name);
     let push_bytes = match &constant.value {
-        ConstVal::Literal(l) => {
-            let hex_literal: String = bytes32_to_string(l, false);
-            format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2)
-        }
+        ConstVal::Literal(l) => literal_gen(evm_version, l),
         ConstVal::FreeStoragePointer(fsp) => {
             // If this is reached in codegen stage, the `derive_storage_pointers`
             // method was not called on the AST.

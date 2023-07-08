@@ -1,9 +1,9 @@
 use huff_codegen::Codegen;
-use huff_lexer::Lexer;
+use huff_lexer::*;
 use huff_parser::Parser;
 use huff_utils::{
     error::CodegenErrorKind,
-    prelude::{FullFileSource, Token},
+    prelude::{EVMVersion, FullFileSource, Token},
 };
 
 #[test]
@@ -24,7 +24,7 @@ fn test_invocation_should_fail() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -42,7 +42,7 @@ fn test_invocation_should_fail() {
 
     // Have the Codegen create the runtime bytecode. Should throw an error because test
     // invocation is not allowed.
-    match Codegen::generate_main_bytecode(&contract, None) {
+    match Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None) {
         Ok(_) => panic!("Expected an error"),
         Err(e) => {
             assert_eq!(

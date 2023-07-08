@@ -6,6 +6,7 @@ use crate::{
     bytes_util::*,
     error::CodegenError,
     evm::Opcode,
+    evm_version::EVMVersion,
     prelude::{MacroArg::Ident, Span, TokenKind},
 };
 use std::{
@@ -97,18 +98,18 @@ pub struct Contract {
     /// Custom Errors
     pub errors: Vec<ErrorDefinition>,
     /// Functions
-    pub functions: Vec<Function>,
+    pub functions: Vec<FunctionDefinition>,
     /// Events
-    pub events: Vec<Event>,
+    pub events: Vec<EventDefinition>,
     /// Tables
     pub tables: Vec<TableDefinition>,
 }
 
 impl Contract {
     /// Returns the first macro that matches the provided name
-    pub fn find_macro_by_name(&self, name: &str) -> Option<MacroDefinition> {
+    pub fn find_macro_by_name(&self, name: &str) -> Option<&MacroDefinition> {
         if let Some(m) = self.macros.iter().find(|m| m.name == name) {
-            Some(m.clone())
+            Some(m)
         } else {
             tracing::warn!("Failed to find macro \"{}\" in contract", name);
             None
@@ -133,7 +134,7 @@ impl Contract {
         // Derive Constructor Storage Pointers
         match self.find_macro_by_name("CONSTRUCTOR") {
             Some(m) => self.recurse_ast_constants(
-                &m,
+                m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
                 false,
@@ -147,7 +148,7 @@ impl Contract {
         // Derive Main Storage Pointers
         match self.find_macro_by_name("MAIN") {
             Some(m) => self.recurse_ast_constants(
-                &m,
+                m,
                 &mut storage_pointers,
                 &mut last_assigned_free_pointer,
                 false,
@@ -419,7 +420,7 @@ pub struct Argument {
 
 /// A Function Signature
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Function {
+pub struct FunctionDefinition {
     /// The name of the function
     pub name: String,
     /// The function signature
@@ -461,7 +462,7 @@ impl FunctionType {
 
 /// An Event Signature
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Event {
+pub struct EventDefinition {
     /// The name of the event
     pub name: String,
     /// The parameters of the event
@@ -547,8 +548,9 @@ pub struct MacroDefinition {
 }
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
-    fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError> {
-        let inner_irbytes: Vec<IRBytes> = MacroDefinition::to_irbytes(&self.statements);
+    fn to_irbytecode(&self, evm_version: &EVMVersion) -> Result<IRBytecode, CodegenError> {
+        let inner_irbytes: Vec<IRBytes> =
+            MacroDefinition::to_irbytes(evm_version, &self.statements);
         Ok(IRBytecode(inner_irbytes))
     }
 }
@@ -581,36 +583,38 @@ impl MacroDefinition {
     }
 
     /// Translate statements into IRBytes
-    pub fn to_irbytes(statements: &[Statement]) -> Vec<IRBytes> {
+    pub fn to_irbytes<'a>(
+        evm_version: &EVMVersion,
+        statements: &'a [Statement],
+    ) -> Vec<IRBytes<'a>> {
         let mut inner_irbytes: Vec<IRBytes> = vec![];
 
         let mut statement_iter = statements.iter();
         while let Some(statement) = statement_iter.next() {
             match &statement.ty {
                 StatementType::Literal(l) => {
-                    let hex_literal: String = bytes32_to_string(l, false);
-                    let push_bytes = format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2);
+                    let push_bytes = literal_gen(evm_version, l);
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(push_bytes)),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::Opcode(o) => {
                     let opcode_str = o.string();
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(opcode_str)),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
-                    // If the opcode is a push, we need to consume the next statement, which must be
-                    // a literal as checked in the parser
-                    if o.is_push() {
+                    // If the opcode is a push that takes a literal value, we need to consume the
+                    // next statement, which must be a literal as checked in the parser
+                    if o.is_value_push() {
                         match statement_iter.next() {
                             Some(Statement { ty: StatementType::Literal(l), span: _ }) => {
                                 let hex_literal: String = bytes32_to_string(l, false);
                                 let prefixed_hex_literal = o.prefix_push_literal(&hex_literal);
                                 inner_irbytes.push(IRBytes {
                                     ty: IRByteType::Bytes(Bytes(prefixed_hex_literal)),
-                                    span: statement.span.clone(),
+                                    span: &statement.span,
                                 });
                             }
                             _ => {
@@ -624,7 +628,7 @@ impl MacroDefinition {
                 StatementType::Code(c) => {
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(c.to_owned())),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::MacroInvocation(mi) => {
@@ -633,21 +637,21 @@ impl MacroDefinition {
                             ty: StatementType::MacroInvocation(mi.clone()),
                             span: statement.span.clone(),
                         }),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::Constant(name) => {
                     // Constant needs to be evaluated at the top-level
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Constant(name.to_owned()),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::ArgCall(arg_name) => {
                     // Arg call needs to use a destination defined in the calling macro context
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::ArgCall(arg_name.to_owned()),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::LabelCall(jump_to) => {
@@ -657,7 +661,7 @@ impl MacroDefinition {
                             ty: StatementType::LabelCall(jump_to.to_string()),
                             span: statement.span.clone(),
                         }),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
                 StatementType::Label(l) => {
@@ -667,11 +671,11 @@ impl MacroDefinition {
                             ty: StatementType::Label(l.clone()),
                             span: statement.span.clone(),
                         }),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
 
                     // Recurse label statements to IRBytes Bytes
-                    inner_irbytes.append(&mut MacroDefinition::to_irbytes(&l.inner));
+                    inner_irbytes.append(&mut MacroDefinition::to_irbytes(evm_version, &l.inner));
                 }
                 StatementType::BuiltinFunctionCall(builtin) => {
                     inner_irbytes.push(IRBytes {
@@ -679,7 +683,7 @@ impl MacroDefinition {
                             ty: StatementType::BuiltinFunctionCall(builtin.clone()),
                             span: statement.span.clone(),
                         }),
-                        span: statement.span.clone(),
+                        span: &statement.span,
                     });
                 }
             }

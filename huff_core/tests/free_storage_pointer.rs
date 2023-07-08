@@ -1,7 +1,10 @@
 use huff_codegen::Codegen;
-use huff_lexer::Lexer;
+use huff_lexer::*;
 use huff_parser::Parser;
-use huff_utils::{prelude::FullFileSource, token::Token};
+use huff_utils::{
+    prelude::{EVMVersion, FullFileSource},
+    token::Token,
+};
 
 /// Check that free storage pointers referenced outside of macro bodies
 /// are assigned correctly at compilation
@@ -21,7 +24,7 @@ fn test_set_free_storage_pointers() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -32,6 +35,6 @@ fn test_set_free_storage_pointers() {
     contract.derive_storage_pointers();
 
     // Assert the Free storage pointer has been set to 0
-    let mbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let mbytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
     assert!(mbytes.starts_with("6000"));
 }

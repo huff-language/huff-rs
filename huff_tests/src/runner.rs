@@ -7,7 +7,7 @@ use ethers_core::{
 use huff_codegen::Codegen;
 use huff_utils::{
     ast::{DecoratorFlag, MacroDefinition},
-    prelude::{pad_n_bytes, CompilerError, Contract},
+    prelude::{pad_n_bytes, CompilerError, Contract, EVMVersion},
 };
 use revm::{
     db::DbAccount,
@@ -170,13 +170,17 @@ impl TestRunner {
         m: &MacroDefinition,
         contract: &Contract,
     ) -> Result<TestResult, RunnerError> {
+        // TODO: set to non default
+        let evm_version = EVMVersion::default();
+
         let name = m.name.to_owned();
 
         // Compile the passed test macro
         match Codegen::macro_to_bytecode(
-            m.to_owned(),
+            &evm_version,
+            m,
             contract,
-            &mut vec![m.to_owned()],
+            &mut vec![m],
             0,
             &mut Vec::default(),
             false,

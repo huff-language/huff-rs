@@ -131,6 +131,18 @@ pub enum TokenKind {
     Storage,
 }
 
+impl TokenKind {
+    /// Transform a single char TokenKind into a Token given a single position
+    pub fn into_single_span(self, position: u32) -> Token {
+        self.into_span(position, position)
+    }
+
+    /// Transform a TokenKind into a Token given a start and end position
+    pub fn into_span(self, start: u32, end: u32) -> Token {
+        Token { kind: self, span: Span { start: start as usize, end: end as usize, file: None } }
+    }
+}
+
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let x = match self {

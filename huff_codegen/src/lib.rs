@@ -12,7 +12,7 @@ use huff_utils::{
     bytes_util,
     error::CodegenError,
     evm::Opcode,
-    prelude::{format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span},
+    prelude::{format_even_bytes, pad_n_bytes, CodegenErrorKind, EVMVersion, FileSource, Span},
     types::EToken,
 };
 use regex::Regex;
@@ -56,6 +56,7 @@ impl Codegen {
 
     /// Generates main bytecode from a Contract AST
     pub fn generate_main_bytecode(
+        evm_version: &EVMVersion,
         contract: &Contract,
         alternative_main: Option<String>,
     ) -> Result<String, CodegenError> {
@@ -67,7 +68,8 @@ impl Codegen {
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
-            m_macro.clone(),
+            evm_version,
+            m_macro,
             contract,
             &mut vec![m_macro],
             0,
@@ -84,6 +86,7 @@ impl Codegen {
 
     /// Generates constructor bytecode from a Contract AST
     pub fn generate_constructor_bytecode(
+        evm_version: &EVMVersion,
         contract: &Contract,
         alternative_constructor: Option<String>,
     ) -> Result<(String, bool), CodegenError> {
@@ -96,7 +99,8 @@ impl Codegen {
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
-            c_macro.clone(),
+            evm_version,
+            c_macro,
             contract,
             &mut vec![c_macro],
             0,
@@ -116,10 +120,10 @@ impl Codegen {
     }
 
     /// Helper function to find a macro or generate a CodegenError
-    pub(crate) fn get_macro_by_name(
+    pub(crate) fn get_macro_by_name<'a>(
         name: &str,
-        contract: &Contract,
-    ) -> Result<MacroDefinition, CodegenError> {
+        contract: &'a Contract,
+    ) -> Result<&'a MacroDefinition, CodegenError> {
         if let Some(m) = contract.find_macro_by_name(name) {
             Ok(m)
         } else {
@@ -272,10 +276,12 @@ impl Codegen {
     /// * `scope` - Current scope of the recursion. Contains all macro definitions recursed so far.
     /// * `offset` - Current bytecode offset
     /// * `mis` - Vector of tuples containing parent macro invocations as well as their offsets.
-    pub fn macro_to_bytecode(
-        macro_def: MacroDefinition,
-        contract: &Contract,
-        scope: &mut Vec<MacroDefinition>,
+    #[allow(clippy::too_many_arguments)]
+    pub fn macro_to_bytecode<'a>(
+        evm_version: &EVMVersion,
+        macro_def: &'a MacroDefinition,
+        contract: &'a Contract,
+        scope: &mut Vec<&'a MacroDefinition>,
         mut offset: usize,
         mis: &mut Vec<(usize, MacroInvocation)>,
         recursing_constructor: bool,
@@ -283,7 +289,7 @@ impl Codegen {
     ) -> Result<BytecodeRes, CodegenError> {
         // Get intermediate bytecode representation of the macro definition
         let mut bytes: Vec<(usize, Bytes)> = Vec::default();
-        let ir_bytes = macro_def.to_irbytecode()?.0;
+        let ir_bytes = macro_def.to_irbytecode(evm_version)?.0;
 
         // Define outer loop variables
         let mut jump_table = JumpTable::new();
@@ -294,15 +300,15 @@ impl Codegen {
         let circular_codesize_invocations = circular_codesize_invocations.unwrap_or(&mut ccsi);
 
         // Loop through all intermediate bytecode representations generated from the AST
-        for (_ir_bytes_index, ir_byte) in ir_bytes.into_iter().enumerate() {
+        for (_ir_bytes_index, ir_byte) in ir_bytes.iter().enumerate() {
             let starting_offset = offset;
-            match ir_byte.ty {
+            match &ir_byte.ty {
                 IRByteType::Bytes(b) => {
                     offset += b.0.len() / 2;
-                    bytes.push((starting_offset, b));
+                    bytes.push((starting_offset, b.to_owned()));
                 }
                 IRByteType::Constant(name) => {
-                    let push_bytes = constant_gen(&name, contract, ir_byte.span)?;
+                    let push_bytes = constant_gen(evm_version, name, contract, ir_byte.span)?;
                     offset += push_bytes.len() / 2;
                     tracing::debug!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                     bytes.push((starting_offset, Bytes(push_bytes)));
@@ -314,9 +320,10 @@ impl Codegen {
                         continue
                     }
                     let mut push_bytes = statement_gen(
-                        &s,
+                        evm_version,
+                        s,
                         contract,
-                        &macro_def,
+                        macro_def,
                         scope,
                         &mut offset,
                         mis,
@@ -333,9 +340,9 @@ impl Codegen {
                     // Bubble up arg call by looking through the previous scopes.
                     // Once the arg value is found, add it to `bytes`
                     bubble_arg_call(
-                        &arg_name,
+                        arg_name,
                         &mut bytes,
-                        &macro_def,
+                        macro_def,
                         contract,
                         scope,
                         &mut offset,
@@ -355,6 +362,7 @@ impl Codegen {
         // (i.e., we're at the top level of recursion)
         if scope.len() == 1 {
             bytes = Codegen::append_functions(
+                evm_version,
                 contract,
                 scope,
                 &mut offset,
@@ -534,9 +542,10 @@ impl Codegen {
     /// On success, passes ownership of `bytes` back to the caller.
     /// On failure, returns a CodegenError.
     #[allow(clippy::too_many_arguments)]
-    pub fn append_functions(
-        contract: &Contract,
-        scope: &mut Vec<MacroDefinition>,
+    pub fn append_functions<'a>(
+        evm_version: &EVMVersion,
+        contract: &'a Contract,
+        scope: &mut Vec<&'a MacroDefinition>,
         offset: &mut usize,
         mis: &mut Vec<(usize, MacroInvocation)>,
         jump_table: &mut JumpTable,
@@ -546,11 +555,12 @@ impl Codegen {
     ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
         for macro_def in contract.macros.iter().filter(|m| m.outlined) {
             // Push the function to the scope
-            scope.push(macro_def.clone());
+            scope.push(macro_def);
 
             // Add 1 to starting offset to account for the JUMPDEST opcode
             let mut res = Codegen::macro_to_bytecode(
-                macro_def.clone(),
+                evm_version,
+                macro_def,
                 contract,
                 scope,
                 *offset + 1,
@@ -610,7 +620,7 @@ impl Codegen {
         constructor_bytecode: &str,
         has_custom_bootstrap: bool,
     ) -> Result<Artifact, CodegenError> {
-        let mut artifact: &mut Artifact = if let Some(art) = &mut self.artifact {
+        let artifact: &mut Artifact = if let Some(art) = &mut self.artifact {
             art
         } else {
             self.artifact = Some(Artifact::default());

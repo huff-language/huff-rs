@@ -3,20 +3,23 @@ use std::{path::PathBuf, sync::Arc};
 use huff_core::Compiler;
 use huff_utils::{
     file_provider::{FileProvider, FileSystemFileProvider},
-    prelude::{CompilerError, OutputLocation, UnpackError},
+    prelude::{CompilerError, EVMVersion, OutputLocation, UnpackError},
 };
 
 #[test]
 fn test_get_outputs_no_output() {
+    let evm_version = EVMVersion::default();
     let compiler: Compiler =
-        Compiler::new(Arc::new(vec![]), None, None, None, None, None, false, false);
+        Compiler::new(&evm_version, Arc::new(vec![]), None, None, None, None, None, false, false);
     let ol: OutputLocation = compiler.get_outputs();
     assert_eq!(ol, OutputLocation::default());
 }
 
 #[test]
 fn test_get_outputs_with_output() {
+    let evm_version = EVMVersion::default();
     let compiler: Compiler = Compiler::new(
+        &evm_version,
         Arc::new(vec![]),
         Some("./test_out/".to_string()),
         None,
@@ -33,7 +36,7 @@ fn test_get_outputs_with_output() {
 #[test]
 fn test_transform_paths() {
     let file_provider = FileSystemFileProvider {};
-    let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> = file_provider.transform_paths(&[
+    let path_bufs: Result<Vec<PathBuf>, CompilerError> = file_provider.transform_paths(&[
         "../huff-examples/erc20/contracts/ERC20.huff".to_string(),
         "../huff-examples/erc20/contracts/utils/".to_string(),
     ]);
@@ -66,7 +69,7 @@ fn test_transform_paths() {
 #[test]
 fn test_transform_paths_non_huff() {
     let file_provider = FileSystemFileProvider {};
-    let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> =
+    let path_bufs: Result<Vec<PathBuf>, CompilerError> =
         file_provider.transform_paths(&["./ERC20.txt".to_string()]);
     assert!(path_bufs.is_err());
     match path_bufs {
@@ -82,7 +85,7 @@ fn test_transform_paths_non_huff() {
 #[test]
 fn test_transform_paths_no_dir() {
     let file_provider = FileSystemFileProvider {};
-    let path_bufs: Result<Vec<PathBuf>, CompilerError<'_>> =
+    let path_bufs: Result<Vec<PathBuf>, CompilerError> =
         file_provider.transform_paths(&["./examples/random_dir/".to_string()]);
     assert!(path_bufs.is_err());
     match path_bufs {

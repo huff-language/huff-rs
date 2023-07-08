@@ -37,14 +37,14 @@ fn test_circular_large_constructors() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
 
     // Create constructor bytecode
-    match Codegen::generate_constructor_bytecode(&contract, None) {
+    match Codegen::generate_constructor_bytecode(&EVMVersion::default(),&contract, None) {
         Ok((mb, _)) => assert_eq!("60ff58585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858".to_string(), mb), 
         Err(_) => panic!("moose"),
     }
@@ -85,14 +85,14 @@ fn test_circular_constructor_at_word_boundry() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
 
     // Create constructor bytecode
-    match Codegen::generate_constructor_bytecode(&contract, None) {
+    match Codegen::generate_constructor_bytecode(&EVMVersion::default(),&contract, None) {
         Ok((mb, _)) => assert_eq!("61010358585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858610103".to_string(), mb), 
         Err(_) => panic!("moose"),
     }
@@ -118,14 +118,14 @@ fn test_double_circular_constructor_multiple_macro_invocations() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
 
     // Create constructor bytecode
-    match Codegen::generate_constructor_bytecode(&contract, None) {
+    match Codegen::generate_constructor_bytecode(&EVMVersion::default(), &contract, None) {
         Ok((mb, _)) => assert_eq!("60075860076007".to_string(), mb),
         Err(_) => panic!("moose"),
     }
@@ -155,14 +155,14 @@ fn test_double_circular_constructor_nested_macro_invocations() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
 
     // Create constructor bytecode
-    match Codegen::generate_constructor_bytecode(&contract, None) {
+    match Codegen::generate_constructor_bytecode(&EVMVersion::default(), &contract, None) {
         Ok((mb, _)) => assert_eq!("600a58600a586003600a".to_string(), mb),
         Err(_) => panic!("moose"),
     }

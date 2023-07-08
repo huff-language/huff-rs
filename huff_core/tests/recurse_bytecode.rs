@@ -1,5 +1,5 @@
 use huff_codegen::Codegen;
-use huff_lexer::Lexer;
+use huff_lexer::*;
 use huff_parser::Parser;
 use huff_utils::prelude::*;
 
@@ -46,20 +46,22 @@ fn recurse_macro_bytecode() {
 
     // Lex + Parse
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
 
+    let evm_version = &EVMVersion::default();
+
     // Create main and constructor bytecode
-    let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let main_bytecode = Codegen::generate_main_bytecode(evm_version, &contract, None).unwrap();
     let (constructor_bytecode, has_custom_bootstrap) =
-        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+        Codegen::generate_constructor_bytecode(evm_version, &contract, None).unwrap();
     assert!(!has_custom_bootstrap);
 
     // Full expected bytecode output (generated from huffc) (placed here as a reference)
-    let expected_bytecode = "61003f8061000d6000396000f360003560E01c8063a9059cbb1461001c57806340c10f191461002e575b60043533602435600160005260206000f35b60043560006024358060005401600055";
+    let expected_bytecode = "6100398061000d6000396000f35f3560e01c8063a9059cbb1461001b57806340c10f191461002b575b6004353360243560015f5260205ff35b6004355f602435805f54015f55";
 
     // Construct the expected output
     let mut artifact = Artifact::default();

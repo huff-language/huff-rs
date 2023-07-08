@@ -18,7 +18,7 @@ fn test_alternative_main_macro_provided() {
     "#;
 
     let full_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(full_source);
+    let lexer = Lexer::new(full_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, Some("".to_string()));
     let mut contract = parser.parse().unwrap();
@@ -26,9 +26,9 @@ fn test_alternative_main_macro_provided() {
 
     let alternative_main = Some(String::from("MINT"));
 
-    // Createconstructor bytecode
-    match Codegen::generate_main_bytecode(&contract, alternative_main) {
-        Ok(mb) => assert_eq!(mb, "6004356000602435".to_string()),
+    // Create main bytecode
+    match Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, alternative_main) {
+        Ok(mb) => assert_eq!(mb, "6004355f602435".to_string()),
         Err(_) => panic!("moose"),
     }
 }

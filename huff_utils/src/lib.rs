@@ -54,10 +54,13 @@ pub mod time;
 /// Wasm Module
 pub mod wasm;
 
+/// EVM Version Module
+pub mod evm_version;
+
 /// Prelude wraps common utilities.
 pub mod prelude {
     pub use crate::{
-        abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, evm::*, files::*, io::*,
-        report::*, sol_interface::*, token::*, types::*,
+        abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, evm::*, evm_version::*,
+        files::*, io::*, report::*, sol_interface::*, token::*, types::*,
     };
 }

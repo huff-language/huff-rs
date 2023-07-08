@@ -43,9 +43,11 @@ pub(crate) mod cache;
 ///
 /// ```rust
 /// use huff_core::Compiler;
+/// use huff_utils::prelude::EVMVersion;
 /// use std::sync::Arc;
 ///
 /// let compiler = Compiler::new(
+///     &EVMVersion::default(),
 ///     Arc::new(vec!["../huff-examples/erc20/contracts/ERC20.huff".to_string()]),
 ///     Some("./artifacts".to_string()),
 ///     None,
@@ -57,7 +59,9 @@ pub(crate) mod cache;
 /// );
 /// ```
 #[derive(Debug, Clone)]
-pub struct Compiler<'a> {
+pub struct Compiler<'a, 'l> {
+    /// The EVM version to compile for
+    pub evm_version: &'l EVMVersion,
     /// The location of the files to compile
     pub sources: Arc<Vec<String>>,
     /// The output location
@@ -80,10 +84,11 @@ pub struct Compiler<'a> {
     pub file_provider: Arc<dyn FileProvider<'a>>,
 }
 
-impl<'a> Compiler<'a> {
+impl<'a, 'l> Compiler<'a, 'l> {
     /// Public associated function to instantiate a new compiler.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
+        evm_version: &'l EVMVersion,
         sources: Arc<Vec<String>>,
         output: Option<String>,
         alternative_main: Option<String>,
@@ -97,6 +102,7 @@ impl<'a> Compiler<'a> {
             Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
         Self {
+            evm_version,
             sources,
             output,
             alternative_main,
@@ -112,7 +118,9 @@ impl<'a> Compiler<'a> {
 
     /// Creates a new instance of a compiler with an in-memory FileReader from the supplied sources
     /// map.
+    #[allow(clippy::too_many_arguments)]
     pub fn new_in_memory(
+        evm_version: &'l EVMVersion,
         sources: Arc<Vec<String>>,
         file_sources: HashMap<String, String>,
         alternative_main: Option<String>,
@@ -125,6 +133,7 @@ impl<'a> Compiler<'a> {
             Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
         Self {
+            evm_version,
             sources,
             output: None,
             alternative_main,
@@ -166,7 +175,7 @@ impl<'a> Compiler<'a> {
     /// 4. For each top-level file [Parallelized], generate the artifact using
     /// [gen_artifact](Compiler::gen_artifact).
     /// 5. Return the compiling error(s) or successfully generated artifacts.
-    pub fn execute(&self) -> Result<Vec<Arc<Artifact>>, Arc<CompilerError<'a>>> {
+    pub fn execute(&self) -> Result<Vec<Arc<Artifact>>, Arc<CompilerError>> {
         // Grab the input files
         let file_paths: Vec<PathBuf> = self.file_provider.transform_paths(&self.sources)?;
 
@@ -214,13 +223,12 @@ impl<'a> Compiler<'a> {
             None => {
                 tracing::debug!(target: "core", "FINISHED RECURSING DEPENDENCIES!");
                 // Parallel Dependency Resolution
-                let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> =
-                    files
-                        .into_par_iter()
-                        .map(|v| {
-                            Self::recurse_deps(v, &Remapper::new("./"), self.file_provider.clone())
-                        })
-                        .collect();
+                let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError>>> = files
+                    .into_par_iter()
+                    .map(|v| {
+                        Self::recurse_deps(v, &Remapper::new("./"), self.file_provider.clone())
+                    })
+                    .collect();
 
                 // Collect Recurse Deps errors and try to resolve to the first one
                 let mut errors = recursed_file_sources
@@ -240,10 +248,10 @@ impl<'a> Compiler<'a> {
                 tracing::info!(target: "core", "COMPILER RECURSED {} FILE DEPENDENCIES", files.len());
 
                 // Parallel Compilation
-                let potential_artifacts: Vec<Result<Artifact, CompilerError<'a>>> =
+                let potential_artifacts: Vec<Result<Artifact, CompilerError>> =
                     files.into_par_iter().map(|f| self.gen_artifact(f)).collect();
 
-                let mut gen_errors: Vec<CompilerError<'a>> = vec![];
+                let mut gen_errors: Vec<CompilerError> = vec![];
 
                 // Output errors + return OR print # of successfully compiled files
                 for r in potential_artifacts {
@@ -275,7 +283,7 @@ impl<'a> Compiler<'a> {
     /// 3. Recurse file dependencies in parallel with [recurse_deps](Compiler::recurse_deps).
     /// 4. For each top-level file, parse its contents and return a vec of [Contract](Contract)
     ///    ASTs.
-    pub fn grab_contracts(&self) -> Result<Vec<Contract>, Arc<CompilerError<'a>>> {
+    pub fn grab_contracts(&self) -> Result<Vec<Contract>, Arc<CompilerError>> {
         // Grab the input files
         let file_paths: Vec<PathBuf> = self.file_provider.transform_paths(&self.sources)?;
 
@@ -297,7 +305,7 @@ impl<'a> Compiler<'a> {
             .filter_map(|fs| fs.as_ref().map(Arc::clone).ok())
             .collect::<Vec<Arc<FileSource>>>();
 
-        let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError<'a>>>> = files
+        let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError>>> = files
             .into_par_iter()
             .map(|f| {
                 Self::recurse_deps(
@@ -342,7 +350,7 @@ impl<'a> Compiler<'a> {
 
                 // Perform Lexical Analysis
                 // Create a new lexer from the FileSource, flattening dependencies
-                let lexer: Lexer = Lexer::new(full_source);
+                let lexer = Lexer::new(full_source.source);
 
                 // Grab the tokens from the lexer
                 let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
@@ -360,13 +368,13 @@ impl<'a> Compiler<'a> {
                 tracing::info!(target: "core", "PARSED CONTRACT [{}]", file.path);
                 Ok(contract)
             })
-            .collect::<Result<Vec<Contract>, Arc<CompilerError<'a>>>>()
+            .collect::<Result<Vec<Contract>, Arc<CompilerError>>>()
     }
 
     /// Artifact Generation
     ///
     /// Compiles a FileSource into an Artifact.
-    pub fn gen_artifact(&self, file: Arc<FileSource>) -> Result<Artifact, CompilerError<'a>> {
+    pub fn gen_artifact(&self, file: Arc<FileSource>) -> Result<Artifact, CompilerError> {
         // Fully Flatten a file into a source string containing source code of file and all
         // its dependencies
         let flattened = FileSource::fully_flatten(Arc::clone(&file));
@@ -380,7 +388,7 @@ impl<'a> Compiler<'a> {
 
         // Perform Lexical Analysis
         // Create a new lexer from the FileSource, flattening dependencies
-        let lexer: Lexer = Lexer::new(full_source);
+        let lexer = Lexer::new(full_source.source);
 
         // Grab the tokens from the lexer
         let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
@@ -400,6 +408,7 @@ impl<'a> Compiler<'a> {
         // Primary Bytecode Generation
         let mut cg = Codegen::new();
         let main_bytecode = match Codegen::generate_main_bytecode(
+            self.evm_version,
             &contract,
             self.alternative_main.clone(),
         ) {
@@ -427,6 +436,7 @@ impl<'a> Compiler<'a> {
         let inputs = self.get_constructor_args();
         let (constructor_bytecode, has_custom_bootstrap) =
             match Codegen::generate_constructor_bytecode(
+                self.evm_version,
                 &contract,
                 self.alternative_constructor.clone(),
             ) {
@@ -498,7 +508,7 @@ impl<'a> Compiler<'a> {
     pub fn fetch_sources(
         paths: Vec<PathBuf>,
         reader: Arc<dyn FileProvider<'a>>,
-    ) -> Vec<Result<Arc<FileSource>, CompilerError<'a>>> {
+    ) -> Vec<Result<Arc<FileSource>, CompilerError>> {
         paths.into_par_iter().map(|pb| reader.read_file(pb)).collect()
     }
 
@@ -507,7 +517,7 @@ impl<'a> Compiler<'a> {
         fs: Arc<FileSource>,
         remapper: &Remapper,
         reader: Arc<dyn FileProvider<'a>>,
-    ) -> Result<Arc<FileSource>, Arc<CompilerError<'a>>> {
+    ) -> Result<Arc<FileSource>, Arc<CompilerError>> {
         tracing::debug!(target: "core", "RECURSING DEPENDENCIES FOR {}", fs.path);
         let mut new_fs = FileSource { path: fs.path.clone(), ..Default::default() };
         let file_source = if let Some(s) = &fs.source {

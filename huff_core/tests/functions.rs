@@ -1,7 +1,7 @@
 use huff_codegen::Codegen;
-use huff_lexer::Lexer;
+use huff_lexer::*;
 use huff_parser::Parser;
-use huff_utils::prelude::{FileSource, FullFileSource, Token};
+use huff_utils::prelude::{EVMVersion, FileSource, FullFileSource, Token};
 use std::sync::Arc;
 
 #[test]
@@ -93,7 +93,7 @@ fn test_function() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -110,12 +110,12 @@ fn test_function() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the runtime bytecode
-    let rbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let rbytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
     // Churn
     let mut cg = Codegen::new();
     let artifact =
         cg.churn(Arc::clone(&Arc::new(FileSource::default())), vec![], &rbytes, "", false).unwrap();
-    assert_eq!(artifact.bytecode, String::from("60ad8060093d393df360003560e01c8063075900201461002757806319715c0d1461004457806327902d6914610061575b60443560243560043561003b92919061007e565b60005260206000f35b60443560243560043561005892919061007e565b60005260206000f35b60443560243560043561007592919061007e565b60005260206000f35b828282026000521515908015906000510483141716156100a457506000510460016100aa575b60006000fd5b9056"));
+    assert_eq!(artifact.bytecode, String::from("60a18060093d393df35f3560e01c8063075900201461002657806319715c0d1461004157806327902d691461005c575b60443560243560043561003a929190610077565b5f5260205ff35b604435602435600435610055929190610077565b5f5260205ff35b604435602435600435610070929190610077565b5f5260205ff35b828282025f521515908015905f5104831417161561009a57505f5104600161009e575b5f5ffd5b9056"));
 }
 
 #[test]
@@ -187,7 +187,7 @@ fn test_nested_function() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -204,10 +204,10 @@ fn test_nested_function() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the runtime bytecode
-    let rbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let rbytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
     // Churn
     let mut cg = Codegen::new();
     let artifact =
         cg.churn(Arc::clone(&Arc::new(FileSource::default())), vec![], &rbytes, "", false).unwrap();
-    assert_eq!(artifact.bytecode, String::from("606b8060093d393df360003560e01c80630759002014610011575b60443560243560043561002592919061005d565b60005260206000f35b82828202600052151590801590600051048314171615610054575060005104600161005a575b60006000fd5b90565b61006892919061002e565b9056"));
+    assert_eq!(artifact.bytecode, String::from("60638060093d393df35f3560e01c80630759002014610010575b604435602435600435610024929190610055565b5f5260205ff35b828282025f521515908015905f5104831417161561004e57505f51046001610052575b5f5ffd5b90565b61006092919061002b565b9056"));
 }

@@ -24,7 +24,7 @@ fn test_codesize_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -42,8 +42,8 @@ fn test_codesize_builtin() {
 
     // Have the Codegen create the constructor bytecode
     let (cbytes, custom_bootstrap) =
-        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
-    assert_eq!(cbytes, String::from("6004"));
+        Codegen::generate_constructor_bytecode(&EVMVersion::default(), &contract, None).unwrap();
+    assert_eq!(cbytes, String::from("6003"));
     assert!(!custom_bootstrap);
 }
 
@@ -60,7 +60,7 @@ fn test_dyn_constructor_arg_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -76,10 +76,12 @@ fn test_dyn_constructor_arg_builtin() {
     // The codegen instance should have no artifact
     assert!(cg.artifact.is_none());
 
+    let evm_version = &EVMVersion::default();
+
     // Have the Codegen create the constructor bytecode
     let (constructor_code, has_custom_bootstrap) =
-        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
-    let main_code = Codegen::generate_main_bytecode(&contract, None).unwrap();
+        Codegen::generate_constructor_bytecode(evm_version, &contract, None).unwrap();
+    let main_code = Codegen::generate_main_bytecode(evm_version, &contract, None).unwrap();
 
     let args = Codegen::encode_constructor_args(vec![String::from("testing")]);
     let final_bytecode = cg.churn(
@@ -149,7 +151,7 @@ fn test_tablesize_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -166,8 +168,8 @@ fn test_tablesize_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let mbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
-    assert_eq!(mbytes, String::from("6008608061002c60003960205b60006000f35b60006000f35b60006000f35b60006000f3000c00120018001e000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000001eDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"));
+    let mbytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
+    assert_eq!(mbytes, String::from("600860806100235f3960205b5f5ff35b5f5ff35b5f5ff35b5f5ff3000b000f00130017000000000000000000000000000000000000000000000000000000000000000b000000000000000000000000000000000000000000000000000000000000000f00000000000000000000000000000000000000000000000000000000000000130000000000000000000000000000000000000000000000000000000000000017DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"));
 }
 
 #[test]
@@ -213,7 +215,7 @@ fn test_tablestart_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -231,8 +233,8 @@ fn test_tablestart_builtin() {
 
     // Have the Codegen create the constructor bytecode
     let (cbytes, custom_bootstrap) =
-        Codegen::generate_constructor_bytecode(&contract, None).unwrap();
-    assert_eq!(cbytes, String::from("61001e6100265b60006000f35b60006000f35b60006000f35b60006000f30006000c001200180000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000018"));
+        Codegen::generate_constructor_bytecode(&EVMVersion::default(), &contract, None).unwrap();
+    assert_eq!(cbytes, String::from("61001661001e5b5f5ff35b5f5ff35b5f5ff35b5f5ff30006000a000e00120000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000012"));
     assert!(custom_bootstrap);
 }
 
@@ -278,7 +280,7 @@ fn test_jump_table_exhaustive_usage() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -295,8 +297,8 @@ fn test_jump_table_exhaustive_usage() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let mbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
-    assert_eq!(mbytes, String::from("608061004060003960003560e01c8063a9059cbb14610019575b60208703516202ffe016806020015b60206020015b60206020015b60206020015b60206020010000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000002e0000000000000000000000000000000000000000000000000000000000000034000000000000000000000000000000000000000000000000000000000000003a"));
+    let mbytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
+    assert_eq!(mbytes, String::from("608061003e5f395f3560e01c8063a9059cbb14610017575b60208703516202ffe016806020015b60206020015b60206020015b60206020015b60206020010000000000000000000000000000000000000000000000000000000000000026000000000000000000000000000000000000000000000000000000000000002c00000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000038"));
 }
 
 #[test]
@@ -338,7 +340,7 @@ fn test_jump_table_packed_exhaustive_usage() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -355,8 +357,8 @@ fn test_jump_table_packed_exhaustive_usage() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the main macro bytecode
-    let mbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
-    assert_eq!(mbytes, String::from("600861004060003960003560e01c8063a9059cbb14610019575b60208703516202ffe016806020015b60206020015b60206020015b60206020015b60206020010028002e0034003a"));
+    let mbytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
+    assert_eq!(mbytes, String::from("600861003e5f395f3560e01c8063a9059cbb14610017575b60208703516202ffe016806020015b60206020015b60206020015b60206020015b60206020010026002c00320038"));
 }
 
 #[test]
@@ -405,7 +407,7 @@ fn test_label_clashing() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -422,8 +424,8 @@ fn test_label_clashing() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the main macro bytecode
-    let mbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
-    assert_eq!(mbytes, String::from("6008610048600039608061005060003960003560e01c8063a9059cbb14610021575b60208703516202ffe016806020015b60206020015b60206020015b60206020015b602060200100300036003c004200000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000036000000000000000000000000000000000000000000000000000000000000003c0000000000000000000000000000000000000000000000000000000000000042"));
+    let mbytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
+    assert_eq!(mbytes, String::from("60086100455f39608061004d5f395f3560e01c8063a9059cbb1461001e575b60208703516202ffe016806020015b60206020015b60206020015b60206020015b6020602001002d00330039003f000000000000000000000000000000000000000000000000000000000000002d00000000000000000000000000000000000000000000000000000000000000330000000000000000000000000000000000000000000000000000000000000039000000000000000000000000000000000000000000000000000000000000003f"));
 }
 
 #[test]
@@ -449,7 +451,7 @@ fn test_func_sig_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -466,15 +468,15 @@ fn test_func_sig_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let cbytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
     // `transfer(address,uint256) signature = 0xa9059cbb
-    assert_eq!(&cbytes[16..24], "a9059cbb");
-    assert_eq!(&cbytes[38..46], "a9059cbb");
-    assert_eq!(&cbytes[60..68], "a9059cbb");
+    assert_eq!(&cbytes[14..22], "a9059cbb");
+    assert_eq!(&cbytes[36..44], "a9059cbb");
+    assert_eq!(&cbytes[58..66], "a9059cbb");
     assert_eq!(
         cbytes,
         String::from(
-            "60003560e01c8063a9059cbb14610027578063a9059cbb14610027578063a9059cbb14610027575b"
+            "5f3560e01c8063a9059cbb14610026578063a9059cbb14610026578063a9059cbb14610026575b"
         )
     );
 }
@@ -494,9 +496,11 @@ fn test_event_hash_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
+
+    let evm_version = EVMVersion::default();
 
     // Parse the AST
     let mut contract = parser.parse().unwrap();
@@ -511,7 +515,7 @@ fn test_event_hash_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the constructor bytecode
-    let cbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let cbytes = Codegen::generate_main_bytecode(&evm_version, &contract, None).unwrap();
     // `transfer(address,address,uint256) signature =
     // 0xbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8
     assert_eq!(&cbytes[2..66], "beabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8");
@@ -525,7 +529,7 @@ fn test_event_hash_builtin() {
     );
     assert_eq!(
         cbytes,
-        String::from("7fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a87fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a87fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a8600055")
+        String::from("7fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a87fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a87fbeabacc8ffedac16e9a60acdb2ca743d80c2ebb44977a93fa8e483c74d2b35a85f55")
     );
 }
 
@@ -548,7 +552,7 @@ fn test_error_selector_builtin() {
             // Input stack:          [condition, message_length, message]
             continue jumpi        // [message]
 
-            __ERROR(Error)        // [error_selector, message_length, message]
+            __ERROR("Error(string)")        // [error_selector, message_length, message]
             0x00 mstore           // [message_length, message]
             0x20 0x04 mstore      // [message_length, message]
             0x24 mstore           // [message]
@@ -569,7 +573,7 @@ fn test_error_selector_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -586,16 +590,13 @@ fn test_error_selector_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have Codegen create the runtime bytecode
-    let r_bytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let r_bytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
     assert_eq!(&r_bytes[2..66], "be20788c00000000000000000000000000000000000000000000000000000000");
-    assert_eq!(
-        &r_bytes[98..162],
-        "08c379a000000000000000000000000000000000000000000000000000000000"
-    );
+    assert_eq!(&r_bytes[94..102], "08c379a0");
     assert_eq!(
         r_bytes,
         String::from(
-            "7fbe20788c0000000000000000000000000000000000000000000000000000000060005260045260246000fd610064577f08c379a000000000000000000000000000000000000000000000000000000000600052602060045260245260445260646000fd5b50"
+            "7fbe20788c000000000000000000000000000000000000000000000000000000005f5260045260245ffd610044576308c379a05f52602060045260245260445260645ffd5b50"
         )
     );
 }
@@ -612,7 +613,7 @@ fn test_rightpad_builtin() {
 
     // Parse tokens
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let lexer = Lexer::new(flattened_source);
+    let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
     let mut parser = Parser::new(tokens, None);
 
@@ -629,7 +630,7 @@ fn test_rightpad_builtin() {
     assert!(cg.artifact.is_none());
 
     // Have Codegen create the runtime bytecode
-    let r_bytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let r_bytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
     assert_eq!(&r_bytes[2..66], "a57b000000000000000000000000000000000000000000000000000000000000");
     assert_eq!(
         &r_bytes[68..132],
