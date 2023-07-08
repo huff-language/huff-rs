@@ -1,8 +1,6 @@
+use crate::{evm::Opcode, evm_version::EVMVersion};
 use std::num::ParseIntError;
-
 use tiny_keccak::{Hasher, Keccak};
-
-use crate::{evm_version::EVMVersion, prelude::Opcode};
 
 /// Convert a string slice to a `[u8; 32]`
 /// Pads zeros to the left of significant bytes in the `[u8; 32]` slice.
