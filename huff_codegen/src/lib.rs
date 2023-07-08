@@ -12,7 +12,7 @@ use huff_utils::{
     bytes_util,
     error::CodegenError,
     evm::Opcode,
-    prelude::{format_even_bytes, pad_n_bytes, CodegenErrorKind, FileSource, Span},
+    prelude::{format_even_bytes, pad_n_bytes, CodegenErrorKind, EVMVersion, FileSource, Span},
     types::EToken,
 };
 use regex::Regex;
@@ -56,6 +56,7 @@ impl Codegen {
 
     /// Generates main bytecode from a Contract AST
     pub fn generate_main_bytecode(
+        evm_version: &EVMVersion,
         contract: &Contract,
         alternative_main: Option<String>,
     ) -> Result<String, CodegenError> {
@@ -67,6 +68,7 @@ impl Codegen {
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
+            evm_version,
             m_macro,
             contract,
             &mut vec![m_macro],
@@ -84,6 +86,7 @@ impl Codegen {
 
     /// Generates constructor bytecode from a Contract AST
     pub fn generate_constructor_bytecode(
+        evm_version: &EVMVersion,
         contract: &Contract,
         alternative_constructor: Option<String>,
     ) -> Result<(String, bool), CodegenError> {
@@ -96,6 +99,7 @@ impl Codegen {
 
         // For each MacroInvocation Statement, recurse into bytecode
         let bytecode_res: BytecodeRes = Codegen::macro_to_bytecode(
+            evm_version,
             c_macro,
             contract,
             &mut vec![c_macro],
@@ -272,7 +276,9 @@ impl Codegen {
     /// * `scope` - Current scope of the recursion. Contains all macro definitions recursed so far.
     /// * `offset` - Current bytecode offset
     /// * `mis` - Vector of tuples containing parent macro invocations as well as their offsets.
+    #[allow(clippy::too_many_arguments)]
     pub fn macro_to_bytecode<'a>(
+        evm_version: &EVMVersion,
         macro_def: &'a MacroDefinition,
         contract: &'a Contract,
         scope: &mut Vec<&'a MacroDefinition>,
@@ -283,7 +289,7 @@ impl Codegen {
     ) -> Result<BytecodeRes, CodegenError> {
         // Get intermediate bytecode representation of the macro definition
         let mut bytes: Vec<(usize, Bytes)> = Vec::default();
-        let ir_bytes = macro_def.to_irbytecode()?.0;
+        let ir_bytes = macro_def.to_irbytecode(evm_version)?.0;
 
         // Define outer loop variables
         let mut jump_table = JumpTable::new();
@@ -302,7 +308,7 @@ impl Codegen {
                     bytes.push((starting_offset, b.to_owned()));
                 }
                 IRByteType::Constant(name) => {
-                    let push_bytes = constant_gen(name, contract, ir_byte.span)?;
+                    let push_bytes = constant_gen(evm_version, name, contract, ir_byte.span)?;
                     offset += push_bytes.len() / 2;
                     tracing::debug!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                     bytes.push((starting_offset, Bytes(push_bytes)));
@@ -314,6 +320,7 @@ impl Codegen {
                         continue
                     }
                     let mut push_bytes = statement_gen(
+                        evm_version,
                         s,
                         contract,
                         macro_def,
@@ -355,6 +362,7 @@ impl Codegen {
         // (i.e., we're at the top level of recursion)
         if scope.len() == 1 {
             bytes = Codegen::append_functions(
+                evm_version,
                 contract,
                 scope,
                 &mut offset,
@@ -535,6 +543,7 @@ impl Codegen {
     /// On failure, returns a CodegenError.
     #[allow(clippy::too_many_arguments)]
     pub fn append_functions<'a>(
+        evm_version: &EVMVersion,
         contract: &'a Contract,
         scope: &mut Vec<&'a MacroDefinition>,
         offset: &mut usize,
@@ -550,6 +559,7 @@ impl Codegen {
 
             // Add 1 to starting offset to account for the JUMPDEST opcode
             let mut res = Codegen::macro_to_bytecode(
+                evm_version,
                 macro_def,
                 contract,
                 scope,

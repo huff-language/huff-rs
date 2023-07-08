@@ -6,6 +6,7 @@ use crate::{
     bytes_util::*,
     error::CodegenError,
     evm::Opcode,
+    evm_version::EVMVersion,
     prelude::{MacroArg::Ident, Span, TokenKind},
 };
 use std::{
@@ -547,8 +548,9 @@ pub struct MacroDefinition {
 }
 
 impl ToIRBytecode<CodegenError> for MacroDefinition {
-    fn to_irbytecode(&self) -> Result<IRBytecode, CodegenError> {
-        let inner_irbytes: Vec<IRBytes> = MacroDefinition::to_irbytes(&self.statements);
+    fn to_irbytecode(&self, evm_version: &EVMVersion) -> Result<IRBytecode, CodegenError> {
+        let inner_irbytes: Vec<IRBytes> =
+            MacroDefinition::to_irbytes(evm_version, &self.statements);
         Ok(IRBytecode(inner_irbytes))
     }
 }
@@ -581,14 +583,17 @@ impl MacroDefinition {
     }
 
     /// Translate statements into IRBytes
-    pub fn to_irbytes(statements: &[Statement]) -> Vec<IRBytes> {
+    pub fn to_irbytes<'a>(
+        evm_version: &EVMVersion,
+        statements: &'a [Statement],
+    ) -> Vec<IRBytes<'a>> {
         let mut inner_irbytes: Vec<IRBytes> = vec![];
 
         let mut statement_iter = statements.iter();
         while let Some(statement) = statement_iter.next() {
             match &statement.ty {
                 StatementType::Literal(l) => {
-                    let push_bytes = literal_gen(l);
+                    let push_bytes = literal_gen(evm_version, l);
                     inner_irbytes.push(IRBytes {
                         ty: IRByteType::Bytes(Bytes(push_bytes)),
                         span: &statement.span,
@@ -670,7 +675,7 @@ impl MacroDefinition {
                     });
 
                     // Recurse label statements to IRBytes Bytes
-                    inner_irbytes.append(&mut MacroDefinition::to_irbytes(&l.inner));
+                    inner_irbytes.append(&mut MacroDefinition::to_irbytes(evm_version, &l.inner));
                 }
                 StatementType::BuiltinFunctionCall(builtin) => {
                     inner_irbytes.push(IRBytes {

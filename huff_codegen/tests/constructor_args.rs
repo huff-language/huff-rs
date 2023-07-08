@@ -13,7 +13,7 @@ fn encode_simple_constructor_args() {
     let expected_bytes32: Vec<u8> =
         str_to_vec("87674fa174add091f082eab424cc60625118fa4c553592a4e54a76fb9e8512f6").unwrap();
     // Bogus constructors args
-    let args: Vec<String> = vec![
+    let args: Vec<String> = [
         "Hello",
         "10000",
         "false",
@@ -44,7 +44,7 @@ fn encode_array_constructor_args() {
     let _expected_bytes32: Vec<u8> =
         str_to_vec("87674fa174add091f082eab424cc60625118fa4c553592a4e54a76fb9e8512f6").unwrap();
     // Bogus constructors args
-    let args: Vec<String> = vec![
+    let args: Vec<String> = [
         "[100, 200, 300]",
         "[0x646dB8ffC21e7ddc2B6327448dd9Fa560Df41087, 0x646dB8ffC21e7ddc2B6327448dd9Fa560Df41087]",
         "[true, false, false]",
@@ -95,14 +95,12 @@ fn encode_missing_brackets_array_constructor_args() {
     let _expected_bytes32: Vec<u8> =
         str_to_vec("87674fa174add091f082eab424cc60625118fa4c553592a4e54a76fb9e8512f6").unwrap();
     // Bogus constructors args
-    let args: Vec<String> = vec![
-        "  100,  200,  300   ",
+    let args: Vec<String> = ["  100,  200,  300   ",
         " 0x646dB8ffC21e7ddc2B6327448dd9Fa560Df41087,    0x646dB8ffC21e7ddc2B6327448dd9Fa560Df41087",
         "true,  false,   false",
         "Hello, World, Yes",
         "   \"Hello\", \"World\", \"Yes\"",
-        "'Hello',  'World', 'Yes'   ",
-    ]
+        "'Hello',  'World', 'Yes'   "]
     .iter()
     .map(|s| s.to_string())
     .collect();

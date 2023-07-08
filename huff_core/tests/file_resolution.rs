@@ -3,20 +3,23 @@ use std::{path::PathBuf, sync::Arc};
 use huff_core::Compiler;
 use huff_utils::{
     file_provider::{FileProvider, FileSystemFileProvider},
-    prelude::{CompilerError, OutputLocation, UnpackError},
+    prelude::{CompilerError, EVMVersion, OutputLocation, UnpackError},
 };
 
 #[test]
 fn test_get_outputs_no_output() {
+    let evm_version = EVMVersion::default();
     let compiler: Compiler =
-        Compiler::new(Arc::new(vec![]), None, None, None, None, None, false, false);
+        Compiler::new(&evm_version, Arc::new(vec![]), None, None, None, None, None, false, false);
     let ol: OutputLocation = compiler.get_outputs();
     assert_eq!(ol, OutputLocation::default());
 }
 
 #[test]
 fn test_get_outputs_with_output() {
+    let evm_version = EVMVersion::default();
     let compiler: Compiler = Compiler::new(
+        &evm_version,
         Arc::new(vec![]),
         Some("./test_out/".to_string()),
         None,

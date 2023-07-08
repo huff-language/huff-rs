@@ -1,4 +1,4 @@
-use crate::evm::Opcode;
+use crate::{evm::Opcode, evm_version::EVMVersion};
 use std::num::ParseIntError;
 use tiny_keccak::{Hasher, Keccak};
 
@@ -70,10 +70,23 @@ pub fn hash_bytes(dest: &mut [u8], to_hash: &String) {
 }
 
 /// Converts a value literal to its smallest equivalent `PUSHX` bytecode
-pub fn literal_gen(l: &[u8; 32]) -> String {
+pub fn literal_gen(evm_version: &EVMVersion, l: &[u8; 32]) -> String {
     let hex_literal: String = bytes32_to_string(l, false);
     match hex_literal.as_str() {
-        "00" => Opcode::Push0.to_string(),
-        _ => format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2),
+        "00" => format_push0(evm_version, hex_literal),
+        _ => format_literal(hex_literal),
     }
+}
+
+fn format_push0(evm_version: &EVMVersion, hex_literal: String) -> String {
+    if evm_version.has_push0() {
+        Opcode::Push0.to_string()
+    } else {
+        format_literal(hex_literal)
+    }
+}
+
+/// Converts a literal into its bytecode string representation
+pub fn format_literal(hex_literal: String) -> String {
+    format!("{:02x}{hex_literal}", 95 + hex_literal.len() / 2)
 }

@@ -39,7 +39,7 @@ fn test_storage_pointers_not_derived() {
     let contract = parser.parse().unwrap();
 
     // Create main and constructor bytecode
-    match Codegen::generate_main_bytecode(&contract, None) {
+    match Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
@@ -99,7 +99,7 @@ fn test_invalid_constant_definition() {
     contract.derive_storage_pointers();
 
     // Create main and constructor bytecode
-    match Codegen::generate_main_bytecode(&contract, None) {
+    match Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
@@ -142,7 +142,7 @@ fn test_missing_constructor() {
     contract.derive_storage_pointers();
 
     // Create constructor bytecode
-    match Codegen::generate_constructor_bytecode(&contract, None) {
+    match Codegen::generate_constructor_bytecode(&EVMVersion::default(), &contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
@@ -175,7 +175,7 @@ fn test_missing_main() {
     contract.derive_storage_pointers();
 
     // Createconstructor bytecode
-    match Codegen::generate_main_bytecode(&contract, None) {
+    match Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
@@ -210,7 +210,7 @@ fn test_missing_when_alternative_main_provided() {
     let alternative_main = Some(String::from("NAH"));
 
     // Createconstructor bytecode
-    match Codegen::generate_main_bytecode(&contract, alternative_main) {
+    match Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, alternative_main) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
@@ -251,7 +251,7 @@ fn test_unknown_macro_definition() {
     contract.derive_storage_pointers();
 
     // Create main and constructor bytecode
-    match Codegen::generate_main_bytecode(&contract, None) {
+    match Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(
@@ -298,7 +298,7 @@ fn test_unmatched_jump_label() {
     contract.derive_storage_pointers();
 
     // Create main and constructor bytecode
-    match Codegen::generate_main_bytecode(&contract, None) {
+    match Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None) {
         Ok(_) => panic!("moose"),
         Err(e) => {
             assert_eq!(

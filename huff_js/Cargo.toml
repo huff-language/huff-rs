@@ -1,6 +1,6 @@
 [package]
 name = "huffc-js"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["refcell", "clabby", "exp.table", "kanewallmann"]
 edition = "2021"
 readme = "README.md"

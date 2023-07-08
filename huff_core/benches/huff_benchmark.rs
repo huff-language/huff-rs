@@ -102,11 +102,13 @@ fn codegen_erc20_benchmark(c: &mut Criterion) {
     let mut contract = parser.parse().unwrap();
     contract.derive_storage_pointers();
 
+    let evm_version = &EVMVersion::default();
+
     // Isolate codegen to benchmark
     c.bench_function("Codegen: ERC-20", |b| b.iter(|| {
         // Create main and constructor bytecode
-        let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
-        let (constructor_bytecode, has_custom_bootstrap) = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+        let main_bytecode = Codegen::generate_main_bytecode(evm_version,&contract, None).unwrap();
+        let (constructor_bytecode, has_custom_bootstrap) = Codegen::generate_constructor_bytecode(evm_version,&contract, None).unwrap();
 
         // Churn
         let mut cg = Codegen::new();
@@ -149,9 +151,11 @@ fn erc20_compilation_benchmark(c: &mut Criterion) {
         let mut contract = parser.parse().unwrap();
         contract.derive_storage_pointers();
 
+        let evm_version = &EVMVersion::default();
+
         // Create main and constructor bytecode
-        let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
-        let (constructor_bytecode, has_custom_bootstrap) = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+        let main_bytecode = Codegen::generate_main_bytecode(evm_version,&contract, None).unwrap();
+        let (constructor_bytecode, has_custom_bootstrap) = Codegen::generate_constructor_bytecode(evm_version, &contract, None).unwrap();
 
         // Churn
         let mut cg = Codegen::new();
@@ -194,9 +198,11 @@ fn erc721_compilation_benchmark(c: &mut Criterion) {
         let mut contract = parser.parse().unwrap();
         contract.derive_storage_pointers();
 
+        let evm_version = &EVMVersion::default();
+
         // Create main and constructor bytecode
-        let main_bytecode = Codegen::generate_main_bytecode(&contract, None).unwrap();
-        let (constructor_bytecode, has_custom_bootstrap) = Codegen::generate_constructor_bytecode(&contract, None).unwrap();
+        let main_bytecode = Codegen::generate_main_bytecode(evm_version, &contract, None).unwrap();
+        let (constructor_bytecode, has_custom_bootstrap) = Codegen::generate_constructor_bytecode(evm_version,&contract, None).unwrap();
 
         // Churn
         let mut cg = Codegen::new();

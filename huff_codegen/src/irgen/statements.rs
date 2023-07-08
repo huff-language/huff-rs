@@ -5,6 +5,7 @@ use crate::Codegen;
 /// Generates the respective Bytecode for a given Statement
 #[allow(clippy::too_many_arguments)]
 pub fn statement_gen<'a>(
+    evm_version: &EVMVersion,
     s: &Statement,
     contract: &'a Contract,
     macro_def: &MacroDefinition,
@@ -97,6 +98,7 @@ pub fn statement_gen<'a>(
                 mis.push((*offset, mi.clone()));
 
                 let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
+                    evm_version,
                     ir_macro,
                     contract,
                     scope,
@@ -205,6 +207,7 @@ pub fn statement_gen<'a>(
                     } else {
                         // We will still need to recurse to get accurate values
                         let res: BytecodeRes = match Codegen::macro_to_bytecode(
+                            evm_version,
                             ir_macro,
                             contract,
                             scope,

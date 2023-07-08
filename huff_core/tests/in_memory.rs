@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use huff_core::Compiler;
+use huff_utils::prelude::EVMVersion;
 
 #[test]
 fn test_in_memory_compiler() {
@@ -31,7 +32,9 @@ fn test_in_memory_compiler() {
     file_sources.insert(String::from("lib/mint.huff"), String::from(source_mint));
 
     // Instantiate a new compiler
+    let evm_version = EVMVersion::default();
     let compiler = Compiler::new_in_memory(
+        &evm_version,
         Arc::new(vec![main_file_name.clone()]),
         file_sources,
         None,

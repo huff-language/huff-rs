@@ -30,8 +30,11 @@ fn test_missing_constructor() {
         dependencies: None,
     };
 
+    let evm_version = EVMVersion::default();
+
     // Instantiate a new compiler
-    let compiler = Compiler::new(Arc::new(vec![]), None, None, None, None, None, false, false);
+    let compiler =
+        Compiler::new(&evm_version, Arc::new(vec![]), None, None, None, None, None, false, false);
 
     // Generate the compile artifact
     let arc_source = Arc::new(full_source);
@@ -74,8 +77,11 @@ fn test_missing_constructor_with_inputs() {
         dependencies: None,
     };
 
+    let evm_version = EVMVersion::default();
+
     // Instantiate a new compiler
     let compiler = Compiler::new(
+        &evm_version,
         Arc::new(vec![]),
         None,
         None,

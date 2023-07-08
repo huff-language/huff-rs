@@ -1,7 +1,7 @@
 use huff_codegen::Codegen;
 use huff_lexer::*;
 use huff_parser::Parser;
-use huff_utils::prelude::{FileSource, FullFileSource, Token};
+use huff_utils::prelude::{EVMVersion, FileSource, FullFileSource, Token};
 use std::sync::Arc;
 
 #[test]
@@ -110,7 +110,7 @@ fn test_function() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the runtime bytecode
-    let rbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let rbytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
     // Churn
     let mut cg = Codegen::new();
     let artifact =
@@ -204,7 +204,7 @@ fn test_nested_function() {
     assert!(cg.artifact.is_none());
 
     // Have the Codegen create the runtime bytecode
-    let rbytes = Codegen::generate_main_bytecode(&contract, None).unwrap();
+    let rbytes = Codegen::generate_main_bytecode(&EVMVersion::default(), &contract, None).unwrap();
     // Churn
     let mut cg = Codegen::new();
     let artifact =
