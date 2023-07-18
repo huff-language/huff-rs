@@ -6,7 +6,7 @@ use strum_macros::EnumString;
 /// They are arranged in a particular order such that all the opcodes that have common
 /// prefixes are ordered by decreasing length to avoid mismatch when lexing.
 /// Example : [origin, or] or [push32, ..., push3]
-pub const OPCODES: [&str; 147] = [
+pub const OPCODES: [&str; 148] = [
     "lt",
     "gt",
     "slt",
@@ -39,6 +39,7 @@ pub const OPCODES: [&str; 147] = [
     "chainid",
     "selfbalance",
     "pop",
+    "mcopy",
     "mload",
     "mstore8",
     "mstore",
@@ -199,6 +200,7 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "jumpi" => Opcode::Jumpi,
     "pc" => Opcode::Pc,
     "msize" => Opcode::Msize,
+    "mcopy" => Opcode::Mcopy,
     "push0" => Opcode::Push0,
     "push1" => Opcode::Push1,
     "push2" => Opcode::Push2,
@@ -440,6 +442,8 @@ pub enum Opcode {
     Gas,
     /// Marks a valid destination for jumps
     Jumpdest,
+    /// Copies an area of memory from src to dst. Areas can overlap.
+    Mcopy,
     /// Places a zero on top of the stack
     Push0,
     /// Places 1 byte item on top of the stack
@@ -678,6 +682,7 @@ impl Opcode {
             Opcode::Msize => "59",
             Opcode::Gas => "5a",
             Opcode::Jumpdest => "5b",
+            Opcode::Mcopy => "5e",
             Opcode::Push0 => "5f",
             Opcode::Push1 => "60",
             Opcode::Push2 => "61",
