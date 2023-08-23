@@ -104,6 +104,13 @@ impl Parser {
                     TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
                         let m = self.parse_macro()?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
+                        if contract.macros.iter().any(|existing| existing.name == m.name) {
+                            return Err(ParserError {
+                                kind: ParserErrorKind::DuplicateMacro(m.name),
+                                hint: Some("MACRO names should be unique".to_string()),
+                                spans: AstSpan(vec![self.spans[2].clone()]),
+                            })
+                        }
                         contract.macros.push(m);
                     }
                     TokenKind::JumpTable | TokenKind::JumpTablePacked | TokenKind::CodeTable => {

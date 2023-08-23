@@ -1232,3 +1232,69 @@ fn empty_test_with_multi_flag_decorator() {
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
 }
+
+#[test]
+fn test_duplicate_macro_error() {
+    let source = r#"
+    #define macro CONSTRUCTOR() = takes(0) returns (0) {}
+
+    #define macro MINT() = takes(0) returns (0) {
+        0x04 calldataload   // [to]
+        0x00                // [from (0x00), to]
+        0x24 calldataload   // [value, from, to]
+    }
+
+    #define macro MINT() = takes(0) returns (0) {
+        0x04 calldataload   // [to]
+        0x00                // [from (0x00), to]
+        0x24 calldataload   // [value, from, to]
+    }
+
+    #define macro MAIN() = takes(0) returns (0) {
+        0x00 calldataload 0xE0 shr
+        dup1 0x40c10f19 eq mints jumpi
+
+        mints:
+            MINT()
+    }
+    "#;
+
+    //let const_start = source.find("MINT()").unwrap_or(0);
+    //let const_end = const_start + "MINT()".len() - 1;
+    let mut start = 0;
+    let target = "MINT";
+    let target_len = target.len();
+    let mut occurrences = Vec::new();
+
+    while let Some(pos) = source[start..].find(target) {
+        let adjusted_start = start + pos;
+        let adjusted_end = adjusted_start + target_len - 1;
+
+        occurrences.push((adjusted_start, adjusted_end));
+        start = adjusted_end + 1;
+    }
+
+    let full_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(full_source.source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, Some("".to_string()));
+
+    // This should be caught before codegen invalid macro statement
+    match parser.parse() {
+        Ok(_) => panic!("moose"),
+        Err(e) => {
+            assert_eq!(
+                e,
+                ParserError {
+                    kind: ParserErrorKind::DuplicateMacro("MINT".to_string()),
+                    hint: Some("MACRO names should be unique".to_string()),
+                    spans: AstSpan(vec![Span {
+                        start: occurrences[1].0.clone(),
+                        end: occurrences[1].1.clone(),
+                        file: None
+                    }]),
+                }
+            )
+        }
+    }
+}
