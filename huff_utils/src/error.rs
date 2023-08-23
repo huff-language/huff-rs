@@ -63,6 +63,8 @@ pub enum ParserErrorKind {
     InvalidDecoratorFlag(String),
     /// Invalid decorator flag argument
     InvalidDecoratorFlagArg(TokenKind),
+    /// Duplicate MACRO
+    DuplicateMacro(String),
 }
 
 /// A Lexing Error
@@ -485,6 +487,14 @@ impl fmt::Display for CompilerError {
                         f,
                         "\nError: Invalid Decorator Flag Argument: \"{}\" \n{}\n",
                         dfa,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
+                ParserErrorKind::DuplicateMacro(mn) => {
+                    write!(
+                        f,
+                        "\nError: Duplicate MACRO name found: \"{}\" \n{}\n",
+                        mn,
                         pe.spans.error(pe.hint.as_ref())
                     )
                 }
