@@ -5,7 +5,7 @@ use huff_utils::prelude::*;
 fn free_storage_pointer() {
     let source = "FREE_STORAGE_POINTER() ";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = Lexer::new(flattened_source.source.clone());
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // The first token should be the fsp
     let tok = lexer.next().unwrap().unwrap();

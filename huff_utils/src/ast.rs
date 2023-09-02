@@ -34,7 +34,7 @@ impl AstSpan {
         let file_to_source_map =
             self.0.iter().fold(BTreeMap::<String, Vec<&Span>>::new(), |mut m, s| {
                 let file_name =
-                    s.file.as_ref().map(|f2| f2.path.clone()).unwrap_or_else(|| "".to_string());
+                    s.file.as_ref().map(|f2| f2.path.clone()).unwrap_or_default();
                 let mut new_vec: Vec<&Span> = m.get(&file_name).cloned().unwrap_or_default();
                 new_vec.push(s);
                 m.insert(file_name, new_vec);
