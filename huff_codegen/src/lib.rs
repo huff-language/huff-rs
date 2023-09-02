@@ -475,7 +475,7 @@ impl Codegen {
     /// On failure, returns a CodegenError.
     pub fn fill_circular_codesize_invocations(
         bytes: Vec<(usize, Bytes)>,
-        circular_codesize_invocations: &mut CircularCodeSizeIndices,
+        circular_codesize_invocations: &CircularCodeSizeIndices,
         macro_name: &str,
     ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
         // Get the length of the macro
