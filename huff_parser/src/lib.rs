@@ -104,13 +104,7 @@ impl Parser {
                     TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
                         let m = self.parse_macro()?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
-                        if contract.macros.iter().any(|existing| existing.name == m.name) {
-                            return Err(ParserError {
-                                kind: ParserErrorKind::DuplicateMacro(m.name),
-                                hint: Some("MACRO names should be unique".to_string()),
-                                spans: AstSpan(vec![self.spans[2].clone()]),
-                            })
-                        }
+                        self.check_duplicate_macro(&mut contract, m.clone())?;
                         contract.macros.push(m);
                     }
                     TokenKind::JumpTable | TokenKind::JumpTablePacked | TokenKind::CodeTable => {
@@ -190,6 +184,23 @@ impl Parser {
     /// Check the current token's type against the given type.
     pub fn check(&mut self, kind: TokenKind) -> bool {
         std::mem::discriminant(&self.current_token.kind) == std::mem::discriminant(&kind)
+    }
+
+    /// Checks if there is a duplicate macro name
+    pub fn check_duplicate_macro(
+        &self,
+        contract: &mut Contract,
+        m: MacroDefinition,
+    ) -> Result<(), ParserError> {
+        if contract.macros.binary_search_by(|_macro| _macro.name.cmp(&m.name)).is_ok() {
+            return Err(ParserError {
+                kind: ParserErrorKind::DuplicateMacro(m.name),
+                hint: Some("MACRO names should be unique".to_string()),
+                spans: AstSpan(vec![self.spans[2].clone()]),
+            })
+        } else {
+            Ok(())
+        }
     }
 
     /// Consumes the next token.
