@@ -104,7 +104,7 @@ impl Parser {
                     TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
                         let m = self.parse_macro()?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
-                        self.check_duplicate_macro(&mut contract, m.clone())?;
+                        self.check_duplicate_macro(&contract, m.clone())?;
                         contract.macros.push(m);
                     }
                     TokenKind::JumpTable | TokenKind::JumpTablePacked | TokenKind::CodeTable => {
@@ -189,11 +189,11 @@ impl Parser {
     /// Checks if there is a duplicate macro name
     pub fn check_duplicate_macro(
         &self,
-        contract: &mut Contract,
+        contract: &Contract,
         m: MacroDefinition,
     ) -> Result<(), ParserError> {
         if contract.macros.binary_search_by(|_macro| _macro.name.cmp(&m.name)).is_ok() {
-            return Err(ParserError {
+            Err(ParserError {
                 kind: ParserErrorKind::DuplicateMacro(m.name),
                 hint: Some("MACRO names should be unique".to_string()),
                 spans: AstSpan(vec![self.spans[2].clone()]),
