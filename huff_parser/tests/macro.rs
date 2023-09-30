@@ -1259,8 +1259,6 @@ fn test_duplicate_macro_error() {
     }
     "#;
 
-    //let const_start = source.find("MINT()").unwrap_or(0);
-    //let const_end = const_start + "MINT()".len() - 1;
     let mut start = 0;
     let target = "MINT";
     let target_len = target.len();
