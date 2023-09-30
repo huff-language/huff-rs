@@ -193,6 +193,7 @@ impl Parser {
         m: MacroDefinition,
     ) -> Result<(), ParserError> {
         if contract.macros.binary_search_by(|_macro| _macro.name.cmp(&m.name)).is_ok() {
+            tracing::error!(target: "parser", "DUPLICATE MACRO NAME FOUND: {}",  m.name);
             Err(ParserError {
                 kind: ParserErrorKind::DuplicateMacro(m.name),
                 hint: Some("MACRO names should be unique".to_string()),
