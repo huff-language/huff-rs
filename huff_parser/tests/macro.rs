@@ -1289,8 +1289,8 @@ fn test_duplicate_macro_error() {
                     kind: ParserErrorKind::DuplicateMacro("MINT".to_string()),
                     hint: Some("MACRO names should be unique".to_string()),
                     spans: AstSpan(vec![Span {
-                        start: occurrences[1].0.clone(),
-                        end: occurrences[1].1.clone(),
+                        start: occurrences[1].0,
+                        end: occurrences[1].1,
                         file: None
                     }]),
                 }
