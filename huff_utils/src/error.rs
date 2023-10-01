@@ -185,7 +185,7 @@ pub enum CodegenErrorKind {
 
 impl Spanned for CodegenError {
     fn span(&self) -> Span {
-        self.span.0[0].clone()
+        self.span[0].clone()
     }
 }
 
