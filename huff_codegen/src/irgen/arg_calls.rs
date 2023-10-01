@@ -11,6 +11,7 @@ use crate::Codegen;
 /// Arg Call Bubbling
 #[allow(clippy::too_many_arguments)]
 pub fn bubble_arg_call(
+    evm_version: &EVMVersion,
     arg_name: &str,
     bytes: &mut Vec<(usize, Bytes)>,
     macro_def: &MacroDefinition,
@@ -75,6 +76,7 @@ pub fn bubble_arg_call(
                         let ac_ = &ac.to_string();
                         return if last_mi.1.macro_name.eq(&macro_def.name) {
                             bubble_arg_call(
+                                evm_version,
                                 ac_,
                                 bytes,
                                 bubbled_macro_invocation,
@@ -89,6 +91,7 @@ pub fn bubble_arg_call(
                             )
                         } else {
                             bubble_arg_call(
+                                evm_version,
                                 ac_,
                                 bytes,
                                 bubbled_macro_invocation,
@@ -110,10 +113,10 @@ pub fn bubble_arg_call(
                         // because otherwise the mutex can deadlock when bubbling up to
                         // resolve macros as arguments.
                         if let Ok(o) = Opcode::from_str(iden) {
-                          tracing::debug!(target: "codegen", "Found Opcode: {}", o);
-                          let b = Bytes(o.to_string());
-                          *offset += b.0.len() / 2;
-                          bytes.push((starting_offset, b));
+                            tracing::debug!(target: "codegen", "Found Opcode: {}", o);
+                            let b = Bytes(o.to_string());
+                            *offset += b.0.len() / 2;
+                            bytes.push((starting_offset, b));
                         } else if let Some(constant) = contract
                             .constants
                             .lock()
@@ -142,33 +145,35 @@ pub fn bubble_arg_call(
                                         kind: CodegenErrorKind::StoragePointersNotDerived,
                                         span: AstSpan(vec![]),
                                         token: None,
-                                    });
+                                    })
                                 }
                             };
                             *offset += push_bytes.len() / 2;
                             tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                             bytes.push((starting_offset, Bytes(push_bytes)));
                         } else if let Some(ir_macro) = contract.find_macro_by_name(iden) {
-                            let new_scope = ir_macro.clone();
-                            scope.push(new_scope);
                             tracing::debug!(target: "codegen", "ARG CALL IS MACRO: {}", iden);
                             tracing::debug!(target: "codegen", "CURRENT MACRO DEF: {}", macro_def.name);
 
-                            mis.push((
+                            let mut new_scopes = scope.to_vec();
+                            new_scopes.push(ir_macro);
+                            let mut new_mis = mis.to_vec();
+                            new_mis.push((
                                 *offset,
                                 MacroInvocation {
+                                    macro_name: iden.to_string(),
                                     args: vec![],
                                     span: AstSpan(vec![]),
-                                    macro_name: iden.to_string(),
                                 },
                             ));
 
                             let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
-                                ir_macro.clone(),
+                                evm_version,
+                                ir_macro,
                                 contract,
-                                scope,
+                                &mut new_scopes,
                                 *offset,
-                                mis,
+                                &mut new_mis,
                                 false,
                                 Some(circular_codesize_invocations),
                             ) {
@@ -179,7 +184,7 @@ pub fn bubble_arg_call(
                                         "FAILED TO RECURSE INTO MACRO \"{}\"",
                                         ir_macro.name
                                     );
-                                    return Err(e);
+                                    return Err(e)
                                 }
                             };
 
