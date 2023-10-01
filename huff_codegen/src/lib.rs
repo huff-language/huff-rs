@@ -340,6 +340,7 @@ impl Codegen {
                     // Bubble up arg call by looking through the previous scopes.
                     // Once the arg value is found, add it to `bytes`
                     bubble_arg_call(
+                        evm_version,
                         arg_name,
                         &mut bytes,
                         macro_def,
@@ -348,6 +349,9 @@ impl Codegen {
                         &mut offset,
                         mis,
                         &mut jump_table,
+                        circular_codesize_invocations,
+                        &mut label_indices,
+                        &mut table_instances,
                     )?
                 }
             }
