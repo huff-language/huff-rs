@@ -521,6 +521,51 @@ impl Parser {
 
         let macro_statements: Vec<Statement> = self.parse_body()?;
 
+        let (body_statements_take, body_statements_return) =
+            macro_statements.iter().fold((0i16, 0i16), |acc, st| {
+                let (statement_takes, statement_returns) = match st.ty {
+                    StatementType::Literal(_) => (0i8, 1i8),
+                    StatementType::Opcode(opcode) => {
+                        let stack_changes = opcode.stack_changes();
+                        (stack_changes.0 as i8, stack_changes.1 as i8)
+                    }
+                    _ => (0i8, 0i8),
+                };
+
+                // acc.1 is always non negative
+                // acc.0 is always non positive
+                let stack_takes = acc.0 + acc.1 - statement_takes as i16;
+                let stack_returns = if statement_takes as i16 > acc.1 {
+                    statement_returns as i16
+                } else {
+                    acc.1 - statement_takes as i16 + statement_returns as i16
+                };
+                (stack_takes, stack_returns)
+            });
+
+        if outlined {
+            if body_statements_take.abs() != macro_takes as i16 {
+                return Err(ParserError {
+                    kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Takes),
+                    hint: Some(format!(
+                        "Fn {macro_name} specified to take {macro_takes} elements from the stack, but it takes {}",
+                        body_statements_take.abs()
+                    )),
+                    spans: AstSpan(self.spans.clone()),
+                });
+            }
+            if body_statements_return != macro_returns as i16 {
+                return Err(ParserError {
+                    kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Returns),
+                    hint: Some(format!(
+                        "Fn {macro_name} specified to return {macro_returns} elements to the stack, but it returns {}",
+                        body_statements_return
+                    )),
+                    spans: AstSpan(self.spans.clone()),
+                });
+            }
+        }
+
         Ok(MacroDefinition::new(
             macro_name,
             decorator,
