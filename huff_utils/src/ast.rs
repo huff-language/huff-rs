@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use std::ops::Index;
 
 use crate::{
     bytecode::*,
@@ -75,6 +76,19 @@ impl AstSpan {
             Some(fs) => format!("-> {}\n{acc}", fs.path),
             None => Default::default(),
         })
+    }
+
+    /// Retrieve the underlying vector of spans
+    pub fn inner_ref(&self) -> &Vec<Span> {
+        &self.0
+    }
+}
+
+/// Allows AstSpan to be indexed into
+impl Index<usize> for AstSpan {
+    type Output = Span;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
     }
 }
 
