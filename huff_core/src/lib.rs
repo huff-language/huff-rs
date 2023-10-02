@@ -11,8 +11,10 @@ use huff_parser::*;
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 use huff_utils::wasm::IntoParallelIterator;
 use huff_utils::{
+    config::HuffConfig,
     file_provider::{FileProvider, FileSystemFileProvider, InMemoryFileProvider},
     prelude::*,
+    remapper::Remapper,
     time,
 };
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
@@ -59,9 +61,9 @@ pub(crate) mod cache;
 /// );
 /// ```
 #[derive(Debug, Clone)]
-pub struct Compiler<'a, 'l> {
-    /// The EVM version to compile for
-    pub evm_version: &'l EVMVersion,
+pub struct Compiler<'a> {
+    /// Huff Config
+    pub huff_config: HuffConfig,
     /// The location of the files to compile
     pub sources: Arc<Vec<String>>,
     /// The output location
@@ -84,11 +86,11 @@ pub struct Compiler<'a, 'l> {
     pub file_provider: Arc<dyn FileProvider<'a>>,
 }
 
-impl<'a, 'l> Compiler<'a, 'l> {
+impl<'a> Compiler<'a> {
     /// Public associated function to instantiate a new compiler.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        evm_version: &'l EVMVersion,
+        huff_config: HuffConfig,
         sources: Arc<Vec<String>>,
         output: Option<String>,
         alternative_main: Option<String>,
@@ -102,7 +104,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
             Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
         Self {
-            evm_version,
+            huff_config,
             sources,
             output,
             alternative_main,
@@ -120,7 +122,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
     /// map.
     #[allow(clippy::too_many_arguments)]
     pub fn new_in_memory(
-        evm_version: &'l EVMVersion,
+        evm_version: &EVMVersion,
         sources: Arc<Vec<String>>,
         file_sources: HashMap<String, String>,
         alternative_main: Option<String>,
@@ -132,8 +134,9 @@ impl<'a, 'l> Compiler<'a, 'l> {
         if cfg!(feature = "verbose") || verbose {
             Compiler::init_tracing_subscriber(Some(vec![tracing::Level::INFO.into()]));
         }
+        let huff_config = HuffConfig::from_evm_version(evm_version.clone());
         Self {
-            evm_version,
+            huff_config,
             sources,
             output: None,
             alternative_main,
@@ -226,7 +229,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
                 let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError>>> = files
                     .into_par_iter()
                     .map(|v| {
-                        Self::recurse_deps(v, &Remapper::new("./"), self.file_provider.clone())
+                        Self::recurse_deps(v, self.huff_config.clone(), self.file_provider.clone())
                     })
                     .collect();
 
@@ -307,13 +310,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
 
         let recursed_file_sources: Vec<Result<Arc<FileSource>, Arc<CompilerError>>> = files
             .into_par_iter()
-            .map(|f| {
-                Self::recurse_deps(
-                    f,
-                    &huff_utils::files::Remapper::new("./"),
-                    self.file_provider.clone(),
-                )
-            })
+            .map(|f| Self::recurse_deps(f, self.huff_config.clone(), self.file_provider.clone()))
             .collect();
 
         // Collect Recurse Deps errors and try to resolve to the first one
@@ -358,7 +355,8 @@ impl<'a, 'l> Compiler<'a, 'l> {
                 tracing::info!(target: "core", "└─ TOKEN COUNT: {}", tokens.len());
 
                 // Parser incantation
-                let mut parser = Parser::new(tokens, Some(file.path.clone()));
+                let mut parser =
+                    Parser::new(self.huff_config.clone(), tokens, Some(file.path.clone()));
 
                 // Parse into an AST
                 let parse_res = parser.parse().map_err(CompilerError::ParserError);
@@ -396,7 +394,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
         tracing::info!(target: "core", "└─ TOKEN COUNT: {}", tokens.len());
 
         // Parser incantation
-        let mut parser = Parser::new(tokens, Some(file.path.clone()));
+        let mut parser = Parser::new(self.huff_config.clone(), tokens, Some(file.path.clone()));
 
         // Parse into an AST
         let parse_res = parser.parse().map_err(CompilerError::ParserError);
@@ -408,7 +406,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
         // Primary Bytecode Generation
         let mut cg = Codegen::new();
         let main_bytecode = match Codegen::generate_main_bytecode(
-            self.evm_version,
+            &self.huff_config.evm_version,
             &contract,
             self.alternative_main.clone(),
         ) {
@@ -436,7 +434,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
         let inputs = self.get_constructor_args();
         let (constructor_bytecode, has_custom_bootstrap) =
             match Codegen::generate_constructor_bytecode(
-                self.evm_version,
+                &self.huff_config.evm_version,
                 &contract,
                 self.alternative_constructor.clone(),
             ) {
@@ -515,7 +513,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
     /// Recurses file dependencies
     pub fn recurse_deps(
         fs: Arc<FileSource>,
-        remapper: &Remapper,
+        config: HuffConfig,
         reader: Arc<dyn FileProvider<'a>>,
     ) -> Result<Arc<FileSource>, Arc<CompilerError>> {
         tracing::debug!(target: "core", "RECURSING DEPENDENCIES FOR {}", fs.path);
@@ -544,7 +542,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
             .into_iter()
             .map(|mut import| {
                 // Check for foundry toml remappings
-                match remapper.remap(&import) {
+                match config.remap(&import) {
                     Some(remapped) => {
                         tracing::debug!(target: "core", "REMAPPED IMPORT PATH \"{}\"", import);
                         import = remapped;
@@ -575,7 +573,7 @@ impl<'a, 'l> Compiler<'a, 'l> {
         // Now that we have all the file sources, we have to recurse and get their source
         file_sources = file_sources
             .into_par_iter()
-            .map(|inner_fs| match Self::recurse_deps(Arc::clone(&inner_fs), remapper, reader.clone()) {
+            .map(|inner_fs| match Self::recurse_deps(Arc::clone(&inner_fs), config.clone(), reader.clone()) {
                 Ok(new_fs) => new_fs,
                 Err(e) => {
                     tracing::error!(target: "core", "NESTED DEPENDENCY RESOLUTION FAILED: \"{:?}\"", e);

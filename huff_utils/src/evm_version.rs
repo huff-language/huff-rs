@@ -4,7 +4,7 @@ use std::cmp::PartialOrd;
 ///
 /// Determines which features will be available when compiling.
 
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum SupportedEVMVersions {
     /// Introduced prevrandao, disallow difficulty opcode (does not affect codegen)
     Paris,
@@ -12,7 +12,7 @@ pub enum SupportedEVMVersions {
     Shanghai,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// EVM Version
 pub struct EVMVersion {
     version: SupportedEVMVersions,

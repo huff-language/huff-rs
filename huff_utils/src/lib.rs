@@ -57,6 +57,15 @@ pub mod wasm;
 /// EVM Version Module
 pub mod evm_version;
 
+/// Huff Config Module
+pub mod config;
+
+/// File Remapping Module
+pub mod remapper;
+
+/// Foundry.toml helper module
+mod foundry;
+
 /// Prelude wraps common utilities.
 pub mod prelude {
     pub use crate::{
