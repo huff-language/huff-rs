@@ -534,11 +534,10 @@ impl Parser {
 
                 // acc.1 is always non negative
                 // acc.0 is always non positive
-                let stack_takes = acc.0 + acc.1 - statement_takes as i16;
-                let stack_returns = if statement_takes as i16 > acc.1 {
-                    statement_returns as i16
+                let (stack_takes, stack_returns) = if statement_takes as i16 > acc.1 {
+                    (acc.0 + acc.1 - statement_takes as i16, statement_returns as i16)
                 } else {
-                    acc.1 - statement_takes as i16 + statement_returns as i16
+                    (acc.0, acc.1 - statement_takes as i16 + statement_returns as i16)
                 };
                 (stack_takes, stack_returns)
             });
