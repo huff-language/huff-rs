@@ -525,12 +525,26 @@ impl Parser {
             let (body_statements_take, body_statements_return) =
                 macro_statements.iter().fold((0i16, 0i16), |acc, st| {
                     let (statement_takes, statement_returns) = match st.ty {
-                        StatementType::Literal(_) => (0i8, 1i8),
+                        StatementType::Literal(_) |
+                        StatementType::Constant(_) |
+                        StatementType::BuiltinFunctionCall(_) |
+                        StatementType::ArgCall(_) |
+                        StatementType::LabelCall(_) => (0i8, 1i8),
                         StatementType::Opcode(opcode) => {
-                            let stack_changes = opcode.stack_changes();
-                            (stack_changes.0 as i8, stack_changes.1 as i8)
+                            if opcode.is_value_push() {
+                                (0i8, 0i8)
+                            } else {
+                                let stack_changes = opcode.stack_changes();
+                                (stack_changes.0 as i8, stack_changes.1 as i8)
+                            }
                         }
-                        _ => (0i8, 0i8),
+                        StatementType::Label(_) => (0i8, 0i8),
+                        StatementType::MacroInvocation(_) => {
+                            todo!()
+                        }
+                        StatementType::Code(_) => {
+                            todo!("should throw error")
+                        }
                     };
 
                     // acc.1 is always non negative
