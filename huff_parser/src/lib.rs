@@ -4,6 +4,8 @@
 #![forbid(unsafe_code)]
 #![forbid(where_clauses_object_safety)]
 
+use std::collections::HashMap;
+
 use huff_utils::{
     ast::*,
     error::*,
@@ -135,6 +137,8 @@ impl Parser {
                 })
             }
         }
+
+        validate_macros(&contract)?;
 
         Ok(contract)
     }
@@ -520,63 +524,6 @@ impl Parser {
             self.match_kind(TokenKind::Returns).map_or(Ok(0), |_| self.parse_single_arg())?;
 
         let macro_statements: Vec<Statement> = self.parse_body()?;
-
-        if outlined {
-            let (body_statements_take, body_statements_return) =
-                macro_statements.iter().fold((0i16, 0i16), |acc, st| {
-                    let (statement_takes, statement_returns) = match st.ty {
-                        StatementType::Literal(_) |
-                        StatementType::Constant(_) |
-                        StatementType::BuiltinFunctionCall(_) |
-                        StatementType::ArgCall(_) |
-                        StatementType::LabelCall(_) => (0i8, 1i8),
-                        StatementType::Opcode(opcode) => {
-                            if opcode.is_value_push() {
-                                (0i8, 0i8)
-                            } else {
-                                let stack_changes = opcode.stack_changes();
-                                (stack_changes.0 as i8, stack_changes.1 as i8)
-                            }
-                        }
-                        StatementType::Label(_) => (0i8, 0i8),
-                        StatementType::MacroInvocation(_) => {
-                            todo!()
-                        }
-                        StatementType::Code(_) => {
-                            todo!("should throw error")
-                        }
-                    };
-
-                    // acc.1 is always non negative
-                    // acc.0 is always non positive
-                    let (stack_takes, stack_returns) = if statement_takes as i16 > acc.1 {
-                        (acc.0 + acc.1 - statement_takes as i16, statement_returns as i16)
-                    } else {
-                        (acc.0, acc.1 - statement_takes as i16 + statement_returns as i16)
-                    };
-                    (stack_takes, stack_returns)
-                });
-            if body_statements_take.abs() != macro_takes as i16 {
-                return Err(ParserError {
-                    kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Takes),
-                    hint: Some(format!(
-                        "Fn {macro_name} specified to take {macro_takes} elements from the stack, but it takes {}",
-                        body_statements_take.abs()
-                    )),
-                    spans: AstSpan(self.spans.clone()),
-                });
-            }
-            if body_statements_return != macro_returns as i16 {
-                return Err(ParserError {
-                    kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Returns),
-                    hint: Some(format!(
-                        "Fn {macro_name} specified to return {macro_returns} elements to the stack, but it returns {}",
-                        body_statements_return
-                    )),
-                    spans: AstSpan(self.spans.clone()),
-                });
-            }
-        }
 
         Ok(MacroDefinition::new(
             macro_name,
@@ -1335,4 +1282,94 @@ impl Parser {
             }
         }
     }
+}
+
+/// Function used to evaluate macro statements. Returns number of elements taken from the stack and
+/// returned to the stack
+pub fn evaluate_macro(
+    macro_name: &str,
+    macros: &[MacroDefinition],
+    evaluated_macros: &mut HashMap<String, (i16, i16)>,
+) -> Result<(i16, i16), ParserError> {
+    if let Some(macro_takes_returns) = evaluated_macros.get(macro_name) {
+        return Ok(*macro_takes_returns)
+    }
+
+    let contract_macro = macros.iter().find(|m| m.name.as_str() == macro_name).unwrap();
+    let (body_statements_take, body_statements_return) =
+        contract_macro.statements.iter().fold((0i16, 0i16), |acc, st| {
+            let (statement_takes, statement_returns) = match &st.ty {
+                StatementType::Literal(_) |
+                StatementType::Constant(_) |
+                StatementType::BuiltinFunctionCall(_) |
+                StatementType::ArgCall(_) => (0i8, 1i8),
+                StatementType::LabelCall(_) => (0i8, 1i8),
+                StatementType::Opcode(opcode) => {
+                    if opcode.is_value_push() {
+                        (0i8, 0i8)
+                    } else {
+                        let stack_changes = opcode.stack_changes();
+                        (stack_changes.0 as i8, stack_changes.1 as i8)
+                    }
+                }
+                StatementType::Label(_) => (0i8, 0i8),
+                StatementType::MacroInvocation(MacroInvocation {
+                    macro_name,
+                    args: _,
+                    span: _,
+                }) => {
+                    let (takes, returns) =
+                        evaluate_macro(macro_name, macros, evaluated_macros).unwrap();
+                    (takes.abs() as i8, returns as i8)
+                }
+                StatementType::Code(_) => {
+                    todo!("should throw error")
+                }
+            };
+
+            // acc.1 is always non negative
+            // acc.0 is always non positive
+            let (stack_takes, stack_returns) = if statement_takes as i16 > acc.1 {
+                (acc.0 + acc.1 - statement_takes as i16, statement_returns as i16)
+            } else {
+                (acc.0, acc.1 - statement_takes as i16 + statement_returns as i16)
+            };
+            (stack_takes, stack_returns)
+        });
+
+    evaluated_macros
+        .insert(contract_macro.name.clone(), (body_statements_take, body_statements_return));
+    Ok((body_statements_take, body_statements_return))
+}
+
+/// Function used to validate takes and returns of outlined macros in the contract
+pub fn validate_macros(contract: &Contract) -> Result<(), ParserError> {
+    let mut evaluated_macros = HashMap::with_capacity(contract.macros.len());
+    for contract_macro in contract.macros.iter().filter(|m| m.outlined) {
+        let (body_statements_take, body_statements_return) =
+            evaluate_macro(&contract_macro.name, &contract.macros, &mut evaluated_macros)?;
+        if body_statements_take.abs() != contract_macro.takes as i16 {
+            return Err(ParserError {
+                kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Takes),
+                hint: Some(format!(
+                    "Fn {} specified to take {} elements from the stack, but it takes {}",
+                    contract_macro.name,
+                    contract_macro.takes,
+                    body_statements_take.abs()
+                )),
+                spans: contract_macro.span.clone(),
+            })
+        }
+        if body_statements_return != contract_macro.returns as i16 {
+            return Err(ParserError {
+                kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Returns),
+                hint: Some(format!(
+                    "Fn {} specified to return {} elements to the stack, but it returns {}",
+                    contract_macro.name, contract_macro.returns, body_statements_return
+                )),
+                spans: contract_macro.span.clone(),
+            })
+        }
+    }
+    Ok(())
 }
