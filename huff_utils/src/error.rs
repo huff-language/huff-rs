@@ -63,6 +63,8 @@ pub enum ParserErrorKind {
     InvalidDecoratorFlag(String),
     /// Invalid decorator flag argument
     InvalidDecoratorFlagArg(TokenKind),
+    /// Invalid stack annotation
+    InvalidStackAnnotation(TokenKind),
 }
 
 /// A Lexing Error
@@ -485,6 +487,14 @@ impl fmt::Display for CompilerError {
                         f,
                         "\nError: Invalid Decorator Flag Argument: \"{}\" \n{}\n",
                         dfa,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
+                ParserErrorKind::InvalidStackAnnotation(rt) => {
+                    write!(
+                        f,
+                        "\nError: Invalid stack {} annotation in function definition \n{}\n",
+                        rt,
                         pe.spans.error(pe.hint.as_ref())
                     )
                 }

@@ -874,7 +874,7 @@ fn macro_with_builtin_fn_call() {
 // difference besides the spans as well as the outlined flag.
 #[test]
 fn empty_outlined_macro() {
-    let source = "#define fn HELLO_WORLD() = takes(0) returns(4) {}";
+    let source = "#define fn HELLO_WORLD() = takes(0) returns(0) {}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let lexer = Lexer::new(flattened_source.source);
 
@@ -889,7 +889,7 @@ fn empty_outlined_macro() {
         parameters: vec![],
         statements: vec![],
         takes: 0,
-        returns: 4,
+        returns: 0,
         span: AstSpan(vec![
             Span { start: 0, end: 6, file: None },
             Span { start: 8, end: 9, file: None },
@@ -917,7 +917,7 @@ fn empty_outlined_macro() {
 
 #[test]
 fn outlined_macro_with_simple_body() {
-    let source = "#define fn HELLO_WORLD() = takes(3) returns(0) {\n0x00 mstore\n 0x01 0x02 add\n}";
+    let source = "#define fn HELLO_WORLD() = takes(1) returns(1) {\n0x00 mstore\n 0x01 0x02 add\n}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
@@ -951,8 +951,8 @@ fn outlined_macro_with_simple_body() {
                 span: AstSpan(vec![Span { start: 72, end: 74, file: None }]),
             },
         ],
-        takes: 3,
-        returns: 0,
+        takes: 1,
+        returns: 1,
         span: AstSpan(vec![
             Span { start: 0, end: 6, file: None },
             Span { start: 8, end: 9, file: None },
@@ -981,6 +981,176 @@ fn outlined_macro_with_simple_body() {
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
+}
+
+#[test]
+fn outlined_macro_revert_on_more_to_take() {
+    let source = "#define fn HELLO_WORLD() = takes(1) returns(0) {}";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source.source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let expected_error = parser.parse().unwrap_err();
+
+    assert_eq!(
+        expected_error,
+        ParserError {
+            kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Takes),
+            hint: Some(
+                "Fn HELLO_WORLD specified to take 1 elements from the stack, but it takes 0"
+                    .to_string()
+            ),
+            spans: AstSpan(vec![
+                Span { start: 0, end: 6, file: None },
+                Span { start: 8, end: 9, file: None },
+                Span { start: 11, end: 21, file: None },
+                Span { start: 22, end: 22, file: None },
+                Span { start: 23, end: 23, file: None },
+                Span { start: 25, end: 25, file: None },
+                Span { start: 27, end: 31, file: None },
+                Span { start: 32, end: 32, file: None },
+                Span { start: 33, end: 33, file: None },
+                Span { start: 34, end: 34, file: None },
+                Span { start: 36, end: 42, file: None },
+                Span { start: 43, end: 43, file: None },
+                Span { start: 44, end: 44, file: None },
+                Span { start: 45, end: 45, file: None },
+                Span { start: 47, end: 47, file: None },
+                Span { start: 48, end: 48, file: None }
+            ])
+        }
+    )
+}
+
+#[test]
+fn outlined_macro_revert_on_more_to_return() {
+    let source = "#define fn HELLO_WORLD() = takes(0) returns(1) {}";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source.source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let expected_error = parser.parse().unwrap_err();
+
+    assert_eq!(
+        expected_error,
+        ParserError {
+            kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Returns),
+            hint: Some(
+                "Fn HELLO_WORLD specified to return 1 elements to the stack, but it returns 0"
+                    .to_string()
+            ),
+            spans: AstSpan(vec![
+                Span { start: 0, end: 6, file: None },
+                Span { start: 8, end: 9, file: None },
+                Span { start: 11, end: 21, file: None },
+                Span { start: 22, end: 22, file: None },
+                Span { start: 23, end: 23, file: None },
+                Span { start: 25, end: 25, file: None },
+                Span { start: 27, end: 31, file: None },
+                Span { start: 32, end: 32, file: None },
+                Span { start: 33, end: 33, file: None },
+                Span { start: 34, end: 34, file: None },
+                Span { start: 36, end: 42, file: None },
+                Span { start: 43, end: 43, file: None },
+                Span { start: 44, end: 44, file: None },
+                Span { start: 45, end: 45, file: None },
+                Span { start: 47, end: 47, file: None },
+                Span { start: 48, end: 48, file: None }
+            ])
+        }
+    )
+}
+
+#[test]
+fn outlined_macro_revert_on_less_to_take() {
+    let source = "#define fn HELLO_WORLD() = takes(1) returns(0) { 0x01 add call }";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source.source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let expected_error = parser.parse().unwrap_err();
+
+    assert_eq!(
+        expected_error,
+        ParserError {
+            kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Takes),
+            hint: Some(
+                "Fn HELLO_WORLD specified to take 1 elements from the stack, but it takes 7"
+                    .to_string()
+            ),
+            spans: AstSpan(vec![
+                Span { start: 0, end: 6, file: None },
+                Span { start: 8, end: 9, file: None },
+                Span { start: 11, end: 21, file: None },
+                Span { start: 22, end: 22, file: None },
+                Span { start: 23, end: 23, file: None },
+                Span { start: 25, end: 25, file: None },
+                Span { start: 27, end: 31, file: None },
+                Span { start: 32, end: 32, file: None },
+                Span { start: 33, end: 33, file: None },
+                Span { start: 34, end: 34, file: None },
+                Span { start: 36, end: 42, file: None },
+                Span { start: 43, end: 43, file: None },
+                Span { start: 44, end: 44, file: None },
+                Span { start: 45, end: 45, file: None },
+                Span { start: 47, end: 47, file: None },
+                Span { start: 51, end: 52, file: None },
+                Span { start: 54, end: 56, file: None },
+                Span { start: 58, end: 61, file: None },
+                Span { start: 63, end: 63, file: None }
+            ])
+        }
+    )
+}
+
+#[test]
+fn outlined_macro_revert_on_less_to_return() {
+    let source = "#define fn HELLO_WORLD() = takes(0) returns(1) { 0x01 0x01 dup1 }";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source.source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let expected_error = parser.parse().unwrap_err();
+
+    assert_eq!(
+        expected_error,
+        ParserError {
+            kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Returns),
+            hint: Some(
+                "Fn HELLO_WORLD specified to return 1 elements to the stack, but it returns 3"
+                    .to_string()
+            ),
+            spans: AstSpan(vec![
+                Span { start: 0, end: 6, file: None },
+                Span { start: 8, end: 9, file: None },
+                Span { start: 11, end: 21, file: None },
+                Span { start: 22, end: 22, file: None },
+                Span { start: 23, end: 23, file: None },
+                Span { start: 25, end: 25, file: None },
+                Span { start: 27, end: 31, file: None },
+                Span { start: 32, end: 32, file: None },
+                Span { start: 33, end: 33, file: None },
+                Span { start: 34, end: 34, file: None },
+                Span { start: 36, end: 42, file: None },
+                Span { start: 43, end: 43, file: None },
+                Span { start: 44, end: 44, file: None },
+                Span { start: 45, end: 45, file: None },
+                Span { start: 47, end: 47, file: None },
+                Span { start: 51, end: 52, file: None },
+                Span { start: 56, end: 57, file: None },
+                Span { start: 59, end: 62, file: None },
+                Span { start: 64, end: 64, file: None }
+            ])
+        }
+    )
 }
 
 #[test]
@@ -1028,7 +1198,7 @@ fn empty_test() {
 #[test]
 fn test_with_simple_body() {
     let source =
-        "#define test HELLO_WORLD() = takes(3) returns(0) {\n0x00 0x00 mstore\n 0x01 0x02 add\n}";
+        "#define test HELLO_WORLD() = takes(0) returns(1) {\n0x00 0x00 mstore\n 0x01 0x02 add\n}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
@@ -1078,8 +1248,8 @@ fn test_with_simple_body() {
                 span: AstSpan(vec![Span { start: 79, end: 81, file: None }]),
             },
         ],
-        takes: 3,
-        returns: 0,
+        takes: 0,
+        returns: 1,
         span: AstSpan(vec![
             Span { start: 0, end: 6, file: None },
             Span { start: 8, end: 11, file: None },
