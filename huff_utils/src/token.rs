@@ -63,6 +63,8 @@ pub enum TokenKind {
     Indexed,
     /// "FREE_STORAGE_POINTER()" keyword
     FreeStoragePointer,
+    /// "padded" keyword
+    Padded,
     /// An Identifier
     Ident(String),
     /// Equal Sign
@@ -166,6 +168,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Takes => "takes",
             TokenKind::Returns => "returns",
             TokenKind::FreeStoragePointer => "FREE_STORAGE_POINTER()",
+            TokenKind::Padded => "padded",
             TokenKind::Ident(s) => return write!(f, "{s}"),
             TokenKind::Assign => "=",
             TokenKind::OpenParen => "(",

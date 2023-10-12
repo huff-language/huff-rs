@@ -187,6 +187,7 @@ impl<'a> Lexer<'a> {
                         TokenKind::Indexed,
                         TokenKind::View,
                         TokenKind::Pure,
+                        TokenKind::Padded,
                         // First check for packed jump table
                         TokenKind::JumpTablePacked,
                         // Match with jump table if not
@@ -195,6 +196,7 @@ impl<'a> Lexer<'a> {
                     ];
                     for kind in keys.into_iter() {
                         if self.context == Context::MacroBody {
+                            if word == "padded" { found_kind = Some(TokenKind::Padded) }
                             break
                         }
                         let key = kind.to_string();
