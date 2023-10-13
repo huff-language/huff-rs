@@ -63,6 +63,8 @@ pub enum ParserErrorKind {
     InvalidDecoratorFlag(String),
     /// Invalid decorator flag argument
     InvalidDecoratorFlagArg(TokenKind),
+    /// Invalid padded code block size
+    InvalidPaddedSize(usize, usize),
 }
 
 /// A Lexing Error
@@ -487,6 +489,9 @@ impl fmt::Display for CompilerError {
                         dfa,
                         pe.spans.error(pe.hint.as_ref())
                     )
+                }
+                ParserErrorKind::InvalidPaddedSize(declared_size, actual_size) => {
+                    write!(f, "\nError: Invalid padded code block size: declared size : {} , actual size {}", declared_size, actual_size)
                 }
             },
             CompilerError::PathBufRead(os_str) => {

@@ -196,7 +196,9 @@ impl<'a> Lexer<'a> {
                     ];
                     for kind in keys.into_iter() {
                         if self.context == Context::MacroBody {
-                            if word == "padded" { found_kind = Some(TokenKind::Padded) }
+                            if word == "padded" {
+                                found_kind = Some(TokenKind::Padded)
+                            }
                             break
                         }
                         let key = kind.to_string();

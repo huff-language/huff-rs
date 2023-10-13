@@ -8,7 +8,7 @@ use huff_utils::{
     ast::*,
     error::*,
     files,
-    prelude::{bytes32_to_string, hash_bytes, str_to_bytes32, Span},
+    prelude::{bytes32_to_string, hash_bytes, str_to_bytes32, Opcode, Span},
     token::{Token, TokenKind},
     types::*,
 };
@@ -536,7 +536,7 @@ impl Parser {
 
     /// Parse the body of a macro.
     ///
-    /// Only HEX, OPCODES, labels, builtins, and MACRO calls should be authorized.
+    /// Only HEX, OPCODES, labels, builtins, MACRO calls and padded blocks should be authorized.
     pub fn parse_body(&mut self) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
         self.match_kind(TokenKind::OpenBrace)?;
@@ -677,7 +677,22 @@ impl Parser {
                         span: AstSpan(curr_spans),
                     });
                 }
+                TokenKind::Padded => {
+                    // TODO is curr_spans necessary?
+                    // let curr_spans = vec![self.current_token.span.clone()];
+                    let padded_statements = self.parse_padded()?;
+                    tracing::info!(target: "parser", "PARSING MACRO BODY : [PADDED CODE BLOCK]");
+                    statements.extend(padded_statements);
+                }
                 kind => {
+                    if let TokenKind::Define = kind {
+                        // allow for define within a macro body only if it's followed by "padded"
+                        let expected_padded = self.peek().unwrap();
+                        if expected_padded.kind == TokenKind::Padded {
+                            self.consume();
+                            continue
+                        }
+                    }
                     tracing::error!(target: "parser", "TOKEN MISMATCH - MACRO BODY: {}", kind);
                     return Err(ParserError {
                         kind: ParserErrorKind::InvalidTokenInMacroBody(kind),
@@ -690,6 +705,45 @@ impl Parser {
         // consume close brace
         self.match_kind(TokenKind::CloseBrace)?;
         Ok(statements)
+    }
+
+    /// Parse a padded codeblock
+    pub fn parse_padded(&mut self) -> Result<Vec<Statement>, ParserError> {
+        // consume the Padded token
+        self.consume();
+
+        // parse the padded code block's size
+        let padded_block_size = self.parse_single_arg()?;
+
+        // parse the padded code block's body
+        let mut padded_statements = self.parse_body()?;
+
+        if padded_statements.len() > padded_block_size {
+            return Err(ParserError {
+                kind: ParserErrorKind::InvalidPaddedSize(
+                    padded_block_size,
+                    padded_statements.len(),
+                ),
+                hint: None,
+                spans: AstSpan(vec![self.current_token.span.clone()]),
+            })
+        }
+
+        while padded_statements.len() < padded_block_size {
+            padded_statements.push(Statement {
+                ty: StatementType::Opcode(Opcode::Stop),
+                span: AstSpan(vec![
+                    self.current_token.span.clone(),
+                    Span {
+                        start: padded_statements.len() + 1,
+                        end: padded_statements.len() + 1,
+                        file: None,
+                    },
+                ]),
+            });
+        }
+
+        Ok(padded_statements)
     }
 
     /// Parse the body of a label.
