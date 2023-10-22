@@ -5,7 +5,7 @@ use huff_utils::{evm::Opcode, prelude::*};
 #[test]
 fn macro_with_simple_body() {
     let source =
-        "#define macro HELLO_WORLD() = takes(3) returns(0) {\n #define padded(17) {\n 0x00 mstore\n 0x01 0x02 add \n} 0x69 0x69 return\n}";
+        "#define macro HELLO_WORLD() = takes(3) returns(0) {\n #define padded(7) {\n 0x00 mstore\n 0x01 0x02 add \n}\n}";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
     let lexer = Lexer::new(flattened_source.source);
     let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
@@ -13,6 +13,8 @@ fn macro_with_simple_body() {
 
     // Grab the first macro
     let macro_definition = parser.parse().unwrap().macros[0].clone();
+    
+    // TODO fix expected spans
     let expected = MacroDefinition {
         name: "HELLO_WORLD".to_string(),
         decorator: None,
@@ -37,6 +39,14 @@ fn macro_with_simple_body() {
             Statement {
                 ty: StatementType::Opcode(Opcode::Add),
                 span: AstSpan(vec![Span { start: 75, end: 77, file: None }]),
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Stop),
+                span: AstSpan(vec![]), // TODO wat do?
+            },
+            Statement {
+                ty: StatementType::Opcode(Opcode::Stop),
+                span: AstSpan(vec![]), // TODO wat do?
             },
         ],
         takes: 3,

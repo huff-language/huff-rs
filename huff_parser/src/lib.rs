@@ -678,8 +678,6 @@ impl Parser {
                     });
                 }
                 TokenKind::Padded => {
-                    // TODO is curr_spans necessary?
-                    // let curr_spans = vec![self.current_token.span.clone()];
                     let padded_statements = self.parse_padded()?;
                     tracing::info!(target: "parser", "PARSING MACRO BODY : [PADDED CODE BLOCK]");
                     statements.extend(padded_statements);
@@ -724,7 +722,7 @@ impl Parser {
                     padded_block_size,
                     padded_statements.len(),
                 ),
-                hint: None,
+                hint: Some("Ensure the padded block's size is >= than its body's size".to_string()),
                 spans: AstSpan(vec![self.current_token.span.clone()]),
             })
         }
@@ -732,14 +730,7 @@ impl Parser {
         while padded_statements.len() < padded_block_size {
             padded_statements.push(Statement {
                 ty: StatementType::Opcode(Opcode::Stop),
-                span: AstSpan(vec![
-                    self.current_token.span.clone(),
-                    Span {
-                        start: padded_statements.len() + 1,
-                        end: padded_statements.len() + 1,
-                        file: None,
-                    },
-                ]),
+                span: AstSpan(vec![]), // TODO what span do I put here?
             });
         }
 
