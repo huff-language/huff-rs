@@ -6,7 +6,7 @@ use strum_macros::EnumString;
 /// They are arranged in a particular order such that all the opcodes that have common
 /// prefixes are ordered by decreasing length to avoid mismatch when lexing.
 /// Example : [origin, or] or [push32, ..., push3]
-pub const OPCODES: [&str; 147] = [
+pub const OPCODES: [&str; 149] = [
     "lt",
     "gt",
     "slt",
@@ -85,6 +85,8 @@ pub const OPCODES: [&str; 147] = [
     "call",
     "return",
     "delegatecall",
+    "auth",
+    "authcall",
     "staticcall",
     "revert",
     "invalid",
@@ -300,6 +302,8 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "callcode" => Opcode::Callcode,
     "return" => Opcode::Return,
     "delegatecall" => Opcode::Delegatecall,
+    "auth" => Opcode::Auth,
+    "authcall" => Opcode::Authcall,
     "staticcall" => Opcode::Staticcall,
     "create2" => Opcode::Create2,
     "revert" => Opcode::Revert,
@@ -597,6 +601,10 @@ pub enum Opcode {
     Delegatecall,
     /// Create a new account with associated code
     Create2,
+    /// sets an authorized account based on an ECDSA signature
+    Auth,
+    /// Message-Call into an account, as an authorized account
+    Authcall,
     /// Static Message-call into an account
     Staticcall,
     /// Halt execution, reverting state changes, but returning data and remaining gas
@@ -756,6 +764,8 @@ impl Opcode {
             Opcode::Return => "f3",
             Opcode::Delegatecall => "f4",
             Opcode::Create2 => "f5",
+            Opcode::Auth => "f6",
+            Opcode::Authcall => "f7",
             Opcode::Staticcall => "fa",
             Opcode::Revert => "fd",
             Opcode::Invalid => "fe",
