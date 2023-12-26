@@ -60,6 +60,9 @@ impl Parser {
         // Initialize an empty Contract
         let mut contract = Contract::default();
 
+        // Initialize and empty label set
+        let mut labels: HashSet<String> = HashSet::new();
+
         // Iterate over tokens and construct the Contract aka AST
         while !self.check(TokenKind::Eof) {
             // Reset our spans
@@ -71,7 +74,7 @@ impl Parser {
             }
             // Check for a decorator above a test macro
             else if self.check(TokenKind::Pound) {
-                let m = self.parse_macro()?;
+                let m = self.parse_macro(&mut labels)?;
                 tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
                 contract.macros.push(m);
             }
@@ -103,7 +106,7 @@ impl Parser {
                         contract.errors.push(e);
                     }
                     TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
-                        let m = self.parse_macro()?;
+                        let m = self.parse_macro(&mut labels)?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
                         contract.macros.push(m);
                     }
@@ -504,7 +507,10 @@ impl Parser {
     /// Parses a macro.
     ///
     /// It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
-    pub fn parse_macro(&mut self) -> Result<MacroDefinition, ParserError> {
+    pub fn parse_macro(
+        &mut self,
+        label_set: &mut HashSet<String>,
+    ) -> Result<MacroDefinition, ParserError> {
         let mut decorator: Option<Decorator> = None;
         if self.check(TokenKind::Pound) {
             decorator = Some(self.parse_decorator()?);
@@ -536,7 +542,7 @@ impl Parser {
         let macro_returns =
             self.match_kind(TokenKind::Returns).map_or(Ok(0), |_| self.parse_single_arg())?;
 
-        let macro_statements: Vec<Statement> = self.parse_body()?;
+        let macro_statements: Vec<Statement> = self.parse_body(label_set)?;
 
         Ok(MacroDefinition::new(
             macro_name,
@@ -554,9 +560,11 @@ impl Parser {
     /// Parse the body of a macro.
     ///
     /// Only HEX, OPCODES, labels, builtins, and MACRO calls should be authorized.
-    pub fn parse_body(&mut self) -> Result<Vec<Statement>, ParserError> {
+    pub fn parse_body(
+        &mut self,
+        label_set: &mut HashSet<String>,
+    ) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
-        let mut labels: HashSet<String> = HashSet::new();
         self.match_kind(TokenKind::OpenBrace)?;
         tracing::info!(target: "parser", "PARSING MACRO BODY");
         while !self.check(TokenKind::CloseBrace) {
@@ -652,7 +660,7 @@ impl Parser {
                 TokenKind::Label(l) => {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.consume();
-                    self.check_label(&l, &mut labels)?;
+                    self.check_label(&l, label_set)?;
                     let inner_statements: Vec<Statement> = self.parse_label()?;
                     inner_statements.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
                     tracing::info!(target: "parser", "PARSED LABEL \"{}\" INSIDE MACRO WITH {} STATEMENTS.", l, inner_statements.len());

@@ -437,18 +437,13 @@ pub fn builtins_under_labels() {
 #[test]
 fn duplicated_labels() {
     let source = r#"
-    #define macro HELLO_WORLD() = takes(3) returns(0) {
-      0x00 mstore
-      0x01 0x02 add
-      dup_label:
-        HELLO()
-        0x00 0x00 revert
-      cool_label:
-        HELLO()
-        0x00 0x00 return
-      dup_label:
-        HELLO()
-        0x00 0x00 return
+    #define macro MAIN() = takes(0) returns(0) {
+        cool_label jump
+        cool_label jump
+
+        cool_label: 0x00
+        dup_label: 0x00
+        dup_label: 0x00
     }
     "#;
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
