@@ -17,7 +17,7 @@ fn lex_erc20_from_source_benchmark(c: &mut Criterion) {
     .collect();
 
     // Recurse file deps + generate flattened source
-    let file_source = file_sources.get(0).unwrap();
+    let file_source = file_sources.first().unwrap();
     let recursed_file_source =
         Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./"), file_provider)
             .unwrap();
@@ -48,7 +48,7 @@ fn parse_erc20_benchmark(c: &mut Criterion) {
     .collect();
 
     // Recurse file deps + generate flattened source
-    let file_source = file_sources.get(0).unwrap();
+    let file_source = file_sources.first().unwrap();
     let recursed_file_source =
         Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./"), file_provider)
             .unwrap();
@@ -84,7 +84,7 @@ fn codegen_erc20_benchmark(c: &mut Criterion) {
     .collect();
 
     // Recurse file deps + generate flattened source
-    let file_source = file_sources.get(0).unwrap();
+    let file_source = file_sources.first().unwrap();
     let recursed_file_source =
         Compiler::recurse_deps(Arc::clone(file_source), &files::Remapper::new("./"), file_provider)
             .unwrap();
@@ -133,7 +133,7 @@ fn erc20_compilation_benchmark(c: &mut Criterion) {
             .collect();
 
         // Recurse file deps + generate flattened source
-        let file_source = file_sources.get(0).unwrap();
+        let file_source = file_sources.first().unwrap();
         let recursed_file_source = Compiler::recurse_deps(
             Arc::clone(file_source),
             &files::Remapper::new("./"),
@@ -180,7 +180,7 @@ fn erc721_compilation_benchmark(c: &mut Criterion) {
             .collect();
 
         // Recurse file deps + generate flattened source
-        let file_source = file_sources.get(0).unwrap();
+        let file_source = file_sources.first().unwrap();
         let recursed_file_source = Compiler::recurse_deps(
             Arc::clone(file_source),
             &files::Remapper::new("./"),

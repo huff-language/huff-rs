@@ -300,7 +300,7 @@ impl Codegen {
         let circular_codesize_invocations = circular_codesize_invocations.unwrap_or(&mut ccsi);
 
         // Loop through all intermediate bytecode representations generated from the AST
-        for (_ir_bytes_index, ir_byte) in ir_bytes.iter().enumerate() {
+        for ir_byte in ir_bytes.iter() {
             let starting_offset = offset;
             match &ir_byte.ty {
                 IRByteType::Bytes(b) => {

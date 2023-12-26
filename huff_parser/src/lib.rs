@@ -35,7 +35,7 @@ pub struct Parser {
 impl Parser {
     /// Public associated function that instantiates a Parser.
     pub fn new(tokens: Vec<Token>, base: Option<String>) -> Self {
-        let initial_token = tokens.get(0).unwrap().clone();
+        let initial_token = tokens.first().unwrap().clone();
         let remapper = files::Remapper::new("./");
         Self { tokens, cursor: 0, current_token: initial_token, base, spans: vec![], remapper }
     }
@@ -44,7 +44,7 @@ impl Parser {
     ///
     /// PANICS if the tokens vec is empty!
     pub fn reset(&mut self) {
-        self.current_token = self.tokens.get(0).unwrap().clone();
+        self.current_token = self.tokens.first().unwrap().clone();
         self.cursor = 0;
     }
 
@@ -191,7 +191,7 @@ impl Parser {
     fn check_label(&self, label: &str, label_set: &mut HashSet<String>) -> Result<(), ParserError> {
         if label_set.contains(label) {
             tracing::error!(target: "parser", "DUPLICATED LABEL NAME: {}", label);
-            return Err(ParserError {
+            Err(ParserError {
                 kind: ParserErrorKind::DuplicateLabel(label.to_string()),
                 hint: Some(format!("Duplicated label name: \"{label}\"")),
                 spans: AstSpan(self.spans.clone()),

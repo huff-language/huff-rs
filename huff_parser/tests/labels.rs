@@ -1,10 +1,6 @@
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::{
-    evm::Opcode,
-    error::ParserErrorKind,
-    prelude::*
-};
+use huff_utils::{error::ParserErrorKind, evm::Opcode, prelude::*};
 
 #[test]
 fn multiline_labels() {
@@ -438,7 +434,6 @@ pub fn builtins_under_labels() {
     }
 }
 
-
 #[test]
 fn duplicated_labels() {
     let source = r#"
@@ -464,5 +459,8 @@ fn duplicated_labels() {
     // Grab the first macro
     let parse_result = parser.parse();
     assert!(parse_result.is_err());
-    assert_eq!(parse_result.unwrap_err().kind, ParserErrorKind::DuplicateLabel("dup_label".to_string()));
+    assert_eq!(
+        parse_result.unwrap_err().kind,
+        ParserErrorKind::DuplicateLabel("dup_label".to_string())
+    );
 }
