@@ -13,6 +13,7 @@ use huff_utils::{
     types::*,
 };
 use regex::Regex;
+use std::collections::HashSet;
 
 /// The Parser
 #[derive(Debug, Clone)]
@@ -183,6 +184,22 @@ impl Parser {
     /// Check the current token's type against the given type.
     pub fn check(&mut self, kind: TokenKind) -> bool {
         std::mem::discriminant(&self.current_token.kind) == std::mem::discriminant(&kind)
+    }
+
+    /// Checks whether the input label is unique.
+    /// If so, it will be added to the label set. Otherwise, an error will be returned.
+    fn check_label(&self, label: &str, label_set: &mut HashSet<String>) -> Result<(), ParserError> {
+        if label_set.contains(label) {
+            tracing::error!(target: "parser", "DUPLICATED LABEL NAME: {}", label);
+            return Err(ParserError {
+                kind: ParserErrorKind::DuplicateLabel(label.to_string()),
+                hint: Some(format!("Duplicated label name: \"{label}\"")),
+                spans: AstSpan(self.spans.clone()),
+            })
+        } else {
+            label_set.insert(label.to_string());
+            Ok(())
+        }
     }
 
     /// Consumes the next token.
@@ -539,6 +556,7 @@ impl Parser {
     /// Only HEX, OPCODES, labels, builtins, and MACRO calls should be authorized.
     pub fn parse_body(&mut self) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
+        let mut labels: HashSet<String> = HashSet::new();
         self.match_kind(TokenKind::OpenBrace)?;
         tracing::info!(target: "parser", "PARSING MACRO BODY");
         while !self.check(TokenKind::CloseBrace) {
@@ -634,6 +652,7 @@ impl Parser {
                 TokenKind::Label(l) => {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.consume();
+                    self.check_label(&l, &mut labels)?;
                     let inner_statements: Vec<Statement> = self.parse_label()?;
                     inner_statements.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
                     tracing::info!(target: "parser", "PARSED LABEL \"{}\" INSIDE MACRO WITH {} STATEMENTS.", l, inner_statements.len());
