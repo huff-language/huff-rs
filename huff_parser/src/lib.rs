@@ -192,7 +192,11 @@ impl Parser {
 
     /// Checks whether the input label is unique.
     /// If so, it will be added to the label set. Otherwise, an error will be returned.
-    fn check_duplicate_label(&self, label: &str, label_set: &mut HashSet<String>) -> Result<(), ParserError> {
+    fn check_duplicate_label(
+        &self,
+        label: &str,
+        label_set: &mut HashSet<String>,
+    ) -> Result<(), ParserError> {
         if label_set.contains(label) {
             tracing::error!(target: "parser", "DUPLICATED LABEL NAME: {}", label);
             Err(ParserError {
