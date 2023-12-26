@@ -65,6 +65,8 @@ pub enum ParserErrorKind {
     InvalidDecoratorFlagArg(TokenKind),
     /// Duplicate label
     DuplicateLabel(String),
+    /// Duplicate MACRO
+    DuplicateMacro(String),
 }
 
 /// A Lexing Error
@@ -185,7 +187,7 @@ pub enum CodegenErrorKind {
 
 impl Spanned for CodegenError {
     fn span(&self) -> Span {
-        self.span.0[0].clone()
+        self.span[0].clone()
     }
 }
 
@@ -495,6 +497,14 @@ impl fmt::Display for CompilerError {
                         f,
                         "\nError: Duplicate label: \"{}\" \n{}\n",
                         label,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
+                ParserErrorKind::DuplicateMacro(mn) => {
+                    write!(
+                        f,
+                        "\nError: Duplicate MACRO name found: \"{}\" \n{}\n",
+                        mn,
                         pe.spans.error(pe.hint.as_ref())
                     )
                 }
