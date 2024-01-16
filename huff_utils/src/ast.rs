@@ -116,6 +116,8 @@ pub struct Contract {
     pub events: Vec<EventDefinition>,
     /// Tables
     pub tables: Vec<TableDefinition>,
+    /// Labels
+    pub labels: Vec<String>,
 }
 
 impl Contract {

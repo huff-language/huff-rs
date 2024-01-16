@@ -28,6 +28,7 @@ fn constructs_valid_abi() {
         functions: vec![],
         events: vec![],
         tables: vec![],
+        labels: vec![],
     };
 
     // Generate the abi from the contract
@@ -68,6 +69,7 @@ fn missing_constructor_fails() {
         functions: vec![],
         events: vec![],
         tables: vec![],
+        labels: vec![],
     };
 
     // Generate the abi from the contract
