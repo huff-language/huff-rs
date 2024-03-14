@@ -6,7 +6,7 @@ use strum_macros::EnumString;
 /// They are arranged in a particular order such that all the opcodes that have common
 /// prefixes are ordered by decreasing length to avoid mismatch when lexing.
 /// Example : [origin, or] or [push32, ..., push3]
-pub const OPCODES: [&str; 148] = [
+pub const OPCODES: [&str; 150] = [
     "lt",
     "gt",
     "slt",
@@ -29,6 +29,8 @@ pub const OPCODES: [&str; 148] = [
     "codesize",
     "codecopy",
     "basefee",
+    "blobhash",
+    "blobbasefee",
     "blockhash",
     "coinbase",
     "timestamp",
@@ -39,7 +41,6 @@ pub const OPCODES: [&str; 148] = [
     "chainid",
     "selfbalance",
     "pop",
-    "mcopy",
     "mload",
     "mstore8",
     "mstore",
@@ -80,6 +81,7 @@ pub const OPCODES: [&str; 148] = [
     "log4",
     "tload",
     "tstore",
+    "mcopy",
     "create2",
     "create",
     "callcode",
@@ -181,6 +183,8 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "codesize" => Opcode::Codesize,
     "codecopy" => Opcode::Codecopy,
     "basefee" => Opcode::Basefee,
+    "blobhash" => Opcode::Blobhash,
+    "blobbasefee" => Opcode::Blobbasefee,
     "blockhash" => Opcode::Blockhash,
     "coinbase" => Opcode::Coinbase,
     "timestamp" => Opcode::Timestamp,
@@ -418,6 +422,8 @@ pub enum Opcode {
     Selfbalance,
     /// Base Fee
     Basefee,
+    Blobhash,
+    Blobbasefee,
     /// Removes an Item from the Stack
     Pop,
     /// Loads a word from Memory
@@ -588,6 +594,7 @@ pub enum Opcode {
     TLoad,
     /// Transaction-persistent, but storage-ephemeral variable store
     TStore,
+    MCopy,
     /// Create a new account with associated code
     Create,
     /// Message-call into an account
@@ -670,6 +677,8 @@ impl Opcode {
             Opcode::Chainid => "46",
             Opcode::Selfbalance => "47",
             Opcode::Basefee => "48",
+            Opcode::Blobhash => "49",
+            Opcode::Blobbasefee => "4a",
             Opcode::Pop => "50",
             Opcode::Mload => "51",
             Opcode::Mstore => "52",
