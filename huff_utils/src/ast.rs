@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use std::ops::Index;
 
 use crate::{
     bytecode::*,
@@ -33,8 +34,7 @@ impl AstSpan {
     pub fn error(&self, hint: Option<&String>) -> String {
         let file_to_source_map =
             self.0.iter().fold(BTreeMap::<String, Vec<&Span>>::new(), |mut m, s| {
-                let file_name =
-                    s.file.as_ref().map(|f2| f2.path.clone()).unwrap_or_else(|| "".to_string());
+                let file_name = s.file.as_ref().map(|f2| f2.path.clone()).unwrap_or_default();
                 let mut new_vec: Vec<&Span> = m.get(&file_name).cloned().unwrap_or_default();
                 new_vec.push(s);
                 m.insert(file_name, new_vec);
@@ -76,6 +76,19 @@ impl AstSpan {
             Some(fs) => format!("-> {}\n{acc}", fs.path),
             None => Default::default(),
         })
+    }
+
+    /// Retrieve the underlying vector of spans
+    pub fn inner_ref(&self) -> &Vec<Span> {
+        &self.0
+    }
+}
+
+/// Allows AstSpan to be indexed into
+impl Index<usize> for AstSpan {
+    type Output = Span;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
     }
 }
 

@@ -24,7 +24,7 @@ use std::ops::Deref;
 // Instantiate a new lexer
 let source = "#define macro HELLO_WORLD()";
 let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-let mut lexer = Lexer::new(flattened_source.sour);
+let mut lexer = Lexer::new(flattened_source.source);
 
 // This token should be a Define identifier
 let tok = lexer.next().unwrap().unwrap();

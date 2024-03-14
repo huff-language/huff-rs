@@ -104,6 +104,7 @@ impl Parser {
                     TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
                         let m = self.parse_macro()?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
+                        self.check_duplicate_macro(&contract, &m)?;
                         contract.macros.push(m);
                     }
                     TokenKind::JumpTable | TokenKind::JumpTablePacked | TokenKind::CodeTable => {
@@ -183,6 +184,24 @@ impl Parser {
     /// Check the current token's type against the given type.
     pub fn check(&mut self, kind: TokenKind) -> bool {
         std::mem::discriminant(&self.current_token.kind) == std::mem::discriminant(&kind)
+    }
+
+    /// Checks if there is a duplicate macro name
+    pub fn check_duplicate_macro(
+        &self,
+        contract: &Contract,
+        m: &MacroDefinition,
+    ) -> Result<(), ParserError> {
+        if contract.macros.binary_search_by(|_macro| _macro.name.cmp(&m.name)).is_ok() {
+            tracing::error!(target: "parser", "DUPLICATE MACRO NAME FOUND: {}",  m.name);
+            Err(ParserError {
+                kind: ParserErrorKind::DuplicateMacro(m.name.to_owned()),
+                hint: Some("MACRO names should be unique".to_string()),
+                spans: AstSpan(vec![m.span[2].clone()]),
+            })
+        } else {
+            Ok(())
+        }
     }
 
     /// Consumes the next token.
@@ -635,7 +654,9 @@ impl Parser {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.consume();
                     let inner_statements: Vec<Statement> = self.parse_label()?;
-                    inner_statements.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
+                    inner_statements
+                        .iter()
+                        .for_each(|a| curr_spans.extend_from_slice(a.span.inner_ref()));
                     tracing::info!(target: "parser", "PARSED LABEL \"{}\" INSIDE MACRO WITH {} STATEMENTS.", l, inner_statements.len());
                     statements.push(Statement {
                         ty: StatementType::Label(Label {
@@ -666,7 +687,7 @@ impl Parser {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.match_kind(TokenKind::BuiltinFunction(String::default()))?;
                     let args = self.parse_args(true, false, false, true)?;
-                    args.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
+                    args.iter().for_each(|a| curr_spans.extend_from_slice(a.span.inner_ref()));
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [BUILTIN FN: {}({:?})]", f, args);
                     statements.push(Statement {
                         ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
@@ -779,7 +800,7 @@ impl Parser {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.match_kind(TokenKind::BuiltinFunction(String::default()))?;
                     let args = self.parse_args(true, false, false, true)?;
-                    args.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
+                    args.iter().for_each(|a| curr_spans.extend_from_slice(a.span.inner_ref()));
                     tracing::info!(target: "parser", "PARSING LABEL BODY: [BUILTIN FN: {}({:?})]", f, args);
                     statements.push(Statement {
                         ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {

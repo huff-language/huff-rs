@@ -5,7 +5,7 @@ use huff_utils::prelude::*;
 fn end_of_file() {
     let source = " ";
     let flattened_source = FullFileSource { source, file: None, spans: vec![] };
-    let mut lexer = Lexer::new(flattened_source.source.clone());
+    let mut lexer = Lexer::new(flattened_source.source);
 
     // Eats the whitespace
     let _ = lexer.next();
