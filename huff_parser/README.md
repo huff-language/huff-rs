@@ -58,6 +58,7 @@ let expected_contract = Contract {
   functions: vec![],
   events: vec![],
   tables: vec![],
+  labels: vec![]
 };
 assert_eq!(unwrapped_contract.macros, expected_contract.macros);
 ```

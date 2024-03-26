@@ -30,6 +30,7 @@
 //!     }],
 //!     events: vec![],
 //!     tables: vec![],
+//!     labels: vec![],
 //! };
 //!
 //! // Create an ABI using that generate contract
@@ -78,7 +79,7 @@ impl From<ast::Contract> for Abi {
             .filter(|m| m.name.to_lowercase() == "constructor")
             .cloned()
             .collect::<Vec<ast::FunctionDefinition>>()
-            .get(0)
+            .first()
             .map(|func| Constructor {
                 inputs: func
                     .inputs
@@ -97,7 +98,7 @@ impl From<ast::Contract> for Abi {
                     .filter(|m| m.name == "CONSTRUCTOR")
                     .cloned()
                     .collect::<Vec<ast::MacroDefinition>>()
-                    .get(0)
+                    .first()
                     .map(|func| Constructor {
                         inputs: func
                             .parameters
