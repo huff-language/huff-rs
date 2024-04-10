@@ -42,6 +42,7 @@ fn test_invalid_macro_statement() {
                     kind: ParserErrorKind::InvalidTokenInMacroBody(TokenKind::FreeStoragePointer),
                     hint: None,
                     spans: AstSpan(vec![Span { start: const_start, end: const_end, file: None }]),
+                    cursor: 36,
                 }
             )
         }
@@ -72,6 +73,7 @@ fn test_unexpected_type() {
                         end: source.find("internal").unwrap_or(0) + "internal".len() - 1,
                         file: None
                     }]),
+                    cursor: 5,
                 }
             )
         }
@@ -103,6 +105,7 @@ fn test_invalid_definition() {
                         end: source.find("invalid").unwrap_or(0) + "invalid".len() - 1,
                         file: None
                     }]),
+                    cursor: 1,
                 }
             )
         }
@@ -147,6 +150,7 @@ fn test_invalid_constant_value() {
                             end: source.find(value).unwrap_or(0) + value.len() - 1,
                             file: None
                         }]),
+                        cursor: 4
                     }
                 )
             }
@@ -191,6 +195,7 @@ fn test_invalid_token_in_macro_body() {
                             end: source.rfind(value).unwrap_or(0) + value.len() - 1,
                             file: None
                         }]),
+                        cursor: 15,
                     }
                 )
             }
@@ -236,6 +241,7 @@ fn test_invalid_token_in_label_definition() {
                             end: source.rfind(value).unwrap_or(0) + value.len() - 1,
                             file: None
                         }]),
+                        cursor: 17,
                     }
                 )
             }
@@ -279,6 +285,7 @@ fn test_invalid_single_arg() {
                         ))),
                         hint: Some("Expected number representing stack item count.".to_string()),
                         spans: AstSpan(vec![Span { start: 34, end: 34, file: None }]),
+                        cursor: 8,
                     }
                 )
             }
