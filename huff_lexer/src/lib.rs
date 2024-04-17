@@ -1,8 +1,7 @@
 use huff_utils::prelude::*;
 use regex::Regex;
 use std::{
-    iter::{Peekable, Zip},
-    ops::RangeFrom,
+    iter::{Enumerate, Peekable},
     str::Chars,
 };
 
@@ -35,8 +34,8 @@ pub enum Context {
 pub struct Lexer<'a> {
     /// The source code as peekable chars.
     /// WARN: SHOULD NEVER BE MODIFIED!
-    pub chars: Peekable<Zip<Chars<'a>, RangeFrom<u32>>>,
-    position: u32,
+    pub chars: Peekable<Enumerate<Chars<'a>>>,
+    position: usize,
     /// The previous lexed Token.
     /// NOTE: Cannot be a whitespace.
     pub lookback: Option<Token>,
@@ -52,7 +51,7 @@ impl<'a> Lexer<'a> {
     pub fn new(source: &'a str) -> Self {
         Lexer {
             // We zip with the character index here to ensure the first char has index 0
-            chars: source.chars().zip(0..).peekable(),
+            chars: source.chars().enumerate().peekable(),
             position: 0,
             lookback: None,
             eof: false,
@@ -62,7 +61,7 @@ impl<'a> Lexer<'a> {
 
     /// Consumes the next character
     pub fn consume(&mut self) -> Option<char> {
-        let (c, index) = self.chars.next()?;
+        let (index, c) = self.chars.next()?;
         self.position = index;
         Some(c)
     }
@@ -70,7 +69,7 @@ impl<'a> Lexer<'a> {
     /// Try to peek at the next character from the source
     pub fn peek(&mut self) -> Option<char> {
         //self.chars.peek().copied()
-        self.chars.peek().map(|(c, _)| *c)
+        self.chars.peek().map(|(_, c)| *c)
     }
 
     fn next_token(&mut self) -> TokenResult {
@@ -137,20 +136,14 @@ impl<'a> Lexer<'a> {
                     let (word, start, end) =
                         self.eat_while(Some(ch), |ch| ch.is_ascii_alphabetic());
 
-                    let mut found_kind: Option<TokenKind> = None;
+                    let found_kind = match word.as_str() {
+                        "#define" => Some(TokenKind::Define),
+                        "#include" => Some(TokenKind::Include),
+                        _ => None,
+                    };
 
-                    let keys = [TokenKind::Define, TokenKind::Include];
-                    for kind in keys.into_iter() {
-                        let key = kind.to_string();
-                        let peeked = word.clone();
-                        if key == peeked {
-                            found_kind = Some(kind);
-                            break
-                        }
-                    }
-
-                    if let Some(kind) = &found_kind {
-                        Ok(kind.clone().into_span(start, end))
+                    if let Some(kind) = found_kind {
+                        Ok(kind.into_span(start, end))
                     } else if self.context == Context::Global && self.peek().unwrap() == '[' {
                         Ok(TokenKind::Pound.into_single_span(self.position))
                     } else {
@@ -171,40 +164,30 @@ impl<'a> Lexer<'a> {
                     let (word, start, mut end) =
                         self.eat_while(Some(ch), |c| c.is_alphanumeric() || c == '_');
 
-                    let mut found_kind: Option<TokenKind> = None;
-                    let keys = [
-                        TokenKind::Macro,
-                        TokenKind::Fn,
-                        TokenKind::Test,
-                        TokenKind::Function,
-                        TokenKind::Constant,
-                        TokenKind::Error,
-                        TokenKind::Takes,
-                        TokenKind::Returns,
-                        TokenKind::Event,
-                        TokenKind::NonPayable,
-                        TokenKind::Payable,
-                        TokenKind::Indexed,
-                        TokenKind::View,
-                        TokenKind::Pure,
-                        // First check for packed jump table
-                        TokenKind::JumpTablePacked,
-                        // Match with jump table if not
-                        TokenKind::JumpTable,
-                        TokenKind::CodeTable,
-                    ];
-                    for kind in keys.into_iter() {
-                        if self.context == Context::MacroBody {
-                            break
+                    let mut found_kind = if self.context == Context::MacroBody {
+                        None
+                    } else {
+                        match word.as_str() {
+                            "macro" => Some(TokenKind::Macro),
+                            "fn" => Some(TokenKind::Fn),
+                            "test" => Some(TokenKind::Test),
+                            "function" => Some(TokenKind::Function),
+                            "constant" => Some(TokenKind::Constant),
+                            "error" => Some(TokenKind::Error),
+                            "takes" => Some(TokenKind::Takes),
+                            "returns" => Some(TokenKind::Returns),
+                            "event" => Some(TokenKind::Event),
+                            "nonpayable" => Some(TokenKind::NonPayable),
+                            "payable" => Some(TokenKind::Payable),
+                            "indexed" => Some(TokenKind::Indexed),
+                            "view" => Some(TokenKind::View),
+                            "pure" => Some(TokenKind::Pure),
+                            "jumptable__packed" => Some(TokenKind::JumpTablePacked),
+                            "jumptable" => Some(TokenKind::JumpTable),
+                            "table" => Some(TokenKind::CodeTable),
+                            _ => None,
                         }
-                        let key = kind.to_string();
-                        let peeked = word.clone();
-
-                        if key == peeked {
-                            found_kind = Some(kind);
-                            break
-                        }
-                    }
+                    };
 
                     // Check to see if the found kind is, in fact, a keyword and not the name of
                     // a function. If it is, set `found_kind` to `None` so that it is set to a
@@ -346,8 +329,8 @@ impl<'a> Lexer<'a> {
                         }
                     }
 
-                    let kind = if let Some(kind) = &found_kind {
-                        kind.clone()
+                    let kind = if let Some(kind) = found_kind {
+                        kind
                     } else if self.context == Context::MacroBody &&
                         BuiltinFunctionKind::try_from(&word).is_ok()
                     {
@@ -448,7 +431,7 @@ impl<'a> Lexer<'a> {
         &mut self,
         initial_char: Option<char>,
         predicate: F,
-    ) -> (String, u32, u32) {
+    ) -> (String, usize, usize) {
         let start = self.position;
 
         // This function is only called when we want to continue consuming a character of the same
@@ -512,7 +495,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Skips white space. They are not significant in the source language
-    fn eat_whitespace(&mut self) -> (String, u32, u32) {
+    fn eat_whitespace(&mut self) -> (String, usize, usize) {
         self.eat_while(None, |ch| ch.is_whitespace())
     }
 
@@ -526,7 +509,10 @@ impl<'a> Lexer<'a> {
 
     /// Checks the previous token kind against the input.
     pub fn checked_lookback(&self, kind: TokenKind) -> bool {
-        self.lookback.clone().and_then(|t| if t.kind == kind { Some(true) } else { None }).is_some()
+        self.lookback
+            .as_ref()
+            .and_then(|t| if t.kind == kind { Some(true) } else { None })
+            .is_some()
     }
 
     /// Check if a given keyword follows the keyword rules in the `source`. If not, it is a
