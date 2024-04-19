@@ -11,7 +11,7 @@ pub enum SupportedEVMVersions {
     /// Introduce Push0, compiler will use by default
     Shanghai,
     /// Introduced tload, tstore and mcopy opcodes
-    Cancun, 
+    Cancun,
 }
 
 #[derive(Debug)]
