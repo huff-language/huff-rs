@@ -10,6 +10,8 @@ pub enum SupportedEVMVersions {
     Paris,
     /// Introduce Push0, compiler will use by default
     Shanghai,
+    /// Introduced tload, tstore and mcopy opcodes
+    Cancun, 
 }
 
 #[derive(Debug)]
@@ -52,6 +54,7 @@ impl From<String> for EVMVersion {
         match version.as_str() {
             "shanghai" => Self::new(SupportedEVMVersions::Shanghai),
             "paris" => Self::new(SupportedEVMVersions::Paris),
+            "cancun" => Self::new(SupportedEVMVersions::Cancun),
             _ => Self::default(),
         }
     }

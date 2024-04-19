@@ -6,7 +6,7 @@ use strum_macros::EnumString;
 /// They are arranged in a particular order such that all the opcodes that have common
 /// prefixes are ordered by decreasing length to avoid mismatch when lexing.
 /// Example : [origin, or] or [push32, ..., push3]
-pub const OPCODES: [&str; 147] = [
+pub const OPCODES: [&str; 148] = [
     "lt",
     "gt",
     "slt",
@@ -79,6 +79,7 @@ pub const OPCODES: [&str; 147] = [
     "log4",
     "tload",
     "tstore",
+    "mcopy",
     "create2",
     "create",
     "callcode",
@@ -295,6 +296,7 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "log4" => Opcode::Log4,
     "tload" => Opcode::TLoad,
     "tstore" => Opcode::TStore,
+    "mcopy" => Opcode::Mcopy,
     "create" => Opcode::Create,
     "call" => Opcode::Call,
     "callcode" => Opcode::Callcode,
@@ -584,6 +586,8 @@ pub enum Opcode {
     TLoad,
     /// Transaction-persistent, but storage-ephemeral variable store
     TStore,
+    /// Copy memory areas
+    Mcopy,
     /// Create a new account with associated code
     Create,
     /// Message-call into an account
@@ -748,8 +752,9 @@ impl Opcode {
             Opcode::Log2 => "a2",
             Opcode::Log3 => "a3",
             Opcode::Log4 => "a4",
-            Opcode::TLoad => "b3",
-            Opcode::TStore => "b4",
+            Opcode::TLoad => "5c",
+            Opcode::TStore => "5d",
+            Opcode::Mcopy => "5e",
             Opcode::Create => "f0",
             Opcode::Call => "f1",
             Opcode::Callcode => "f2",
