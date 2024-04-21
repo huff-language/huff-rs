@@ -829,7 +829,7 @@ impl Opcode {
                         let zeros_needed = size - literal.len() as u8;
                         let zero_prefix =
                             (0..zeros_needed).map(|_| "0").collect::<Vec<&str>>().join("");
-                        return format!("{zero_prefix}{literal}")
+                        return format!("{zero_prefix}{literal}");
                     }
                 }
             }
@@ -844,7 +844,7 @@ impl Opcode {
             if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
                 if len >= 96 {
                     let size = (len - 96 + 1) * 2;
-                    return literal.len() > size as usize
+                    return literal.len() > size as usize;
                 }
             }
         }

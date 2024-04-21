@@ -22,7 +22,7 @@ pub fn unpack_files(path: &str) -> Result<Vec<String>, UnpackError> {
     match parse_extension(path) {
         Some(extension) => {
             if extension == "huff" {
-                return Ok(vec![path.to_string()])
+                return Ok(vec![path.to_string()]);
             }
             Err(UnpackError::UnsupportedExtension(path.to_string()))
         }

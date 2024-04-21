@@ -113,7 +113,7 @@ impl<'a> Lexer<'a> {
                                                 // there will be a successfully parsed block comment
                                                 // "/* */"
                                                 // and " */" will be processed separately.
-                                                break
+                                                break;
                                             }
                                         }
                                         _ => {
@@ -145,7 +145,7 @@ impl<'a> Lexer<'a> {
                         let peeked = word.clone();
                         if key == peeked {
                             found_kind = Some(kind);
-                            break
+                            break;
                         }
                     }
 
@@ -163,7 +163,7 @@ impl<'a> Lexer<'a> {
                                 end: self.position as usize,
                                 file: None,
                             },
-                        ))
+                        ));
                     }
                 }
                 // Alphabetical characters
@@ -195,14 +195,14 @@ impl<'a> Lexer<'a> {
                     ];
                     for kind in keys.into_iter() {
                         if self.context == Context::MacroBody {
-                            break
+                            break;
                         }
                         let key = kind.to_string();
                         let peeked = word.clone();
 
                         if key == peeked {
                             found_kind = Some(kind);
-                            break
+                            break;
                         }
                     }
 
@@ -417,7 +417,7 @@ impl<'a> Lexer<'a> {
                             end: self.position as usize,
                             file: None,
                         },
-                    ))
+                    ));
                 }
             }?;
 
@@ -465,7 +465,7 @@ impl<'a> Lexer<'a> {
             // cursor If not, return word. The next character will be analyzed on the
             // next iteration of next_token, Which will increment the cursor
             if !predicate(peek_char) {
-                return (word, start, self.position)
+                return (word, start, self.position);
             }
             word.push(peek_char);
 
@@ -565,7 +565,7 @@ impl<'a> Lexer<'a> {
                 ];
                 for key in keys {
                     if self.checked_lookback(key) {
-                        return true
+                        return true;
                     }
                 }
                 false
@@ -594,7 +594,7 @@ impl<'a> Lexer<'a> {
                             // Iterate until newline
                             while let Some(lc) = &peekable_source.next() {
                                 if lc.eq(&'\n') {
-                                    break
+                                    break;
                                 }
                             }
                         } else if nnc.eq(&'*') {
@@ -603,7 +603,7 @@ impl<'a> Lexer<'a> {
                                 if lc.eq(&'*') {
                                     if let Some(llc) = peekable_source.peek() {
                                         if *llc == '/' {
-                                            break
+                                            break;
                                         }
                                     }
                                 }
@@ -618,7 +618,7 @@ impl<'a> Lexer<'a> {
                     // Skip over whitespace
                     while peekable_source.peek().is_some() {
                         if !peekable_source.peek().unwrap().is_whitespace() {
-                            break
+                            break;
                         } else {
                             peekable_source.next();
                         }
@@ -634,7 +634,7 @@ impl<'a> Lexer<'a> {
                                     if let Some(c) = peekable_source.next() {
                                         if matches!(c, '"' | '\'') {
                                             imports.push(import);
-                                            break
+                                            break;
                                         } else {
                                             import.push(c);
                                         }
@@ -646,7 +646,7 @@ impl<'a> Lexer<'a> {
                     }
                 } else if nc.ne(&include_chars_iterator.next().unwrap()) {
                     include_chars_iterator = "#include".chars().peekable();
-                    break
+                    break;
                 }
             }
         }

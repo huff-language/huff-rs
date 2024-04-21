@@ -145,7 +145,7 @@ impl TestRunner {
                         Some(hex::encode(b))
                     }
                 } else {
-                    return Err(RunnerError(String::from("Unexpected transaction kind")))
+                    return Err(RunnerError(String::from("Unexpected transaction kind")));
                 }
             }
             ExecutionResult::Revert { output, .. } => {

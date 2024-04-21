@@ -31,7 +31,7 @@ jobs:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           profile: minimal
           components: rustfmt, clippy
           override: true
@@ -39,7 +39,7 @@ jobs:
         with:
           cache-on-failure: true
       - name: cargo doc
-        run: cargo +nightly doc --all-features --no-deps
+        run: cargo doc --all-features --no-deps
 
   cargo-clippy:
     runs-on: ubuntu-latest
@@ -49,7 +49,7 @@ jobs:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           profile: minimal
           components: rustfmt, clippy
           override: true
@@ -57,7 +57,7 @@ jobs:
         with:
           cache-on-failure: false
       - name: cargo clippy
-        run: cargo +nightly clippy --all --all-features -- -D warnings
+        run: cargo clippy --all --all-features -- -D warnings
 
   tests:
     runs-on: ubuntu-latest

@@ -78,7 +78,7 @@ impl From<ast::Contract> for Abi {
             .filter(|m| m.name.to_lowercase() == "constructor")
             .cloned()
             .collect::<Vec<ast::FunctionDefinition>>()
-            .get(0)
+            .first()
             .map(|func| Constructor {
                 inputs: func
                     .inputs
@@ -97,7 +97,7 @@ impl From<ast::Contract> for Abi {
                     .filter(|m| m.name == "CONSTRUCTOR")
                     .cloned()
                     .collect::<Vec<ast::MacroDefinition>>()
-                    .get(0)
+                    .first()
                     .map(|func| Constructor {
                         inputs: func
                             .parameters
@@ -366,7 +366,7 @@ impl FunctionParamType {
                 .collect();
             let func_type = FunctionParamType::convert_string_to_type(&cleaned.remove(0))?;
             let sizes: Vec<usize> = cleaned.iter().map(|x| x.parse::<usize>().unwrap()).collect();
-            return Ok(Self::Array(Box::new(func_type), sizes))
+            return Ok(Self::Array(Box::new(func_type), sizes));
         }
         if input.starts_with("uint") {
             // Default to 256 if no size
@@ -377,7 +377,7 @@ impl FunctionParamType {
                 },
                 None => 256,
             };
-            return Ok(Self::Uint(size))
+            return Ok(Self::Uint(size));
         }
         if input.starts_with("int") {
             // Default to 256 if no size
@@ -388,20 +388,20 @@ impl FunctionParamType {
                 },
                 None => 256,
             };
-            return Ok(Self::Int(size))
+            return Ok(Self::Int(size));
         }
         if input.starts_with("bytes") && input.len() != 5 {
             let size = input.get(5..input.len()).unwrap().parse::<usize>().unwrap();
-            return Ok(Self::FixedBytes(size))
+            return Ok(Self::FixedBytes(size));
         }
         if input.starts_with("bool") {
-            return Ok(Self::Bool)
+            return Ok(Self::Bool);
         }
         if input.starts_with("address") {
-            return Ok(Self::Address)
+            return Ok(Self::Address);
         }
         if input.starts_with("string") {
-            return Ok(Self::String)
+            return Ok(Self::String);
         }
         if input == "bytes" {
             Ok(Self::Bytes)

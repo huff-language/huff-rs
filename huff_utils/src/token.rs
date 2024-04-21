@@ -190,7 +190,7 @@ impl fmt::Display for TokenKind {
                 for b in l.iter() {
                     let _ = write!(&mut s, "{b:02x}");
                 }
-                return write!(f, "{s}")
+                return write!(f, "{s}");
             }
             TokenKind::Opcode(o) => return write!(f, "{o}"),
             TokenKind::Label(s) => return write!(f, "{s}"),
@@ -201,7 +201,7 @@ impl fmt::Display for TokenKind {
                     let brackets = if size > &0 { format!("[{size}]") } else { "[]".to_string() };
                     s.push_str(&brackets);
                 }
-                return write!(f, "{pt}{s}")
+                return write!(f, "{pt}{s}");
             }
             TokenKind::JumpTable => "jumptable",
             TokenKind::JumpTablePacked => "jumptable__packed",
