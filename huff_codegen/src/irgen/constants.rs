@@ -23,7 +23,7 @@ pub fn constant_gen(
             kind: CodegenErrorKind::MissingConstantDefinition(name.to_string()),
             span: ir_byte_span.clone(),
             token: None,
-        })
+        });
     };
 
     // Generate bytecode for the constant
@@ -40,7 +40,7 @@ pub fn constant_gen(
                 kind: CodegenErrorKind::StoragePointersNotDerived,
                 span: constant.span.clone(),
                 token: None,
-            })
+            });
         }
     };
 

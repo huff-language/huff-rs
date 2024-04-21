@@ -180,7 +180,7 @@ impl Contract {
                 .iter()
                 .filter(|pointer| pointer.0.eq(&c.name))
                 .collect::<Vec<&(String, [u8; 32])>>()
-                .get(0)
+                .first()
             {
                 Some(p) => {
                     *c = ConstantDefinition {
@@ -219,7 +219,7 @@ impl Contract {
         let mut i = 0;
         loop {
             if i >= statements.len() {
-                break
+                break;
             }
             match &statements[i].clone().ty {
                 StatementType::Constant(const_name) => {
@@ -261,7 +261,7 @@ impl Contract {
                         .iter()
                         .filter(|md| md.name.eq(&mi.macro_name))
                         .collect::<Vec<&MacroDefinition>>()
-                        .get(0)
+                        .first()
                     {
                         Some(&md) => {
                             if md.name.eq("CONSTRUCTOR") {
@@ -291,7 +291,7 @@ impl Contract {
                                 .iter()
                                 .filter(|md| md.name.eq(name))
                                 .collect::<Vec<&MacroDefinition>>()
-                                .get(0)
+                                .first()
                             {
                                 Some(&md) => {
                                     if md.name.eq("CONSTRUCTOR") {
@@ -348,7 +348,7 @@ impl Contract {
             .iter()
             .filter(|pointer| pointer.0.eq(const_name))
             .collect::<Vec<&(String, [u8; 32])>>()
-            .get(0)
+            .first()
             .is_none()
         {
             tracing::debug!(target: "ast", "No storage pointer already set for \"{}\"!", const_name);
@@ -360,7 +360,7 @@ impl Contract {
                 .iter()
                 .filter(|c| c.name.eq(const_name))
                 .collect::<Vec<&ConstantDefinition>>()
-                .get(0)
+                .first()
             {
                 Some(c) => {
                     let new_value = match c.value {

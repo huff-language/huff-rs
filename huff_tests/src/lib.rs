@@ -68,7 +68,7 @@ impl<'t> HuffTester<'t> {
     pub fn execute(mut self) -> Result<Vec<TestResult>, RunnerError> {
         // Check if any test macros exist
         if self.macros.is_empty() {
-            return Err(RunnerError(String::from("No test macros found.")))
+            return Err(RunnerError(String::from("No test macros found.")));
         }
 
         // Execute our tests and return a vector of the results

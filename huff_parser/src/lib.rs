@@ -34,7 +34,7 @@ pub struct Parser {
 impl Parser {
     /// Public associated function that instantiates a Parser.
     pub fn new(tokens: Vec<Token>, base: Option<String>) -> Self {
-        let initial_token = tokens.get(0).unwrap().clone();
+        let initial_token = tokens.first().unwrap().clone();
         let remapper = files::Remapper::new("./");
         Self { tokens, cursor: 0, current_token: initial_token, base, spans: vec![], remapper }
     }
@@ -43,7 +43,7 @@ impl Parser {
     ///
     /// PANICS if the tokens vec is empty!
     pub fn reset(&mut self) {
-        self.current_token = self.tokens.get(0).unwrap().clone();
+        self.current_token = self.tokens.first().unwrap().clone();
         self.cursor = 0;
     }
 
@@ -133,7 +133,7 @@ impl Parser {
                         TokenKind::Include
                     )),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         }
 
@@ -158,7 +158,7 @@ impl Parser {
                     kind: ParserErrorKind::InvalidName(tok.clone()),
                     hint: Some(format!("Expected import string. Got: \"{tok}\"")),
                     spans: AstSpan(new_spans),
-                })
+                });
             }
         };
 
@@ -216,7 +216,7 @@ impl Parser {
         loop {
             let token = self.peek().unwrap();
             if !kinds.contains(&token.kind) {
-                break
+                break;
             }
             self.current_token = token;
             self.cursor += 1;
@@ -257,7 +257,7 @@ impl Parser {
                     kind: ParserErrorKind::InvalidName(tok.clone()),
                     hint: Some(format!("Expected function name, found: \"{tok}\"")),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         };
 
@@ -319,7 +319,7 @@ impl Parser {
                     kind: ParserErrorKind::InvalidName(tok.clone()),
                     hint: Some(format!("Expected event name, found: \"{tok}\"")),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         };
 
@@ -350,7 +350,7 @@ impl Parser {
                     kind: ParserErrorKind::UnexpectedType(tok),
                     hint: Some("Expected constant name.".to_string()),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         };
 
@@ -375,7 +375,7 @@ impl Parser {
                             .to_string(),
                     ),
                     spans: AstSpan(vec![self.current_token.span.clone()]),
-                })
+                });
             }
         };
 
@@ -403,7 +403,7 @@ impl Parser {
                     kind: ParserErrorKind::UnexpectedType(tok),
                     hint: Some("Expected error name.".to_string()),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         };
 
@@ -450,7 +450,7 @@ impl Parser {
                                 ),
                                 hint: Some(format!("Expected string for decorator flag: {s}")),
                                 spans: AstSpan(vec![self.current_token.span.clone()]),
-                            })
+                            });
                         }
                     }
                     // The value flag accepts a single literal as an argument
@@ -466,7 +466,7 @@ impl Parser {
                                 ),
                                 hint: Some(format!("Expected literal for decorator flag: {s}")),
                                 spans: AstSpan(vec![self.current_token.span.clone()]),
-                            })
+                            });
                         }
                     }
                     Err(_) => {
@@ -475,7 +475,7 @@ impl Parser {
                             kind: ParserErrorKind::InvalidDecoratorFlag(s.clone()),
                             hint: Some(format!("Unknown decorator flag: {s}")),
                             spans: AstSpan(self.spans.clone()),
-                        })
+                        });
                     }
                 }
 
@@ -493,7 +493,7 @@ impl Parser {
                     )),
                     hint: Some(String::from("Unknown decorator flag")),
                     spans: AstSpan(self.spans.clone()),
-                })
+                });
             }
         }
 
@@ -704,7 +704,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidTokenInMacroBody(kind),
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+                    });
                 }
             };
         }
@@ -727,8 +727,8 @@ impl Parser {
     pub fn parse_label(&mut self) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
         self.match_kind(TokenKind::Colon)?;
-        while !self.check(TokenKind::Label("NEXT_LABEL".to_string())) &&
-            !self.check(TokenKind::CloseBrace)
+        while !self.check(TokenKind::Label("NEXT_LABEL".to_string()))
+            && !self.check(TokenKind::CloseBrace)
         {
             match self.current_token.kind.clone() {
                 TokenKind::Literal(val) => {
@@ -817,7 +817,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidTokenInLabelDefinition(kind),
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+                    });
                 }
             };
         }
@@ -869,7 +869,7 @@ impl Parser {
                         self.consume();
                         on_type = true;
                     }
-                    continue
+                    continue;
                 }
 
                 // Check for literals
@@ -889,7 +889,7 @@ impl Parser {
                         self.consume();
                         on_type = true;
                     }
-                    continue
+                    continue;
                 }
             }
 
@@ -930,9 +930,9 @@ impl Parser {
             }
 
             // name comes second (is optional)
-            if select_name &&
-                (self.check(TokenKind::Ident("x".to_string())) ||
-                    self.check(TokenKind::PrimitiveType(PrimitiveEVMType::Address)))
+            if select_name
+                && (self.check(TokenKind::Ident("x".to_string()))
+                    || self.check(TokenKind::PrimitiveType(PrimitiveEVMType::Address)))
             {
                 // We need to check if the name is a keyword - not the type
                 if !on_type {
@@ -948,7 +948,7 @@ impl Parser {
                                         "Argument names cannot be EVM types: {arg_str}"
                                     )),
                                     spans: AstSpan(vec![self.current_token.span.clone()]),
-                                })
+                                });
                             }
                         }
                         TokenKind::PrimitiveType(ty) => {
@@ -981,7 +981,7 @@ impl Parser {
                     kind: ParserErrorKind::InvalidArgs(self.current_token.kind.clone()),
                     hint: None,
                     spans: AstSpan(vec![self.current_token.span.clone()]),
-                })
+                });
             }
 
             arg.span = AstSpan(arg_spans);
@@ -1059,7 +1059,7 @@ impl Parser {
                                 .to_string(),
                         ),
                         spans: AstSpan(new_spans),
-                    })
+                    });
                 }
             }
             if self.check(TokenKind::Comma) {
@@ -1106,8 +1106,8 @@ impl Parser {
                             0_usize
                         }
                     })
-                    .sum::<usize>() /
-                    2
+                    .sum::<usize>()
+                    / 2
             }
         };
 
@@ -1147,7 +1147,7 @@ impl Parser {
                                     ),
                                     hint: Some("Expected valid hex bytecode.".to_string()),
                                     spans: AstSpan(new_spans),
-                                })
+                                });
                             }
                         } else {
                             StatementType::LabelCall(ident_str.to_string())
@@ -1162,7 +1162,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidTableBodyToken(kind.clone()),
                         hint: Some("Expected an identifier string.".to_string()),
                         spans: AstSpan(new_spans),
-                    })
+                    });
                 }
             };
         }
@@ -1267,7 +1267,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidUint256(size),
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+                    });
                 }
                 Ok(self.match_kind(self.current_token.kind.clone())?)
             }
@@ -1277,7 +1277,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidBytes(size),
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+                    });
                 }
                 Ok(self.match_kind(self.current_token.kind.clone())?)
             }
@@ -1291,7 +1291,7 @@ impl Parser {
                         kind: ParserErrorKind::InvalidInt(size),
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
-                    })
+                    });
                 }
                 let curr_token_kind = self.current_token.kind.clone();
                 self.consume();

@@ -92,7 +92,7 @@ impl Remapper {
                 // Gracefully read foundry.toml
                 if let Err(e) = br.read_to_string(&mut data) {
                     tracing::warn!(target: "parser", "Failed to read \"foundry.toml\" file contents!\nError: {:?}", e);
-                    return
+                    return;
                 }
 
                 // Parse the foundry.toml file as toml
@@ -100,7 +100,7 @@ impl Remapper {
                     t
                 } else {
                     tracing::warn!(target: "parser", "\"foundry.toml\" incorrectly formatted!");
-                    return
+                    return;
                 };
 
                 // Parse the toml as a map
@@ -190,7 +190,7 @@ impl Remapper {
             if path.starts_with(k) {
                 tracing::debug!(target: "parser", "found key {} and value {}", k, v);
                 path = path.replace(k, v);
-                return Some(format!("{}{path}", self.base_dir))
+                return Some(format!("{}{path}", self.base_dir));
             }
         }
         None
@@ -294,12 +294,12 @@ impl FileSource {
                         }
                         None => {
                             tracing::warn!("Failed to convert path to string");
-                            return None
+                            return None;
                         }
                     },
                     None => {
                         tracing::warn!("Failed to find parent for path: {:?}", path);
-                        return None
+                        return None;
                     }
                 }
                 res_str = res_str.replacen("../", "", 1);
@@ -360,11 +360,11 @@ impl Span {
                     .as_ref()
                     .map(|s| {
                         let line_num =
-                            &s[0..self.start].as_bytes().iter().filter(|&&c| c == b'\n').count() +
-                                1;
+                            &s[0..self.start].as_bytes().iter().filter(|&&c| c == b'\n').count()
+                                + 1;
                         let line_start = &s[0..self.start].rfind('\n').unwrap_or(0);
-                        let line_end = self.end +
-                            s[self.end..s.len()]
+                        let line_end = self.end
+                            + s[self.end..s.len()]
                                 .find('\n')
                                 .unwrap_or(s.len() - self.end)
                                 .to_owned();

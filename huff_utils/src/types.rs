@@ -41,7 +41,7 @@ impl TryFrom<String> for PrimitiveEVMType {
                 },
                 None => 256,
             };
-            return Ok(PrimitiveEVMType::Uint(size))
+            return Ok(PrimitiveEVMType::Uint(size));
         }
         if input.starts_with("int") {
             // Default to 256 if no size
@@ -55,7 +55,7 @@ impl TryFrom<String> for PrimitiveEVMType {
                 },
                 None => 256,
             };
-            return Ok(PrimitiveEVMType::Int(size))
+            return Ok(PrimitiveEVMType::Int(size));
         }
         if input.starts_with("bytes") && input.len() != 5 {
             let remaining = input.get(5..input.len()).unwrap();
@@ -63,16 +63,16 @@ impl TryFrom<String> for PrimitiveEVMType {
                 Ok(s) => s,
                 Err(_) => return Err(format!("Invalid bytes size : {remaining}")),
             };
-            return Ok(PrimitiveEVMType::Bytes(size))
+            return Ok(PrimitiveEVMType::Bytes(size));
         }
         if input.eq("bool") {
-            return Ok(PrimitiveEVMType::Bool)
+            return Ok(PrimitiveEVMType::Bool);
         }
         if input.eq("address") {
-            return Ok(PrimitiveEVMType::Address)
+            return Ok(PrimitiveEVMType::Address);
         }
         if input.eq("string") {
-            return Ok(PrimitiveEVMType::String)
+            return Ok(PrimitiveEVMType::String);
         }
         if input == "bytes" {
             Ok(PrimitiveEVMType::DynBytes)
@@ -126,14 +126,16 @@ impl TryFrom<String> for EToken {
                         )))
                     }
                     _ => {
-                        return Ok(EToken(Token::FixedBytes(str_to_bytes32(cleaned_input).to_vec())))
+                        return Ok(EToken(Token::FixedBytes(
+                            str_to_bytes32(cleaned_input).to_vec(),
+                        )))
                     }
                 }
             } else {
                 // dyn bytes array
                 return Ok(EToken(Token::Bytes(
                     str_to_vec(cleaned_input).map_err(|e| e.to_string())?,
-                )))
+                )));
             }
         }
         // array
@@ -144,18 +146,18 @@ impl TryFrom<String> for EToken {
             let etokens: Result<Vec<EToken>, _> =
                 v.iter().map(|x| EToken::try_from(x.to_owned())).collect();
             let tokens: Vec<Token> = etokens?.iter().map(move |x| x.clone().0).collect();
-            return Ok(EToken(Token::Array(tokens)))
+            return Ok(EToken(Token::Array(tokens)));
         }
         if input.starts_with('-') || input.starts_with('+') {
-            return Ok(EToken(input.parse::<i128>().map_err(|e| e.to_string())?.into_token()))
+            return Ok(EToken(input.parse::<i128>().map_err(|e| e.to_string())?.into_token()));
         }
         if input == "true" || input == "false" {
-            return Ok(EToken(Token::Bool(input == "true")))
+            return Ok(EToken(Token::Bool(input == "true")));
         }
         if input.chars().all(|x| x.is_ascii_digit()) {
             return Ok(EToken(Token::Uint(
                 U256::from_str_radix(input.as_str(), 10).map_err(|e| e.to_string())?,
-            )))
+            )));
         }
         if input.chars().all(|x| x.is_alphanumeric()) {
             Ok(EToken(Token::String(input)))

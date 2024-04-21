@@ -783,38 +783,38 @@ impl Opcode {
     pub fn is_value_push(&self) -> bool {
         matches!(
             self,
-            Opcode::Push1 |
-                Opcode::Push2 |
-                Opcode::Push3 |
-                Opcode::Push4 |
-                Opcode::Push5 |
-                Opcode::Push6 |
-                Opcode::Push7 |
-                Opcode::Push8 |
-                Opcode::Push9 |
-                Opcode::Push10 |
-                Opcode::Push11 |
-                Opcode::Push12 |
-                Opcode::Push13 |
-                Opcode::Push14 |
-                Opcode::Push15 |
-                Opcode::Push16 |
-                Opcode::Push17 |
-                Opcode::Push18 |
-                Opcode::Push19 |
-                Opcode::Push20 |
-                Opcode::Push21 |
-                Opcode::Push22 |
-                Opcode::Push23 |
-                Opcode::Push24 |
-                Opcode::Push25 |
-                Opcode::Push26 |
-                Opcode::Push27 |
-                Opcode::Push28 |
-                Opcode::Push29 |
-                Opcode::Push30 |
-                Opcode::Push31 |
-                Opcode::Push32
+            Opcode::Push1
+                | Opcode::Push2
+                | Opcode::Push3
+                | Opcode::Push4
+                | Opcode::Push5
+                | Opcode::Push6
+                | Opcode::Push7
+                | Opcode::Push8
+                | Opcode::Push9
+                | Opcode::Push10
+                | Opcode::Push11
+                | Opcode::Push12
+                | Opcode::Push13
+                | Opcode::Push14
+                | Opcode::Push15
+                | Opcode::Push16
+                | Opcode::Push17
+                | Opcode::Push18
+                | Opcode::Push19
+                | Opcode::Push20
+                | Opcode::Push21
+                | Opcode::Push22
+                | Opcode::Push23
+                | Opcode::Push24
+                | Opcode::Push25
+                | Opcode::Push26
+                | Opcode::Push27
+                | Opcode::Push28
+                | Opcode::Push29
+                | Opcode::Push30
+                | Opcode::Push31
+                | Opcode::Push32
         )
     }
 
@@ -829,7 +829,7 @@ impl Opcode {
                         let zeros_needed = size - literal.len() as u8;
                         let zero_prefix =
                             (0..zeros_needed).map(|_| "0").collect::<Vec<&str>>().join("");
-                        return format!("{zero_prefix}{literal}")
+                        return format!("{zero_prefix}{literal}");
                     }
                 }
             }
@@ -844,7 +844,7 @@ impl Opcode {
             if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
                 if len >= 96 {
                     let size = (len - 96 + 1) * 2;
-                    return literal.len() > size as usize
+                    return literal.len() > size as usize;
                 }
             }
         }

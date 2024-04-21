@@ -38,7 +38,7 @@ pub fn statement_gen<'a>(
                     kind: CodegenErrorKind::InvalidMacroInvocation(mi.macro_name.clone()),
                     span: mi.span.clone(),
                     token: None,
-                })
+                });
             };
 
             tracing::info!(target: "codegen", "FOUND INNER MACRO: {}", ir_macro.name);
@@ -50,7 +50,7 @@ pub fn statement_gen<'a>(
                     kind: CodegenErrorKind::TestInvocation(ir_macro.name.clone()),
                     span: ir_macro.span.clone(),
                     token: None,
-                })
+                });
             }
 
             // If invoked macro is a function (outlined), insert a jump to the function's code and a
@@ -114,7 +114,7 @@ pub fn statement_gen<'a>(
                             "FAILED TO RECURSE INTO MACRO \"{}\"",
                             ir_macro.name
                         );
-                        return Err(e)
+                        return Err(e);
                     }
                 };
 
@@ -181,7 +181,7 @@ pub fn statement_gen<'a>(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     };
 
                     // Get the name of the macro being passed to __codesize
@@ -223,7 +223,7 @@ pub fn statement_gen<'a>(
                                     "FAILED TO RECURSE INTO MACRO \"{}\"",
                                     ir_macro.name
                                 );
-                                return Err(e)
+                                return Err(e);
                             }
                         };
 
@@ -254,7 +254,7 @@ pub fn statement_gen<'a>(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     };
 
                     let size = bytes32_to_string(&ir_table.size, false);
@@ -294,7 +294,7 @@ pub fn statement_gen<'a>(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::FunctionSignature => {
@@ -353,7 +353,7 @@ pub fn statement_gen<'a>(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::EventHash => {
@@ -403,7 +403,7 @@ pub fn statement_gen<'a>(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::Error => {
@@ -420,7 +420,7 @@ pub fn statement_gen<'a>(
                             )),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     if let Some(error) = contract
@@ -453,7 +453,7 @@ pub fn statement_gen<'a>(
                             ),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
                 }
                 BuiltinFunctionKind::RightPad => {
@@ -545,7 +545,7 @@ pub fn statement_gen<'a>(
                             )),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     let verbatim_str = bf.args[0].name.as_ref().unwrap();
@@ -554,7 +554,7 @@ pub fn statement_gen<'a>(
                     for c in verbatim_str.chars() {
                         if !c.is_ascii_hexdigit() {
                             is_hex = false;
-                            break
+                            break;
                         }
                     }
                     if !is_hex {
@@ -567,7 +567,7 @@ pub fn statement_gen<'a>(
                             kind: CodegenErrorKind::InvalidHex(verbatim_str.to_string()),
                             span: bf.span.clone(),
                             token: None,
-                        })
+                        });
                     }
 
                     tracing::debug!(target: "codegen", "INJECTING as verbatim: {}", verbatim_str);
@@ -586,7 +586,7 @@ pub fn statement_gen<'a>(
                 kind: CodegenErrorKind::InvalidMacroStatement,
                 span: s.span.clone(),
                 token: None,
-            })
+            });
         }
     }
 

@@ -90,7 +90,7 @@ pub fn bubble_arg_call(
                                 mis,
                                 jump_table,
                             )
-                        }
+                        };
                     }
                     MacroArg::Ident(iden) => {
                         tracing::debug!(target: "codegen", "Found MacroArg::Ident IN \"{}\" Macro Invocation: \"{}\"!", macro_invoc.1.macro_name, iden);
@@ -124,7 +124,7 @@ pub fn bubble_arg_call(
                                         kind: CodegenErrorKind::StoragePointersNotDerived,
                                         span: AstSpan(vec![]),
                                         token: None,
-                                    })
+                                    });
                                 }
                             };
                             *offset += push_bytes.len() / 2;
