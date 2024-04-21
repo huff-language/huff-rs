@@ -303,10 +303,10 @@ impl FunctionParamType {
     pub fn is_memory_type(&self) -> bool {
         matches!(
             self,
-            FunctionParamType::Bytes
-                | FunctionParamType::String
-                | FunctionParamType::Tuple(_)
-                | FunctionParamType::Array(_, _)
+            FunctionParamType::Bytes |
+                FunctionParamType::String |
+                FunctionParamType::Tuple(_) |
+                FunctionParamType::Array(_, _)
         )
     }
 }

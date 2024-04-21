@@ -126,9 +126,7 @@ impl TryFrom<String> for EToken {
                         )))
                     }
                     _ => {
-                        return Ok(EToken(Token::FixedBytes(
-                            str_to_bytes32(cleaned_input).to_vec(),
-                        )))
+                        return Ok(EToken(Token::FixedBytes(str_to_bytes32(cleaned_input).to_vec())))
                     }
                 }
             } else {

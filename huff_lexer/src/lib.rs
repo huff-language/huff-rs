@@ -348,8 +348,8 @@ impl<'a> Lexer<'a> {
 
                     let kind = if let Some(kind) = &found_kind {
                         kind.clone()
-                    } else if self.context == Context::MacroBody
-                        && BuiltinFunctionKind::try_from(&word).is_ok()
+                    } else if self.context == Context::MacroBody &&
+                        BuiltinFunctionKind::try_from(&word).is_ok()
                     {
                         TokenKind::BuiltinFunction(word)
                     } else {
@@ -542,20 +542,20 @@ impl<'a> Lexer<'a> {
     ///   by a colon or preceded by the keyword `function`
     pub fn check_keyword_rules(&mut self, found_kind: &Option<TokenKind>) -> bool {
         match found_kind {
-            Some(TokenKind::Macro)
-            | Some(TokenKind::Fn)
-            | Some(TokenKind::Test)
-            | Some(TokenKind::Function)
-            | Some(TokenKind::Constant)
-            | Some(TokenKind::Error)
-            | Some(TokenKind::Event)
-            | Some(TokenKind::JumpTable)
-            | Some(TokenKind::JumpTablePacked)
-            | Some(TokenKind::CodeTable) => self.checked_lookback(TokenKind::Define),
-            Some(TokenKind::NonPayable)
-            | Some(TokenKind::Payable)
-            | Some(TokenKind::View)
-            | Some(TokenKind::Pure) => {
+            Some(TokenKind::Macro) |
+            Some(TokenKind::Fn) |
+            Some(TokenKind::Test) |
+            Some(TokenKind::Function) |
+            Some(TokenKind::Constant) |
+            Some(TokenKind::Error) |
+            Some(TokenKind::Event) |
+            Some(TokenKind::JumpTable) |
+            Some(TokenKind::JumpTablePacked) |
+            Some(TokenKind::CodeTable) => self.checked_lookback(TokenKind::Define),
+            Some(TokenKind::NonPayable) |
+            Some(TokenKind::Payable) |
+            Some(TokenKind::View) |
+            Some(TokenKind::Pure) => {
                 let keys = [
                     TokenKind::NonPayable,
                     TokenKind::Payable,

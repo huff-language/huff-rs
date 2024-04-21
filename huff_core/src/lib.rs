@@ -438,8 +438,8 @@ impl<'a, 'l> Compiler<'a, 'l> {
                 Err(mut e) => {
                     // Return any errors except if the inputs is empty and the constructor
                     // definition is missing
-                    if e.kind != CodegenErrorKind::MissingMacroDefinition("CONSTRUCTOR".to_string())
-                        || !inputs.is_empty()
+                    if e.kind != CodegenErrorKind::MissingMacroDefinition("CONSTRUCTOR".to_string()) ||
+                        !inputs.is_empty()
                     {
                         // Add File Source to Span
                         let mut errs = e

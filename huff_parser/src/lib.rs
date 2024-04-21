@@ -727,8 +727,8 @@ impl Parser {
     pub fn parse_label(&mut self) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
         self.match_kind(TokenKind::Colon)?;
-        while !self.check(TokenKind::Label("NEXT_LABEL".to_string()))
-            && !self.check(TokenKind::CloseBrace)
+        while !self.check(TokenKind::Label("NEXT_LABEL".to_string())) &&
+            !self.check(TokenKind::CloseBrace)
         {
             match self.current_token.kind.clone() {
                 TokenKind::Literal(val) => {
@@ -930,9 +930,9 @@ impl Parser {
             }
 
             // name comes second (is optional)
-            if select_name
-                && (self.check(TokenKind::Ident("x".to_string()))
-                    || self.check(TokenKind::PrimitiveType(PrimitiveEVMType::Address)))
+            if select_name &&
+                (self.check(TokenKind::Ident("x".to_string())) ||
+                    self.check(TokenKind::PrimitiveType(PrimitiveEVMType::Address)))
             {
                 // We need to check if the name is a keyword - not the type
                 if !on_type {
@@ -1106,8 +1106,8 @@ impl Parser {
                             0_usize
                         }
                     })
-                    .sum::<usize>()
-                    / 2
+                    .sum::<usize>() /
+                    2
             }
         };
 
