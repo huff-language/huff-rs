@@ -16,6 +16,8 @@ pub struct ParserError {
     pub hint: Option<String>,
     /// A collection of spans the Parser Error crosses
     pub spans: AstSpan,
+    /// Line number where the error was seen
+    pub cursor: usize,
 }
 
 /// A Type of Parser Error
@@ -326,7 +328,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidPush(op) => {
                     write!(
                         f,
-                        "\nError: Invalid use of \"{:?}\" \n{}\n",
+                        "\nError at token {}: Invalid use of \"{:?}\" \n{}\n",
+                        pe.cursor,
                         op,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -334,7 +337,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::UnexpectedType(ut) => {
                     write!(
                         f,
-                        "\nError: Unexpected Type: \"{}\" \n{}\n",
+                        "\nError at token {}: Unexpected Type: \"{}\" \n{}\n",
+                        pe.cursor,
                         ut,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -342,7 +346,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidTypeAsArgumentName(ut) => {
                     write!(
                         f,
-                        "\nError: Unexpected Argument Name is an EVM Type: \"{}\" \n{}\n",
+                        "\nError at token {}: Unexpected Argument Name is an EVM Type: \"{}\" \n{}\n",
+                        pe.cursor,
                         ut,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -350,7 +355,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidDefinition(k) => {
                     write!(
                         f,
-                        "\nError: Invalid Defintion \"{}\"\n{}\n",
+                        "\nError at token {}: Invalid Defintion \"{}\"\n{}\n",
+                        pe.cursor,
                         k,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -358,7 +364,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidConstantValue(cv) => {
                     write!(
                         f,
-                        "\nError: Invalid Constant Value: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Constant Value: \"{}\" \n{}\n",
+                        pe.cursor,
                         cv,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -366,7 +373,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidTokenInMacroBody(tmb) => {
                     write!(
                         f,
-                        "\nError: Invalid Token In Macro Body: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Token In Macro Body: \"{}\" \n{}\n",
+                        pe.cursor,
                         tmb,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -374,7 +382,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidTokenInLabelDefinition(tlb) => {
                     write!(
                         f,
-                        "\nError: Invalid Token In Label Defintiion: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Token In Label Defintiion: \"{}\" \n{}\n",
+                        pe.cursor,
                         tlb,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -382,7 +391,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidSingleArg(sa) => {
                     write!(
                         f,
-                        "\nError: Invalid Argument: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Argument: \"{}\" \n{}\n",
+                        pe.cursor,
                         sa,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -390,7 +400,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidTableBodyToken(tbt) => {
                     write!(
                         f,
-                        "\nError: Invalid Token In Table Body: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Token In Table Body: \"{}\" \n{}\n",
+                        pe.cursor,
                         tbt,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -398,7 +409,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidConstant(constant) => {
                     write!(
                         f,
-                        "\nError: Invalid Constant: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Constant: \"{}\" \n{}\n",
+                        pe.cursor,
                         constant,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -406,7 +418,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidArgCallIdent(aci) => {
                     write!(
                         f,
-                        "\nError: Invalid Argument Call Identifier: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Argument Call Identifier: \"{}\" \n{}\n",
+                        pe.cursor,
                         aci,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -414,7 +427,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidName(name) => {
                     write!(
                         f,
-                        "\nError: Invalid Name: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Name: \"{}\" \n{}\n",
+                        pe.cursor,
                         name,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -422,7 +436,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidArgs(args) => {
                     write!(
                         f,
-                        "\nError: Invalid Argument Type: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Argument Type: \"{}\" \n{}\n",
+                        pe.cursor,
                         args,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -430,7 +445,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidUint256(v) => {
                     write!(
                         f,
-                        "\nError: Invalid Uint256 Value: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Uint256 Value: \"{}\" \n{}\n",
+                        pe.cursor,
                         v,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -438,7 +454,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidBytes(b) => {
                     write!(
                         f,
-                        "\nError: Invalid Bytes Value: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Bytes Value: \"{}\" \n{}\n",
+                        pe.cursor,
                         b,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -446,7 +463,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidInt(i) => {
                     write!(
                         f,
-                        "\nError: Invalid Int Value: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Int Value: \"{}\" \n{}\n",
+                        pe.cursor,
                         i,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -454,7 +472,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidMacroArgs(ma) => {
                     write!(
                         f,
-                        "\nError: Invalid Macro Arguments: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Macro Arguments: \"{}\" \n{}\n",
+                        pe.cursor,
                         ma,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -462,14 +481,16 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidReturnArgs => {
                     write!(
                         f,
-                        "\nError: Invalid Return Arguments\n{}\n",
+                        "\nError at token {}: Invalid Return Arguments\n{}\n",
+                        pe.cursor,
                         pe.spans.error(pe.hint.as_ref())
                     )
                 }
                 ParserErrorKind::InvalidImportPath(ip) => {
                     write!(
                         f,
-                        "\nError: Invalid Import Path: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Import Path: \"{}\" \n{}\n",
+                        pe.cursor,
                         ip,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -477,7 +498,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidDecoratorFlag(df) => {
                     write!(
                         f,
-                        "\nError: Invalid Decorator Flag: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Decorator Flag: \"{}\" \n{}\n",
+                        pe.cursor,
                         df,
                         pe.spans.error(pe.hint.as_ref())
                     )
@@ -485,7 +507,8 @@ impl fmt::Display for CompilerError {
                 ParserErrorKind::InvalidDecoratorFlagArg(dfa) => {
                     write!(
                         f,
-                        "\nError: Invalid Decorator Flag Argument: \"{}\" \n{}\n",
+                        "\nError at token {}: Invalid Decorator Flag Argument: \"{}\" \n{}\n",
+                        pe.cursor,
                         dfa,
                         pe.spans.error(pe.hint.as_ref())
                     )
