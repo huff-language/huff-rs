@@ -135,7 +135,7 @@ impl Parser {
                     )),
                     spans: AstSpan(self.spans.clone()),
                     cursor: self.cursor,
-                })
+                });
             }
         }
 
@@ -161,7 +161,7 @@ impl Parser {
                     hint: Some(format!("Expected import string. Got: \"{tok}\"")),
                     spans: AstSpan(new_spans),
                     cursor: self.cursor,
-                })
+                });
             }
         };
 
@@ -202,6 +202,7 @@ impl Parser {
                 kind: ParserErrorKind::DuplicateMacro(m.name.to_owned()),
                 hint: Some("MACRO names should be unique".to_string()),
                 spans: AstSpan(vec![m.span[2].clone()]),
+                cursor: self.cursor,
             })
         } else {
             Ok(())
@@ -262,7 +263,7 @@ impl Parser {
                     hint: Some(format!("Expected function name, found: \"{tok}\"")),
                     spans: AstSpan(self.spans.clone()),
                     cursor: self.cursor,
-                })
+                });
             }
         };
 
@@ -326,7 +327,7 @@ impl Parser {
                     hint: Some(format!("Expected event name, found: \"{tok}\"")),
                     spans: AstSpan(self.spans.clone()),
                     cursor: self.cursor,
-                })
+                });
             }
         };
 
@@ -358,7 +359,7 @@ impl Parser {
                     hint: Some("Expected constant name.".to_string()),
                     spans: AstSpan(self.spans.clone()),
                     cursor: self.cursor,
-                })
+                });
             }
         };
 
@@ -384,8 +385,11 @@ impl Parser {
                     ),
                     spans: AstSpan(vec![self.current_token.span.clone()]),
                     cursor: self.cursor,
-                })
+                });
             }
+        };
+
+        // Clone spans and set to nothing
         let new_spans = self.spans.clone();
         self.spans = vec![];
 
@@ -410,7 +414,7 @@ impl Parser {
                     hint: Some("Expected error name.".to_string()),
                     spans: AstSpan(self.spans.clone()),
                     cursor: self.cursor,
-                })
+                });
             }
         };
 
@@ -458,7 +462,7 @@ impl Parser {
                                 hint: Some(format!("Expected string for decorator flag: {s}")),
                                 spans: AstSpan(vec![self.current_token.span.clone()]),
                                 cursor: self.cursor,
-                            })
+                            });
                         }
                     }
                     // The value flag accepts a single literal as an argument
@@ -475,7 +479,7 @@ impl Parser {
                                 hint: Some(format!("Expected literal for decorator flag: {s}")),
                                 spans: AstSpan(vec![self.current_token.span.clone()]),
                                 cursor: self.cursor,
-                            })
+                            });
                         }
                     }
                     Err(_) => {
@@ -485,8 +489,11 @@ impl Parser {
                             hint: Some(format!("Unknown decorator flag: {s}")),
                             spans: AstSpan(self.spans.clone()),
                             cursor: self.cursor,
-                        })
+                        });
                     }
+                }
+
+                // Consume the closing parenthesis
                 self.match_kind(TokenKind::CloseParen)?;
 
                 // Multiple flags are possible
@@ -501,7 +508,7 @@ impl Parser {
                     hint: Some(String::from("Unknown decorator flag")),
                     spans: AstSpan(self.spans.clone()),
                     cursor: self.cursor,
-                })
+                });
             }
         }
 
@@ -715,7 +722,7 @@ impl Parser {
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                         cursor: self.cursor,
-                    })
+                    });
                 }
             };
         }
@@ -829,7 +836,7 @@ impl Parser {
                         hint: None,
                         spans: AstSpan(vec![self.current_token.span.clone()]),
                         cursor: self.cursor,
-                    })
+                    });
                 }
             };
         }
@@ -961,7 +968,7 @@ impl Parser {
                                     )),
                                     spans: AstSpan(vec![self.current_token.span.clone()]),
                                     cursor: self.cursor,
-                                })
+                                });
                             }
                         }
                         TokenKind::PrimitiveType(ty) => {
@@ -996,7 +1003,7 @@ impl Parser {
                     hint: None,
                     spans: AstSpan(vec![self.current_token.span.clone()]),
                     cursor: self.cursor,
-                })
+                });
             }
 
             arg.span = AstSpan(arg_spans);
@@ -1076,7 +1083,7 @@ impl Parser {
                         ),
                         spans: AstSpan(new_spans),
                         cursor: self.cursor,
-                    })
+                    });
                 }
             }
             if self.check(TokenKind::Comma) {
@@ -1303,6 +1310,9 @@ impl Parser {
                         cursor: self.cursor,
                     })
                 }
+                Ok(self.match_kind(self.current_token.kind.clone())?)
+            }
+            PrimitiveEVMType::Bool => Ok(self.match_kind(self.current_token.kind.clone())?),
             PrimitiveEVMType::Address => Ok(self.match_kind(self.current_token.kind.clone())?),
             PrimitiveEVMType::String => Ok(self.match_kind(self.current_token.kind.clone())?),
             PrimitiveEVMType::DynBytes => Ok(self.match_kind(self.current_token.kind.clone())?),
