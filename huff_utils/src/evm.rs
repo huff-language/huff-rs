@@ -6,7 +6,7 @@ use strum_macros::EnumString;
 /// They are arranged in a particular order such that all the opcodes that have common
 /// prefixes are ordered by decreasing length to avoid mismatch when lexing.
 /// Example : [origin, or] or [push32, ..., push3]
-pub const OPCODES: [&str; 147] = [
+pub const OPCODES: [&str; 150] = [
     "lt",
     "gt",
     "slt",
@@ -29,6 +29,8 @@ pub const OPCODES: [&str; 147] = [
     "codesize",
     "codecopy",
     "basefee",
+    "blobhash",
+    "blobbasefee",
     "blockhash",
     "coinbase",
     "timestamp",
@@ -79,6 +81,7 @@ pub const OPCODES: [&str; 147] = [
     "log4",
     "tload",
     "tstore",
+    "mcopy",
     "create2",
     "create",
     "callcode",
@@ -180,6 +183,8 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "codesize" => Opcode::Codesize,
     "codecopy" => Opcode::Codecopy,
     "basefee" => Opcode::Basefee,
+    "blobhash" => Opcode::Blobhash,
+    "blobbasefee" => Opcode::Blobbasefee,
     "blockhash" => Opcode::Blockhash,
     "coinbase" => Opcode::Coinbase,
     "timestamp" => Opcode::Timestamp,
@@ -199,6 +204,7 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "jumpi" => Opcode::Jumpi,
     "pc" => Opcode::Pc,
     "msize" => Opcode::Msize,
+    "mcopy" => Opcode::Mcopy,
     "push0" => Opcode::Push0,
     "push1" => Opcode::Push1,
     "push2" => Opcode::Push2,
@@ -293,8 +299,8 @@ pub static OPCODES_MAP: phf::Map<&'static str, Opcode> = phf_map! {
     "log2" => Opcode::Log2,
     "log3" => Opcode::Log3,
     "log4" => Opcode::Log4,
-    "tload" => Opcode::TLoad,
-    "tstore" => Opcode::TStore,
+    "tload" => Opcode::Tload,
+    "tstore" => Opcode::Tstore,
     "create" => Opcode::Create,
     "call" => Opcode::Call,
     "callcode" => Opcode::Callcode,
@@ -416,6 +422,10 @@ pub enum Opcode {
     Selfbalance,
     /// Base Fee
     Basefee,
+    /// Versioned hashes of blobs associated with the transaction.
+    Blobhash,
+    /// Blob base fee of the current block.
+    Blobbasefee,
     /// Removes an Item from the Stack
     Pop,
     /// Loads a word from Memory
@@ -581,9 +591,11 @@ pub enum Opcode {
     /// Append Log Record with 4 Topics
     Log4,
     /// Transaction-persistent, but storage-ephemeral variable load
-    TLoad,
+    Tload,
     /// Transaction-persistent, but storage-ephemeral variable store
-    TStore,
+    Tstore,
+    /// Copies an area of memory from src to dst. Areas can overlap.
+    Mcopy,
     /// Create a new account with associated code
     Create,
     /// Message-call into an account
@@ -666,6 +678,8 @@ impl Opcode {
             Opcode::Chainid => "46",
             Opcode::Selfbalance => "47",
             Opcode::Basefee => "48",
+            Opcode::Blobhash => "49",
+            Opcode::Blobbasefee => "4a",
             Opcode::Pop => "50",
             Opcode::Mload => "51",
             Opcode::Mstore => "52",
@@ -678,6 +692,9 @@ impl Opcode {
             Opcode::Msize => "59",
             Opcode::Gas => "5a",
             Opcode::Jumpdest => "5b",
+            Opcode::Tload => "5c",
+            Opcode::Tstore => "5d",
+            Opcode::Mcopy => "5e",
             Opcode::Push0 => "5f",
             Opcode::Push1 => "60",
             Opcode::Push2 => "61",
@@ -748,8 +765,6 @@ impl Opcode {
             Opcode::Log2 => "a2",
             Opcode::Log3 => "a3",
             Opcode::Log4 => "a4",
-            Opcode::TLoad => "b3",
-            Opcode::TStore => "b4",
             Opcode::Create => "f0",
             Opcode::Call => "f1",
             Opcode::Callcode => "f2",
@@ -814,7 +829,7 @@ impl Opcode {
                         let zeros_needed = size - literal.len() as u8;
                         let zero_prefix =
                             (0..zeros_needed).map(|_| "0").collect::<Vec<&str>>().join("");
-                        return format!("{zero_prefix}{literal}")
+                        return format!("{zero_prefix}{literal}");
                     }
                 }
             }
@@ -829,7 +844,7 @@ impl Opcode {
             if let Ok(len) = u8::from_str_radix(&self.to_string(), 16) {
                 if len >= 96 {
                     let size = (len - 96 + 1) * 2;
-                    return literal.len() > size as usize
+                    return literal.len() > size as usize;
                 }
             }
         }

@@ -58,11 +58,11 @@ pub fn resolve_existing_artifacts(
                     Some(expected_fs) => {
                         if !artifact.bytecode.ends_with(&constructor_args) {
                             tracing::warn!(target: "core", "Mismatched Constructor Args for Cached Artifact \"{}\"", artifact.file.path);
-                            return None
+                            return None;
                         }
                         if artifact.file.source != expected_fs.source {
                             tracing::warn!(target: "core", "Cache Resolution Failed: \"{}\" Artifact Outdated", artifact.file.path);
-                            return None
+                            return None;
                         } else {
                             artifacts.push((expected_fs, artifact));
                         }
@@ -77,7 +77,7 @@ pub fn resolve_existing_artifacts(
                 tracing::error!(target: "core", "Invalid artifact file: {}", e);
                 if expected.is_some() {
                     tracing::error!(target: "core", "Expected artifact file to be compiled: {}", entry.path().display());
-                    return None
+                    return None;
                 }
             }
         }

@@ -71,7 +71,7 @@ impl<'a> FileProvider<'a> for FileSystemFileProvider {
                     }
                     Err(e) => {
                         tracing::error!(target: "core", "ERROR UNPACKING FILE: {:?}", e);
-                        return Err(CompilerError::FileUnpackError(e))
+                        return Err(CompilerError::FileUnpackError(e));
                     }
                 }
             }

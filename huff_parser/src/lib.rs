@@ -34,7 +34,7 @@ pub struct Parser {
 impl Parser {
     /// Public associated function that instantiates a Parser.
     pub fn new(tokens: Vec<Token>, base: Option<String>) -> Self {
-        let initial_token = tokens.get(0).unwrap().clone();
+        let initial_token = tokens.first().unwrap().clone();
         let remapper = files::Remapper::new("./");
         Self { tokens, cursor: 0, current_token: initial_token, base, spans: vec![], remapper }
     }
@@ -43,7 +43,7 @@ impl Parser {
     ///
     /// PANICS if the tokens vec is empty!
     pub fn reset(&mut self) {
-        self.current_token = self.tokens.get(0).unwrap().clone();
+        self.current_token = self.tokens.first().unwrap().clone();
         self.cursor = 0;
     }
 
@@ -104,6 +104,7 @@ impl Parser {
                     TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
                         let m = self.parse_macro()?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
+                        self.check_duplicate_macro(&contract, &m)?;
                         contract.macros.push(m);
                     }
                     TokenKind::JumpTable | TokenKind::JumpTablePacked | TokenKind::CodeTable => {
@@ -189,6 +190,24 @@ impl Parser {
         std::mem::discriminant(&self.current_token.kind) == std::mem::discriminant(&kind)
     }
 
+    /// Checks if there is a duplicate macro name
+    pub fn check_duplicate_macro(
+        &self,
+        contract: &Contract,
+        m: &MacroDefinition,
+    ) -> Result<(), ParserError> {
+        if contract.macros.binary_search_by(|_macro| _macro.name.cmp(&m.name)).is_ok() {
+            tracing::error!(target: "parser", "DUPLICATE MACRO NAME FOUND: {}",  m.name);
+            Err(ParserError {
+                kind: ParserErrorKind::DuplicateMacro(m.name.to_owned()),
+                hint: Some("MACRO names should be unique".to_string()),
+                spans: AstSpan(vec![m.span[2].clone()]),
+            })
+        } else {
+            Ok(())
+        }
+    }
+
     /// Consumes the next token.
     pub fn consume(&mut self) {
         self.spans.push(self.current_token.span.clone());
@@ -201,7 +220,7 @@ impl Parser {
         loop {
             let token = self.peek().unwrap();
             if !kinds.contains(&token.kind) {
-                break
+                break;
             }
             self.current_token = token;
             self.cursor += 1;
@@ -367,9 +386,6 @@ impl Parser {
                     cursor: self.cursor,
                 })
             }
-        };
-
-        // Clone spans and set to nothing
         let new_spans = self.spans.clone();
         self.spans = vec![];
 
@@ -471,9 +487,6 @@ impl Parser {
                             cursor: self.cursor,
                         })
                     }
-                }
-
-                // Consume the closing parenthesis
                 self.match_kind(TokenKind::CloseParen)?;
 
                 // Multiple flags are possible
@@ -651,7 +664,9 @@ impl Parser {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.consume();
                     let inner_statements: Vec<Statement> = self.parse_label()?;
-                    inner_statements.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
+                    inner_statements
+                        .iter()
+                        .for_each(|a| curr_spans.extend_from_slice(a.span.inner_ref()));
                     tracing::info!(target: "parser", "PARSED LABEL \"{}\" INSIDE MACRO WITH {} STATEMENTS.", l, inner_statements.len());
                     statements.push(Statement {
                         ty: StatementType::Label(Label {
@@ -682,7 +697,7 @@ impl Parser {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.match_kind(TokenKind::BuiltinFunction(String::default()))?;
                     let args = self.parse_args(true, false, false, true)?;
-                    args.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
+                    args.iter().for_each(|a| curr_spans.extend_from_slice(a.span.inner_ref()));
                     tracing::info!(target: "parser", "PARSING MACRO BODY: [BUILTIN FN: {}({:?})]", f, args);
                     statements.push(Statement {
                         ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
@@ -796,7 +811,7 @@ impl Parser {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.match_kind(TokenKind::BuiltinFunction(String::default()))?;
                     let args = self.parse_args(true, false, false, true)?;
-                    args.iter().for_each(|a| curr_spans.extend_from_slice(&a.span.0));
+                    args.iter().for_each(|a| curr_spans.extend_from_slice(a.span.inner_ref()));
                     tracing::info!(target: "parser", "PARSING LABEL BODY: [BUILTIN FN: {}({:?})]", f, args);
                     statements.push(Statement {
                         ty: StatementType::BuiltinFunctionCall(BuiltinFunctionCall {
@@ -866,7 +881,7 @@ impl Parser {
                         self.consume();
                         on_type = true;
                     }
-                    continue
+                    continue;
                 }
 
                 // Check for literals
@@ -886,7 +901,7 @@ impl Parser {
                         self.consume();
                         on_type = true;
                     }
-                    continue
+                    continue;
                 }
             }
 
@@ -1288,9 +1303,6 @@ impl Parser {
                         cursor: self.cursor,
                     })
                 }
-                Ok(self.match_kind(self.current_token.kind.clone())?)
-            }
-            PrimitiveEVMType::Bool => Ok(self.match_kind(self.current_token.kind.clone())?),
             PrimitiveEVMType::Address => Ok(self.match_kind(self.current_token.kind.clone())?),
             PrimitiveEVMType::String => Ok(self.match_kind(self.current_token.kind.clone())?),
             PrimitiveEVMType::DynBytes => Ok(self.match_kind(self.current_token.kind.clone())?),
