@@ -151,7 +151,7 @@ fn main() {
     if cli.path.is_none() {
         // Print help and exit
         app.print_help().unwrap();
-        return
+        return;
     }
 
     // Create compiler from the Huff Args
@@ -303,7 +303,7 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        return
+        return;
     }
 
     if let Some(TestCommands::Test { format, match_ }) = cli.test {
@@ -332,7 +332,7 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        return
+        return;
     }
 
     // Create compiling spinner

@@ -251,7 +251,7 @@ fn test_invalid_single_arg() {
             !random_char.is_alphabetic() ||
             random_char.to_string().as_bytes().len() > 1
         {
-            continue
+            continue;
         }
         let source = &format!("#define macro CONSTANT() = takes ({random_char}) returns (0) {{}}");
 

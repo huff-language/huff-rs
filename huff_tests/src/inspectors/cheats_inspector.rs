@@ -88,7 +88,7 @@ where
 
                 // Check if we have exactly one 32 byte input
                 if call.input.len() != 96 {
-                    return (InstructionResult::Revert, remaining_gas, out)
+                    return (InstructionResult::Revert, remaining_gas, out);
                 }
 
                 let log_item = hex::encode(&call.input[64..96]);

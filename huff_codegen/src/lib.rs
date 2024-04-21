@@ -154,7 +154,7 @@ impl Codegen {
                         .collect::<Vec<Span>>(),
                 ),
                 token: None,
-            })
+            });
         }
 
         tracing::info!(target: "codegen", "GENERATING JUMPTABLE BYTECODE");
@@ -300,7 +300,7 @@ impl Codegen {
         let circular_codesize_invocations = circular_codesize_invocations.unwrap_or(&mut ccsi);
 
         // Loop through all intermediate bytecode representations generated from the AST
-        for (_ir_bytes_index, ir_byte) in ir_bytes.iter().enumerate() {
+        for ir_byte in ir_bytes.iter() {
             let starting_offset = offset;
             match &ir_byte.ty {
                 IRByteType::Bytes(b) => {
@@ -317,7 +317,7 @@ impl Codegen {
                     // if we have a codesize call for the constructor here, from within the
                     // constructor, we skip
                     if recursing_constructor {
-                        continue
+                        continue;
                     }
                     let mut push_bytes = statement_gen(
                         evm_version,
@@ -475,13 +475,13 @@ impl Codegen {
     /// On failure, returns a CodegenError.
     pub fn fill_circular_codesize_invocations(
         bytes: Vec<(usize, Bytes)>,
-        circular_codesize_invocations: &mut CircularCodeSizeIndices,
+        circular_codesize_invocations: &CircularCodeSizeIndices,
         macro_name: &str,
     ) -> Result<Vec<(usize, Bytes)>, CodegenError> {
         // Get the length of the macro
         let num_invocations = circular_codesize_invocations.len();
         if num_invocations == 0 {
-            return Ok(bytes)
+            return Ok(bytes);
         }
 
         tracing::debug!(target: "codegen", "Circular Codesize Invocation: Bytes before expansion: {:#?}", bytes);
@@ -706,7 +706,7 @@ impl Codegen {
                 kind: CodegenErrorKind::InvalidDynArgIndex,
                 span: AstSpan(vec![Span { start: 0, end: 0, file: None }]),
                 token: None,
-            })
+            });
         }
 
         // Constructor size optimizations
@@ -781,7 +781,7 @@ impl Codegen {
                         })),
                     }]),
                     token: None,
-                })
+                });
             }
         }
         if let Err(e) = fs::write(file_path, serialized_artifact) {
@@ -799,7 +799,7 @@ impl Codegen {
                     })),
                 }]),
                 token: None,
-            })
+            });
         }
         Ok(())
     }
