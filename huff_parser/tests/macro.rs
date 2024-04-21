@@ -1291,7 +1291,7 @@ fn test_duplicate_macro_error() {
                         end: occurrences[1].1,
                         file: None
                     }]),
-                    cursor: 58, 
+                    cursor: 58,
                 }
             )
         }
