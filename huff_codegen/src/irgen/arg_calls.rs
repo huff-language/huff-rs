@@ -1,6 +1,8 @@
 use huff_utils::prelude::*;
 use std::str::FromStr;
 
+use crate::Codegen;
+
 // Arguments can be literals, labels, opcodes, or constants
 // !! IF THERE IS AMBIGUOUS NOMENCLATURE
 // !! (E.G. BOTH OPCODE AND LABEL ARE THE SAME STRING)
@@ -9,6 +11,7 @@ use std::str::FromStr;
 /// Arg Call Bubbling
 #[allow(clippy::too_many_arguments)]
 pub fn bubble_arg_call(
+    evm_version: &EVMVersion,
     arg_name: &str,
     bytes: &mut Vec<(usize, Bytes)>,
     macro_def: &MacroDefinition,
@@ -18,6 +21,9 @@ pub fn bubble_arg_call(
     // mis: Parent macro invocations and their indices
     mis: &mut [(usize, MacroInvocation)],
     jump_table: &mut JumpTable,
+    circular_codesize_invocations: &mut CircularCodeSizeIndices,
+    label_indices: &mut LabelIndices,
+    table_instances: &mut Jumps,
 ) -> Result<(), CodegenError> {
     let starting_offset = *offset;
 
@@ -70,6 +76,7 @@ pub fn bubble_arg_call(
                         let ac_ = &ac.to_string();
                         return if last_mi.1.macro_name.eq(&macro_def.name) {
                             bubble_arg_call(
+                                evm_version,
                                 ac_,
                                 bytes,
                                 bubbled_macro_invocation,
@@ -78,9 +85,13 @@ pub fn bubble_arg_call(
                                 offset,
                                 &mut mis[..mis_len.saturating_sub(1)],
                                 jump_table,
+                                circular_codesize_invocations,
+                                label_indices,
+                                table_instances,
                             )
                         } else {
                             bubble_arg_call(
+                                evm_version,
                                 ac_,
                                 bytes,
                                 bubbled_macro_invocation,
@@ -89,14 +100,24 @@ pub fn bubble_arg_call(
                                 offset,
                                 mis,
                                 jump_table,
+                                circular_codesize_invocations,
+                                label_indices,
+                                table_instances,
                             )
                         };
                     }
                     MacroArg::Ident(iden) => {
                         tracing::debug!(target: "codegen", "Found MacroArg::Ident IN \"{}\" Macro Invocation: \"{}\"!", macro_invoc.1.macro_name, iden);
 
-                        // Check for a constant first
-                        if let Some(constant) = contract
+                        // The opcode check needs to happens before the constants lookup
+                        // because otherwise the mutex can deadlock when bubbling up to
+                        // resolve macros as arguments.
+                        if let Ok(o) = Opcode::from_str(iden) {
+                            tracing::debug!(target: "codegen", "Found Opcode: {}", o);
+                            let b = Bytes(o.to_string());
+                            *offset += b.0.len() / 2;
+                            bytes.push((starting_offset, b));
+                        } else if let Some(constant) = contract
                             .constants
                             .lock()
                             .map_err(|_| {
@@ -130,11 +151,62 @@ pub fn bubble_arg_call(
                             *offset += push_bytes.len() / 2;
                             tracing::info!(target: "codegen", "OFFSET: {}, PUSH BYTES: {:?}", offset, push_bytes);
                             bytes.push((starting_offset, Bytes(push_bytes)));
-                        } else if let Ok(o) = Opcode::from_str(iden) {
-                            tracing::debug!(target: "codegen", "Found Opcode: {}", o);
-                            let b = Bytes(o.to_string());
-                            *offset += b.0.len() / 2;
-                            bytes.push((starting_offset, b));
+                        } else if let Some(ir_macro) = contract.find_macro_by_name(iden) {
+                            tracing::debug!(target: "codegen", "ARG CALL IS MACRO: {}", iden);
+                            tracing::debug!(target: "codegen", "CURRENT MACRO DEF: {}", macro_def.name);
+
+                            let mut new_scopes = scope.to_vec();
+                            new_scopes.push(ir_macro);
+                            let mut new_mis = mis.to_vec();
+                            new_mis.push((
+                                *offset,
+                                MacroInvocation {
+                                    macro_name: iden.to_string(),
+                                    args: vec![],
+                                    span: AstSpan(vec![]),
+                                },
+                            ));
+
+                            let mut res: BytecodeRes = match Codegen::macro_to_bytecode(
+                                evm_version,
+                                ir_macro,
+                                contract,
+                                &mut new_scopes,
+                                *offset,
+                                &mut new_mis,
+                                false,
+                                Some(circular_codesize_invocations),
+                            ) {
+                                Ok(r) => r,
+                                Err(e) => {
+                                    tracing::error!(
+                                        target: "codegen",
+                                        "FAILED TO RECURSE INTO MACRO \"{}\"",
+                                        ir_macro.name
+                                    );
+                                    return Err(e)
+                                }
+                            };
+
+                            for j in res.unmatched_jumps.iter_mut() {
+                                let new_index = j.bytecode_index;
+                                j.bytecode_index = 0;
+                                let mut new_jumps = if let Some(jumps) = jump_table.get(&new_index)
+                                {
+                                    jumps.clone()
+                                } else {
+                                    vec![]
+                                };
+                                new_jumps.push(j.clone());
+                                jump_table.insert(new_index, new_jumps);
+                            }
+                            table_instances.extend(res.table_instances);
+                            label_indices.extend(res.label_indices);
+
+                            // Increase offset by byte length of recursed macro
+                            *offset += res.bytes.iter().map(|(_, b)| b.0.len()).sum::<usize>() / 2;
+                            // Add the macro's bytecode to the final result
+                            res.bytes.iter().for_each(|(a, b)| bytes.push((*a, b.clone())));
                         } else {
                             tracing::debug!(target: "codegen", "Found Label Call: {}", iden);
 
