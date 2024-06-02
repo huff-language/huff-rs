@@ -1,0 +1,42 @@
+name: Publish-wasm
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Create
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Get version tag
+        id: vars
+        run: |
+          export pkg_version=${GITHUB_REF#refs/*/}
+          echo "tag=$pkg_version" >> $GITHUB_OUTPUT
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: cargo
+
+      - name: Install Wasm Pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build
+        env:
+          PACKAGE_VERSION: ${{ steps.vars.outputs.tag }}
+        working-directory: ./huff_js
+        run: ./scripts/make_packages.sh
+
+      - name: Publish to NPM
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
