@@ -1,6 +1,6 @@
 use huff_lexer::*;
 use huff_parser::*;
-use huff_utils::{evm::Opcode, prelude::*};
+use huff_utils::{error::ParserErrorKind, evm::Opcode, prelude::*};
 
 #[test]
 fn multiline_labels() {
@@ -432,4 +432,30 @@ pub fn builtins_under_labels() {
         assert_eq!(s.ty, md_expected.statements[i].ty);
         assert_eq!(s.span, md_expected.statements[i].span);
     }
+}
+
+#[test]
+fn duplicated_labels() {
+    let source = r#"
+    #define macro MAIN() = takes(0) returns(0) {
+        cool_label jump
+        cool_label jump
+
+        cool_label: 0x00
+        dup_label: 0x00
+        dup_label: 0x00
+    }
+    "#;
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source.source);
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    let parse_result = parser.parse();
+    assert!(parse_result.is_err());
+    assert_eq!(
+        parse_result.unwrap_err().kind,
+        ParserErrorKind::DuplicateLabel("dup_label".to_string())
+    );
 }

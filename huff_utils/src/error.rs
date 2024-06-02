@@ -63,6 +63,8 @@ pub enum ParserErrorKind {
     InvalidDecoratorFlag(String),
     /// Invalid decorator flag argument
     InvalidDecoratorFlagArg(TokenKind),
+    /// Duplicate label
+    DuplicateLabel(String),
     /// Duplicate MACRO
     DuplicateMacro(String),
 }
@@ -487,6 +489,14 @@ impl fmt::Display for CompilerError {
                         f,
                         "\nError: Invalid Decorator Flag Argument: \"{}\" \n{}\n",
                         dfa,
+                        pe.spans.error(pe.hint.as_ref())
+                    )
+                }
+                ParserErrorKind::DuplicateLabel(label) => {
+                    write!(
+                        f,
+                        "\nError: Duplicate label: \"{}\" \n{}\n",
+                        label,
                         pe.spans.error(pe.hint.as_ref())
                     )
                 }

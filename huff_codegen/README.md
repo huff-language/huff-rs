@@ -94,6 +94,7 @@ let contract = Contract {
   functions: vec![],
   events: vec![],
   tables: vec![],
+  labels: vec![],
 };
 
 // Generate the main bytecode
@@ -149,6 +150,7 @@ let contract = Contract {
   functions: vec![],
   events: vec![],
   tables: vec![],
+  labels: vec![],
 };
 
 // Generate the constructor bytecode

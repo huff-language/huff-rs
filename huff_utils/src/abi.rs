@@ -30,6 +30,7 @@
 //!     }],
 //!     events: vec![],
 //!     tables: vec![],
+//!     labels: vec![],
 //! };
 //!
 //! // Create an ABI using that generate contract

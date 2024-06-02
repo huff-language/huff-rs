@@ -70,7 +70,7 @@ impl Parser {
             }
             // Check for a decorator above a test macro
             else if self.check(TokenKind::Pound) {
-                let m = self.parse_macro()?;
+                let m = self.parse_macro(&mut contract)?;
                 tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
                 contract.macros.push(m);
             }
@@ -102,7 +102,7 @@ impl Parser {
                         contract.errors.push(e);
                     }
                     TokenKind::Macro | TokenKind::Fn | TokenKind::Test => {
-                        let m = self.parse_macro()?;
+                        let m = self.parse_macro(&mut contract)?;
                         tracing::info!(target: "parser", "SUCCESSFULLY PARSED MACRO {}", m.name);
                         self.check_duplicate_macro(&contract, &m)?;
                         contract.macros.push(m);
@@ -184,6 +184,26 @@ impl Parser {
     /// Check the current token's type against the given type.
     pub fn check(&mut self, kind: TokenKind) -> bool {
         std::mem::discriminant(&self.current_token.kind) == std::mem::discriminant(&kind)
+    }
+
+    /// Checks whether the input label is unique.
+    /// If so, it will be added to the contract. Otherwise, an error will be returned.
+    fn check_duplicate_label(
+        &self,
+        contract: &mut Contract,
+        label: String,
+    ) -> Result<(), ParserError> {
+        if contract.labels.binary_search_by(|_label| _label.cmp(&label)).is_ok() {
+            tracing::error!(target: "parser", "DUPLICATED LABEL NAME: {}", label);
+            Err(ParserError {
+                kind: ParserErrorKind::DuplicateLabel(label.clone()),
+                hint: Some(format!("Duplicated label name: \"{label}\"")),
+                spans: AstSpan(self.spans.clone()),
+            })
+        } else {
+            contract.labels.push(label);
+            Ok(())
+        }
     }
 
     /// Checks if there is a duplicate macro name
@@ -506,7 +526,7 @@ impl Parser {
     /// Parses a macro.
     ///
     /// It should parse the following : macro MACRO_NAME(args...) = takes (x) returns (n) {...}
-    pub fn parse_macro(&mut self) -> Result<MacroDefinition, ParserError> {
+    pub fn parse_macro(&mut self, contract: &mut Contract) -> Result<MacroDefinition, ParserError> {
         let mut decorator: Option<Decorator> = None;
         if self.check(TokenKind::Pound) {
             decorator = Some(self.parse_decorator()?);
@@ -538,7 +558,7 @@ impl Parser {
         let macro_returns =
             self.match_kind(TokenKind::Returns).map_or(Ok(0), |_| self.parse_single_arg())?;
 
-        let macro_statements: Vec<Statement> = self.parse_body()?;
+        let macro_statements: Vec<Statement> = self.parse_body(contract)?;
 
         Ok(MacroDefinition::new(
             macro_name,
@@ -556,7 +576,7 @@ impl Parser {
     /// Parse the body of a macro.
     ///
     /// Only HEX, OPCODES, labels, builtins, and MACRO calls should be authorized.
-    pub fn parse_body(&mut self) -> Result<Vec<Statement>, ParserError> {
+    pub fn parse_body(&mut self, contract: &mut Contract) -> Result<Vec<Statement>, ParserError> {
         let mut statements: Vec<Statement> = Vec::new();
         self.match_kind(TokenKind::OpenBrace)?;
         tracing::info!(target: "parser", "PARSING MACRO BODY");
@@ -653,6 +673,7 @@ impl Parser {
                 TokenKind::Label(l) => {
                     let mut curr_spans = vec![self.current_token.span.clone()];
                     self.consume();
+                    self.check_duplicate_label(contract, l.to_string())?;
                     let inner_statements: Vec<Statement> = self.parse_label()?;
                     inner_statements
                         .iter()
