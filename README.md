@@ -1,8 +1,12 @@
 <img align="right" width="150" height="150" top="100" src="./assets/huff.png">
 
+> [!WARNING]
+> `huff-rs` (aka **legacy** huff) is deprecated and no longer maintained, go see [huff2](https://github.com/huff-language/huff2) for the renewed compiler.
+
 # huff-rs • [![ci](https://github.com/huff-language/huff-rs/actions/workflows/ci.yaml/badge.svg)](https://github.com/huff-language/huff-rs/actions/workflows/ci.yaml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) ![Crates.io](https://img.shields.io/crates/v/huff-rs) ![Discord](https://img.shields.io/discord/980519274600882306)
 
 > `huff-rs` is a [Huff](https://github.com/huff-language) compiler built in rust.
+
 
 ## What is a Huff?
 
