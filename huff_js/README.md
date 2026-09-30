@@ -1,6 +1,6 @@
 # Huff JS
 
-A wasm compatible interface to the [Huff](https://huff.sh) Core Compiler.
+A wasm compatible interface to the [Huff](https://github.com/huff-language) Core Compiler.
 
 ## Building
 
