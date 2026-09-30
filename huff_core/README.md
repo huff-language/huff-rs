@@ -1,6 +1,6 @@
 ## Huff Core
 
-Core [Compiler](struct.Compiler.html) for the [Huff Language](https://huff.sh).
+Core [Compiler](struct.Compiler.html) for the [Huff Language](https://github.com/huff-language).
 
 #### Usage
 

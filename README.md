@@ -18,16 +18,16 @@ Rather than having functions, Huff has macros - individual blocks of bytecode th
 
 While EVM experts can use Huff to write highly-efficient smart contracts for use in production, it can also serve as a way for beginners to learn more about the EVM.
 
-To dive deeper into [Huff](https://github.com/huff-language), visit the [Official Huff Docs](https://huff.sh)(also available on [github](https://github.com/huff-language/huff-docs)).
+To dive deeper into [Huff](https://github.com/huff-language), visit the [Official Huff Docs](https://github.com/huff-language/huff-docs).
 
 ## Installation
 
-_Something not working? Send a message in [discord](https://discord.huff.sh)._
+_Something not working? [Open an issue](https://github.com/huff-language/huff-rs/issues)._
 
 First run the command below to get `huffup`, the Huff installer:
 
 ```bash
-curl -L get.huff.sh | bash
+curl -L https://raw.githubusercontent.com/huff-language/huff-rs/main/huffup/install | bash
 ```
 
 To avoid redirecting the script directly into bash, download and run the [huffup installation script](https://raw.githubusercontent.com/huff-language/huff-rs/main/huffup/install).
